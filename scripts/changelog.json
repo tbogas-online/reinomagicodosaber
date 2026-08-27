@@ -1,0 +1,163 @@
+{
+  "current": [
+    "Motor de perguntas refactorizado: pipeline único de validação; aprovação/reprovação binária por issues (score 0–100 só diagnóstico).",
+    "Pesos das camadas de qualidade somam exactamente 100; 43 testes automatizados (scripts/test-question-engine.js).",
+    "Categoria Tecnologia: rejeição automática de transportes (carros, aviões, comboios…) e espaço (foguetões, astronautas…).",
+    "Futebol em PT-PT reforçado: guarda-redes, relvado/campo de relva, rejeição de «campo de grama», «goleiro» e calques brasileiros.",
+    "Opções MC: detecção de duplicados melhorada (Carro≠Caro; typo Wooody≈Woody); histórico de posição por sessão, sem estado global.",
+    "Novo Jogo limpa knowledgeKeys, posições MC, dificuldades e subtópicos da sessão.",
+    "Correcção: distractores inválidos da IA (assembleMcOptions) já não rebentam o jogo.",
+    "Validação com base em reportes: estrada para carros, flor da planta, Roald Dahl+rato, V/F sem falso positivo de repetição.",
+    "Página /test-questions.html para gerar, validar e dar feedback ao motor; localStorage seguro fora do browser.",
+    "Gastronomia: rejeição factual de pastel de nata fora de Lisboa/Belém e francesinha fora do Porto.",
+    "ADIVINHA MC: rejeita adivinhas onde mapa e globo terráqueo são ambas defensáveis (ex.: cidades sem casas, montanhas sem árvores)."
+  ],
+  "history": [
+    {
+      "date": "26/08/2026",
+      "version": "20260826-180430",
+      "title": "26/08/2026 · 18:04",
+      "items": [
+        "Atualização automática: Service Worker + verificação de versão — banner «Atualizar agora» sem limpar cache manualmente.",
+        "Cache busting por deploy: meta app-build, question-engine.js?v=…, app-update.js e sw.js sincronizados em cada build.",
+        "Painel admin: seleccionar vários reportes e Resolver / Cancelar / Reabrir / Apagar (cancelados) em massa.",
+        "Dashboard admin: gráfico empilhado por tipo; clique num tipo filtra gráficos e tabela; cores fixas por problema.",
+        "Estados Por tratar / Resolvido / Cancelado — cancelados fora dos gráficos e removíveis permanentemente.",
+        "Geografia (ONDE_FICA): perguntas ambíguas rejeitadas — ex. «Onde fica o rio Tejo?» com países.",
+        "Ecrã Sobre: reportar problema do site/app (bugs, layout, lentidão, sugestões) — separado dos reportes de perguntas.",
+        "Ecrã Sobre: sincroniza estado dos reportes (Por tratar / Corrigido), remove cancelados e resolvidos após 24 h.",
+        "Reportar problema: opção «Sugestão de melhoria» e versão do jogo incluída em cada reporte.",
+        "Validação reforçada com base em reportes reais: adivinhas ambíguas, factos incorrectos (Óscar, animais), bica/galão, Pooh/Winnie, Lua em Geografia 6–9, etc.",
+        "Export CSV: colunas estado e resolvidoEm (data/hora em Portugal quando marcado resolvido).",
+        "Fluxo de correção: ao analisares reportes no Cursor, o agente corrige a validação IA e marca resolvido via script."
+      ]
+    },
+    {
+      "date": "17/08/2026",
+      "version": "20260817-190332",
+      "title": "17/08/2026 · 19:03",
+      "items": [
+        "🚩 Reportes centralizados: cada jogador envia problemas ao servidor; o admin consulta todos em /admin-reports.html.",
+        "Reportes incluem tipo de dispositivo, sistema, browser, ecrã, idioma e ligação.",
+        "Caixa de sugestões no reportar problema: o jogador pode propor como melhorar a pergunta.",
+        "Categoria Tecnologia mais abrangente: invenções, energia, comunicações e robótica — não só computadores.",
+        "Dashboard admin com gráficos (24 h / 3 / 7 / 14 dias) por tipo, idade, dispositivo e categorias.",
+        "Modo dia com cores melhoradas também na página de teste de IA."
+      ]
+    },
+    {
+      "date": "16/08/2026",
+      "version": "20260816-161936",
+      "title": "16/08/2026 · 16:19",
+      "items": [
+        "Adequação etária reforçada nas faixas 6–9 e 10–15: temas, vocabulário e comprimento da pergunta.",
+        "Opções de escolha múltipla mais directas — nomes ou termos curtos, sem frases longas.",
+        "Respostas e opções só em inglês rejeitadas nas faixas 6–9 e 10–15 (nomes próprios internacionais continuam aceites).",
+        "Nomes de países em PT-PT: Irão (não Irã), Catar, Chéquia, Cabo Verde, Coreia do Sul/Norte.",
+        "Categoria Música mais variada: bandas, canções, álbuns, artistas, instrumentos, géneros e festivais.",
+        "Tempo por pergunta: 45 segundos por defeito.",
+        "Relógio compacto no canto ao fazer scroll, sem tapar a pergunta nem a barra da categoria.",
+        "O jogo deixa de ir offline só porque a validação da pergunta falhou — a IA tenta outra pergunta.",
+        "Validação 6–9: «O que é» aceita respostas curtas; «Quem é» limita nomes longos; opções quase iguais (Woody / Wooody) rejeitadas.",
+        "PT-PT: natação «estilo mariposa»; «a voar» (não «avoando»); recordes sem frases de empate confusas."
+      ]
+    },
+    {
+      "date": "16/08/2026",
+      "version": "20260816-101500",
+      "title": "16/08/2026 · 10:15",
+      "items": [
+        "Formato COMPLETA: lacuna «___» só no final da frase — mais fácil de ler em voz alta.",
+        "COMPLETA rejeita frases longas ou com texto depois da lacuna (ex.: «atravessou a ___ em 2012»).",
+        "Motor de perguntas refinado: ADIVINHA e CURIOSIDADE só na categoria «Adivinhas e Curiosidades».",
+        "QUEM_E e O_QUE_E com validação mais distinta (pessoa vs. conceito/termo).",
+        "Alternância de formatos: máximo 2 seguidos iguais; V/F ~20% das perguntas.",
+        "Validação semântica: similaridade, distratores absurdos, estereótipos e resposta na pergunta.",
+        "Formato QUANDO com mês, época e período; perguntas 6–9 anos mais curtas.",
+        "Relógio da pergunta com espaçamento automático face à barra «Categoria do dado»."
+      ]
+    },
+    {
+      "date": "16/08/2026",
+      "version": "20260816-100811",
+      "title": "16/08/2026 · 10:08",
+      "items": [
+        "Novo motor de perguntas com 12 formatos (resposta directa, escolha múltipla, V/F, Quem é, O que é, Completa, Onde fica, Quando, Causa-consequência, Situação prática, Adivinha, Curiosidade).",
+        "Matriz categoria × formato: cada categoria só gera formatos adequados.",
+        "Prompts em camadas — regras globais, por categoria, por formato, por idade e validador final.",
+        "Histórico inteligente: evita repetir formatos, perguntas, respostas e conhecimento semelhante.",
+        "Chaves no servidor nas definições de IA — indisponíveis a cinzento.",
+        "Fornecedores sem chave ou com quota esgotada aparecem desactivados (cinzento).",
+        "Modo debug (?debug=1) mostra também o formato da pergunta."
+      ]
+    },
+    {
+      "date": "15/08/2026",
+      "version": "20260815-222956",
+      "title": "15/08/2026 · 22:29",
+      "items": [
+        "Modo dia com cores e contraste melhorados.",
+        "Quotas dos fornecedores com texto a cores conforme o estado (disponível, aguardar reset, erro).",
+        "Correcção das quotas Groq: reset em milissegundos, janelas de minuto e dia separadas.",
+        "Fallback automático entre modelos do mesmo fornecedor no modo Automático (ex.: qwen → gpt-oss na Groq).",
+        "Qwen 3.6 sem raciocínio visível — respostas JSON mais estáveis nas perguntas.",
+        "Verdadeiro ou falso menos frequente: cerca de 1 em cada 7–8 perguntas.",
+        "Perguntas V/F terminam sempre com «Verdadeiro ou Falso?» explícito.",
+        "Respostas e opções com maiúscula inicial; escolha múltipla mantém-se por defeito com IA online.",
+        "Janela «Sobre» mais ampla com histórico de alterações mais legível."
+      ]
+    },
+    {
+      "date": "15/08/2026",
+      "version": "20260815-221134",
+      "title": "15/08/2026 · 22:11",
+      "items": [
+        "Página de teste de IA (/test-ai.html): ligação, trivia e diagnóstico de chaves no servidor.",
+        "Estado da IA corrigido — badge e definições mostram Offline quando a última chamada falhou.",
+        "Fallback automático entre fornecedores: Groq → OpenAI → Anthropic.",
+        "Teste com fornecedor escolhido em modo estrito — não usa outro fornecedor por engano.",
+        "Painel de teste atualiza fornecedor, modelo e fallback ao mudar a seleção.",
+        "Erros da IA em português: limite Groq, chaves em falta, fornecedores tentados.",
+        "Probes de ligação gastam menos tokens.",
+        "Escolha múltipla escondida quando a IA está offline."
+      ]
+    },
+    {
+      "date": "15/08/2026",
+      "version": "20260815-163235",
+      "title": "15/08/2026 · 16:32",
+      "items": [
+        "Mensagem clara quando a Groq atinge o limite diário gratuito (429).",
+        "Botão «Testar ligação à IA» nas definições de IA.",
+        "Modelos Groq atualizados (GPT-OSS 20B/120B).",
+        "Barra fixa «Categoria do dado» no topo.",
+        "Definições: IA, tempo, tipo de pergunta, aparência, sons e categorias.",
+        "Changelog e versão automáticos em cada build."
+      ]
+    },
+    {
+      "date": "15/08/2026",
+      "version": "20260815-115343",
+      "title": "15/08/2026 · 11:53",
+      "items": [
+        "Cabeçalho «Categoria do dado» com nome e descrição visíveis.",
+        "Modo debug (?debug=1): mostra a fonte da pergunta (IA ou Banco local).",
+        "Fallback local limitado à mesma categoria do dado.",
+        "Escolha do fornecedor e modelo de IA nas Definições.",
+        "Indicador IA Online / IA Offline com motivo ao passar o rato."
+      ]
+    },
+    {
+      "date": "15/08/2026",
+      "version": "anterior",
+      "title": "15/08/2026 · versões iniciais",
+      "items": [
+        "Suporte a três fornecedores de IA com fallback automático.",
+        "Linguagem adaptada às faixas 6–9, 10–15 e 15+.",
+        "Vocabulário exclusivamente em português de Portugal.",
+        "Controlo global das perguntas para reduzir repetições.",
+        "Melhorias gerais de estabilidade e experiência de jogo."
+      ]
+    }
+  ]
+}

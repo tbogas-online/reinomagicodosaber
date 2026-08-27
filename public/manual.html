@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual — Reino Mágico do Saber</title>
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    :root {
+      --bg: #0f1f18;
+      --bg2: #162820;
+      --card: rgba(255,255,255,0.04);
+      --border: rgba(201,162,39,0.35);
+      --gold: #eecb6b;
+      --gold-dim: #c9a227;
+      --text: #f3ead8;
+      --muted: #c8bda8;
+      --accent: #34d399;
+      --link: #7dd3fc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--text);
+      background: linear-gradient(180deg, var(--bg), var(--bg2));
+      line-height: 1.6;
+    }
+    .wrap {
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 28px 18px 56px;
+    }
+    h1 {
+      color: var(--gold);
+      font-size: clamp(1.5rem, 4vw, 2rem);
+      margin: 0 0 8px;
+    }
+    .sub {
+      color: var(--muted);
+      margin: 0 0 28px;
+      font-size: 0.98rem;
+    }
+    nav.toc {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 18px 20px;
+      margin-bottom: 28px;
+    }
+    nav.toc h2 {
+      margin: 0 0 12px;
+      font-size: 1rem;
+      color: var(--gold-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+    nav.toc ol {
+      margin: 0;
+      padding-left: 1.25rem;
+    }
+    nav.toc li { margin: 6px 0; }
+    nav.toc a { color: var(--link); text-decoration: none; }
+    nav.toc a:hover { text-decoration: underline; }
+    section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 22px 22px 18px;
+      margin-bottom: 20px;
+    }
+    section h2 {
+      color: var(--gold);
+      font-size: 1.25rem;
+      margin: 0 0 14px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(201,162,39,0.2);
+    }
+    section h3 {
+      color: var(--gold-dim);
+      font-size: 1.05rem;
+      margin: 18px 0 8px;
+    }
+    p { margin: 8px 0; }
+    ul, ol { margin: 8px 0; padding-left: 1.35rem; }
+    li { margin: 5px 0; }
+    strong { color: #fff; }
+    em { color: var(--muted); }
+    code {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 0.88em;
+      background: rgba(0,0,0,0.3);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.92rem;
+      margin: 12px 0;
+    }
+    th, td {
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 8px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { color: var(--gold-dim); background: rgba(0,0,0,0.2); }
+    .tip {
+      border-left: 3px solid var(--accent);
+      padding: 10px 14px;
+      margin: 12px 0;
+      background: rgba(52,211,153,0.08);
+      border-radius: 0 8px 8px 0;
+      font-size: 0.95rem;
+    }
+    .warn {
+      border-left: 3px solid #f59e0b;
+      padding: 10px 14px;
+      margin: 12px 0;
+      background: rgba(245,158,11,0.08);
+      border-radius: 0 8px 8px 0;
+      font-size: 0.95rem;
+    }
+    .foot {
+      margin-top: 32px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+    .foot a { color: var(--link); }
+    a { color: var(--link); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>📖 Manual do Reino Mágico do Saber</h1>
+    <p class="sub">Guia completo para jogadores, testadores de IA e administradores. Português de Portugal (PT-PT).</p>
+
+    <nav class="toc" aria-label="Índice">
+      <h2>Índice</h2>
+      <ol>
+        <li><a href="#intro">Introdução</a></li>
+        <li><a href="#menu">Menu principal</a></li>
+        <li><a href="#jogo">Como jogar</a></li>
+        <li><a href="#pergunta">Ecrã da pergunta</a></li>
+        <li><a href="#definicoes">Definições</a></li>
+        <li><a href="#ia">Inteligência artificial</a></li>
+        <li><a href="#sobre">Ecrã Sobre</a></li>
+        <li><a href="#reportes">Reportar problemas</a></li>
+        <li><a href="#teste-ia">Página de teste de IA</a></li>
+        <li><a href="#teste-perguntas">Página de teste de perguntas</a></li>
+        <li><a href="#admin">Painel admin de reportes</a></li>
+        <li><a href="#atalhos">Dicas e resolução de problemas</a></li>
+      </ol>
+    </nav>
+
+    <section id="intro">
+      <h2>1. Introdução</h2>
+      <p>O <strong>Reino Mágico do Saber</strong> é um jogo de perguntas por categorias. Cada jogada segue este fluxo:</p>
+      <ol>
+        <li>Escolhes ou sorteas as <strong>categorias</strong> do jogo (números 2 a 11 no tabuleiro, mais a categoria surpresa 12).</li>
+        <li><strong>Lanças os dados</strong> — a soma indica a categoria da pergunta.</li>
+        <li>Escolhes a <strong>faixa etária</strong> (6–9, 10–15 ou 15+ anos).</li>
+        <li>Respondes à <strong>pergunta</strong> (com tempo limitado) e podes ver a resposta e uma explicação.</li>
+      </ol>
+      <p>As perguntas são geradas por <strong>inteligência artificial</strong> (Groq, OpenAI ou Anthropic) quando a ligação está disponível. Se a IA falhar, o jogo usa automaticamente um <strong>banco local</strong> de perguntas.</p>
+    </section>
+
+    <section id="menu">
+      <h2>2. Menu principal</h2>
+      <table>
+        <thead><tr><th>Botão</th><th>O que faz</th></tr></thead>
+        <tbody>
+          <tr><td><strong>✨ Novo Jogo</strong></td><td>Inicia um jogo novo: sorteia 10 categorias (posições 2–11), mostra animação de preparação e abre o ecrã de categorias e dados.</td></tr>
+          <tr><td><strong>📜 Continuar</strong></td><td>Volta ao último jogo em curso (categorias já escolhidas). Só fica activo depois de teres iniciado um novo jogo nesta sessão.</td></tr>
+          <tr><td><strong>⚙️ Definições</strong></td><td>Abre tempo por pergunta, tipo de pergunta, aparência, sons, categorias e opções de IA.</td></tr>
+          <tr><td><strong>ⓘ Sobre</strong></td><td>Informação sobre o jogo, versão, changelog, reportes locais e ligações úteis (incluindo este manual).</td></tr>
+        </tbody>
+      </table>
+      <p>No rodapé do ecrã vês também:</p>
+      <ul>
+        <li><strong>⏱ Relógio</strong> — tempo desde que iniciaste o jogo actual.</li>
+        <li><strong>Selo IA Online / Offline</strong> — estado da ligação à IA. <em>Clica no selo</em> para verificar de novo o estado (não abre as Definições).</li>
+      </ul>
+    </section>
+
+    <section id="jogo">
+      <h2>3. Como jogar</h2>
+
+      <h3>Categorias deste jogo</h3>
+      <p>Após «Novo Jogo», vês a lista das <strong>10 categorias</strong> atribuídas a este jogo (números 2 a 11) e a linha <strong>Categoria Surpresa (12)</strong>, sorteada no momento em que os dados saem 12.</p>
+      <p>Podes <strong>clicar numa categoria</strong> na lista para a seleccionar directamente (útil para testar uma área específica), em vez de lançar os dados.</p>
+
+      <h3>Lançar os dados</h3>
+      <p>O botão <strong>🎲 Lançar os Dados</strong> gera dois valores (1–6 cada). A <strong>soma</strong> (2 a 12) determina a categoria:</p>
+      <ul>
+        <li><strong>2 a 11</strong> — categoria fixa desse jogo.</li>
+        <li><strong>12</strong> — categoria surpresa (sorteada na hora entre todas as áreas).</li>
+      </ul>
+      <p>Depois do lançamento, a linha da categoria escolhida fica destacada e o cartão de resultado mostra o nome e emoji da categoria. <strong>Clica no cartão</strong> (ou na categoria na lista) para avançar.</p>
+
+      <h3>Faixa etária</h3>
+      <p>Escolhe a idade do jogador que vai responder:</p>
+      <ul>
+        <li><strong>6 – 9 anos</strong> — perguntas simples, frases curtas.</li>
+        <li><strong>10 – 15 anos</strong> — dificuldade intermédia.</li>
+        <li><strong>+15 anos</strong> — nível difícil, cultura geral exigente.</li>
+      </ul>
+      <p><strong>← Voltar</strong> regressa ao ecrã de categorias sem perder o jogo.</p>
+
+      <h3>Voltar ao menu</h3>
+      <p><strong>← Voltar ao Menu Principal</strong> (no ecrã de categorias) ou <strong>← Voltar às Categorias</strong> (na pergunta) permitem sair da jogada actual. O botão <strong>Continuar</strong> no menu traz-te de volta às categorias se ainda não iniciaste outro jogo.</p>
+    </section>
+
+    <section id="pergunta">
+      <h2>4. Ecrã da pergunta</h2>
+
+      <h3>Contagem decrescente</h3>
+      <p>O anel no topo mostra o tempo restante (definido em Definições: 15 s a 90 s). Quando o tempo acaba, podes continuar a ler a pergunta; o temporizador é uma referência para o ritmo do jogo.</p>
+
+      <h3>Tipos de pergunta</h3>
+      <ul>
+        <li><strong>Escolha múltipla</strong> — quatro opções (A–D); uma é a correcta. Requer IA online (é o modo por defeito quando a IA está disponível).</li>
+        <li><strong>Resposta aberta</strong> — não há botões de opção; a resposta aparece ao carregar em «Mostrar Resposta». Usado quando escolhes este modo ou quando a IA está offline.</li>
+        <li><strong>Verdadeiro ou falso</strong> — surge ocasionalmente (~1 em cada 7–8 perguntas), com duas opções.</li>
+      </ul>
+      <p>Formatos possíveis da IA incluem «Quem é», «O que é», «Completa», «Quando», «Curiosidade», entre outros — adaptados à categoria e à idade.</p>
+
+      <h3>Acções na pergunta</h3>
+      <table>
+        <thead><tr><th>Acção</th><th>Descrição</th></tr></thead>
+        <tbody>
+          <tr><td><strong>👁️ Mostrar Resposta</strong></td><td>Revela a resposta correcta. Em escolha múltipla, podes seleccionar uma opção antes ou depois — o jogo não penaliza tentativas erradas.</td></tr>
+          <tr><td><strong>🔎 Saber Mais</strong></td><td>Após mostrar a resposta, pede à IA uma explicação curta (se estiver online).</td></tr>
+          <tr><td><strong>🚩 Reportar problema / Sugestão</strong></td><td>Envia feedback sobre esta pergunta ao servidor (ver secção <a href="#reportes">Reportar problemas</a>).</td></tr>
+          <tr><td><strong>← Voltar às Categorias</strong></td><td>Regressa ao tabuleiro para lançar os dados outra vez.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Qualidade e validação</h3>
+      <p>Cada pergunta gerada pela IA passa por um <strong>motor de validação</strong> antes de chegar ao jogador. O motor rejeita automaticamente perguntas com:</p>
+      <ul>
+        <li>Factos incorrectos, ambiguidades ou várias respostas defensáveis.</li>
+        <li>Tema fora da categoria (ex.: carros em Tecnologia, Lua em Geografia).</li>
+        <li>Vocabulário brasileiro ou de futebol não-PT-PT (ex.: «goleiro», «campo de grama»).</li>
+        <li>Opções incoerentes, duplicadas ou demasiado absurdas.</li>
+        <li>Repetição de perguntas, respostas ou conhecimento já usado na sessão.</li>
+      </ul>
+      <p>Se a IA falhar a validação, tenta outra pergunta (até 5 vezes) antes de usar o banco local. Mensagens «validação falhou» na consola são normais durante estas tentativas.</p>
+      <p><strong>Novo Jogo</strong> limpa o histórico da sessão (perguntas, respostas, formatos, posições MC). O histórico persistente no dispositivo (anti-repetição entre jogos) mantém-se.</p>
+
+      <div class="tip">Modo <code>?debug=1</code> no URL do jogo mostra no canto se a pergunta veio da IA ou do banco local — útil para testadores.</div>
+    </section>
+
+    <section id="definicoes">
+      <h2>5. Definições</h2>
+      <p>Abre pelo menu <strong>⚙️ Definições</strong>. As alterações só ficam activas depois de <strong>💾 Guardar</strong>; <strong>✕ Cancelar</strong> descarta mudanças.</p>
+
+      <h3>⏱ Tempo por pergunta</h3>
+      <p>15, 30, 45, 60 ou 90 segundos para o temporizador de cada pergunta.</p>
+
+      <h3>❓ Tipo de pergunta</h3>
+      <ul>
+        <li><strong>Escolha múltipla</strong> — quatro opções; precisa de IA online.</li>
+        <li><strong>Resposta aberta</strong> — sem opções na pergunta.</li>
+      </ul>
+      <p>Se a IA estiver offline e tiveres escolha múltipla activa, o jogo usa temporariamente resposta aberta e avisa-te.</p>
+
+      <h3>🌗 Aparência</h3>
+      <p><strong>Dia</strong> ou <strong>Noite</strong> — tema visual do jogo (guardado no dispositivo).</p>
+
+      <h3>🔊 Sons</h3>
+      <p>Activar ou desactivar efeitos sonoros (dados, fanfarra, etc.).</p>
+
+      <h3>📜 Categorias</h3>
+      <ul>
+        <li><strong>Automáticas</strong> — o jogo sorteia 10 categorias em cada «Novo Jogo».</li>
+        <li><strong>Escolher Categorias</strong> — seleccionas manualmente até 10 categorias da lista completa antes de jogar.</li>
+      </ul>
+    </section>
+
+    <section id="ia">
+      <h2>6. Inteligência artificial</h2>
+      <p>Na secção <strong>🤖 Inteligência Artificial</strong> das Definições:</p>
+
+      <h3>Estado e quotas</h3>
+      <ul>
+        <li><strong>IA em uso</strong> — fornecedor e modelo da última pergunta com sucesso.</li>
+        <li><strong>Quotas dos servidores</strong> — barras com estado a cores (disponível, aguardar reset, erro de facturação).</li>
+        <li><strong>Chaves no servidor</strong> — indica quais fornecedores (Groq, OpenAI, Anthropic) estão configurados no alojamento.</li>
+      </ul>
+
+      <h3>Fornecedor</h3>
+      <table>
+        <thead><tr><th>Opção</th><th>Comportamento</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Automática</strong></td><td>Tenta Groq → OpenAI → Anthropic (ou ordem definida no servidor) até um responder.</td></tr>
+          <tr><td><strong>Groq</strong></td><td>Usa apenas Groq (Llama / Qwen / GPT-OSS).</td></tr>
+          <tr><td><strong>Anthropic · Claude</strong></td><td>Usa apenas Claude.</td></tr>
+          <tr><td><strong>OpenAI · GPT</strong></td><td>Usa apenas modelos OpenAI.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Modelo</h3>
+      <p>Lista de modelos disponíveis conforme o fornecedor escolhido. «Automático» deixa o servidor escolher o modelo por defeito.</p>
+
+      <h3>Selo no rodapé</h3>
+      <p><strong>IA Online</strong> (verde) ou <strong>IA Offline</strong> (vermelho). Clicar no selo <em>actualiza o estado</em> sem abrir as Definições. Passar o rato sobre «Offline» pode mostrar o motivo da última falha.</p>
+
+      <p><a href="/test-ai.html">🔌 Página de teste de IA</a> — ligação directa para diagnóstico (ver secção 9).</p>
+    </section>
+
+    <section id="sobre">
+      <h2>7. Ecrã Sobre</h2>
+      <p>Abre com <strong>ⓘ Sobre</strong> no menu. Inclui:</p>
+      <ul>
+        <li>Resumo das funcionalidades do jogo.</li>
+        <li><strong>Versão</strong> e data da última actualização do código.</li>
+        <li><strong>Reportar problema no site</strong> — bugs ou sugestões sobre a app (não sobre uma pergunta).</li>
+        <li><strong>Problemas de perguntas reportados</strong> — lista local deste dispositivo, com estado <em>Por tratar</em> ou <em>Corrigido</em>.</li>
+        <li><strong>Copiar lista</strong> / <strong>Limpar listas</strong> — exporta ou apaga reportes locais (site + perguntas).</li>
+        <li><strong>Histórico de alterações</strong> — changelog das versões.</li>
+        <li><strong>Manual completo</strong> — esta página.</li>
+      </ul>
+      <p>Reportes corrigidos pela equipa passam a <strong>Corrigido</strong> e são removidos das listas locais <strong>24 horas</strong> depois.</p>
+    </section>
+
+    <section id="reportes">
+      <h2>8. Reportar problemas</h2>
+
+      <h3>Reportar uma pergunta</h3>
+      <p>Na pergunta, <strong>🚩 Reportar problema / Sugestão</strong>. Escolhe o tipo:</p>
+      <ul>
+        <li>Resposta correta parece errada</li>
+        <li>Pergunta confusa ou ambígua</li>
+        <li>Mais do que uma resposta correta</li>
+        <li>Problema nas opções</li>
+        <li>Erro de português</li>
+        <li>Informação desatualizada</li>
+        <li>Categoria ou dificuldade incorreta</li>
+        <li>Pergunta repetida</li>
+        <li>Outro</li>
+        <li><strong>Sugestão de melhoria</strong> — campo para propor reformulação ou melhor resposta</li>
+      </ul>
+      <p>O reporte é guardado no dispositivo <em>e</em> enviado ao servidor (com dados da pergunta, categoria, idade, dispositivo e versão do jogo).</p>
+
+      <h3>Reportar o site</h3>
+      <p>No <strong>Sobre → Reportar problema no site</strong>. Tipos: bug, aparência, lentidão, sugestão, outro. Podes anexar <strong>imagem</strong> (galeria ou câmara no telemóvel).</p>
+
+      <div class="warn">Exportar CSV no painel admin <em>não</em> marca reportes como resolvidos — isso é só para análise. A equipa resolve no código e marca no servidor quando aplicável.</div>
+    </section>
+
+    <section id="teste-ia">
+      <h2>9. Página de teste de IA</h2>
+      <p>URL: <a href="/test-ai.html">/test-ai.html</a> — também acessível em <strong>Definições → Página de teste de IA</strong>.</p>
+      <p>Serve para testar a API <code>/api/generate</code> sem jogar uma partida completa.</p>
+
+      <h3>Painel de estado</h3>
+      <ul>
+        <li>Estado, fornecedor, modelo, ID do modelo, fallback.</li>
+        <li>Chaves configuradas no servidor (Groq / OpenAI / Anthropic).</li>
+        <li><strong>Quota dos servidores</strong> — uso, limites e hora prevista de renovação; botão <strong>↻ Actualizar</strong>.</li>
+      </ul>
+
+      <h3>Opções de teste</h3>
+      <table>
+        <thead><tr><th>Campo / botão</th><th>Função</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Fornecedor</strong></td><td>Automática, Groq, Anthropic ou OpenAI.</td></tr>
+          <tr><td><strong>Modelo</strong></td><td>Modelo específico ou automático.</td></tr>
+          <tr><td><strong>Faixa etária</strong></td><td>Usada nos testes de trivia (6–9, 10–15, 15+).</td></tr>
+          <tr><td><strong>Mensagem de teste</strong></td><td>Texto enviado à API (por defeito pede JSON simples).</td></tr>
+          <tr><td><strong>▶ Testar ligação</strong></td><td>Envia a mensagem e mostra resposta ou erro.</td></tr>
+          <tr><td><strong>🎯 Teste pergunta trivia</strong></td><td>Pede uma pergunta de cultura geral no formato do jogo e valida o JSON.</td></tr>
+          <tr><td><strong>🧒 Testar 3 faixas</strong></td><td>Gera uma pergunta de teste para cada faixa etária em sequência.</td></tr>
+          <tr><td><strong>Limpar</strong></td><td>Limpa resultado e mensagens na página.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>Tema e navegação</h3>
+      <p>Botões <strong>☀️ Dia</strong> / <strong>🌙 Noite</strong> no topo. Ligações: voltar às Definições, jogo, <code>version.json</code>.</p>
+
+      <div class="tip">Se o teste falhar com Groq mas escolheste OpenAI, o deploy das Functions pode estar desactualizado — usa o script de deploy completo (não só zip de ficheiros estáticos).</div>
+    </section>
+
+    <section id="teste-perguntas">
+      <h2>10. Página de teste de perguntas</h2>
+      <p>URL: <a href="/test-questions.html">/test-questions.html</a> — ferramenta para testadores e equipa de desenvolvimento.</p>
+      <p>Gera perguntas com a IA, valida com o mesmo motor do jogo e regista feedback estruturado (aceite/rejeitado, tags, comentário).</p>
+
+      <h3>Funcionalidades</h3>
+      <ul>
+        <li><strong>Gerar e validar</strong> — uma pergunta com categoria, idade, formato e dificuldade configuráveis.</li>
+        <li><strong>×5</strong> — lote de 5 perguntas em sequência.</li>
+        <li><strong>Revalidar pergunta actual</strong> — edita pergunta/resposta/opções e testa sem chamar a IA.</li>
+        <li><strong>Score (diagnóstico)</strong> — pontuação 0–100 por camada; a aprovação depende só de issues (gate binário).</li>
+        <li><strong>Feedback ao motor</strong> — marca false-positive/false-negative e exporta JSON para análise.</li>
+        <li><strong>Limpar sessão</strong> — reinicia histórico local (perguntas, knowledgeKeys, posições MC).</li>
+      </ul>
+      <p>Ligações no topo: voltar ao jogo, teste de IA.</p>
+    </section>
+
+    <section id="admin">
+      <h2>11. Painel admin de reportes</h2>
+      <p>URL: <a href="/admin-reports.html">/admin-reports.html</a> — acesso restrito com <strong>utilizador e palavra-passe</strong> configurados no alojamento (Netlify / Cloudflare).</p>
+
+      <h3>Entrada</h3>
+      <p>Introduz credenciais e <strong>Entrar</strong>. A sessão fica no browser até <strong>Sair</strong>.</p>
+
+      <h3>Dashboard (gráficos)</h3>
+      <ul>
+        <li><strong>Reportes no tempo</strong> — 24 h, 3, 7 ou 14 dias; tipos de gráfico: linhas, colunas, empilhadas.</li>
+        <li><strong>Por tratar vs Resolvidos</strong> — clica numa barra para filtrar a tabela.</li>
+        <li><strong>Por tipo de problema</strong> — clica para filtrar por tipo.</li>
+        <li><strong>Por faixa etária, dispositivo, top categorias</strong> — estatísticas agregadas.</li>
+        <li><strong>✕ Limpar filtros</strong> — remove todos os filtros activos.</li>
+      </ul>
+      <p>Cartões no topo: <strong>Por tratar</strong>, <strong>Resolvidos</strong>, <strong>Cancelados</strong>, <strong>Total</strong>, tipo mais comum.</p>
+
+      <h3>Tabela de reportes</h3>
+      <p>Filtros: tipo, idade, categoria, dispositivo, estado (por tratar / resolvidos / cancelados), jogador (<code>reporterId</code>).</p>
+      <p>Em cada linha:</p>
+      <ul>
+        <li><strong>Detalhe</strong> — expande pergunta, opções, respostas, comentário, dispositivo, ID.</li>
+        <li><strong>📋 Copiar tudo</strong> — copia o reporte completo para a área de transferência.</li>
+        <li><strong>🖼 Ver imagem</strong> — para reportes do site com anexo.</li>
+        <li><strong>Resolver</strong> / <strong>Cancelar</strong> / <strong>Reabrir</strong> / <strong>Apagar</strong> (apagar só para cancelados).</li>
+      </ul>
+
+      <h3>Acções em lote</h3>
+      <p>Selecciona linhas com as caixas de verificação → <strong>Resolver</strong>, <strong>Cancelar</strong>, <strong>Reabrir</strong> ou <strong>Apagar</strong> (só cancelados).</p>
+
+      <h3>Exportar e actualizar</h3>
+      <ul>
+        <li><strong>Exportar CSV</strong> — exporta os reportes <em>visíveis</em> (filtros + página actual); não altera estados.</li>
+        <li><strong>Atualizar</strong> — recarrega dados.</li>
+        <li>O painel actualiza automaticamente a cada 30 segundos.</li>
+      </ul>
+
+      <h3>Estados dos reportes</h3>
+      <table>
+        <thead><tr><th>Estado</th><th>Significado</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Por tratar</strong></td><td>Novo ou em análise.</td></tr>
+          <tr><td><strong>Resolvido</strong></td><td>Problema tratado (com data em «Resolvido em»).</td></tr>
+          <tr><td><strong>Cancelado</strong></td><td>Ignorado ou inválido; pode ser apagado permanentemente.</td></tr>
+        </tbody>
+      </table>
+    </section>
+
+    <section id="atalhos">
+      <h2>12. Dicas e resolução de problemas</h2>
+      <ul>
+        <li><strong>IA Offline</strong> — verifica Definições ou teste de IA; confirma chaves no servidor e quotas.</li>
+        <li><strong>Perguntas repetidas</strong> — a IA evita repetir no mesmo jogo; o banco local também roda.</li>
+        <li><strong>Escolha múltipla indisponível</strong> — normal com IA offline; activa resposta aberta ou restaura a ligação.</li>
+        <li><strong>Site desactualizado</strong> — Ctrl+Shift+R para limpar cache; o jogo pode pedir actualização via service worker.</li>
+        <li><strong>Erros na consola</strong> — muitas mensagens de «validação falhou» são tentativas internas da IA antes do fallback; o jogo continua com banco local.</li>
+      </ul>
+      <p>Documentação técnica de deploy e variáveis de ambiente: ficheiro <code>LEIA-ME.md</code> na raiz do projecto.</p>
+    </section>
+
+    <p class="foot">
+      <a href="/">← Voltar ao jogo</a> ·
+      <a href="/test-ai.html">Teste de IA</a> ·
+      <a href="/test-questions.html">Teste de perguntas</a> ·
+      <a href="/admin-reports.html">Admin reportes</a>
+    </p>
+  </div>
+</body>
+</html>

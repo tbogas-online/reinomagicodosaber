@@ -1,0 +1,91 @@
+[build]
+  command = "node scripts/generate-version.js"
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  external_node_modules = ["@netlify/blobs"]
+
+[functions."generate"]
+  timeout = 26
+
+[functions."report"]
+  node_bundler = "esbuild"
+
+[functions."report-attachment"]
+  node_bundler = "esbuild"
+
+[functions."reports-admin"]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/api/generate"
+  to = "/.netlify/functions/generate"
+  status = 200
+
+[[redirects]]
+  from = "/api/ai-status"
+  to = "/.netlify/functions/ai-status"
+  status = 200
+
+[[redirects]]
+  from = "/api/report"
+  to = "/.netlify/functions/report"
+  status = 200
+
+[[redirects]]
+  from = "/api/reports-admin"
+  to = "/.netlify/functions/reports-admin"
+  status = 200
+
+[[redirects]]
+  from = "/api/report-status"
+  to = "/.netlify/functions/report-status"
+  status = 200
+
+[[redirects]]
+  from = "/api/report-attachment"
+  to = "/.netlify/functions/report-attachment"
+  status = 200
+
+# A versão deve refletir imediatamente cada novo deploy.
+[[headers]]
+  for = "/version.json"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/changelog.json"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+[[headers]]
+  for = "/app-update.js"
+  [headers.values]
+    Cache-Control = "no-cache, must-revalidate"
+
+# Evita que o browser/CDN sirva um index.html antigo após novo deploy.
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"
+
+[[headers]]
+  for = "/"
+  [headers.values]
+    Cache-Control = "no-store, no-cache, must-revalidate, proxy-revalidate"
+    Pragma = "no-cache"
+    Expires = "0"

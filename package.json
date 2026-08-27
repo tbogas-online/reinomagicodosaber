@@ -1,0 +1,12 @@
+{
+  "name": "reino-magico-do-saber",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/generate-version.js",
+    "test": "node scripts/test-question-engine.js",
+    "zip": "node scripts/generate-version.js && node scripts/create-zip.js"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.1.0"
+  }
+}

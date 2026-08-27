@@ -1,0 +1,33 @@
+---
+description: Fluxo para analisar reportes de perguntas e marcar resolvido após corrigir a validação IA
+alwaysApply: true
+---
+
+# Reportes de perguntas — correção IA
+
+Quando o utilizador colar reportes (texto ou CSV exportado do painel admin) para melhorar a validação da IA:
+
+1. **Analisar cada reporte** — pergunta, opções, categoria, idade, tipo de problema e comentário/sugestão.
+2. **Corrigir** regras em `public/question-engine.js` (e `public/index.html` se for preciso passar contexto extra à validação).
+3. **Listar reportes abertos** (se o utilizador não colou o texto):
+   ```bash
+   node scripts/list-open-reports.js
+   ```
+4. **Marcar como resolvido** apenas os reportes cujo problema foi tratado no código, via API admin:
+   ```bash
+   node scripts/resolve-reports-from-csv.js --ids rpt-abc,rpt-def
+   ```
+   Ou com CSV: `node scripts/resolve-reports-from-csv.js "caminho\reportes.csv"`
+
+**Credenciais:** o utilizador deve ter `reino-magico-deploy/.env.local` (copiar de `.env.example`) com `REPORTS_ADMIN_USER` e `REPORTS_ADMIN_PASS` — os scripts carregam-no automaticamente. Não pedir nem commitar a palavra-passe.
+5. **Confirmar** ao utilizador quais `reportId` foram resolvidos e o timestamp `resolvidoEm` devolvido pela API.
+
+## Não fazer
+
+- Não marcar resolvido ao copiar ou exportar CSV no painel admin — isso é só para o utilizador trazer dados para aqui.
+- Não marcar resolvido sem alteração relevante em `question-engine.js` (ou documentar claramente se for «não reproduzível» / «já corrigido»).
+- Não commitar credenciais admin.
+
+## CSV
+
+Colunas úteis: `reportId`, `estado`, `resolvidoEm` (preenchida quando resolvido no servidor, hora Portugal).

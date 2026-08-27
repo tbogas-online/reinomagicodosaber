@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="app-build" content="20260826-183925">
+  <title>Teste de Perguntas — Reino Mágico do Saber</title>
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    :root {
+      --night: #0f1f18; --night-2: #162820; --gold: #c9a227; --gold-bright: #eecb6b;
+      --parchment: #f3ead8; --parchment-dim: #c8bda8; --ok: #3ecf72; --err: #f4a6a8;
+      --warn: #f0c674; --link: #7dd3fc;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100dvh; font-family: Georgia, "Times New Roman", serif;
+      color: var(--parchment); background: linear-gradient(180deg, var(--night), var(--night-2));
+      padding: 20px 14px 48px;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; }
+    h1 { font-size: clamp(1.3rem, 4vw, 1.75rem); color: var(--gold-bright); margin: 0 0 6px; }
+    .sub { color: var(--parchment-dim); margin: 0 0 16px; line-height: 1.5; font-size: 0.95rem; }
+    .nav-links { margin-bottom: 12px; font-size: 0.9rem; }
+    .nav-links a { color: var(--link); text-decoration: none; margin-right: 12px; }
+    .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; font-size: 0.85rem; color: var(--parchment-dim); }
+    .stats span { background: rgba(255,255,255,0.05); padding: 4px 11px; border-radius: 999px; }
+    .stats strong { color: var(--gold-bright); }
+    .card {
+      background: rgba(255,255,255,0.04); border: 1px solid rgba(201,162,39,0.35);
+      border-radius: 14px; padding: 16px 18px; margin-bottom: 12px;
+    }
+    .card h2 { margin: 0 0 12px; font-size: 1rem; color: var(--gold-bright); }
+    label {
+      display: block; font-size: 0.72rem; letter-spacing: 0.05em;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 4px;
+    }
+    select, textarea, input[type="text"], input[type="number"] {
+      width: 100%; background: rgba(0,0,0,0.25); color: var(--parchment);
+      border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
+      padding: 10px 12px; margin-bottom: 0; font: inherit;
+    }
+    select { margin-bottom: 0; cursor: pointer; }
+    textarea { min-height: 64px; resize: vertical; margin-top: 4px; }
+    .config-grid {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 14px; margin-bottom: 16px;
+    }
+    @media (min-width: 560px) { .config-grid { grid-template-columns: repeat(4, 1fr); } }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+    button {
+      cursor: pointer; border: 1px solid rgba(201,162,39,0.55);
+      background: linear-gradient(180deg, rgba(201,162,39,0.28), rgba(201,162,39,0.12));
+      color: var(--gold-bright); border-radius: 999px; padding: 10px 18px; font: inherit;
+    }
+    button:hover { filter: brightness(1.08); }
+    button:disabled { opacity: 0.5; cursor: wait; }
+    button.secondary { background: transparent; color: var(--parchment-dim); border-color: rgba(255,255,255,0.2); font-size: 0.9rem; padding: 8px 14px; }
+    button.primary { font-size: 1.08rem; padding: 12px 24px; width: 100%; }
+    @media (min-width: 480px) { button.primary { width: auto; } }
+    .result { border-radius: 12px; padding: 14px; line-height: 1.5; margin-top: 12px; }
+    .result.idle { background: rgba(255,255,255,0.04); color: var(--parchment-dim); }
+    .result.ok { background: rgba(62,207,114,0.12); border: 1px solid rgba(62,207,114,0.4); }
+    .result.err { background: rgba(229,72,77,0.12); border: 1px solid rgba(229,72,77,0.4); }
+    .result.run { background: rgba(240,198,116,0.12); border: 1px solid rgba(240,198,116,0.4); color: var(--warn); }
+    .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.8rem; font-weight: bold; margin-right: 6px; }
+    .badge.ok { background: rgba(62,207,114,0.25); color: #b8f5cd; }
+    .badge.err { background: rgba(229,72,77,0.25); color: var(--err); }
+    .score-big { font-size: 1.4rem; color: var(--gold-bright); }
+    .resolved { font-size: 0.88rem; color: var(--parchment-dim); margin: 8px 0 4px; }
+    .resolved strong { color: var(--gold-bright); }
+    .layers { display: grid; gap: 4px; margin: 10px 0; font-size: 0.84rem; }
+    .layer-row { display: grid; grid-template-columns: 90px 1fr 32px; gap: 6px; align-items: center; }
+    .layer-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
+    .layer-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--ok)); }
+    .layer-bar.zero > span { background: var(--err); width: 0 !important; }
+    ul.issues { margin: 8px 0 0; padding-left: 1.1rem; color: var(--err); font-size: 0.9rem; }
+    pre { margin: 8px 0 0; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); font-size: 0.76rem; white-space: pre-wrap; }
+    .hint { font-size: 0.84rem; color: var(--parchment-dim); margin: 0 0 8px; }
+    details {
+      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px; margin-bottom: 10px; padding: 0 14px;
+    }
+    details summary {
+      cursor: pointer; padding: 12px 0; color: var(--parchment-dim); font-size: 0.92rem; list-style: none;
+    }
+    details summary::-webkit-details-marker { display: none; }
+    details summary::before { content: '▸ '; color: var(--gold); }
+    details[open] summary::before { content: '▾ '; }
+    details .inner { padding-bottom: 14px; }
+    .feedback-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(201,162,39,0.2); }
+    .feedback-box h3 { margin: 0 0 8px; font-size: 0.92rem; color: var(--gold); }
+    .verdict-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+    .verdict-btns button { font-size: 0.82rem; padding: 6px 11px; }
+    .verdict-btns button.selected { border-color: var(--gold-bright); background: rgba(201,162,39,0.28); }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .chip {
+      font-size: 0.8rem; padding: 4px 9px; border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.15); cursor: pointer;
+    }
+    .chip:has(input:checked) { border-color: var(--gold); background: rgba(201,162,39,0.15); color: var(--gold-bright); }
+    .chip input { margin-right: 4px; }
+    .log-item {
+      padding: 8px 10px; margin-bottom: 5px; border-radius: 8px; font-size: 0.84rem;
+      background: rgba(0,0,0,0.2); border-left: 3px solid rgba(255,255,255,0.15); cursor: pointer;
+    }
+    .log-item.accepted { border-left-color: var(--ok); }
+    .log-item.rejected { border-left-color: var(--err); }
+    .log-item .meta { color: var(--parchment-dim); font-size: 0.76rem; margin-top: 2px; }
+    .feedback-entry { padding: 10px; margin-bottom: 6px; border-radius: 8px; background: rgba(0,0,0,0.2); font-size: 0.84rem; }
+    .feedback-entry .fb-meta { color: var(--parchment-dim); font-size: 0.76rem; }
+    code { background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; font-size: 0.86em; }
+    .q-preview { font-size: 1.05rem; margin: 8px 0 4px; line-height: 1.45; }
+    .a-preview { color: var(--gold-bright); margin-bottom: 6px; }
+    .opts-preview { font-size: 0.88rem; color: var(--parchment-dim); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🧪 Teste de Perguntas</h1>
+    <p class="sub">Gera com IA, valida com o motor e dá feedback para melhorar regras.</p>
+    <div class="nav-links">
+      <a href="/">← Jogo</a>
+      <a href="/test-ai.html">Teste IA</a>
+    </div>
+
+    <div class="stats">
+      <span><strong id="stat-total">0</strong> geradas</span>
+      <span>✅ <strong id="stat-ok">0</strong></span>
+      <span>❌ <strong id="stat-fail">0</strong></span>
+      <span>💬 <strong id="stat-fb">0</strong> feedbacks</span>
+    </div>
+
+    <!-- Configuração principal -->
+    <div class="card">
+      <div class="config-grid">
+        <div>
+          <label for="cat">Categoria</label>
+          <select id="cat">
+            <option value="random" selected>🎲 Aleatório</option>
+          </select>
+        </div>
+        <div>
+          <label for="age">Faixa etária</label>
+          <select id="age">
+            <option value="random" selected>🎲 Aleatório</option>
+            <option value="6-9">6–9 anos</option>
+            <option value="10-15">10–15 anos</option>
+            <option value="15+">15+ anos</option>
+          </select>
+        </div>
+        <div>
+          <label for="answerMode">Modo resposta</label>
+          <select id="answerMode">
+            <option value="random" selected>🎲 Aleatório</option>
+            <option value="mc">Escolha múltipla</option>
+            <option value="open">Resposta aberta</option>
+          </select>
+        </div>
+        <div>
+          <label for="difficulty">Dificuldade</label>
+          <select id="difficulty">
+            <option value="random" selected>🎲 Aleatório</option>
+            <option value="1">1 — muito fácil</option>
+            <option value="2">2 — fácil</option>
+            <option value="3">3 — médio</option>
+            <option value="4">4 — difícil</option>
+            <option value="5">5 — especialista</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row">
+        <button type="button" class="primary" id="btn-generate">▶ Gerar e validar</button>
+        <button type="button" class="secondary" id="btn-generate-5">×5</button>
+        <button type="button" class="secondary" id="btn-stop" disabled>Parar</button>
+      </div>
+      <div id="gen-status" class="result idle">Escolhe as opções (ou deixa Aleatório) e clica em Gerar.</div>
+    </div>
+
+    <!-- Resultado -->
+    <div class="card" id="result-card" hidden>
+      <h2>Resultado</h2>
+      <div id="resolved-line" class="resolved"></div>
+      <div id="q-preview" class="q-preview"></div>
+      <div id="a-preview" class="a-preview"></div>
+      <div id="opts-preview" class="opts-preview"></div>
+      <div id="result" class="result idle"></div>
+
+      <div class="feedback-box" id="feedback-form" hidden>
+        <h3>💬 Feedback ao motor</h3>
+        <p class="hint">O motor acertou nesta validação?</p>
+        <div class="verdict-btns" id="verdict-btns">
+          <button type="button" data-verdict="motor-ok" class="secondary">✅ Correcto</button>
+          <button type="button" data-verdict="false-positive" class="secondary">Devia aceitar</button>
+          <button type="button" data-verdict="false-negative" class="secondary">Devia rejeitar</button>
+          <button type="button" data-verdict="ia-bad" class="secondary">Culpa da IA</button>
+        </div>
+        <div class="chip-group" id="issue-chips">
+          <label class="chip"><input type="checkbox" value="repeticao"> Repetição</label>
+          <label class="chip"><input type="checkbox" value="idade"> Idade</label>
+          <label class="chip"><input type="checkbox" value="categoria"> Categoria</label>
+          <label class="chip"><input type="checkbox" value="pt-pt"> PT-PT</label>
+          <label class="chip"><input type="checkbox" value="factual"> Factual</label>
+          <label class="chip"><input type="checkbox" value="mc"> MC</label>
+          <label class="chip"><input type="checkbox" value="outro"> Outro</label>
+        </div>
+        <label for="fb-comment">Comentário</label>
+        <textarea id="fb-comment" rows="2" placeholder="O que devia mudar?"></textarea>
+        <div class="row">
+          <button type="button" id="btn-save-feedback">Guardar feedback</button>
+          <button type="button" class="secondary" id="btn-next-after-fb">Guardar e seguinte →</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Avançado -->
+    <details>
+      <summary>Opções avançadas</summary>
+      <div class="inner">
+        <div class="config-grid" style="margin-top:8px;">
+          <div>
+            <label for="format">Formato</label>
+            <select id="format"><option value="random" selected>🎲 Aleatório</option></select>
+          </div>
+          <div>
+            <label for="minScore">Score (diagnóstico)</label>
+            <input type="number" id="minScore" min="0" max="100" value="100" disabled title="O gate é binário: qualquer issue reprova. O score reflecte as camadas.">
+          </div>
+        </div>
+        <label style="margin-top:10px;"><input type="checkbox" id="accumulate-history" checked> Acumular histórico na sessão</label><br>
+        <label><input type="checkbox" id="use-feedback-hints" checked> Usar feedback nos retries</label>
+        <div class="row" style="margin-top:12px;">
+          <button type="button" class="secondary" id="btn-validate-manual">Revalidar pergunta actual</button>
+        </div>
+        <label for="q" style="margin-top:10px;">Pergunta (editar)</label>
+        <textarea id="q" rows="2"></textarea>
+        <label for="a">Resposta</label>
+        <input type="text" id="a">
+        <label for="options">Opções MC</label>
+        <textarea id="options" rows="2"></textarea>
+      </div>
+    </details>
+
+    <details>
+      <summary>Histórico da sessão (<span id="log-count">0</span>)</summary>
+      <div class="inner">
+        <button type="button" class="secondary" id="btn-clear-session">Limpar</button>
+        <div id="session-log" style="margin-top:10px;"><p class="hint">Vazio.</p></div>
+      </div>
+    </details>
+
+    <details>
+      <summary>Feedbacks guardados (<span id="fb-count">0</span>)</summary>
+      <div class="inner">
+        <div class="row">
+          <button type="button" class="secondary" id="btn-export-json">Exportar JSON</button>
+          <button type="button" class="secondary" id="btn-copy-feedback">Copiar resumo</button>
+          <button type="button" class="secondary" id="btn-clear-feedback">Apagar</button>
+        </div>
+        <div id="feedback-list" style="margin-top:10px;"></div>
+      </div>
+    </details>
+  </div>
+
+  <script src="question-engine.js?v=20260826-183925"></script>
+  <script>
+  (function () {
+    'use strict';
+    const QE = window.QuestionEngine;
+    const FEEDBACK_KEY = 'reino_magico_engine_feedback';
+    const AGES = ['6-9', '10-15', '15+'];
+    const MODES = ['mc', 'open'];
+    const MODE_LABELS = { mc: 'Escolha múltipla', open: 'Resposta aberta' };
+
+    if (!QE) {
+      document.body.innerHTML = '<p style="color:#f4a6a8;padding:24px;">question-engine.js não carregou.</p>';
+      return;
+    }
+
+    const CATEGORIES = [
+      { n: 1, name: 'Conhecimentos Gerais', desc: 'Cultura geral variada' },
+      { n: 2, name: 'Geografia', desc: 'Países, capitais, rios' },
+      { n: 3, name: 'História', desc: 'Portugal e mundo' },
+      { n: 4, name: 'Ciência', desc: 'Física, química, biologia' },
+      { n: 5, name: 'Natureza', desc: 'Animais, plantas' },
+      { n: 6, name: 'Espaço', desc: 'Planetas, estrelas' },
+      { n: 7, name: 'Matemática e Lógica', desc: 'Cálculo, raciocínio' },
+      { n: 8, name: 'Literatura', desc: 'Autores, obras' },
+      { n: 9, name: 'Português', desc: 'Gramática, vocabulário' },
+      { n: 10, name: 'Arte', desc: 'Pintura, escultura' },
+      { n: 11, name: 'Cinema e Séries', desc: 'Filmes, séries' },
+      { n: 12, name: 'Música', desc: 'Instrumentos, canções' },
+      { n: 13, name: 'Moda', desc: 'Estilos, tendências' },
+      { n: 14, name: 'Gastronomia', desc: 'Comida, receitas' },
+      { n: 15, name: 'Desporto', desc: 'Modalidades, atletas' },
+      { n: 16, name: 'Jogos', desc: 'Videojogos, tabuleiro' },
+      { n: 17, name: 'Tecnologia', desc: 'Invenções, digital' },
+      { n: 18, name: 'Culturas do Mundo', desc: 'Tradições, festividades' },
+      { n: 19, name: 'Transportes', desc: 'Veículos, circulação' },
+      { n: 20, name: 'Adivinhas e Curiosidades', desc: 'Charadas, curiosidades' },
+    ];
+
+    const AGE_PROMPT = {
+      '6-9': 'crianças dos 6 aos 9 anos — frases curtas e vocabulário simples',
+      '10-15': 'jovens dos 10 aos 15 anos — linguagem clara e intermédia',
+      '15+': 'jovens e adultos 15+ — cultura geral exigente',
+    };
+    const PT_PT_RULES = 'Português de Portugal (PT-PT). Evita brasileirismos.';
+    const LAYER_LABELS = {
+      structural: 'Estrutural', format: 'Formato', age: 'Idade', difficulty: 'Dificuldade',
+      category: 'Categoria', ptPt: 'PT-PT', semantic: 'Semântica', repetition: 'Repetição',
+      mcOptions: 'MC', factual: 'Factual',
+    };
+
+    const $ = (id) => document.getElementById(id);
+    let stopBatch = false;
+    let selectedVerdict = '';
+    let currentEntry = null;
+    let lastResolved = null;
+
+    const session = {
+      usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedFormats: [],
+      usedDifficulties: [], usedSubtopics: [], recentMcPositions: [], log: [],
+      stats: { total: 0, ok: 0, fail: 0 },
+    };
+
+    function stripTags(s) { return String(s || '').replace(/<[^>]*>/g, '').trim(); }
+    function normalizeQ(s) { return stripTags(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+    function linesToArray(t) { return String(t || '').split(/\n/).map((l) => l.trim()).filter(Boolean); }
+    function escapeHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+    function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function validateTrueFalseQuestion(parsed) {
+      const q = stripTags(parsed?.q || '');
+      if (!/verdadeiro\s+ou\s+falso/i.test(q)) return { ok: false, issues: ['V/F inválido'] };
+      return { ok: true, issues: [] };
+    }
+
+    function parseAiJson(text) {
+      const clean = String(text || '').replace(/```json|```/g, '').trim();
+      try { return JSON.parse(clean); } catch {
+        const m = clean.match(/\{[\s\S]*\}/);
+        if (m) try { return JSON.parse(m[0]); } catch { /* */ }
+      }
+      return null;
+    }
+
+    function ensureTrueFalsePrompt(str) {
+      if (!str || /verdadeiro\s+ou\s+falso/i.test(str)) return str;
+      const s = str.replace(/\?+$/, '').trim();
+      return `${s}. Verdadeiro ou Falso?`;
+    }
+
+    /** Resolve aleatórios para valores concretos */
+    function resolveConfig() {
+      const catVal = $('cat').value;
+      const ageVal = $('age').value;
+      const modeVal = $('answerMode').value;
+      const diffVal = $('difficulty').value;
+
+      const ageBandKey = ageVal === 'random' ? pickRandom(AGES) : ageVal;
+      const answerMode = modeVal === 'random' ? pickRandom(MODES) : modeVal;
+      const cat = catVal === 'random'
+        ? pickRandom(CATEGORIES)
+        : (CATEGORIES.find((c) => c.n === Number(catVal)) || CATEGORIES[0]);
+
+      let difficulty;
+      if (diffVal === 'random') {
+        difficulty = QE.chooseDifficulty(ageBandKey, session.usedDifficulties);
+      } else {
+        difficulty = Number(diffVal);
+      }
+
+      return { cat, ageBandKey, answerMode, difficulty };
+    }
+
+    function resolveFormat(catN, ageBandKey, answerMode) {
+      if ($('format').value !== 'random') return $('format').value;
+      return QE.chooseFormat(catN, ageBandKey, answerMode, session.usedFormats);
+    }
+
+    function populateCategorySelect() {
+      const sel = $('cat');
+      const keep = sel.value;
+      sel.innerHTML = '<option value="random">🎲 Aleatório</option>'
+        + CATEGORIES.map((c) => `<option value="${c.n}">${c.n}. ${c.name}</option>`).join('');
+      if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+    }
+
+    function populateFormatSelect(catN, ageBandKey, answerMode) {
+      const formats = QE.getAllowedFormats(catN, ageBandKey, answerMode);
+      const sel = $('format');
+      const keep = sel.value;
+      sel.innerHTML = '<option value="random">🎲 Aleatório</option>'
+        + formats.map((f) => `<option value="${f}">${QE.FORMAT_LABELS[f] || f}</option>`).join('');
+      if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+    }
+
+    function onConfigChange() {
+      const resolved = resolveConfig();
+      populateFormatSelect(resolved.cat.n, resolved.ageBandKey, resolved.answerMode);
+    }
+
+    function updateStats() {
+      $('stat-total').textContent = session.stats.total;
+      $('stat-ok').textContent = session.stats.ok;
+      $('stat-fail').textContent = session.stats.fail;
+      $('stat-fb').textContent = loadFeedback().length;
+      $('log-count').textContent = session.log.length;
+      $('fb-count').textContent = loadFeedback().length;
+    }
+
+    function renderLayers(layers) {
+      if (!layers) return '';
+      const maxPts = { structural:15, format:15, age:15, difficulty:10, category:10, ptPt:10, semantic:15, repetition:10, mcOptions:10, factual:10 };
+      return Object.entries(layers).map(([k, pts]) => {
+        const max = maxPts[k] || 10;
+        const pct = max ? Math.round((pts / max) * 100) : 0;
+        return `<div class="layer-row"><span>${LAYER_LABELS[k]||k}</span><div class="layer-bar${pts===0?' zero':''}"><span style="width:${pct}%"></span></div><span>${pts}</span></div>`;
+      }).join('');
+    }
+
+    function buildParsedFromForm() {
+      const q = $('q').value.trim();
+      const a = $('a').value.trim();
+      const formatId = lastResolved?.formatId || $('format').value;
+      const answerMode = lastResolved?.answerMode || $('answerMode').value;
+      const isMC = answerMode === 'mc'
+        || formatId === QE.FORMAT_IDS.ESCOLHA_MULTIPLA
+        || formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO;
+      const parsed = { q, a };
+      const options = linesToArray($('options').value);
+      if (isMC && options.length >= 2) parsed.options = options;
+      return { parsed, isMC };
+    }
+
+    function buildValidationCtx(overrides = {}) {
+      const r = lastResolved || resolveConfig();
+      const formatId = overrides.formatId || r.formatId || resolveFormat(r.cat.n, r.ageBandKey, r.answerMode);
+      const { isMC } = buildParsedFromForm();
+      const useSession = $('accumulate-history').checked;
+      return {
+        formatId,
+        ageBandKey: r.ageBandKey,
+        categoryNumber: r.cat.n,
+        difficulty: r.difficulty,
+        minQualityScore: 0,
+        usedQuestions: useSession ? session.usedQuestions : [],
+        usedAnswers: useSession ? session.usedAnswers : [],
+        usedKnowledgeKeys: useSession ? session.usedKnowledgeKeys : [],
+        persistentKnowledgeKeys: QE.getPersistentSlice(r.ageBandKey).knowledgeKeys || [],
+        isMC: overrides.isMC ?? isMC,
+        stripTags, normalizeFn: normalizeQ,
+        helpers: { stripTags, validateTrueFalseQuestion, ageBandKey: r.ageBandKey },
+        ...overrides,
+      };
+    }
+
+    function validateParsed(parsed, ctx) {
+      const scored = QE.scoreQuestion(parsed, ctx);
+      const result = QE.validateQuestion(parsed, ctx);
+      result.knowledgeKey = scored.knowledgeKey || result.knowledgeKey;
+      result.layers = result.layers || scored.layers;
+      result.score = result.score ?? scored.score;
+      return result;
+    }
+
+    function showResult(result, parsed, resolved) {
+      $('result-card').hidden = false;
+      lastResolved = resolved;
+
+      const modeLabel = MODE_LABELS[resolved.answerMode] || resolved.answerMode;
+      $('resolved-line').innerHTML = `<strong>${escapeHtml(resolved.cat.name)}</strong> · ${resolved.ageBandKey} · ${modeLabel} · dif. ${resolved.difficulty} · <em>${escapeHtml(QE.FORMAT_LABELS[resolved.formatId] || resolved.formatId)}</em>`;
+
+      $('q-preview').textContent = parsed.q || '';
+      $('a-preview').textContent = parsed.a ? `→ ${parsed.a}` : '';
+      $('opts-preview').textContent = parsed.options?.length ? parsed.options.join(' · ') : '';
+
+      $('q').value = parsed.q || '';
+      $('a').value = parsed.a || '';
+      $('options').value = parsed.options?.join('\n') || '';
+
+      const el = $('result');
+      const minScore = Number($('minScore').value) || 75;
+      currentEntry = { parsed: { ...parsed }, result: { ...result }, resolved: { ...resolved }, ts: Date.now() };
+
+      if (result.ok) {
+        el.className = 'result ok';
+        el.innerHTML = `<span class="badge ok">ACEITE</span> <span class="score-big">${result.score}/100</span>
+          <div style="font-size:0.85rem;margin-top:6px;">knowledgeKey: <code>${escapeHtml(result.knowledgeKey)}</code></div>
+          <div class="layers">${renderLayers(result.layers)}</div>`;
+      } else {
+        const issues = (result.issues || []).map((i) => `<li>${escapeHtml(i)}</li>`).join('');
+        const hint = result.issues?.length ? QE.buildRetryHint(result.issues, resolved.formatId, resolved.ageBandKey) : '';
+        el.className = 'result err';
+        el.innerHTML = `<span class="badge err">REJEITADA</span> <span class="score-big">${result.score}/100</span>
+          <div style="font-size:0.85rem;margin-top:6px;">knowledgeKey: <code>${escapeHtml(result.knowledgeKey)}</code></div>
+          <div class="layers">${renderLayers(result.layers)}</div>
+          ${issues ? `<ul class="issues">${issues}</ul>` : ''}
+          ${hint ? `<pre>${escapeHtml(hint)}</pre>` : ''}`;
+      }
+      $('feedback-form').hidden = false;
+      resetFeedbackForm();
+    }
+
+    function resetFeedbackForm() {
+      selectedVerdict = '';
+      document.querySelectorAll('#verdict-btns button').forEach((b) => b.classList.remove('selected'));
+      document.querySelectorAll('#issue-chips input').forEach((c) => { c.checked = false; });
+      $('fb-comment').value = '';
+      if (currentEntry?.result?.issues?.length) {
+        $('fb-comment').placeholder = currentEntry.result.issues.slice(0, 2).join('; ');
+      }
+    }
+
+    function rememberAccepted(parsed, result, meta) {
+      if (!parsed?.q) return;
+      session.usedQuestions.push(parsed.q);
+      if (parsed.a && !/^(verdadeiro|falso)$/i.test(normalizeQ(parsed.a))) session.usedAnswers.push(parsed.a);
+      if (result.knowledgeKey) session.usedKnowledgeKeys.push(result.knowledgeKey);
+      if (meta?.formatId) session.usedFormats.push(meta.formatId);
+      if (meta?.difficulty) session.usedDifficulties.push(meta.difficulty);
+      if (meta?.subtopic) session.usedSubtopics.push(meta.subtopic);
+      ['usedQuestions','usedAnswers','usedKnowledgeKeys','usedFormats'].forEach((k, i) => {
+        const max = [80, 80, 60, 40][i];
+        while (session[k].length > max) session[k].shift();
+      });
+    }
+
+    function addLogEntry(parsed, result, resolved) {
+      session.stats.total += 1;
+      if (result.ok) session.stats.ok += 1; else session.stats.fail += 1;
+      session.log.unshift({
+        id: `log-${Date.now()}`, ok: result.ok,
+        q: parsed.q, a: parsed.a, score: result.score,
+        knowledgeKey: result.knowledgeKey, resolved,
+      });
+      if (session.log.length > 40) session.log.pop();
+      renderSessionLog();
+      updateStats();
+    }
+
+    function renderSessionLog() {
+      const el = $('session-log');
+      if (!session.log.length) { el.innerHTML = '<p class="hint">Vazio.</p>'; return; }
+      el.innerHTML = session.log.map((e) => `
+        <div class="log-item ${e.ok ? 'accepted' : 'rejected'}" data-id="${e.id}">
+          ${e.ok ? '✅' : '❌'} ${escapeHtml((e.q || '').slice(0, 80))}
+          <div class="meta">${e.score}/100 · ${escapeHtml(e.resolved?.cat?.name || '')} · ${escapeHtml(e.a || '')}</div>
+        </div>`).join('');
+      el.querySelectorAll('.log-item').forEach((item) => {
+        item.addEventListener('click', () => {
+          const e = session.log.find((x) => x.id === item.dataset.id);
+          if (!e) return;
+          lastResolved = e.resolved;
+          $('q').value = e.q || '';
+          $('a').value = e.a || '';
+          const ctx = buildValidationCtx();
+          const { parsed, isMC } = buildParsedFromForm();
+          ctx.isMC = isMC;
+          showResult(validateParsed(parsed, ctx), parsed, e.resolved);
+        });
+      });
+    }
+
+    function getFeedbackHints() {
+      if (!$('use-feedback-hints').checked) return '';
+      return loadFeedback().slice(-4).map((f) => {
+        const p = [f.verdict, f.comment].filter(Boolean).join(' — ');
+        return p ? `FEEDBACK: ${p}` : '';
+      }).filter(Boolean).join('\n');
+    }
+
+    async function generateOne() {
+      const resolved = resolveConfig();
+      const { cat, ageBandKey, answerMode, difficulty } = resolved;
+      const formatId = resolveFormat(cat.n, ageBandKey, answerMode);
+      resolved.formatId = formatId;
+      const subtopic = QE.chooseSubtopic(cat.n, session.usedSubtopics);
+      resolved.subtopic = subtopic;
+
+      const isTrueFalse = formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO;
+      const isMC = answerMode === 'mc' && (isTrueFalse || formatId === QE.FORMAT_IDS.ESCOLHA_MULTIPLA);
+      const persistent = QE.getPersistentSlice(ageBandKey);
+      const maxAttempts = QE.ENGINE_CONFIG?.MAX_RETRIES || 5;
+      let lastIssues = [];
+      let lastParsed = null;
+      let lastResult = null;
+
+      const mcInstruction = isMC
+        ? (isTrueFalse ? ' options: ["Verdadeiro","Falso"]' : ' Inclui "a" e "distractors" (3 erradas).')
+        : '';
+      const jsonFormat = isMC
+        ? (isTrueFalse ? '{"q":"... Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]}'
+          : '{"q":"...","a":"...","distractors":["...","...","..."]}')
+        : '{"q":"...","a":"..."}';
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        $('gen-status').className = 'result run';
+        $('gen-status').textContent = `A gerar… tentativa ${attempt}/${maxAttempts} (${QE.FORMAT_LABELS[formatId]})`;
+
+        const retryHint = attempt > 1
+          ? [QE.buildRetryHint(lastIssues, formatId, ageBandKey), getFeedbackHints()].filter(Boolean).join('\n')
+          : getFeedbackHints();
+
+        const prompt = QE.buildPrompt({
+          category: cat, ageBandKey,
+          ageBandPromptText: AGE_PROMPT[ageBandKey],
+          formatId, ptPtRules: PT_PT_RULES,
+          isMC, isTrueFalse, difficulty, subtopic,
+          recentDifficulties: session.usedDifficulties,
+          recentSubtopics: session.usedSubtopics,
+          usedQuestions: session.usedQuestions,
+          usedFormats: session.usedFormats,
+          usedAnswers: session.usedAnswers,
+          usedKnowledgeKeys: session.usedKnowledgeKeys,
+          persistentQuestions: persistent.questions,
+          persistentAnswers: persistent.answers,
+          persistentKnowledgeKeys: persistent.knowledgeKeys,
+          openModeExtra: !isMC ? 'Resposta curta.' : '',
+          mcInstruction, jsonFormat, retryHint,
+        }).slice(0, 11000);
+
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], max_tokens: isMC ? 340 : 220 }),
+        });
+        if (!response.ok) throw new Error(`API ${response.status}`);
+        const data = await response.json();
+        const parsed = parseAiJson((data.content || []).map((b) => b.text || '').join(''));
+        if (!parsed?.q || !parsed?.a) { lastIssues = ['JSON incompleto']; continue; }
+
+        if (isTrueFalse) parsed.q = ensureTrueFalsePrompt(parsed.q);
+        if (isMC && !isTrueFalse && parsed.distractors?.length >= 3) {
+          parsed.options = QE.shuffleMcOptions(
+            QE.assembleMcOptions(parsed.a, parsed.distractors), parsed.a, normalizeQ, session.recentMcPositions,
+          );
+        }
+
+        const ctx = buildValidationCtx({ formatId, isMC, difficulty });
+        const result = validateParsed(parsed, ctx);
+        lastParsed = parsed;
+        lastResult = result;
+
+        if (result.ok) {
+          $('gen-status').className = 'result ok';
+          $('gen-status').textContent = `Aceite na tentativa ${attempt}.`;
+          showResult(result, parsed, resolved);
+          rememberAccepted(parsed, result, { formatId, difficulty, subtopic });
+          addLogEntry(parsed, result, resolved);
+          QE.persistQuestion(ageBandKey, parsed.q, parsed.a, normalizeQ, {
+            category: cat.n, format: formatId, knowledgeKey: result.knowledgeKey, difficulty, subtopic,
+          });
+          return { parsed, result, resolved };
+        }
+        lastIssues = result.issues || ['validação falhou'];
+        showResult(result, parsed, resolved);
+      }
+
+      $('gen-status').className = 'result err';
+      $('gen-status').textContent = `Rejeitada após ${maxAttempts} tentativas.`;
+      if (lastParsed && lastResult) addLogEntry(lastParsed, lastResult, resolved);
+      return null;
+    }
+
+    async function runBatch(n) {
+      stopBatch = false;
+      $('btn-generate').disabled = true;
+      $('btn-generate-5').disabled = true;
+      $('btn-stop').disabled = false;
+      for (let i = 0; i < n && !stopBatch; i += 1) {
+        try { await generateOne(); } catch (err) {
+          $('gen-status').className = 'result err';
+          $('gen-status').textContent = `Erro: ${err.message}`;
+          break;
+        }
+        if (i < n - 1) await new Promise((r) => setTimeout(r, 500));
+      }
+      $('btn-generate').disabled = false;
+      $('btn-generate-5').disabled = false;
+      $('btn-stop').disabled = true;
+    }
+
+    function loadFeedback() {
+      try { return JSON.parse(localStorage.getItem(FEEDBACK_KEY) || '[]'); } catch { return []; }
+    }
+    function saveFeedbackEntry(entry) {
+      const list = loadFeedback();
+      list.push(entry);
+      while (list.length > 150) list.shift();
+      localStorage.setItem(FEEDBACK_KEY, JSON.stringify(list));
+      renderFeedbackList();
+      updateStats();
+    }
+    function buildFeedbackEntry() {
+      if (!currentEntry) return null;
+      const tags = [...document.querySelectorAll('#issue-chips input:checked')].map((c) => c.value);
+      const r = currentEntry.resolved || {};
+      return {
+        id: `fb-${Date.now()}`, ts: new Date().toISOString(),
+        verdict: selectedVerdict, tags, comment: $('fb-comment').value.trim(),
+        motorAccepted: currentEntry.result.ok,
+        question: currentEntry.parsed.q, answer: currentEntry.parsed.a,
+        options: currentEntry.parsed.options,
+        score: currentEntry.result.score, issues: currentEntry.result.issues,
+        knowledgeKey: currentEntry.result.knowledgeKey,
+        category: r.cat?.name, age: r.ageBandKey, format: r.formatId,
+        difficulty: r.difficulty, answerMode: r.answerMode,
+      };
+    }
+    function renderFeedbackList() {
+      const list = loadFeedback().slice().reverse();
+      const el = $('feedback-list');
+      if (!list.length) { el.innerHTML = '<p class="hint">Nenhum feedback.</p>'; return; }
+      el.innerHTML = list.map((f) => `
+        <div class="feedback-entry">
+          <div class="fb-meta">${new Date(f.ts).toLocaleString('pt-PT')} · ${escapeHtml(f.verdict||'—')} · motor ${f.motorAccepted?'aceitou':'rejeitou'}</div>
+          <div>${escapeHtml(f.question)}</div>
+          ${f.comment ? `<div class="hint">${escapeHtml(f.comment)}</div>` : ''}
+        </div>`).join('');
+    }
+
+    // Events
+    $('cat').addEventListener('change', onConfigChange);
+    $('age').addEventListener('change', onConfigChange);
+    $('answerMode').addEventListener('change', onConfigChange);
+    $('btn-generate').addEventListener('click', () => runBatch(1));
+    $('btn-generate-5').addEventListener('click', () => runBatch(5));
+    $('btn-stop').addEventListener('click', () => { stopBatch = true; });
+    $('btn-validate-manual').addEventListener('click', () => {
+      const { parsed, isMC } = buildParsedFromForm();
+      const ctx = buildValidationCtx({ isMC });
+      showResult(validateParsed(parsed, ctx), parsed, lastResolved || resolveConfig());
+    });
+    document.querySelectorAll('#verdict-btns button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        selectedVerdict = btn.dataset.verdict;
+        document.querySelectorAll('#verdict-btns button').forEach((b) => b.classList.remove('selected'));
+        btn.classList.add('selected');
+      });
+    });
+    $('btn-save-feedback').addEventListener('click', () => {
+      if (!selectedVerdict) { alert('Escolhe um veredito.'); return; }
+      saveFeedbackEntry(buildFeedbackEntry());
+      alert('Guardado.');
+    });
+    $('btn-next-after-fb').addEventListener('click', () => {
+      if (selectedVerdict) saveFeedbackEntry(buildFeedbackEntry());
+      runBatch(1);
+    });
+    $('btn-clear-session').addEventListener('click', () => {
+      Object.assign(session, {
+        usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedFormats: [],
+        usedDifficulties: [], usedSubtopics: [], recentMcPositions: [], log: [],
+        stats: { total: 0, ok: 0, fail: 0 },
+      });
+      renderSessionLog(); updateStats();
+    });
+    $('btn-export-json').addEventListener('click', () => {
+      const blob = new Blob([JSON.stringify(loadFeedback(), null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `engine-feedback-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    });
+    $('btn-copy-feedback').addEventListener('click', () => {
+      const text = loadFeedback().map((f, i) => `[${i+1}] ${f.verdict} | ${f.question} | ${f.comment||''}`).join('\n');
+      navigator.clipboard.writeText(text || 'Sem feedbacks.');
+      alert('Copiado.');
+    });
+    $('btn-clear-feedback').addEventListener('click', () => {
+      if (confirm('Apagar feedbacks?')) { localStorage.removeItem(FEEDBACK_KEY); renderFeedbackList(); updateStats(); }
+    });
+
+    populateCategorySelect();
+    onConfigChange();
+    renderFeedbackList();
+    updateStats();
+  })();
+  </script>
+  <script src="app-update.js?v=20260826-183925" defer></script>
+</body>
+</html>

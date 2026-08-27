@@ -1,0 +1,6 @@
+# Cloudflare Pages — deploy via GitHub Actions (cloudflare/pages-action).
+# Bindings e variáveis de ambiente configuram-se no painel Cloudflare Pages.
+
+name = "reinomagicodosaber"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "public"

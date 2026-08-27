@@ -1,0 +1,1266 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="app-build" content="20260826-183925">
+  <title>Teste de IA — Reino Mágico do Saber</title>
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    :root {
+      --night: #0f1f18;
+      --night-2: #162820;
+      --gold: #c9a227;
+      --gold-bright: #eecb6b;
+      --parchment: #f3ead8;
+      --parchment-dim: #c8bda8;
+      --ok: #3ecf72;
+      --err: #f4a6a8;
+      --warn: #f0c674;
+      --quota-ok: #86efac;
+      --quota-warn: #fde68a;
+      --quota-err: #fca5a5;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: Georgia, "Times New Roman", serif;
+      color: var(--parchment);
+      background: linear-gradient(180deg, var(--night), var(--night-2));
+      padding: 24px 16px 40px;
+    }
+    .wrap {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: clamp(1.4rem, 4vw, 1.9rem);
+      color: var(--gold-bright);
+      margin: 0 0 6px;
+    }
+    .sub {
+      color: var(--parchment-dim);
+      margin: 0 0 20px;
+      line-height: 1.5;
+    }
+    .card {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(201,162,39,0.35);
+      border-radius: 14px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+    label {
+      display: block;
+      font-size: 0.85rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 6px;
+    }
+    select, textarea, button {
+      font: inherit;
+    }
+    select, textarea {
+      width: 100%;
+      background: rgba(0,0,0,0.25);
+      color: var(--parchment);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 14px;
+    }
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+    .row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    button {
+      cursor: pointer;
+      border: 1px solid rgba(201,162,39,0.55);
+      background: linear-gradient(180deg, rgba(201,162,39,0.25), rgba(201,162,39,0.12));
+      color: var(--gold-bright);
+      border-radius: 999px;
+      padding: 10px 18px;
+      transition: transform .12s ease, background .12s ease;
+    }
+    button:hover { transform: translateY(-1px); background: rgba(201,162,39,0.28); }
+    button:disabled { opacity: 0.55; cursor: wait; transform: none; }
+    button.secondary {
+      background: transparent;
+      color: var(--parchment-dim);
+      border-color: rgba(255,255,255,0.2);
+    }
+    .status {
+      border-radius: 12px;
+      padding: 14px 16px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 0.98rem;
+    }
+    .status.idle { background: rgba(255,255,255,0.04); color: var(--parchment-dim); }
+    .status.ok { background: rgba(62,207,114,0.12); border: 1px solid rgba(62,207,114,0.45); color: #b8f5cd; }
+    .status.err { background: rgba(229,72,77,0.12); border: 1px solid rgba(229,72,77,0.45); color: var(--err); }
+    .status.run { background: rgba(240,198,116,0.12); border: 1px solid rgba(240,198,116,0.45); color: var(--warn); }
+    pre {
+      margin: 0;
+      padding: 14px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.35);
+      border: 1px solid rgba(255,255,255,0.08);
+      overflow: auto;
+      font-size: 0.82rem;
+      line-height: 1.45;
+      color: #dfe7df;
+    }
+    .meta {
+      font-family: ui-monospace, Consolas, monospace;
+      font-size: 0.78rem;
+      color: var(--parchment-dim);
+      margin-top: 10px;
+    }
+    a { color: var(--gold-bright); }
+    .tips {
+      font-size: 0.92rem;
+      color: var(--parchment-dim);
+      line-height: 1.55;
+    }
+    .tips li { margin-bottom: 6px; }
+    .usage-card{
+      display:grid;
+      gap:8px;
+      margin-bottom:16px;
+    }
+    .usage-row{
+      display:flex;
+      justify-content:space-between;
+      gap:12px;
+      font-size:0.92rem;
+      border-bottom:1px solid rgba(255,255,255,0.06);
+      padding-bottom:6px;
+    }
+    .usage-row:last-child{ border-bottom:none; padding-bottom:0; }
+    .usage-key{ color:var(--gold); text-transform:uppercase; font-size:0.75rem; letter-spacing:.04em; }
+    .usage-val{ color:var(--parchment); text-align:right; word-break:break-word; }
+    .usage-val.mono{ font-family: ui-monospace, Consolas, monospace; font-size:0.82rem; color:var(--gold-bright); }
+    .usage-card.failed #usage-state{ color:#f87171; font-weight:600; }
+    .usage-card.failed #usage-provider{ color:#fca5a5; }
+    .usage-card.pending #usage-state{ color:var(--gold-bright); }
+    .provider-hint{
+      margin:-4px 0 14px;
+      font-size:0.85rem;
+      color:var(--parchment-dim);
+      line-height:1.45;
+    }
+    .quota-card-title{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+      color:var(--gold-bright);
+    }
+    .quota-card-title button{
+      font:inherit;
+      font-size:0.78rem;
+      padding:6px 10px;
+      border-radius:8px;
+      border:1px solid rgba(201,162,39,0.45);
+      background:rgba(0,0,0,0.25);
+      color:var(--parchment);
+      cursor:pointer;
+    }
+    .quota-hint{
+      margin:0 0 12px;
+      font-size:0.82rem;
+      color:var(--parchment-dim);
+      line-height:1.45;
+    }
+    .quota-provider{
+      border:1px solid rgba(255,255,255,0.08);
+      border-left-width:3px;
+      border-radius:12px;
+      padding:12px 14px;
+      margin-bottom:10px;
+      background:rgba(0,0,0,0.18);
+    }
+    .quota-provider.quota-state-ok{ border-left-color:var(--quota-ok); }
+    .quota-provider.quota-state-limited{ border-left-color:var(--quota-warn); }
+    .quota-provider.quota-state-billing,
+    .quota-provider.quota-state-error{ border-left-color:var(--quota-err); }
+    .quota-provider.quota-state-unknown{ border-left-color:rgba(255,255,255,0.18); }
+    .quota-provider:last-child{ margin-bottom:0; }
+    .quota-provider-head{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:8px;
+    }
+    .quota-provider-head strong{ color:var(--gold-bright); }
+    .quota-badge{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:0.72rem;
+      letter-spacing:.04em;
+      text-transform:uppercase;
+      padding:3px 8px;
+      border-radius:999px;
+      border:1px solid transparent;
+      white-space:nowrap;
+    }
+    .quota-dot{
+      width:8px;
+      height:8px;
+      border-radius:50%;
+      background:currentColor;
+      flex:0 0 auto;
+    }
+    .quota-badge.ok{ color:#86efac; border-color:rgba(134,239,172,0.35); background:rgba(34,197,94,0.12); }
+    .quota-badge.limited{ color:#fde68a; border-color:rgba(253,230,138,0.35); background:rgba(245,158,11,0.12); }
+    .quota-badge.billing,.quota-badge.error{ color:#fca5a5; border-color:rgba(252,165,165,0.35); background:rgba(239,68,68,0.12); }
+    .quota-badge.unknown{ color:var(--parchment-dim); border-color:rgba(255,255,255,0.12); }
+    .quota-status-text{
+      font-weight:700;
+      letter-spacing:.02em;
+    }
+    .quota-status-text.ok{ color:var(--quota-ok); }
+    .quota-status-text.limited{ color:var(--quota-warn); }
+    .quota-status-text.billing,
+    .quota-status-text.error{ color:var(--quota-err); }
+    .quota-status-text.unknown{ color:var(--parchment-dim); }
+    .quota-status-hint.ok{ color:var(--quota-ok); }
+    .quota-status-hint.limited,
+    .quota-status-hint.billing,
+    .quota-status-hint.error{ color:var(--quota-warn); }
+    .quota-status-hint.error{ color:var(--quota-err); }
+    .quota-bar{
+      height:8px;
+      border-radius:999px;
+      background:rgba(255,255,255,0.08);
+      overflow:hidden;
+      margin:8px 0 10px;
+    }
+    .quota-bar > span{
+      display:block;
+      height:100%;
+      background:linear-gradient(90deg, #3ecf72, #eecb6b);
+      border-radius:999px;
+    }
+    .quota-bar.warn > span{ background:linear-gradient(90deg, #f0c674, #f97316); }
+    .quota-bar.danger > span{ background:linear-gradient(90deg, #f87171, #ef4444); }
+    .usage-val .server-key-ok{ color:var(--quota-ok); font-weight:600; }
+    .usage-val .server-key-off{
+      color:rgba(243,234,216,0.35);
+      opacity:0.72;
+      filter:grayscale(0.45);
+    }
+    select option:disabled{ color:#8a8478; }
+    .page-head{
+      display:flex;
+      justify-content:space-between;
+      align-items:flex-start;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom:6px;
+    }
+    .theme-toggle{ display:flex; gap:6px; flex-shrink:0; }
+    .theme-toggle button{
+      padding:8px 12px;
+      font-size:0.82rem;
+      border-radius:999px;
+    }
+    .theme-toggle button.active{
+      background:rgba(201,162,39,0.35);
+      border-color:var(--gold-bright);
+      color:var(--gold-bright);
+    }
+    :root[data-theme="day"]{
+      --night:#f4eed8;
+      --night-2:#e6dcb8;
+      --parchment:#1f1c12;
+      --parchment-dim:#4a4636;
+      --gold:#9a7218;
+      --gold-bright:#7a5a0f;
+      --quota-ok:#166534;
+      --quota-warn:#a16207;
+      --quota-err:#b91c1c;
+      --err:#b91c1c;
+      --warn:#a16207;
+    }
+    :root[data-theme="day"] .card{
+      background:rgba(255,255,255,0.88);
+      border-color:rgba(154,114,24,0.28);
+      box-shadow:0 8px 24px rgba(30,35,20,0.06);
+    }
+    :root[data-theme="day"] select,
+    :root[data-theme="day"] textarea{
+      background:#fff;
+      border-color:rgba(30,35,20,0.14);
+      color:#1f1c12;
+    }
+    :root[data-theme="day"] pre{
+      background:#fff;
+      color:#1f1c12;
+      border-color:rgba(30,35,20,0.12);
+    }
+    :root[data-theme="day"] .status.idle{
+      background:rgba(255,255,255,0.72);
+      color:var(--parchment-dim);
+      border:1px solid rgba(30,35,20,0.08);
+    }
+    :root[data-theme="day"] .status.ok{
+      color:#166534;
+      background:rgba(22,101,52,0.08);
+      border:1px solid rgba(22,101,52,0.28);
+    }
+    :root[data-theme="day"] .status.err{
+      color:#b91c1c;
+      background:rgba(185,28,28,0.08);
+      border:1px solid rgba(185,28,28,0.22);
+    }
+    :root[data-theme="day"] .status.run{
+      color:#a16207;
+      background:rgba(161,98,7,0.08);
+      border:1px solid rgba(161,98,7,0.22);
+    }
+    :root[data-theme="day"] .quota-provider{
+      background:rgba(255,255,255,0.72);
+      border-color:rgba(30,35,20,0.10);
+    }
+    :root[data-theme="day"] .quota-badge.ok{
+      color:#166534;
+      background:rgba(22,101,52,0.10);
+      border-color:rgba(22,101,52,0.25);
+    }
+    :root[data-theme="day"] .quota-badge.limited{
+      color:#a16207;
+      background:rgba(161,98,7,0.10);
+      border-color:rgba(161,98,7,0.25);
+    }
+    :root[data-theme="day"] .quota-badge.billing,
+    :root[data-theme="day"] .quota-badge.error{
+      color:#b91c1c;
+      background:rgba(185,28,28,0.08);
+      border-color:rgba(185,28,28,0.22);
+    }
+    :root[data-theme="day"] .usage-row{ border-bottom-color:rgba(30,35,20,0.08); }
+    :root[data-theme="day"] .usage-val .server-key-off{ color:rgba(74,70,54,0.45); }
+    :root[data-theme="day"] .quota-card-title button{
+      background:#fff;
+      color:var(--parchment);
+      border-color:rgba(154,114,24,0.28);
+    }
+    :root[data-theme="day"] button.secondary{
+      color:var(--parchment-dim);
+      border-color:rgba(30,35,20,0.18);
+      background:rgba(255,255,255,0.55);
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="page-head">
+      <h1>🔌 Teste de IA</h1>
+      <div class="theme-toggle" aria-label="Tema">
+        <button type="button" id="theme-day" class="secondary">☀️ Dia</button>
+        <button type="button" id="theme-night" class="secondary">🌙 Noite</button>
+      </div>
+    </div>
+    <p class="sub">
+      Página independente do jogo para verificar se <code>/api/generate</code> responde.
+      Acede pelas <strong>Definições → Página de teste de IA</strong>.
+    </p>
+
+    <div class="card usage-card" id="usage-card">
+      <div class="usage-row"><span class="usage-key">Estado</span><span class="usage-val" id="usage-state">—</span></div>
+      <div class="usage-row"><span class="usage-key">Fornecedor</span><span class="usage-val" id="usage-provider">—</span></div>
+      <div class="usage-row"><span class="usage-key">Modelo</span><span class="usage-val" id="usage-model-label">—</span></div>
+      <div class="usage-row"><span class="usage-key">ID do modelo</span><span class="usage-val mono" id="usage-model-id">—</span></div>
+      <div class="usage-row"><span class="usage-key">Fallback</span><span class="usage-val" id="usage-fallback">—</span></div>
+      <div class="usage-row"><span class="usage-key">Chaves no servidor</span><span class="usage-val" id="usage-server-keys">A verificar…</span></div>
+    </div>
+
+    <div class="card" id="server-quotas-card">
+      <div class="quota-card-title">
+        <strong>Quota dos servidores</strong>
+        <button type="button" id="btn-refresh-quotas">↻ Actualizar</button>
+      </div>
+      <p class="quota-hint" id="quota-checked-at">Uso, tempo até novos tokens e hora prevista de renovação (quando a API o indicar).</p>
+      <div id="server-quotas-list">A carregar quotas…</div>
+    </div>
+
+    <div class="card">
+      <label for="provider">Fornecedor</label>
+      <select id="provider">
+        <option value="auto">Automática</option>
+        <option value="groq">Groq</option>
+        <option value="anthropic">Anthropic</option>
+        <option value="openai">OpenAI</option>
+      </select>
+      <p class="provider-hint" id="provider-hint">Automática: tenta Groq → OpenAI → Anthropic (com fallback).</p>
+
+      <label for="model">Modelo (opcional)</label>
+      <select id="model">
+        <option value="auto">Automático (servidor)</option>
+        <optgroup label="Groq">
+          <option value="qwen/qwen3.6-27b">Qwen 3.6 27B</option>
+          <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
+          <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+        </optgroup>
+        <optgroup label="Anthropic">
+          <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+        </optgroup>
+        <optgroup label="OpenAI">
+          <option value="gpt-4o-mini">GPT-4o mini</option>
+          <option value="gpt-4.1-mini">GPT-4.1 mini</option>
+          <option value="gpt-4o">GPT-4o</option>
+        </optgroup>
+      </select>
+
+      <label for="age-band">Faixa etária (trivia)</label>
+      <select id="age-band">
+        <option value="6-9">6 – 9 anos</option>
+        <option value="10-15">10 – 15 anos</option>
+        <option value="15+">+15 anos</option>
+      </select>
+
+      <label for="prompt">Mensagem de teste</label>
+      <textarea id="prompt">Responde só JSON: {"ok":true,"mensagem":"ligação confirmada"}</textarea>
+
+      <div class="row">
+        <button type="button" id="btn-test">▶ Testar ligação</button>
+        <button type="button" id="btn-trivia" class="secondary">🎯 Teste pergunta trivia</button>
+        <button type="button" id="btn-trivia-ages" class="secondary">🧒 Testar 3 faixas</button>
+        <button type="button" id="btn-clear" class="secondary">Limpar</button>
+      </div>
+    </div>
+
+    <div id="status" class="status idle">Pronto para testar.</div>
+    <p class="meta" id="meta"></p>
+    <pre id="output" hidden></pre>
+
+    <div class="card tips">
+      <strong>O que pode falhar:</strong>
+      <ul>
+        <li><strong>OpenAI sem créditos</strong> — a conta precisa de saldo em <a href="https://platform.openai.com/settings/organization/billing" target="_blank" rel="noopener">platform.openai.com</a> (o backend já está actualizado).</li>
+        <li><strong>Backend desatualizado / Groq quando escolheste OpenAI</strong> — o zip manual no Netlify <strong>não atualiza as Functions</strong>. Usa <code>.\scripts\deploy-netlify.ps1</code> ou liga o Git (ver LEIA-ME.md).</li>
+        <li><strong>429 Demasiados pedidos</strong> — limite da <em>app</em> (não da Groq/OpenAI). Espera cerca de 1 minuto. O selo OK nas quotas dos servidores pode continuar verde.</li>
+        <li><strong>502 / 429 Groq</strong> — quota diária esgotada <em>ou</em> modelo gpt-oss sem tokens de saída suficientes (raciocínio interno). Tenta <code>qwen/qwen3.6-27b</code>, espera o reset, ou adiciona <code>OPENAI_API_KEY</code>.</li>
+        <li><strong>500 sem chave</strong> — falta <code>GROQ_API_KEY</code> (ou outra) em Environment variables.</li>
+        <li><strong>404</strong> — deploy sem <code>netlify/functions</code> ou sem redirect para <code>/api/generate</code>.</li>
+      </ul>
+      <p><a href="/" id="test-ai-back-settings">← Voltar às definições</a> · <a href="/">Jogo</a> · <a href="/version.json" target="_blank" rel="noopener">version.json</a></p>
+    </div>
+  </div>
+
+  <script>
+    const THEME_STORAGE_KEY = 'reino_magico_theme';
+    let themeChoice = 'night';
+    try {
+      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+      if (savedTheme === 'day' || savedTheme === 'night') themeChoice = savedTheme;
+    } catch { /* ignore */ }
+    function applyTheme(){
+      if (themeChoice === 'day') {
+        document.documentElement.setAttribute('data-theme', 'day');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
+      document.getElementById('theme-day')?.classList.toggle('active', themeChoice === 'day');
+      document.getElementById('theme-night')?.classList.toggle('active', themeChoice === 'night');
+    }
+    document.getElementById('theme-day').onclick = () => {
+      themeChoice = 'day';
+      applyTheme();
+      try { localStorage.setItem(THEME_STORAGE_KEY, 'day'); } catch { /* ignore */ }
+    };
+    document.getElementById('theme-night').onclick = () => {
+      themeChoice = 'night';
+      applyTheme();
+      try { localStorage.setItem(THEME_STORAGE_KEY, 'night'); } catch { /* ignore */ }
+    };
+    applyTheme();
+
+    const statusEl = document.getElementById('status');
+    const outputEl = document.getElementById('output');
+    const metaEl = document.getElementById('meta');
+    const btnTest = document.getElementById('btn-test');
+    const btnTrivia = document.getElementById('btn-trivia');
+    const btnTriviaAges = document.getElementById('btn-trivia-ages');
+    const btnClear = document.getElementById('btn-clear');
+
+    const PROVIDER_LABELS = { groq: 'Groq', openai: 'OpenAI', anthropic: 'Anthropic' };
+
+    function isProviderQuotaBlocked(summary) {
+      if (!summary) return false;
+      if (summary.usable === false) return true;
+      return summary.availability === 'limited' || summary.availability === 'billing';
+    }
+
+    function isProviderAvailableForSelection(id, quota) {
+      if (id === 'auto') return true;
+      if (!quota) return true;
+      if (!quota?.configured?.[id]) return false;
+      const summary = quota?.providers?.[id]?.summary;
+      if (!summary) return true;
+      if (isProviderQuotaBlocked(summary)) return false;
+      return summary.availability !== 'error';
+    }
+
+    function renderServerKeys(configured) {
+      const keysEl = document.getElementById('usage-server-keys');
+      if (!keysEl) return;
+      const parts = [
+        { label: 'Groq', ok: !!configured?.groq },
+        { label: 'OpenAI', ok: !!configured?.openai },
+        { label: 'Anthropic', ok: !!configured?.anthropic },
+      ];
+      keysEl.innerHTML = parts.map((p) =>
+        `<span class="${p.ok ? 'server-key-ok' : 'server-key-off'}">${p.label} ${p.ok ? '✓' : '✗'}</span>`
+      ).join(' · ');
+      keysEl.title = 'Chaves visíveis às Netlify Functions neste deploy.';
+    }
+
+    function updateProviderSelectAvailability(quota) {
+      const sel = document.getElementById('provider');
+      if (!sel) return;
+      [...sel.options].forEach((opt) => {
+        const id = opt.value;
+        if (id === 'auto') {
+          opt.disabled = false;
+          return;
+        }
+        opt.disabled = !isProviderAvailableForSelection(id, quota);
+      });
+      if (sel.selectedOptions[0]?.disabled) {
+        sel.value = 'auto';
+        updateProviderHint();
+        updateUsageCardFromForm();
+      }
+    }
+    const AGE_BAND_LABELS = { '6-9': '6 – 9 anos', '10-15': '10 – 15 anos', '15+': '+15 anos' };
+    const AGE_BAND_PROMPT_TEXT = {
+      '6-9': 'crianças dos 6 aos 9 anos. Usa frases curtas, palavras simples e exemplos do quotidiano. Evita conceitos abstratos, nomes excessivamente difíceis, perguntas com várias etapas e números desnecessariamente grandes. NUNCA uses probabilidade, percentagens, frações, médias ou outros conceitos matemáticos abstratos — usa apenas contagens simples e diretas (ex.: "quantos", "quantas vezes"). A RESPOSTA também tem de ser simples e com vocabulário do dia a dia de uma criança.',
+      '10-15': 'jovens dos 10 aos 15 anos. Usa linguagem clara e natural, com dificuldade intermédia. Podes usar algum vocabulário científico ou cultural, mas explica o necessário através da própria pergunta. A resposta deve ser igualmente clara, sem termos demasiado técnicos por explicar.',
+      '15+': 'jovens e adultos com mais de 15 anos, nível DIFÍCIL de cultura geral. Evita perguntas óbvias; prefere factos menos conhecidos, raciocínio em dois passos e vocabulário exigente quando adequado.',
+    };
+    const TRIVIA_TOPICS = [
+      'História de Portugal', 'Geografia', 'Ciência', 'Natureza', 'Espaço',
+      'Literatura', 'Arte', 'Música', 'Desporto', 'Tecnologia', 'Gastronomia',
+      'Culturas do Mundo', 'Matemática e Lógica', 'Cinema e Séries', 'Animais',
+    ];
+    const TRIVIA_AGES = ['6-9', '10-15', '15+'];
+    let triviaTopicIndex = Math.floor(Math.random() * TRIVIA_TOPICS.length);
+
+    function validateAgeAppropriate(parsed, ageBandKey) {
+      const q = String(parsed?.q || '').trim();
+      const a = String(parsed?.a || '').trim();
+      const options = Array.isArray(parsed?.options) ? parsed.options : [];
+      const blob = (q + ' ' + a + ' ' + options.join(' ')).toLowerCase();
+      const issues = [];
+      const abstractMath = /(\d+\s*%|\bpercentagem\b|\bprobabilidade\b|\bfraç[ãõ]o\b|\bmédia\b|\bdesvio\b)/i;
+      const veryTechnical = /\b(mitocôndria|fotossíntese|condensação|eletromagnético|hidrogénio|oxigénio molecular|metamorfose celular|bactéria anaeróbia|fotossíntese)\b/i;
+      const youngestTooHard = /\b(imperialismo|capitalismo|filosofia platónica|teorema|algoritmo|equação diferencial|segunda guerra mundial|primeira guerra mundial|tratado de versalhes|declaração universal)\b/i;
+
+      if (ageBandKey === '6-9') {
+        if (q.length > 130) issues.push('pergunta demasiado longa');
+        if (a.split(/\s+/).filter(Boolean).length > 10) issues.push('resposta demasiado longa');
+        if (abstractMath.test(blob)) issues.push('conceito matemático abstrato');
+        if (veryTechnical.test(blob)) issues.push('vocabulário técnico');
+        if (youngestTooHard.test(blob)) issues.push('tema avançado demais');
+        const longWords = q.split(/\s+/).filter(w => w.replace(/[^\p{L}-]/gu, '').length > 13);
+        if (longWords.length) issues.push('palavras demasiado complexas');
+      } else if (ageBandKey === '10-15') {
+        if (q.length > 200) issues.push('pergunta demasiado longa');
+        if (veryTechnical.test(a) && a.split(/\s+/).filter(Boolean).length > 8) {
+          issues.push('resposta demasiado técnica');
+        }
+      }
+
+      return { ok: !issues.length, issues };
+    }
+
+    function parseTriviaJson(text) {
+      let clean = String(text || '')
+        .replace(/<think>[\s\S]*?<\/redacted_thinking>/gi, '')
+        .replace(/<think>[\s\S]*/gi, '')
+        .replace(/[\s\S]*?<\/think>/gi, '')
+        .replace(/```json|```/g, '')
+        .trim();
+      try {
+        return JSON.parse(clean);
+      } catch {
+        const start = clean.indexOf('{');
+        const end = clean.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+          try { return JSON.parse(clean.slice(start, end + 1)); } catch { /* continua */ }
+        }
+      }
+      return null;
+    }
+
+    function nextTriviaPrompt(ageBandKey) {
+      const topic = TRIVIA_TOPICS[triviaTopicIndex % TRIVIA_TOPICS.length];
+      triviaTopicIndex += 1;
+      const ageKey = ageBandKey || document.getElementById('age-band').value;
+      const nonce = Date.now().toString(36).slice(-4);
+      return `Cria UMA pergunta de trivia sobre ${topic}, para ${AGE_BAND_PROMPT_TEXT[ageKey]}.
+A pergunta tem de ser uma frase interrogativa completa terminada em "?".
+Respostas curtas e inequívocas. Escreve exclusivamente em português de Portugal (PT-PT).
+Variação ${nonce} — evita repetir perguntas comuns.
+Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","opção2","opção3","opção4"]}`;
+    }
+
+    function updateProviderHint() {
+      const prov = document.getElementById('provider').value;
+      const el = document.getElementById('provider-hint');
+      if (!el) return;
+      if (prov === 'auto') {
+        el.textContent = 'Automática: tenta modelos do fornecedor (ex. qwen → gpt-oss na Groq) e depois Groq → OpenAI → Anthropic.';
+      } else {
+        el.textContent = `${PROVIDER_LABELS[prov] || prov}: testa só este fornecedor (sem fallback para outros).`;
+      }
+    }
+
+    function syncModelToProvider() {
+      const prov = document.getElementById('provider').value;
+      const modelEl = document.getElementById('model');
+      if (prov === 'openai') modelEl.value = 'gpt-4o-mini';
+      else if (prov === 'anthropic') modelEl.value = 'claude-haiku-4-5-20251001';
+      else if (prov === 'groq') modelEl.value = 'auto';
+      else modelEl.value = 'auto';
+    }
+    const MODEL_LABELS = {
+      'openai/gpt-oss-20b': 'GPT-OSS 20B',
+      'openai/gpt-oss-120b': 'GPT-OSS 120B',
+      'qwen/qwen3.6-27b': 'Qwen 3.6 27B',
+      'claude-haiku-4-5-20251001': 'Claude Haiku 4.5',
+      'gpt-4o-mini': 'GPT-4o mini',
+      'gpt-4.1-mini': 'GPT-4.1 mini',
+      'gpt-4o': 'GPT-4o',
+    };
+
+    function inferProviderFromModel(modelId) {
+      const m = String(modelId || '').toLowerCase();
+      if (!m || m === 'auto') return '';
+      if (/^claude-/.test(m)) return 'anthropic';
+      if (/^gpt-/.test(m)) return 'openai';
+      if (/^(llama-|mixtral|gemma|qwen\/|openai\/gpt-oss)/.test(m)) return 'groq';
+      return '';
+    }
+
+    function modelLabel(modelId) {
+      return MODEL_LABELS[modelId] || modelId || '—';
+    }
+
+    function extractModelFromError(data) {
+      const text = [data?.detail, data?.error?.message, data?.error, JSON.stringify(data || {})].join(' ');
+      const backtick = text.match(/`([^`]+)`/);
+      if (backtick) return backtick[1];
+      const inline = text.match(/(llama-[\w.-]+|gpt-[\w.-]+|claude-[\w.-]+|openai\/[\w.-]+|qwen\/[\w.-]+)/i);
+      return inline ? inline[1] : '';
+    }
+
+    function getFormSelection() {
+      const provider = document.getElementById('provider').value;
+      const model = document.getElementById('model').value;
+      return { provider, model };
+    }
+
+    function updateUsageCardFromForm({ pending = false } = {}) {
+      const { provider, model } = getFormSelection();
+      const stateEl = document.getElementById('usage-state');
+      const card = document.getElementById('usage-card');
+      card.classList.toggle('pending', pending);
+      card.classList.remove('failed');
+
+      if (pending) {
+        stateEl.textContent = 'A testar…';
+      } else {
+        stateEl.textContent = '—';
+      }
+
+      const provText = provider === 'auto'
+        ? 'Automático'
+        : (PROVIDER_LABELS[provider] || provider);
+      const modelText = model === 'auto'
+        ? 'Automático (servidor)'
+        : modelLabel(model);
+
+      document.getElementById('usage-provider').textContent = provText;
+      document.getElementById('usage-model-label').textContent = modelText;
+      document.getElementById('usage-model-id').textContent = model === 'auto' ? '—' : model;
+      document.getElementById('usage-fallback').textContent = provider === 'auto'
+        ? (pending ? 'Com fallback' : 'Com fallback (quando testares)')
+        : (pending ? 'Modo teste — sem fallback' : 'Sem fallback (quando testares)');
+    }
+
+    function formatInUseLabel(provider, model) {
+      const prov = PROVIDER_LABELS[provider] || provider || 'IA';
+      const mod = model ? modelLabel(model) : '—';
+      return prov + ' · ' + mod;
+    }
+
+    function providerMismatchWarning(selectedProvider, data) {
+      if (!selectedProvider || selectedProvider === 'auto' || !data?.provider) return '';
+      if (data.provider === selectedProvider) return '';
+      const wanted = PROVIDER_LABELS[selectedProvider] || selectedProvider;
+      const got = PROVIDER_LABELS[data.provider] || data.provider;
+      return `⚠️ Pediste ${wanted} mas o servidor respondeu ${got}. Confirma o deploy mais recente e OPENAI_API_KEY no Netlify.\n\n`;
+    }
+
+    function updateUsageCard(data, { failed = false, selectedProvider = '' } = {}) {
+      const attempted = Array.isArray(data?.attempted_providers) ? data.attempted_providers : [];
+      const tried = Array.isArray(data?.providers_tried) ? data.providers_tried : attempted;
+      const form = getFormSelection();
+      let model = failed
+        ? extractModelFromError(data)
+        : (data?.model || extractModelFromError(data));
+      if (failed && selectedProvider && selectedProvider !== 'auto' && form.model !== 'auto') {
+        model = form.model;
+      }
+      const provider = failed
+        ? (attempted[0] || (selectedProvider && selectedProvider !== 'auto' ? selectedProvider : '') || inferProviderFromModel(model) || '')
+        : (data?.provider || inferProviderFromModel(model) ||
+          (tried.length ? tried[tried.length - 1] : ''));
+
+      const stateEl = document.getElementById('usage-state');
+      const card = document.getElementById('usage-card');
+      card.classList.remove('pending');
+      if (failed) {
+        stateEl.textContent = 'Indisponível';
+        card.classList.add('failed');
+      } else if (provider || model) {
+        stateEl.textContent = 'Ligado';
+        card.classList.remove('failed');
+      } else {
+        stateEl.textContent = '—';
+        card.classList.remove('failed');
+      }
+
+      const provLabel = PROVIDER_LABELS[provider] || provider || '—';
+      document.getElementById('usage-provider').textContent = failed && provider
+        ? `${provLabel} (falhou)`
+        : provLabel;
+      document.getElementById('usage-model-label').textContent = model ? modelLabel(model) : '—';
+      document.getElementById('usage-model-id').textContent = model || '—';
+
+      if (failed) {
+        const configured = data?.configured_providers || {};
+        const hasReserve = configured.openai || configured.anthropic;
+        const strict = data?.provider_strict === true;
+        let fallbackText;
+        if (strict) {
+          fallbackText = 'Modo teste — sem fallback';
+        } else if (tried.length > 1) {
+          fallbackText = tried.map((p) => PROVIDER_LABELS[p] || p).join(' → ') + ' (todos falharam)';
+        } else if (!hasReserve) {
+          const hasCfg = Object.keys(configured).length > 0;
+          fallbackText = hasCfg
+            ? 'Não — só Groq activa no deploy actual (faz redeploy)'
+            : 'Não — redeploy antigo sem diagnóstico de chaves';
+        } else if (tried.length === 1) {
+          fallbackText = 'Tentou ' + (PROVIDER_LABELS[tried[0]] || tried[0]) + ' — reserva não foi acionada';
+        } else {
+          fallbackText = 'Não';
+        }
+        document.getElementById('usage-fallback').textContent = fallbackText;
+        return;
+      }
+
+      const fallbackText = data?.fallback_used
+        ? 'Sim · ' + tried.join(' → ')
+        : (tried.length ? 'Não · ' + tried.join(' → ') : 'Não');
+      document.getElementById('usage-fallback').textContent = fallbackText;
+    }
+
+    function formatMetaLine(data, status, elapsed) {
+      const attempted = Array.isArray(data?.attempted_providers) ? data.attempted_providers : [];
+      const provider = data?.provider || attempted[0] || inferProviderFromModel(data?.model || extractModelFromError(data)) || '—';
+      const provLabel = PROVIDER_LABELS[provider] || provider;
+      const model = data?.model || extractModelFromError(data) || '—';
+      const modelName = modelLabel(model);
+      let line = `HTTP ${status} · ${provLabel} · ${modelName} · ID ${model} · ${elapsed} ms`;
+      if (data?.fallback_used && Array.isArray(data.models_tried) && data.models_tried.length > 1) {
+        line += ` · modelos ${data.models_tried.join(' → ')}`;
+      } else if (data?.fallback_used && Array.isArray(data.providers_tried)) {
+        line += ` · fallback ${data.providers_tried.join(' → ')}`;
+      } else if (status >= 400 && Array.isArray(data?.models_tried) && data.models_tried.length) {
+        line += ` · tentou ${data.models_tried.join(' → ')}`;
+      } else if (status >= 400 && attempted.length) {
+        line += ` · tentou ${attempted.join(' → ')}`;
+      }
+      return line;
+    }
+
+    function setStatus(kind, text) {
+      statusEl.className = 'status ' + kind;
+      statusEl.textContent = text;
+    }
+
+    function buildBody(prompt, maxTokens) {
+      const provider = document.getElementById('provider').value;
+      const model = document.getElementById('model').value;
+      const body = {
+        provider_preference: provider,
+        max_tokens: maxTokens,
+        messages: [{ role: 'user', content: prompt }],
+      };
+      if (provider !== 'auto') body.provider_strict = true;
+      if (model !== 'auto') body.model = model;
+      return body;
+    }
+
+    function selectedProviderLabel() {
+      const provider = document.getElementById('provider').value;
+      return provider === 'auto' ? 'fornecedor automático' : (PROVIDER_LABELS[provider] || provider);
+    }
+
+    function explainBackendMismatch(selectedProvider, data) {
+      const attempted = data?.attempted_providers || data?.providers_tried || [];
+      const blob = JSON.stringify(data || {});
+      const parts = [];
+
+      if (data?.api_features?.provider_strict === true && selectedProvider && selectedProvider !== 'auto') {
+        parts.push('✅ Backend actualizado — modo estrito activo (só ' + (PROVIDER_LABELS[selectedProvider] || selectedProvider) + ').');
+      }
+      if (selectedProvider && selectedProvider !== 'auto' && data?.api_features?.provider_strict !== true && data?.provider_strict !== true) {
+        parts.push('⛔ Backend DESATUALIZADO: o deploy por zip no Netlify só atualiza HTML — as Functions (generate.js) ficam na versão antiga.');
+        parts.push('Solução: na pasta reino-magico-deploy corre: npx netlify-cli deploy --prod  (ou liga o repositório Git ao Netlify). O jogo detecta novas versões automaticamente — usa «Atualizar agora» se aparecer o aviso.');
+      }
+      if (selectedProvider === 'openai' && /groq|llama-3/i.test(blob) && data?.provider_strict !== true) {
+        parts.push('⛔ Pediste OpenAI mas o servidor ainda chamou a Groq — confirma deploy das Functions (não basta arrastar o zip).');
+      }
+      if (selectedProvider === 'openai' && attempted.includes('groq')) {
+        parts.push('Fornecedores tentados pelo servidor: ' + attempted.join(' → ') + ' (devia ser só openai).');
+      }
+      if (/no credits remaining|sem créditos|insufficient_quota|quota atual esgotada/i.test(blob)) {
+        parts.push('💳 Conta OpenAI sem créditos — adiciona saldo em https://platform.openai.com/settings/organization/billing');
+      }
+      if (data?.api_features?.version) {
+        parts.push('Versão API: ' + data.api_features.version);
+      }
+      return parts.length ? parts.join('\n') + '\n\n' : '';
+    }
+
+    function formatAiError(data, status, selectedProvider = '') {
+      const parts = [];
+      const mismatch = explainBackendMismatch(selectedProvider, data);
+      if (mismatch) parts.push(mismatch.trim());
+      const base = String(data?.error?.message || data?.error || ('Erro HTTP ' + status))
+        .replace(/rate limit reached/gi, 'Limite de pedidos atingido')
+        .replace(/please try again in/gi, 'Tenta de novo em')
+        .replace(/try again in/gi, 'Tenta de novo em')
+        .replace(/incorrect api key provided/gi, 'chave de API incorreta')
+        .replace(/invalid api key/gi, 'chave de API inválida')
+        .replace(/unauthorized/gi, 'não autorizado')
+        .replace(/exceeded your current quota/gi, 'quota atual esgotada')
+        .replace(/you have no credits remaining/gi, 'não tens créditos na conta OpenAI')
+        .replace(/no credits remaining/gi, 'sem créditos na conta OpenAI')
+        .replace(/\bRequested (\d+)/g, 'Necessários $1')
+        .replace(/Falha ao contactar o\(s\) serviço\(s\) de IA\./gi, 'Falha ao contactar o serviço de IA.');
+      if (base) parts.push(base);
+      if (data?.detail) {
+        parts.push(String(data.detail)
+          .replace(/rate limit reached/gi, 'Limite de pedidos atingido')
+          .replace(/please try again in/gi, 'Tenta de novo em')
+          .replace(/try again in/gi, 'Tenta de novo em')
+          .replace(/tokens per day/gi, 'tokens por dia')
+          .replace(/\bRequested (\d+)/g, 'Necessários $1'));
+      }
+      if (status === 429) {
+        const wait = data?.retry_after != null ? `${data.retry_after} s` : 'cerca de 1 minuto';
+        parts.push(`Limite da app (${data?.limit || 'por minuto'}), não da Groq/OpenAI. Espera ${wait} e tenta de novo.`);
+      }
+      if (data?.attempted_providers?.length) {
+        parts.push('Fornecedores tentados: ' + data.attempted_providers.join(' → ') + '.');
+      }
+      const cfg = data?.configured_providers;
+      if (cfg) {
+        const active = Object.entries(cfg).filter(([, on]) => on).map(([n]) => PROVIDER_LABELS[n] || n);
+        if (active.length) parts.push('Configurados no servidor: ' + active.join(', ') + '.');
+        const sel = document.getElementById('provider')?.value;
+        if (sel === 'openai' && !cfg.openai) {
+          parts.push('Selecionaste OpenAI, mas falta OPENAI_API_KEY no Netlify.');
+        } else if (!cfg.openai && sel === 'auto') {
+          parts.push('Falta OPENAI_API_KEY no Netlify — sem reserva quando a Groq falha.');
+        }
+      }
+      return parts.join('\n\n');
+    }
+
+    async function runTest(prompt, maxTokens, { ageBandKey = '' } = {}) {
+      btnTest.disabled = true;
+      btnTrivia.disabled = true;
+      if (btnTriviaAges) btnTriviaAges.disabled = true;
+      outputEl.hidden = true;
+      const selectedProvider = document.getElementById('provider').value;
+      updateUsageCardFromForm({ pending: true });
+      setStatus('run', 'A contactar ' + selectedProviderLabel() + ' via /api/generate…');
+
+      const started = performance.now();
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(buildBody(prompt, maxTokens)),
+        });
+
+        const elapsed = Math.round(performance.now() - started);
+        let data;
+        try {
+          data = await response.json();
+        } catch {
+          throw new Error('Resposta não é JSON válido (HTTP ' + response.status + ').');
+        }
+
+        outputEl.hidden = false;
+        outputEl.textContent = JSON.stringify(data, null, 2);
+
+        if (!response.ok) {
+          updateUsageCard(data, { failed: true, selectedProvider });
+          setStatus('err', '❌ ' + formatAiError(data, response.status, selectedProvider));
+          metaEl.textContent = formatMetaLine(data, response.status, elapsed);
+          return;
+        }
+
+        updateUsageCard(data, { failed: false });
+        loadServerQuotas({ quiet: true });
+        const text = (data.content || []).map(b => b.text || '').join('').trim();
+        const inUse = formatInUseLabel(data.provider || inferProviderFromModel(data.model), data.model);
+        const mismatch = providerMismatchWarning(selectedProvider, data);
+        let ageLine = '';
+        const bandKey = ageBandKey || document.getElementById('age-band')?.value || '';
+        const parsedTrivia = parseTriviaJson(text);
+        if (parsedTrivia?.q && bandKey) {
+          const ageCheck = validateAgeAppropriate(parsedTrivia, bandKey);
+          ageLine = ageCheck.ok
+            ? `\n\n✅ Faixa etária (${AGE_BAND_LABELS[bandKey]}): adequada`
+            : `\n\n⚠️ Faixa etária (${AGE_BAND_LABELS[bandKey]}): ${ageCheck.issues.join(', ')}`;
+        }
+        setStatus('ok', mismatch + '✅ Ligação OK (' + inUse + ') em ' + elapsed + ' ms' + (text ? '\n\nResposta: ' + text : '') + ageLine);
+        metaEl.textContent = formatMetaLine(data, response.status, elapsed);
+      } catch (err) {
+        const elapsed = Math.round(performance.now() - started);
+        setStatus('err', '❌ ' + (err?.message || String(err)));
+        metaEl.textContent = elapsed + ' ms · rede ou CORS';
+        outputEl.hidden = true;
+      } finally {
+        btnTest.disabled = false;
+        btnTrivia.disabled = false;
+        if (btnTriviaAges) btnTriviaAges.disabled = false;
+      }
+    }
+
+    function sleep(ms) {
+      return new Promise((resolve) => setTimeout(resolve, ms));
+    }
+
+    async function runAllAgeBands() {
+      const { provider, model } = getFormSelection();
+      const ageEl = document.getElementById('age-band');
+      const selectedLabel = selectedProviderLabel();
+      const fallbackNote = provider === 'auto'
+        ? ' (Groq → OpenAI → Anthropic)'
+        : ' (sem fallback)';
+
+      const lines = [];
+      for (let i = 0; i < TRIVIA_AGES.length; i++) {
+        const ageKey = TRIVIA_AGES[i];
+        if (i > 0) await sleep(700);
+        ageEl.value = ageKey;
+        const prompt = nextTriviaPrompt(ageKey);
+        document.getElementById('prompt').value = prompt;
+        setStatus('run', `A testar ${selectedLabel} · ${AGE_BAND_LABELS[ageKey]}…`);
+        btnTest.disabled = true;
+        btnTrivia.disabled = true;
+        if (btnTriviaAges) btnTriviaAges.disabled = true;
+        updateUsageCardFromForm({ pending: true });
+
+        const started = performance.now();
+        try {
+          const response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(buildBody(prompt, 280)),
+          });
+          const elapsed = Math.round(performance.now() - started);
+          const data = await response.json();
+          if (!response.ok) {
+            lines.push(`❌ ${AGE_BAND_LABELS[ageKey]}: ${formatAiError(data, response.status, provider)}`);
+            if (response.status === 429) {
+              lines.push('⏹ Teste interrompido — espera o tempo indicado e volta a clicar em «Testar 3 faixas».');
+              break;
+            }
+            continue;
+          }
+          const text = (data.content || []).map(b => b.text || '').join('').trim();
+          const parsed = parseTriviaJson(text);
+          if (!parsed?.q || !parsed?.a) {
+            lines.push(`❌ ${AGE_BAND_LABELS[ageKey]}: JSON inválido ou incompleto`);
+            continue;
+          }
+          const ageCheck = validateAgeAppropriate(parsed, ageKey);
+          const usedProv = PROVIDER_LABELS[data.provider] || data.provider || selectedLabel;
+          const usedModel = data.model ? ` · ${modelLabel(data.model)}` : '';
+          const fallback = data.fallback_used && Array.isArray(data.providers_tried)
+            ? ` · fallback ${data.providers_tried.join(' → ')}`
+            : '';
+          lines.push(
+            (ageCheck.ok ? '✅' : '⚠️') + ` ${AGE_BAND_LABELS[ageKey]} · ${usedProv}${usedModel} · ${elapsed} ms${fallback}\n` +
+            `P: ${parsed.q}\nR: ${parsed.a}` +
+            (ageCheck.ok ? '' : `\nValidação: ${ageCheck.issues.join(', ')}`)
+          );
+        } catch (err) {
+          lines.push(`❌ ${AGE_BAND_LABELS[ageKey]}: ${err?.message || String(err)}`);
+        }
+      }
+
+      updateUsageCardFromForm();
+      btnTest.disabled = false;
+      btnTrivia.disabled = false;
+      if (btnTriviaAges) btnTriviaAges.disabled = false;
+      outputEl.hidden = false;
+      outputEl.textContent = lines.join('\n\n');
+      const allOk = lines.every(l => l.startsWith('✅'));
+      setStatus(allOk ? 'ok' : 'err', lines.join('\n\n'));
+      const modelNote = model === 'auto' ? 'modelo automático' : modelLabel(model);
+      metaEl.textContent = `Teste nas 3 faixas etárias concluído · ${selectedLabel}${fallbackNote} · ${modelNote}.`;
+      loadServerQuotas({ quiet: true });
+    }
+
+    btnTest.onclick = () => runTest(document.getElementById('prompt').value.trim(), 120);
+
+    btnTrivia.onclick = () => {
+      const prompt = nextTriviaPrompt();
+      document.getElementById('prompt').value = prompt;
+      runTest(prompt, 280, { ageBandKey: document.getElementById('age-band').value });
+    };
+
+    if (btnTriviaAges) btnTriviaAges.onclick = () => runAllAgeBands();
+
+    function onFormSelectionChange() {
+      syncModelToProvider();
+      updateProviderHint();
+      updateUsageCardFromForm();
+    }
+
+    document.getElementById('provider').addEventListener('change', onFormSelectionChange);
+    document.getElementById('model').addEventListener('change', () => updateUsageCardFromForm());
+    updateProviderHint();
+    updateUsageCardFromForm();
+
+    btnClear.onclick = () => {
+      setStatus('idle', 'Pronto para testar.');
+      metaEl.textContent = '';
+      outputEl.hidden = true;
+      outputEl.textContent = '';
+      updateUsageCard({});
+    };
+
+    let quotaCountdownTimer = null;
+    let lastQuotaPayload = null;
+
+    function formatTokenCount(value) {
+      if (value == null || !Number.isFinite(value)) return '—';
+      return Number(value).toLocaleString('pt-PT');
+    }
+
+    function formatDurationClient(seconds) {
+      if (seconds == null) return '—';
+      if (seconds <= 0) return 'agora';
+      const h = Math.floor(seconds / 3600);
+      const m = Math.floor((seconds % 3600) / 60);
+      const s = seconds % 60;
+      const parts = [];
+      if (h) parts.push(`${h} h`);
+      if (m) parts.push(`${m} min`);
+      if (!h && !m && s) parts.push(`${s} s`);
+      return parts.join(' ') || 'em breve';
+    }
+
+    function formatCheckedAt(iso) {
+      if (!iso) return '';
+      try {
+        return 'Actualizado: ' + new Date(iso).toLocaleString('pt-PT', {
+          timeZone: 'Europe/Lisbon',
+          day: '2-digit', month: '2-digit', year: 'numeric',
+          hour: '2-digit', minute: '2-digit', second: '2-digit',
+        });
+      } catch {
+        return '';
+      }
+    }
+
+    function availabilityMeta(summary) {
+      if (summary?.usable === false || summary?.availability === 'limited') {
+        return { label: 'Aguardar reset', cls: 'limited' };
+      }
+      switch (summary?.availability) {
+        case 'ok': return { label: 'OK', cls: 'ok' };
+        case 'billing': return { label: 'Sem créditos', cls: 'billing' };
+        case 'error': return { label: 'Erro', cls: 'error' };
+        default: return { label: 'Sem dados', cls: 'unknown' };
+      }
+    }
+
+    function renderQuotaProvider(summary) {
+      const meta = availabilityMeta(summary);
+      const pct = summary.tokens_used_pct;
+      const barClass = pct == null ? '' : (pct >= 95 ? 'danger' : pct >= 80 ? 'warn' : '');
+      const windowLabel = summary.limit_window === 'day'
+        ? 'quota diária'
+        : (summary.limit_window === 'minute' ? 'janela por minuto' : 'quota');
+      const usageLine = summary.tokens_limit != null
+        ? `${formatTokenCount(summary.tokens_used)} / ${formatTokenCount(summary.tokens_limit)} tokens (${pct != null ? pct + '%' : '—'})`
+        : 'Uso de tokens: sem dados da API';
+      const dayLine = summary.tokens_day_limit != null
+        ? `${formatTokenCount(summary.tokens_day_used)} / ${formatTokenCount(summary.tokens_day_limit)} tokens/dia`
+        : '';
+      const remainingLine = summary.tokens_remaining != null
+        ? `Restantes (${windowLabel}): ${formatTokenCount(summary.tokens_remaining)} tokens`
+        : '';
+      const requestsLine = summary.requests_limit != null
+        ? `Pedidos/dia: ${formatTokenCount(summary.requests_remaining)} / ${formatTokenCount(summary.requests_limit)} restantes`
+        : '';
+      const resetInId = `quota-reset-in-${summary.provider}`;
+      const resetAtId = `quota-reset-at-${summary.provider}`;
+      const minuteReset = summary.tokens_minute_reset_in_seconds != null
+        ? formatDurationClient(summary.tokens_minute_reset_in_seconds)
+        : (summary.reset_in_label || '—');
+      const minuteResetAt = summary.reset_at_label || '—';
+      const requestsReset = summary.requests_reset_in_label
+        || (summary.requests_reset_in_seconds != null ? formatDurationClient(summary.requests_reset_in_seconds) : '');
+      const message = summary.message
+        ? `<div class="usage-row"><span class="usage-key">Nota</span><span class="usage-val">${escapeHtml(summary.message.slice(0, 180))}</span></div>`
+        : '';
+      const statusHint = summary.usable === false
+        ? `<div class="usage-row"><span class="usage-key">Aviso</span><span class="usage-val quota-status-hint ${meta.cls}">Não enviar pedidos até ao reset</span></div>`
+        : '';
+
+      return `
+        <div class="quota-provider quota-state-${meta.cls}" data-provider="${summary.provider}">
+          <div class="quota-provider-head">
+            <strong>${escapeHtml(summary.label)}</strong>
+            <span class="quota-badge ${meta.cls}" title="${escapeHtml(meta.label)}"><span class="quota-dot" aria-hidden="true"></span>${meta.label}</span>
+          </div>
+          <div class="usage-row"><span class="usage-key">Uso (${windowLabel})</span><span class="usage-val">${usageLine}</span></div>
+          ${dayLine ? `<div class="usage-row"><span class="usage-key">Quota diária</span><span class="usage-val">${dayLine}</span></div>` : ''}
+          ${remainingLine ? `<div class="usage-row"><span class="usage-key">Saldo</span><span class="usage-val">${remainingLine}</span></div>` : ''}
+          ${statusHint}
+          ${pct != null ? `<div class="quota-bar ${barClass}"><span style="width:${Math.max(4, pct)}%"></span></div>` : ''}
+          ${requestsLine ? `<div class="usage-row"><span class="usage-key">Pedidos</span><span class="usage-val">${requestsLine}</span></div>` : ''}
+          <div class="usage-row"><span class="usage-key">Reset janela minuto</span><span class="usage-val" id="${resetInId}">${minuteReset}</span></div>
+          <div class="usage-row"><span class="usage-key">Reset janela minuto às</span><span class="usage-val" id="${resetAtId}">${minuteResetAt}</span></div>
+          ${requestsReset ? `<div class="usage-row"><span class="usage-key">Reset pedidos/dia</span><span class="usage-val">${requestsReset}</span></div>` : ''}
+          ${message}
+        </div>
+      `;
+    }
+
+    function escapeHtml(text) {
+      return String(text || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function renderServerQuotas(data) {
+      const listEl = document.getElementById('server-quotas-list');
+      const checkedEl = document.getElementById('quota-checked-at');
+      if (!listEl) return;
+
+      const configured = data?.configured || {};
+      const providers = data?.providers || {};
+      const order = ['groq', 'openai', 'anthropic'];
+      const blocks = [];
+
+      for (const id of order) {
+        if (!configured[id]) continue;
+        const summary = providers[id]?.summary;
+        if (summary) blocks.push(renderQuotaProvider(summary));
+      }
+
+      listEl.innerHTML = blocks.length
+        ? blocks.join('')
+        : '<p class="quota-hint">Nenhuma chave configurada no servidor.</p>';
+
+      if (checkedEl) {
+        checkedEl.textContent = formatCheckedAt(data?.checked_at) || checkedEl.textContent;
+      }
+    }
+
+    function startQuotaCountdown() {
+      if (quotaCountdownTimer) clearInterval(quotaCountdownTimer);
+      quotaCountdownTimer = setInterval(() => {
+        if (!lastQuotaPayload?.providers) return;
+        for (const id of ['groq', 'openai', 'anthropic']) {
+          const summary = lastQuotaPayload.providers[id]?.summary;
+          if (!summary?.reset_at) continue;
+          const seconds = Math.max(0, Math.ceil((Date.parse(summary.reset_at) - Date.now()) / 1000));
+          const inEl = document.getElementById(`quota-reset-in-${id}`);
+          const atEl = document.getElementById(`quota-reset-at-${id}`);
+          if (inEl) inEl.textContent = formatDurationClient(seconds);
+          if (atEl && seconds <= 0) atEl.textContent = 'agora';
+        }
+      }, 1000);
+    }
+
+    async function loadServerQuotas({ quiet = false } = {}) {
+      const keysEl = document.getElementById('usage-server-keys');
+      const listEl = document.getElementById('server-quotas-list');
+      if (!quiet && listEl) listEl.textContent = 'A carregar quotas…';
+      try {
+        const r = await fetch('/api/ai-status?t=' + Date.now(), { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const data = await r.json();
+        lastQuotaPayload = data;
+        const c = data.configured || {};
+        renderServerKeys(c);
+        updateProviderSelectAvailability(data);
+        renderServerQuotas(data);
+        startQuotaCountdown();
+      } catch {
+        if (keysEl) {
+          keysEl.textContent = 'Não verificado';
+          keysEl.title = 'Confirma que o deploy inclui netlify/functions/ai-status.js e o redirect /api/ai-status';
+        }
+        if (listEl) {
+          listEl.innerHTML = '<p class="quota-hint">Não foi possível obter quotas. Faz deploy das funções e tenta de novo.</p>';
+        }
+      }
+    }
+
+    document.getElementById('btn-refresh-quotas')?.addEventListener('click', () => loadServerQuotas());
+
+    fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : null)
+      .then(v => {
+        const ver = v?.version ? 'Versão do site: ' + v.version + ' · ' : '';
+        metaEl.textContent = ver + 'A verificar chaves no servidor…';
+        return loadServerQuotas().then(() => {
+          if (v?.version) metaEl.textContent = 'Versão do site: ' + v.version;
+        });
+      })
+      .catch(() => loadServerQuotas());
+  </script>
+  <script src="app-update.js?v=20260826-183925" defer></script>
+  <script>
+    document.getElementById('test-ai-back-settings')?.addEventListener('click', (event) => {
+      event.preventDefault();
+      try { sessionStorage.setItem('reino_open_ai_settings', '1'); } catch { /* ignore */ }
+      location.href = '/';
+    });
+  </script>
+</body>
+</html>

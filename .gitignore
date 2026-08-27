@@ -1,0 +1,11 @@
+# Local Netlify folder
+.netlify
+
+# Credenciais locais (scripts de reportes / Cursor)
+.env
+.env.local
+.env.*.local
+
+# Dependências
+node_modules/
+

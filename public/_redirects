@@ -1,0 +1,2 @@
+# API: Cloudflare Pages serve /api/* via functions/api/*.js (sem redirects aqui).
+# Netlify (legado): ver netlify.toml e public/_redirects.netlify
