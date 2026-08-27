@@ -1,4 +1,4 @@
-# Reino Mágico do Saber — GitHub Actions + Cloudflare Pages (recomendado) ou Netlify
+# Reino Mágico do Saber — GitHub + Netlify (recomendado) ou Cloudflare Pages
 
 **Versão de deploy actual:** ver `public/version.json` (gerada por `npm run build`)  
 **Site (legado):** [reinomagicodosaber.netlify.app](https://reinomagicodosaber.netlify.app)
@@ -38,30 +38,42 @@ Em qualquer uma delas, o jogo chama sempre `/api/generate` e podes configurar **
 
 ---
 
-## Opção A — GitHub + Cloudflare Pages (recomendado)
+## Opção A — GitHub + Netlify (recomendado)
 
-O código fica no **GitHub**; cada `push` para `main` corre testes e publica o site via **GitHub Actions** (`.github/workflows/deploy.yml`).
+O código fica no **GitHub**; cada `push` para `main` dispara o deploy automático no **Netlify** (liga o repositório em *Site configuration → Build & deploy → Link repository*).
 
 - **Estático:** pasta `public/`
-- **API serverless:** `functions/api/*.js` (IA, reportes, anexos)
-- **Armazenamento de reportes:** binding KV `REPORTS_KV` no Cloudflare
+- **API serverless:** `netlify/functions/`
+- **Armazenamento de reportes:** Netlify Blobs (automático)
 
-### 1. Criar repositório GitHub
+### 1. Repositório GitHub
+
+A raiz do repo deve ser a pasta `reino-magico-deploy` (com `netlify.toml`, `public/`, `scripts/` na raiz).
 
 ```powershell
 cd reino-magico-deploy
-git init -b main
 git add .
-git commit -m "Reino Mágico do Saber"
-git remote add origin https://github.com/TEU_USER/reinomagicodosaber.git
-git push -u origin main
+git commit -m "Alterações"
+git push origin main
 ```
 
-### 2. Cloudflare Pages
+### 2. Netlify — ligação ao Git
 
-1. [dash.cloudflare.com](https://dash.cloudflare.com) → **Workers & Pages** → **Create** → **Pages** → **Connect to Git** (ou deixa só o GitHub Actions publicar).
-2. Cria um namespace **KV** e liga-o ao projecto com binding **`REPORTS_KV`**.
-3. **Settings → Environment variables** (Production):
+1. [app.netlify.com](https://app.netlify.com) → o teu site → **Site configuration → Build & deploy → Link repository**
+2. Escolhe o repo `reinomagicodosaber` e a branch `main`
+
+**Build settings** (ou deixa o `netlify.toml` aplicar):
+
+| Campo | Valor |
+|-------|--------|
+| Base directory | *(vazio)* |
+| Build command | `node scripts/generate-version.js` |
+| Publish directory | `public` |
+| Functions directory | `netlify/functions` |
+
+### 3. Variáveis de ambiente no Netlify
+
+**Site configuration → Environment variables:**
 
 ```text
 GROQ_API_KEY
@@ -71,110 +83,41 @@ REPORTS_ADMIN_USER
 REPORTS_ADMIN_PASS
 ```
 
-### 3. Secrets no GitHub
-
-**Settings → Secrets and variables → Actions → Secrets:**
-
-| Secret | Onde obter |
-|--------|------------|
-| `CLOUDFLARE_API_TOKEN` | Cloudflare → My Profile → API Tokens (permissão *Cloudflare Pages — Edit*) |
-| `CLOUDFLARE_ACCOUNT_ID` | Cloudflare → Workers & Pages → URL ou Overview |
-
-Opcional em **Variables**: `CLOUDFLARE_PAGES_PROJECT` (nome do projecto; defeito: `reinomagicodosaber`).
-
 ### 4. Deploy
 
-```powershell
-.\scripts\deploy-github.ps1
-```
+Cada `git push origin main` publica automaticamente. Ou manualmente:
 
-Ou simplesmente `git push origin main` — o workflow corre testes, gera versão e faz deploy.
+```powershell
+.\scripts\deploy-netlify.ps1
+```
 
 ### Testar após deploy
 
 ```text
-GET  https://TEU-SITE.pages.dev/api/ai-status
-POST https://TEU-SITE.pages.dev/api/generate
+GET  https://reinomagicodosaber.netlify.app/api/ai-status
+POST https://reinomagicodosaber.netlify.app/api/generate
 ```
-
-Actualiza `.env.local` com o novo URL:
-
-```text
-REPORTS_BASE_URL=https://TEU-SITE.pages.dev
-```
-
-**Nota:** GitHub Pages **não** executa funções serverless — por isso o alojamento da API é no **Cloudflare Pages**, com o código e o pipeline no **GitHub**.
 
 ---
 
-## Opção B — Netlify (legado)
-
-Em **Project configuration → Environment variables**:
-
-```text
-GROQ_API_KEY        (chave Groq, gsk_...)
-ANTHROPIC_API_KEY   (chave Anthropic, sk-ant-...)
-OPENAI_API_KEY      (chave OpenAI, sk-...)
-
-REPORTS_ADMIN_USER  (ex.: admin)
-REPORTS_ADMIN_PASS  (palavra-passe do painel admin)
-```
-
-O `netlify.toml` publica a pasta `public/` e redirecciona `/api/*` para as Functions em `netlify/functions/`.
-
-Antes do deploy Netlify, o script copia `public/_redirects.netlify` → `public/_redirects`.
-
-### Deploy Netlify
-
-**Windows (PowerShell):**
-
-```powershell
-cd reino-magico-deploy
-.\scripts\deploy-netlify.ps1
-```
-
-O script corre `generate-version.js`, `npm install` e `netlify deploy --prod --build --skip-functions-cache`.
-
-**Manual (qualquer SO):**
-
-```text
-cd reino-magico-deploy
-node scripts/generate-version.js
-npm install
-copy public\_redirects.netlify public\_redirects
-npx netlify-cli deploy --prod --dir=public --functions=netlify/functions
-```
-
-### ⚠️ Deploy por zip NÃO atualiza as Functions
-
-Arrastar um `.zip` no Netlify **só publica ficheiros estáticos** (`index.html`, `manual.html`, `test-ai.html`, etc.). As **Netlify Functions** (`generate.js`, `reports-admin.js`, …) **não são actualizadas**.
-
-### Testar após deploy Netlify
-
-```text
-GET  https://TEU-SITE.netlify.app/api/ai-status
-POST https://TEU-SITE.netlify.app/api/generate
-GET  https://TEU-SITE.netlify.app/.netlify/functions/generate   → {"error":"Método não permitido"} (esperado)
-```
-
-**Logs:** Netlify → Functions → generate → Logs (`Groq API error`, `Anthropic API error`, `OpenAI API error`).
-
-**OpenAI sem créditos:** o backend pode estar correcto — adiciona saldo em [platform.openai.com](https://platform.openai.com/settings/organization/billing). Entretanto usa **Automática** ou **Groq**.
-
----
-
-## Opção C — Cloudflare Pages (manual, sem GitHub Actions)
+## Opção B — Cloudflare Pages (alternativa)
 
 1. **Build command:** `node scripts/generate-version.js`
 2. **Build output directory:** `public`
-3. **Environment variables:** as mesmas chaves de IA; para reportes admin, `REPORTS_ADMIN_USER` e `REPORTS_ADMIN_PASS`
-4. **KV binding:** `REPORTS_KV` (namespace KV) para o painel admin de reportes
+3. **Environment variables:** chaves de IA + `REPORTS_ADMIN_USER` / `REPORTS_ADMIN_PASS`
+4. **KV binding:** `REPORTS_KV` para reportes
 
 O Cloudflare publica `functions/api/*.js` em `/api/*`.
 
-**Testar:** `GET https://TEU-SITE.pages.dev/api/generate` → método não permitido (esperado).
+**Testar:** `GET https://TEU-SITE.pages.dev/api/ai-status`
 
-**Logs:** Workers & Pages → o teu projeto → Real-time Logs.
+### Deploy manual Netlify (sem Git)
+
+```powershell
+.\scripts\deploy-netlify.ps1
+```
+
+⚠️ Deploy por zip no Netlify **não** actualiza as Functions — usa Git ou o script acima.
 
 ---
 
