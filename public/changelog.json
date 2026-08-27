@@ -1,24 +1,37 @@
 {
-  "version": "20260826-183925",
-  "updatedAtPortugal": "26/08/2026 18:39:25",
-  "generatedAt": "2026-08-26T17:39:25.909Z",
+  "version": "20260827-152708",
+  "updatedAtPortugal": "27/08/2026 15:27:08",
+  "generatedAt": "2026-08-27T14:27:08.743Z",
   "current": {
     "title": "Versão atual",
     "items": [
-      "Motor de perguntas refactorizado: pipeline único de validação; aprovação/reprovação binária por issues (score 0–100 só diagnóstico).",
-      "Pesos das camadas de qualidade somam exactamente 100; 43 testes automatizados (scripts/test-question-engine.js).",
-      "Categoria Tecnologia: rejeição automática de transportes (carros, aviões, comboios…) e espaço (foguetões, astronautas…).",
-      "Futebol em PT-PT reforçado: guarda-redes, relvado/campo de relva, rejeição de «campo de grama», «goleiro» e calques brasileiros.",
-      "Opções MC: detecção de duplicados melhorada (Carro≠Caro; typo Wooody≈Woody); histórico de posição por sessão, sem estado global.",
-      "Novo Jogo limpa knowledgeKeys, posições MC, dificuldades e subtópicos da sessão.",
-      "Correcção: distractores inválidos da IA (assembleMcOptions) já não rebentam o jogo.",
-      "Validação com base em reportes: estrada para carros, flor da planta, Roald Dahl+rato, V/F sem falso positivo de repetição.",
-      "Página /test-questions.html para gerar, validar e dar feedback ao motor; localStorage seguro fora do browser.",
-      "Gastronomia: rejeição factual de pastel de nata fora de Lisboa/Belém e francesinha fora do Porto.",
-      "ADIVINHA MC: rejeita adivinhas onde mapa e globo terráqueo são ambas defensáveis (ex.: cidades sem casas, montanhas sem árvores)."
+      "GitHub + Netlify: código no GitHub; cada push para main publica automaticamente no Netlify (build + Functions).",
+      "Repositório reorganizado: raiz do repo = projecto (scripts/, public/, netlify/ na raiz) — corrige erros de build no Netlify.",
+      "LEIA-ME e scripts de deploy actualizados: deploy-github.ps1 (push) e deploy-netlify.ps1 (manual).",
+      "Scripts de reportes (list-open-reports, resolve-reports-from-csv) carregam credenciais de .env.local automaticamente.",
+      "Redirects separados: _redirects.netlify para Netlify; _redirects vazio para Cloudflare Pages (functions/api/).",
+      "47 testes automatizados do motor de perguntas (scripts/test-question-engine.js)."
     ]
   },
   "history": [
+    {
+      "date": "26/08/2026",
+      "version": "20260826-183925",
+      "title": "26/08/2026 · 18:39",
+      "items": [
+        "Motor de perguntas refactorizado: pipeline único de validação; aprovação/reprovação binária por issues (score 0–100 só diagnóstico).",
+        "Pesos das camadas de qualidade somam exactamente 100; 43 testes automatizados (scripts/test-question-engine.js).",
+        "Categoria Tecnologia: rejeição automática de transportes (carros, aviões, comboios…) e espaço (foguetões, astronautas…).",
+        "Futebol em PT-PT reforçado: guarda-redes, relvado/campo de relva, rejeição de «campo de grama», «goleiro» e calques brasileiros.",
+        "Opções MC: detecção de duplicados melhorada (Carro≠Caro; typo Wooody≈Woody); histórico de posição por sessão, sem estado global.",
+        "Novo Jogo limpa knowledgeKeys, posições MC, dificuldades e subtópicos da sessão.",
+        "Correcção: distractores inválidos da IA (assembleMcOptions) já não rebentam o jogo.",
+        "Validação com base em reportes: estrada para carros, flor da planta, Roald Dahl+rato, V/F sem falso positivo de repetição.",
+        "Página /test-questions.html para gerar, validar e dar feedback ao motor; localStorage seguro fora do browser.",
+        "Gastronomia: rejeição factual de pastel de nata fora de Lisboa/Belém e francesinha fora do Porto.",
+        "ADIVINHA MC: rejeita adivinhas onde mapa e globo terráqueo são ambas defensáveis (ex.: cidades sem casas, montanhas sem árvores)."
+      ]
+    },
     {
       "date": "26/08/2026",
       "version": "20260826-180430",
