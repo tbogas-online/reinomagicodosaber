@@ -1,13 +1,27 @@
 {
   "current": [
-    "GitHub + Netlify: código no GitHub; cada push para main publica automaticamente no Netlify (build + Functions).",
-    "Repositório reorganizado: raiz do repo = projecto (scripts/, public/, netlify/ na raiz) — corrige erros de build no Netlify.",
-    "LEIA-ME e scripts de deploy actualizados: deploy-github.ps1 (push) e deploy-netlify.ps1 (manual).",
-    "Scripts de reportes (list-open-reports, resolve-reports-from-csv) carregam credenciais de .env.local automaticamente.",
-    "Redirects separados: _redirects.netlify para Netlify; _redirects vazio para Cloudflare Pages (functions/api/).",
-    "47 testes automatizados do motor de perguntas (scripts/test-question-engine.js)."
+    "Validação MC reforçada: distractores devem ser do mesmo tipo (pessoas, anos, materiais…) — rejeita filmes, países, marcas (SpaceX) e provérbios misturados.",
+    "Rejeita perguntas QUEM_E com inconsistência de género (ex.: «engenheira» com resposta masculina).",
+    "Rejeita MC demasiado óbvias (resposta curta vs distractores técnicos longos, ex.: ADN).",
+    "QUANDO 6–9: datas de nascimento de figuras históricas (Picasso, Einstein…) demasiado difíceis.",
+    "CAUSA_CONSEQUENCIA: limite de comprimento para leitura em voz alta.",
+    "Factos culturais PT: chita de Alcobaça vs «traje de Viana»; materiais de moda sem conceitos de tendência.",
+    "57 testes automatizados (scripts/test-question-engine.js), incluindo 10 casos dos reportes de Agosto 2026."
   ],
   "history": [
+    {
+      "date": "27/08/2026",
+      "version": "20260827-152708",
+      "title": "27/08/2026 · 15:27",
+      "items": [
+        "GitHub + Netlify: código no GitHub; cada push para main publica automaticamente no Netlify (build + Functions).",
+        "Repositório reorganizado: raiz do repo = projecto (scripts/, public/, netlify/ na raiz) — corrige erros de build no Netlify.",
+        "LEIA-ME e scripts de deploy actualizados: deploy-github.ps1 (push) e deploy-netlify.ps1 (manual).",
+        "Scripts de reportes (list-open-reports, resolve-reports-from-csv) carregam credenciais de .env.local automaticamente.",
+        "Redirects separados: _redirects.netlify para Netlify; _redirects vazio para Cloudflare Pages (functions/api/).",
+        "47 testes automatizados do motor de perguntas (scripts/test-question-engine.js)."
+      ]
+    },
     {
       "date": "26/08/2026",
       "version": "20260826-183925",

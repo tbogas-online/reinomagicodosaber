@@ -240,7 +240,7 @@ SITUACAO_PRATICA é bem-vinda (ex.: "para que serve um fusível?").`,
     const { ageBandKey, isMC, isTrueFalse } = ctx;
     const shortQ = ageBandKey === '6-9' ? ' Frase MUITO curta (máx. 110 caracteres).' : '';
     const mcNote = isMC
-      ? ' O jogador vê opções na app — gera opções plausíveis e distintas.'
+      ? ' O jogador vê 4 opções — TODAS do MESMO TIPO (ex.: 4 pessoas, 4 anos, 4 materiais, 4 conceitos do tema). NUNCA mistures títulos de filmes, anos soltos, países, marcas genéricas (SpaceX, NASA) ou provérbios com nomes ou termos pedidos.'
       : ' Modo resposta aberta — resposta muito curta no campo "a".';
     const notRiddle = ' NÃO é adivinha — pergunta factual directa.';
 
@@ -275,7 +275,7 @@ MAU: "Completa: A Voyager 1 atravessou a ___ em 2012." (lacuna no meio — proib
 BOM: "Em que país nasce o rio Tejo?" → "Espanha" / "Em que país desagua o Tejo?" → "Portugal" / "Qual é a capital de França?" → "Paris" / "Em que continente fica o Brasil?" → "América do Sul".
 MAU: "Onde fica o rio Tejo?" com opções de países (o Tejo está em Espanha e Portugal — ambíguo). MAU: "Onde fica a cordilheira dos Alpes?" sem especificar país, capital ou continente.${notRiddle}${mcNote}`,
       QUANDO: `FORMATO OBRIGATÓRIO: QUANDO — pede data, mês, ano, século ou período. Resposta temporal — nunca país, cidade ou pessoa.${notRiddle}${mcNote}`,
-      CAUSA_CONSEQUENCIA: `FORMATO: CAUSA_CONSEQUENCIA — relação causa-efeito objectiva e ensinável. Evita "a consequência mais importante…".${notRiddle}${mcNote}`,
+      CAUSA_CONSEQUENCIA: `FORMATO: CAUSA_CONSEQUENCIA — relação causa-efeito objectiva e ensinável, frase curta legível em voz alta (máx. ~200 caracteres). Evita "a consequência mais importante…".${notRiddle}${mcNote}`,
       SITUACAO_PRATICA: `FORMATO: SITUACAO_PRATICA — cenário real e curto que exige raciocínio, com UMA resposta objectiva e curta.
 Em física do quotidiano, especifica o referencial: "em relação a ti", "visto de dentro do avião", "para quem está a bordo".
 BOM: "Num avião a voar em linha recta a velocidade constante, largas uma moeda. Em relação a ti, cai na vertical ou afasta-se para trás?" → resposta: "Na vertical" (ou V/F).
@@ -1021,6 +1021,129 @@ Só JSON, sem markdown: ${jsonFormat}`;
     return issues;
   }
 
+  function looksLikeProverbOption(text) {
+    const t = String(text || '').trim();
+    const words = t.split(/\s+/).filter(Boolean);
+    return words.length > 12 || /\b(é melhor|quem espera|devagar se vai|água mole)\b/i.test(t);
+  }
+
+  function looksLikeFilmTitle(text) {
+    const t = String(text || '').trim();
+    if (!t) return false;
+    if (/^(o|a|os|as)\s+[«"']?[A-ZÀÁÂÃÉÊÍÓÔÕÚÇ]/i.test(t) && t.split(/\s+/).length >= 2) return true;
+    if (/\b(matrix|origem|chihiro|trevas|driver|titanic|avatar|inception|vingadores|pantera|tarzan)\b/i.test(t)) return true;
+    return false;
+  }
+
+  function looksLikePersonNameOption(text) {
+    const t = String(text || '').trim();
+    if (!t || looksLikeFilmTitle(t) || /^\d/.test(t)) return false;
+    const words = t.split(/\s+/).filter(Boolean);
+    if (words.length < 1 || words.length > 5) return false;
+    const nameLike = words.filter((w) => /^[A-ZÀÁÂÃÉÊÍÓÔÕÚÇ][a-zàáâãçéêíóôõú'-]+$/.test(w)
+      || /^(de|da|do|dos|das|van|von)$/i.test(w));
+    return nameLike.length >= 1 && (words.length === 1 ? t.length <= 28 : nameLike.length >= 2);
+  }
+
+  function classifyMcOptionKind(text) {
+    const t = String(text || '').trim();
+    if (!t) return 'empty';
+    if (/^(cerca de\s+)?\d{3,4}s?$/i.test(t)) return 'year';
+    if (/^(portugal|espanha|frança|franca|alemanha|japão|japao|itália|italia|brasil|china|índia|india|catar|inglaterra|eua|estados unidos)$/i.test(t)) return 'country';
+    if (/^(spacex|nasa|esa|agência espacial europeia|google|apple|meta|tesla|brt)$/i.test(t)) return 'brand';
+    if (looksLikeProverbOption(t)) return 'proverb';
+    if (looksLikeFilmTitle(t)) return 'film';
+    if (looksLikePersonNameOption(t)) return 'person';
+    if (/^\d/.test(t) || /\b(milhões|mil milhões|cerca de)\b/i.test(t)) return 'quantity';
+    if (/\b(arcadismo|barroco|romantismo|modernismo|pós-modernismo|simbolismo|surrealismo)\b/i.test(t)) return 'literary_movement';
+    if (/\b(nylon|algodão|algodao|lã|la|seda|poliéster|poliester|linho|couro|borracha|plástico|plastico|lycra|elastano|acrílico|acrilico)\b/i.test(t)) return 'material';
+    if (/\b(moda ética|moda genderless|vogue|fast fashion)\b/i.test(t)) return 'fashion_concept';
+    if (/\b(tratado|missão|canal|narrador|viés|sistema|efeito|fenómeno|fenomeno|rotação|unidade|elipse)\b/i.test(t)) return 'concept';
+    return 'other';
+  }
+
+  function questionExpectsPersonOptions(q, formatId) {
+    return formatId === FORMAT_IDS.QUEM_E
+      || /\b(quem\s+(interpretou|realizou|dirigiu|escreveu|inventou|compôs|compôs|pintou)|qual\s+(ator|actriz|realizador|cineasta))\b/i.test(q);
+  }
+
+  function validateMcDistractorMixing(q, options, correctAnswer, stripTags, formatId) {
+    const issues = [];
+    const clean = (options || []).map((o) => stripTags(o).trim()).filter(Boolean);
+    if (clean.length < 4) return issues;
+
+    const correct = stripTags(correctAnswer).trim();
+    const kinds = clean.map(classifyMcOptionKind);
+    const correctKind = classifyMcOptionKind(correct);
+    const asksPerson = questionExpectsPersonOptions(q, formatId);
+    const isTimeQ = formatId === FORMAT_IDS.QUANDO || looksLikeWhenQuestion(q, correct);
+    const isGeoQ = formatId === FORMAT_IDS.ONDE_FICA
+      || /\b(em que país|em que continente|capital de|onde fica)\b/i.test(q);
+
+    if (asksPerson || correctKind === 'person') {
+      const badKinds = kinds.filter((k) => ['film', 'year', 'country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'].includes(k));
+      if (badKinds.length) {
+        issues.push('opções incoerentes — com pessoa pedida, todas as opções devem ser nomes de pessoas (não filmes, anos, países nem provérbios)');
+      }
+    }
+
+    if (/\bnarrador\b/i.test(q)) {
+      const bad = kinds.filter((k) => ['literary_movement', 'film', 'year', 'country'].includes(k));
+      if (bad.length) {
+        issues.push('opções incoerentes — distractores devem ser tipos de narrador, não movimentos literários nem autores soltos');
+      }
+    }
+
+    if (!isTimeQ && kinds.includes('year') && correctKind !== 'year') {
+      issues.push('opções incoerentes — anos isolados não servem de distractores fora de perguntas QUANDO');
+    }
+
+    if (!isGeoQ && !isTimeQ) {
+      if (kinds.includes('country') && correctKind !== 'country') {
+        issues.push('opções incoerentes — países isolados não encaixam nesta pergunta');
+      }
+      if (kinds.includes('brand') && correctKind !== 'brand' && !/\b(empresa|marca|spacex|nasa|esa)\b/i.test(q)) {
+        issues.push('opções incoerentes — marcas ou empresas genéricas (ex.: SpaceX) não encaixam nesta pergunta');
+      }
+    }
+
+    if (kinds.includes('proverb')) {
+      issues.push('opções incoerentes — não uses provérbios ou frases longas como opção de escolha múltipla');
+    }
+
+    const foreignKinds = ['film', 'year', 'country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'];
+    const distinctForeign = new Set(kinds.filter((k) => foreignKinds.includes(k)));
+    if (distinctForeign.size >= 2) {
+      issues.push('opções parecem respostas de perguntas diferentes — todas devem ser do mesmo tipo');
+    }
+
+    if (/\b(material|tecido|fibr[ao]|sintétic|sintetic)\b/i.test(q)) {
+      const wrong = clean.filter((o) => o.toLowerCase() !== correct.toLowerCase());
+      if (wrong.some((o) => classifyMcOptionKind(o) === 'fashion_concept')) {
+        issues.push('distratores devem ser materiais ou tecidos, não conceitos de moda');
+      }
+    }
+
+    return issues;
+  }
+
+  function validateMcTooObvious(options, correctAnswer, stripTags) {
+    const correct = stripTags(correctAnswer).trim();
+    const clean = (options || []).map((o) => stripTags(o).trim()).filter(Boolean);
+    if (clean.length < 4) return [];
+    const wrong = clean.filter((o) => o.toLowerCase() !== correct.toLowerCase());
+    const cWords = correct.split(/\s+/).filter(Boolean).length;
+    const isShortAcronym = cWords <= 2 && correct.length <= 8 && /^[A-Za-zÀ-ú]{2,8}$/.test(correct.replace(/\s/g, ''));
+    if (!isShortAcronym) return [];
+    const avgWrongLen = wrong.reduce((s, o) => s + o.length, 0) / wrong.length;
+    const avgWrongWords = wrong.reduce((s, o) => s + o.split(/\s+/).filter(Boolean).length, 0) / wrong.length;
+    if (avgWrongWords >= 2 && avgWrongLen > correct.length * 2
+      && wrong.every((o) => o.length > correct.length)) {
+      return ['demasiado óbvio — a resposta correcta destoa dos distractores; torna os errados plausíveis e do mesmo estilo'];
+    }
+    return [];
+  }
+
   function validateMcOptionsCoherence(q, options, stripTags) {
     const issues = [];
     const clean = (options || []).map((o) => stripTags(o).trim()).filter(Boolean);
@@ -1087,6 +1210,8 @@ Só JSON, sem markdown: ${jsonFormat}`;
     }, issue: 'pergunta ambígua — mapa e globo terráqueo respondem às mesmas pistas' },
     { when: (q, a) => /\bpastel\s+de\s+nata\b/i.test(q) && /\b(cidade|onde|fica|nasceu|origem|populariz|criado|inventado)\b/i.test(q) && !/\b(lisboa|bel[eé]m)\b/i.test(String(a || '')), issue: 'facto incorreto — o pastel de nata associa-se a Belém/Lisboa' },
     { when: (q, a) => /\bfrancesinha\b/i.test(q) && /\b(cidade|onde|fica|origem|nasceu|típic[ao])\b/i.test(q) && !/\bporto\b/i.test(String(a || '')), issue: 'facto incorreto — a francesinha é típica do Porto' },
+    { when: (q) => /\bchita\b/i.test(q) && /\btraje\b/i.test(q) && /\bviana\b/i.test(q), issue: 'facto cultural — a chita associa-se sobretudo a Alcobaça; não confundir com o traje de Viana sem contexto histórico claro' },
+    { when: (q, a) => /\b(a|uma)\s+(engenheira|actriz|atriz|inventora|escritora|diretora|realizadora)\b/i.test(q) && /\b(dario|martin|james|john|robert|leonardo|quentin|stanley|heath|elon|ray|hiroshi)\b/i.test(String(a || '').toLowerCase()), issue: 'inconsistência de género — a pergunta pede uma mulher mas a resposta é um nome masculino' },
     { when: (q) => /\broald\s+dahl\b/i.test(q) && /\brato\b/i.test(q) && /\b(queria\s+ser|ser)\s+rei\b/i.test(q), issue: 'facto incorreto — Roald Dahl não escreveu "O rato que queria ser rei"' },
     { when: (q, a) => /\basfato\b/i.test(a) && !/\basfalto\b/i.test(a), issue: 'erro ortográfico — escreve "asfalto" (não "asfato")' },
     { when: (q) => /\bestrada\s+para\s+os\s+carros\b/i.test(q), issue: 'formulação estranha — diz "estrada" ou "piso da estrada", não "estrada para os carros"' },
@@ -1306,6 +1431,10 @@ Só JSON, sem markdown: ${jsonFormat}`;
       if (/quem\s+(é|e)\s+quem\b/i.test(q)) issues.push('QUEM_E: evita "Quem é quem"');
       if (/^o\s+que\s+(é|e)\b/i.test(q)) issues.push('QUEM_E não deve usar "O que é"');
       if (isObviouslyNotAPerson(a)) issues.push('QUEM_E: resposta deve ser uma pessoa');
+      if (/\b(a|uma)\s+(engenheira|actriz|atriz|inventora|escritora|diretora|realizadora)\b/i.test(q)
+        && /\b(dario|martin|james|john|robert|leonardo|quentin|stanley|heath|elon|ray|hiroshi)\b/i.test(a.toLowerCase())) {
+        issues.push('inconsistência de género — a pergunta pede uma mulher mas a resposta é um nome masculino');
+      }
     }
 
     if (formatId === FORMAT_IDS.O_QUE_E) {
@@ -1333,6 +1462,11 @@ Só JSON, sem markdown: ${jsonFormat}`;
     if (formatId === FORMAT_IDS.QUANDO && !looksLikeWhenQuestion(q, a)) {
       issues.push('QUANDO deve pedir tempo/data/período');
     }
+    if (formatId === FORMAT_IDS.QUANDO && ageBandKey === '6-9'
+      && /\b(nasceu|nascimento)\b/i.test(q)
+      && /\b(picasso|einstein|shakespeare|beethoven|mozart|darwin|galileu|newton)\b/i.test(q)) {
+      issues.push('data de nascimento de figura histórica demasiado difícil para 6–9');
+    }
 
     if (formatId === FORMAT_IDS.ADIVINHA && /^qual\s+é\s+a\s+capital\b|^quem\s+descobriu\b/i.test(q)) {
       issues.push('ADIVINHA não deve ser pergunta factual directa');
@@ -1343,6 +1477,11 @@ Só JSON, sem markdown: ${jsonFormat}`;
 
     if (formatId === FORMAT_IDS.CURIOSIDADE) {
       issues.push(...validateCuriosidade(q));
+    }
+
+    if (formatId === FORMAT_IDS.CAUSA_CONSEQUENCIA) {
+      const maxQ = ageBandKey === '6-9' ? 120 : (ageBandKey === '10-15' ? 180 : 220);
+      if (q.length > maxQ) issues.push('pergunta CAUSA_CONSEQUENCIA demasiado longa para ler em voz alta');
     }
 
     if (formatId === FORMAT_IDS.SITUACAO_PRATICA) {
@@ -1378,6 +1517,10 @@ Só JSON, sem markdown: ${jsonFormat}`;
       const maxAnswerWords = isCompleta ? 2 : 4;
       if (a.split(/\s+/).filter(Boolean).length > maxAnswerWords) {
         issues.push(isCompleta ? 'resposta COMPLETA demasiado longa para 6–9 (máx. 2 palavras)' : 'resposta demasiado longa');
+      }
+      if (formatId === FORMAT_IDS.QUANDO && /\b(nasceu|nascimento)\b/i.test(q)
+        && /\b(picasso|einstein|shakespeare|beethoven|mozart|darwin|galileu|newton)\b/i.test(q)) {
+        issues.push('data de nascimento de figura histórica demasiado difícil para 6–9');
       }
       if (abstractMath.test(blob)) issues.push('conceito matemático abstrato');
       if (veryTechnical.test(blob)) issues.push('vocabulário técnico');
@@ -1422,6 +1565,11 @@ Só JSON, sem markdown: ${jsonFormat}`;
     const clean = (options || []).map((o) => stripTags(o).trim()).filter(Boolean);
     if (clean.length < 4) return issues;
     const correct = stripTags(correctAnswer).trim();
+    const correctKind = classifyMcOptionKind(correct);
+    const wrongKinds = clean
+      .filter((o) => o.toLowerCase() !== correct.toLowerCase())
+      .map(classifyMcOptionKind)
+      .filter((k) => k !== 'other' && k !== 'concept' && k !== 'empty');
     const correctBucket = classifyConceptBucket(correct);
     const wrongBuckets = clean
       .filter((o) => o.toLowerCase() !== correct.toLowerCase())
@@ -1436,6 +1584,11 @@ Só JSON, sem markdown: ${jsonFormat}`;
     const distinctWrong = new Set(wrongBuckets.filter((b) => b !== 'entity'));
     if (distinctWrong.size >= 3 && correctBucket === 'entity') {
       issues.push('distratores incoerentes — devem pertencer à mesma classe conceptual que a resposta');
+    }
+    const foreignKinds = ['film', 'year', 'country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'];
+    const foreignWrong = wrongKinds.filter((k) => foreignKinds.includes(k));
+    if (foreignWrong.length >= 2 && !foreignKinds.includes(correctKind)) {
+      issues.push('distratores incoerentes — mistura tipos incompatíveis (filmes, anos, países, marcas…)');
     }
     return issues;
   }
@@ -1477,7 +1630,7 @@ Só JSON, sem markdown: ${jsonFormat}`;
     { re: /demasiado difícil|tema avançado|vocabulário técnico/i, hint: 'Reduz a dificuldade e utiliza vocabulário adequado à faixa etária.' },
     { re: /demasiado fácil|senso comum/i, hint: 'Aumenta a exigência com factos menos óbvios mas verificáveis.' },
     { re: /repetid|semelhante|knowledgeKey|conhecimento/i, hint: 'Não repitas conhecimento já testado — escolhe outro tema dentro da mesma categoria.' },
-    { re: /distratores|incoerentes|classes conceptuais/i, hint: 'Os distractores devem ser plausíveis e da mesma classe que a resposta correcta.' },
+    { re: /distratores|incoerentes|classes conceptuais|mesmo tipo|filmes|anos|países|marcas/i, hint: 'Os distractores devem ser plausíveis e da mesma classe que a resposta correcta (4 pessoas, 4 anos, 4 materiais…). Nunca mistures filmes, anos, países ou marcas genéricas.' },
     { re: /revelada na pergunta/i, hint: 'A resposta não pode aparecer nem ser deduzível directamente da pergunta.' },
     { re: /português|brasileir|inglês|PT-PT|futebol|goleiro|guarda-redes/i, hint: 'Revisa português de Portugal: vocabulário, ortografia e nomes de países.' },
     { re: /categoria|tema|Geografia|Espaço/i, hint: 'Mantém a pergunta estritamente dentro da categoria indicada.' },
@@ -1537,6 +1690,8 @@ Só JSON, sem markdown: ${jsonFormat}`;
     const issues = [
       ...validateMcSingleCorrect(options, a, normalizeFn),
       ...validateMcConceptualClass(options, a, stripTags),
+      ...validateMcDistractorMixing(q, options, a, stripTags, formatId),
+      ...validateMcTooObvious(options, a, stripTags),
       ...validateMcOptionsQuality(options, stripTags, collapseOptionKey, ageBandKey),
       ...validateDisneyCharacterAliases(options, a),
       ...validateAdivinhaMcAmbiguity(q, a, options, stripTags, formatId),
@@ -1605,7 +1760,12 @@ Só JSON, sem markdown: ${jsonFormat}`;
 
     layers.structural = LAYER_WEIGHTS.structural;
 
-    const formatCheck = validateByFormat(parsed, formatId, helpers || ctx);
+    const formatCheck = validateByFormat(parsed, formatId, {
+      ...(helpers || {}),
+      ageBandKey,
+      stripTags,
+      validateTrueFalseQuestion: helpers?.validateTrueFalseQuestion,
+    });
     layers.format = layerScore(LAYER_WEIGHTS.format, formatCheck.issues);
     issues.push(...formatCheck.issues);
 

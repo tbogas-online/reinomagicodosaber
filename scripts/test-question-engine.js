@@ -386,6 +386,98 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('43. adivinha mapa vs globo ambígua', !r.ok, r.issues?.join(', '));
 }
 
+// 44–52. reportes Aug 2026 — distractores MC incoerentes
+{
+  const versalhes = {
+    q: 'Que tratado pôs fim à Primeira Guerra Mundial?',
+    a: 'Tratado de Versalhes',
+    options: ['Tratado de Versalhes', 'Mahatma Gandhi', '1789', '1986'],
+  };
+  const r1 = QE.validateQuestion(versalhes, baseCtx({ isMC: true, formatId: QE.FORMAT_IDS.RESPOSTA_DIRETA, categoryNumber: 3, ageBandKey: '15+' }));
+  assert('44. Versalhes sem Gandhi/anos', !r1.ok, r1.issues?.join(', '));
+}
+{
+  const coringa = {
+    q: 'Quem interpretou o Coringa em O Cavaleiro das Trevas, de 2008?',
+    a: 'Heath Ledger',
+    options: ['Bong Joon-ho', 'Quentin Tarantino', 'Heath Ledger', 'A Origem'],
+  };
+  const r2 = QE.validateQuestion(coringa, baseCtx({ isMC: true, formatId: QE.FORMAT_IDS.RESPOSTA_DIRETA, categoryNumber: 8, ageBandKey: '15+' }));
+  assert('45. Coringa sem filmes/realizadores misturados', !r2.ok, r2.issues?.join(', '));
+}
+{
+  const gps = {
+    q: 'Como se chama o sistema de posicionamento global usado para navegação?',
+    a: 'GPS',
+    options: ['Propolente criogénico', 'GPS', 'Alemanha', 'BRT'],
+  };
+  const r3 = QE.validateQuestion(gps, baseCtx({ isMC: true, formatId: QE.FORMAT_IDS.RESPOSTA_DIRETA, categoryNumber: 19, ageBandKey: '15+' }));
+  assert('46. GPS sem país/marca', !r3.ok, r3.issues?.join(', '));
+}
+{
+  const adn = {
+    q: 'Como se chama a molécula que contém a informação genética?',
+    a: 'ADN',
+    options: ['ADN', 'Neutrão', 'Fusão nuclear', 'Edição genética CRISPR'],
+  };
+  const r4 = QE.validateQuestion(adn, baseCtx({ isMC: true, formatId: QE.FORMAT_IDS.RESPOSTA_DIRETA, categoryNumber: 5, ageBandKey: '15+' }));
+  assert('47. ADN demasiado óbvio', !r4.ok, r4.issues?.join(', '));
+}
+{
+  const picasso = {
+    q: 'Quando nasceu o famoso pintor Pablo Picasso?',
+    a: '1881',
+    options: ['1881', '1890', '1901', '1875'],
+  };
+  const r5 = QE.validateQuestion(picasso, baseCtx({ formatId: QE.FORMAT_IDS.QUANDO, categoryNumber: 4, ageBandKey: '6-9', isMC: true }));
+  assert('48. Picasso 6-9 demasiado difícil', !r5.ok, r5.issues?.join(', '));
+}
+{
+  const engenheira = {
+    q: 'Quem é a engenheira que desenvolveu a primeira mão robótica controlada pelo pensamento?',
+    a: 'Dario Farina',
+    options: ['Hiroshi Ishiguro', 'Dario Farina', 'Elon Musk', 'Ray Kurzweil'],
+  };
+  const r6 = QE.validateQuestion(engenheira, baseCtx({ formatId: QE.FORMAT_IDS.QUEM_E, categoryNumber: 17, ageBandKey: '15+', isMC: true }));
+  assert('49. engenheira vs nome masculino', !r6.ok, r6.issues?.join(', '));
+}
+{
+  const nylon = {
+    q: 'Como se chama o material sintético desenvolvido como alternativa à seda, muito usado em meias?',
+    a: 'Nylon',
+    options: ['Nylon', 'Moda ética', 'Moda genderless', 'Vogue'],
+  };
+  const r7 = QE.validateQuestion(nylon, baseCtx({ isMC: true, formatId: QE.FORMAT_IDS.RESPOSTA_DIRETA, categoryNumber: 16, ageBandKey: '15+' }));
+  assert('50. nylon só materiais', !r7.ok, r7.issues?.join(', '));
+}
+{
+  const chita = {
+    q: 'Quando foi apresentado o traje de chita de Viana em Lisboa?',
+    a: '1909',
+    options: ['1895', '1915', '1909', '1923'],
+  };
+  const r8 = QE.validateQuestion(chita, baseCtx({ formatId: QE.FORMAT_IDS.QUANDO, categoryNumber: 16, ageBandKey: '10-15', isMC: true }));
+  assert('51. chita Viana factual', !r8.ok, r8.issues?.join(', '));
+}
+{
+  const insight = {
+    q: 'Devido à atmosfera muito ténue e à baixa gravidade, a sonda InSight, da NASA, não podia usar paraquedas para aterrar em Marte. Que sistema de frenagem acionou os retrofoguetes nos segundos finais da descida?',
+    a: 'Sistema de pouso com retrofoguetes',
+    options: ['Rampa de dissipação', 'Paraquedas supersônico', 'Sistema de pouso com retrofoguetes', 'Airbag gigante'],
+  };
+  const r9 = QE.validateQuestion(insight, baseCtx({ formatId: QE.FORMAT_IDS.CAUSA_CONSEQUENCIA, categoryNumber: 6, ageBandKey: '15+', isMC: true }));
+  assert('52. InSight pergunta longa', !r9.ok, r9.issues?.join(', '));
+}
+{
+  const narradorOk = {
+    q: 'Como se chama o narrador que conhece os pensamentos de todas as personagens?',
+    a: 'Narrador onisciente',
+    options: ['Narrador onisciente', 'Narrador em terceira pessoa', 'Narrador testemunha', 'Narrador-protagonista'],
+  };
+  const r10 = QE.validateQuestion(narradorOk, baseCtx({ isMC: true, formatId: QE.FORMAT_IDS.RESPOSTA_DIRETA, categoryNumber: 9, ageBandKey: '15+' }));
+  assert('53. narrador opções coerentes aceite', r10.ok, r10.issues?.join(', '));
+}
+
 // 20. persistência histórico (em memória via API)
 {
   const testKey = 'reino_magico_q_history_v3_test_' + Date.now();
