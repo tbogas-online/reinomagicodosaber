@@ -54,13 +54,6 @@
     button.danger { background: #991b1b; border-color: #991b1b; }
     button.success { background: #047857; border-color: #047857; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; }
-    .stat {
-      background: #0b1220;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-    }
     .stat strong { display: block; font-size: 1.4rem; line-height: 1.2; }
     .stat span { color: var(--muted); font-size: 12px; }
     .stat.stat-open {
@@ -157,6 +150,10 @@
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px 14px;
       margin-bottom: 16px;
     }
     .admin-tabs button {
@@ -170,6 +167,25 @@
       color: #fff;
     }
     .admin-tabs .spacer { flex: 1; }
+    .card.stats {
+      padding: 0;
+      overflow: hidden;
+    }
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+      gap: 0;
+    }
+    .stat {
+      background: #0b1220;
+      border: none;
+      border-right: 1px solid var(--border);
+      border-radius: 0;
+      padding: 14px 12px;
+      min-width: 0;
+      text-align: center;
+    }
+    .stat:last-child { border-right: none; }
     .room-players-list {
       margin: 4px 0 0;
       padding-left: 16px;
@@ -445,8 +461,20 @@
     @media (max-width: 900px) {
       .charts-grid { grid-template-columns: 1fr; }
       .chart-wide { grid-column: auto; }
+      .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .stat { border-bottom: 1px solid var(--border); }
+      .stat:nth-child(3n) { border-right: none; }
+      .stat:nth-child(3n+1):nth-last-child(-n+3),
+      .stat:nth-child(3n+2):nth-last-child(-n+2),
+      .stat:nth-child(3n+3):nth-last-child(-n+1) { border-bottom: none; }
     }
     @media (max-width: 760px) {
+      .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .stat { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+      .stat:nth-child(3n) { border-right: 1px solid var(--border); }
+      .stat:nth-child(2n) { border-right: none; }
+      .stat:nth-last-child(-n+2) { border-bottom: none; }
+      .stat:last-child:nth-child(odd) { border-right: none; grid-column: 1 / -1; }
       table, thead, tbody, th, td, tr { display: block; }
       thead { display: none; }
       tr { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; padding: 8px; }
@@ -667,9 +695,15 @@
             <button type="button" class="secondary" id="roomsRefreshBtn">↻ Actualizar</button>
           </div>
           <p class="status" id="roomsListStatus"></p>
+          <div class="bulk-bar">
+            <label><input type="checkbox" id="selectAllRooms" class="row-check"> Selecionar todas</label>
+            <span id="roomsBulkCount">0 selecionadas</span>
+            <button type="button" id="roomsBulkClose" class="danger" disabled>🚪 Desligar selecionadas</button>
+          </div>
           <table>
             <thead>
               <tr>
+                <th style="width:28px;"></th>
                 <th>Código</th>
                 <th>Estado</th>
                 <th>Jogadores</th>
@@ -1961,6 +1995,8 @@
     let lastRoomsStats = null;
     let lastOpenRooms = [];
     let roomsLoading = false;
+    const selectedRoomIds = new Set();
+    let roomsById = {};
 
     const ROOM_STATUS_LABELS = {
       lobby: 'Sala de espera',
@@ -2045,11 +2081,32 @@
       renderDualLineChart(chartEl, bucket.rooms, bucket.games, '#3b82f6', '#10b981');
     }
 
+    function updateRoomsBulkUi() {
+      const countEl = document.getElementById('roomsBulkCount');
+      const closeBtn = document.getElementById('roomsBulkClose');
+      const selectAll = document.getElementById('selectAllRooms');
+      const count = selectedRoomIds.size;
+      if (countEl) countEl.textContent = `${count} selecionada${count === 1 ? '' : 's'}`;
+      if (closeBtn) closeBtn.disabled = count === 0;
+      if (selectAll) {
+        const pageIds = (lastOpenRooms || []).map((r) => r.id).filter(Boolean);
+        selectAll.checked = pageIds.length > 0 && pageIds.every((id) => selectedRoomIds.has(id));
+        selectAll.indeterminate = count > 0 && !selectAll.checked;
+      }
+    }
+
+    function clearRoomSelection() {
+      selectedRoomIds.clear();
+      updateRoomsBulkUi();
+    }
+
     function renderRoomsTable(rooms) {
       const body = document.getElementById('roomsBody');
       if (!body) return;
+      roomsById = Object.fromEntries((rooms || []).map((r) => [r.id, r]));
       if (!rooms?.length) {
-        body.innerHTML = '<tr><td colspan="6"><div class="chart-empty">Nenhuma sala em aberto.</div></td></tr>';
+        body.innerHTML = '<tr><td colspan="7"><div class="chart-empty">Nenhuma sala em aberto.</div></td></tr>';
+        updateRoomsBulkUi();
         return;
       }
       body.innerHTML = rooms.map((room) => {
@@ -2059,7 +2116,9 @@
           return `<li>${host}${esc(p.nickname)} <span style="opacity:.7">${dot}</span></li>`;
         }).join('');
         const statusClass = room.status === 'playing' ? 'status-playing' : 'status-lobby';
-        return `<tr>
+        const checked = selectedRoomIds.has(room.id) ? 'checked' : '';
+        return `<tr data-room-id="${esc(room.id)}">
+          <td data-label="Selecionar"><input type="checkbox" class="row-check room-select" data-room-id="${esc(room.id)}" ${checked} aria-label="Selecionar sala ${esc(room.code)}"></td>
           <td data-label="Código"><strong>${esc(room.code)}</strong></td>
           <td data-label="Estado"><span class="pill ${statusClass}">${esc(ROOM_STATUS_LABELS[room.status] || room.status)}</span></td>
           <td data-label="Jogadores">
@@ -2073,10 +2132,11 @@
           </td>
         </tr>`;
       }).join('');
+      updateRoomsBulkUi();
     }
 
     async function loadRoomsDashboard(options = {}) {
-      const { quiet = false } = options;
+      const { quiet = false, keepSelection = false } = options;
       if (roomsLoading) return;
       roomsLoading = true;
       const statusEl = document.getElementById('roomsListStatus');
@@ -2091,6 +2151,11 @@
         ]);
         lastRoomsStats = statsData.stats;
         lastOpenRooms = listData.rooms || [];
+        if (!keepSelection) clearRoomSelection();
+        else {
+          const valid = new Set(lastOpenRooms.map((r) => r.id));
+          [...selectedRoomIds].forEach((id) => { if (!valid.has(id)) selectedRoomIds.delete(id); });
+        }
         renderRoomsStats(lastRoomsStats);
         renderRoomsChart(lastRoomsStats);
         renderRoomsTable(lastOpenRooms);
@@ -2106,31 +2171,43 @@
       }
     }
 
-    async function closeRoomAdmin(roomId, roomCode) {
-      if (!roomId) return;
-      if (!global.confirm(`Desligar a sala ${roomCode || ''}? Todos os jogadores serão desconectados.`)) return;
+    async function closeRoomsAdmin(roomIds) {
+      const ids = [...new Set((roomIds || []).filter(Boolean))];
+      if (!ids.length) return;
+      const codes = ids.map((id) => roomsById[id]?.code || id).filter(Boolean);
+      const label = codes.length === 1
+        ? `a sala ${codes[0]}`
+        : `${codes.length} salas (${codes.join(', ')})`;
+      if (!global.confirm(`Desligar ${label}? Todos os jogadores serão desconectados.`)) return;
       const statusEl = document.getElementById('roomsListStatus');
       if (statusEl) {
-        statusEl.textContent = 'A desligar sala…';
+        statusEl.textContent = 'A desligar salas…';
         statusEl.className = 'status';
       }
       try {
-        await api(`/api/rooms-admin?roomId=${encodeURIComponent(roomId)}`, {
+        await api('/api/rooms-admin', {
           method: 'PATCH',
-          body: JSON.stringify({ action: 'close' }),
+          body: JSON.stringify({ action: 'close', roomIds: ids }),
         });
+        clearRoomSelection();
         await loadRoomsDashboard({ quiet: true });
         if (statusEl) {
-          statusEl.textContent = `Sala ${roomCode || ''} desligada.`;
+          statusEl.textContent = ids.length === 1 ? `Sala ${codes[0]} desligada.` : `${ids.length} salas desligadas.`;
           statusEl.className = 'status';
-          setTimeout(() => { if (statusEl.textContent.includes('desligada')) statusEl.textContent = ''; }, 2500);
+          setTimeout(() => {
+            if (statusEl.textContent.includes('desligad')) statusEl.textContent = '';
+          }, 2500);
         }
       } catch (err) {
         if (statusEl) {
-          statusEl.textContent = err.message || 'Erro ao desligar sala.';
+          statusEl.textContent = err.message || 'Erro ao desligar salas.';
           statusEl.className = 'status err';
         }
       }
+    }
+
+    async function closeRoomAdmin(roomId, roomCode) {
+      await closeRoomsAdmin([roomId]);
     }
 
     function logout() {
@@ -2270,8 +2347,29 @@
     });
     document.getElementById('roomsBody')?.addEventListener('click', (e) => {
       const btn = e.target.closest('.close-room-btn');
-      if (!btn) return;
-      closeRoomAdmin(btn.dataset.roomId, btn.dataset.roomCode);
+      if (btn) {
+        closeRoomAdmin(btn.dataset.roomId, btn.dataset.roomCode);
+        return;
+      }
+      const checkbox = e.target.closest('.room-select');
+      if (!checkbox) return;
+      const id = checkbox.dataset.roomId;
+      if (!id) return;
+      if (checkbox.checked) selectedRoomIds.add(id);
+      else selectedRoomIds.delete(id);
+      updateRoomsBulkUi();
+    });
+    document.getElementById('selectAllRooms')?.addEventListener('change', (e) => {
+      const checked = e.target.checked;
+      (lastOpenRooms || []).forEach((room) => {
+        if (!room.id) return;
+        if (checked) selectedRoomIds.add(room.id);
+        else selectedRoomIds.delete(room.id);
+      });
+      renderRoomsTable(lastOpenRooms);
+    });
+    document.getElementById('roomsBulkClose')?.addEventListener('click', () => {
+      closeRoomsAdmin([...selectedRoomIds]);
     });
     document.getElementById('logoutBtn').onclick = logout;
     document.getElementById('refreshBtn').onclick = () => { offset = 0; loadDashboard(); };

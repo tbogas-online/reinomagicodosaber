@@ -1,7 +1,7 @@
 // GET/PATCH /api/rooms-admin — salas multijogador (Supabase service role + Basic Auth).
 
 const { json, validateAdminAuth } = require('./lib/report-utils');
-const { listOpenRooms, getRoomStats, closeRoom, getSupabaseAdmin } = require('./lib/rooms-store');
+const { listOpenRooms, getRoomStats, closeRooms, getSupabaseAdmin } = require('./lib/rooms-store');
 
 exports.handler = async (event) => {
   try {
@@ -47,15 +47,21 @@ exports.handler = async (event) => {
       } catch {
         return json(400, { error: 'Corpo JSON inválido.' });
       }
-      if (body.action !== 'close' || !roomId) {
-        return json(400, { error: 'Parâmetros inválidos (roomId + action=close).' });
+      if (body.action !== 'close') {
+        return json(400, { error: 'Parâmetros inválidos (action=close).' });
+      }
+      const roomIds = Array.isArray(body.roomIds) && body.roomIds.length
+        ? body.roomIds
+        : (roomId ? [roomId] : []);
+      if (!roomIds.length) {
+        return json(400, { error: 'Indica roomId ou roomIds.' });
       }
       try {
-        const result = await closeRoom(roomId);
-        return json(200, { ok: true, ...result });
+        const closed = await closeRooms(roomIds);
+        return json(200, { ok: true, closed: closed.length, roomIds: closed });
       } catch (err) {
         console.error('[rooms-admin] close failed:', err);
-        return json(503, { error: 'Não foi possível desligar a sala.' });
+        return json(503, { error: 'Não foi possível desligar a(s) sala(s).' });
       }
     }
 

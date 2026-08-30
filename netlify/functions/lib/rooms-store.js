@@ -220,9 +220,20 @@ async function closeRoom(roomId) {
   return { ok: true, roomId };
 }
 
+async function closeRooms(roomIds) {
+  const unique = [...new Set((roomIds || []).filter(Boolean))];
+  const closed = [];
+  for (const roomId of unique) {
+    await closeRoom(roomId);
+    closed.push(roomId);
+  }
+  return closed;
+}
+
 module.exports = {
   getSupabaseAdmin,
   listOpenRooms,
   getRoomStats,
   closeRoom,
+  closeRooms,
 };
