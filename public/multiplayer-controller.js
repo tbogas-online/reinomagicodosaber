@@ -65,22 +65,29 @@
       countdownRemaining: h.getCountdownRemaining?.() ?? null,
       answerRevealed: !!h.getAnswerRevealed?.(),
       selectedAnswer: h.getLastSelectedAnswer?.() ?? null,
-      dice: extra?.dice || null,
+      dice: extra && 'dice' in extra ? extra.dice : (h.getLastDiceRoll?.() ?? null),
       round: extra?.round ?? (GH.getCurrentGame()?.rounds?.length || 0),
       ...extra,
     };
   }
 
+  let lastGameStateJson = '';
+  let lastAppliedStateAt = 0;
+
   async function pushState(extra) {
     if (!isMultiplayer()) return;
     const state = buildGameState(extra);
-    const json = JSON.stringify(state);
-    lastGameStateJson = json;
-    MP.setLastGameStateJson(json);
-    await MP.updateGameState(state);
+    try {
+      await MP.updateGameState(state);
+      const json = JSON.stringify(state);
+      lastGameStateJson = json;
+      MP.setLastGameStateJson(json);
+      if (state.updatedAt) lastAppliedStateAt = state.updatedAt;
+    } catch (e) {
+      console.warn('[MP] pushState', e);
+      throw e;
+    }
   }
-
-  let lastGameStateJson = '';
 
   function resolveCategoryFromState(state) {
     let cat = deserializeCategory(state?.lastCategory);
@@ -97,6 +104,9 @@
   async function applyRemoteState(state, settings, options = {}) {
     if (!state || !gameHooks || applyingRemote) return;
     if (!options.resume && state.actorId && state.actorId === MP.getPlayerId()) return;
+    const remoteTs = Number(state.updatedAt) || 0;
+    if (!options.resume && remoteTs && remoteTs < lastAppliedStateAt) return;
+    if (remoteTs) lastAppliedStateAt = remoteTs;
     applyingRemote = true;
     try {
       const h = gameHooks;
@@ -519,16 +529,41 @@
     return true;
   }
 
+  async function hostGoToAgeSelection() {
+    if (!gameHooks) return false;
+    const h = gameHooks;
+    const cat = h.getLastCategory?.();
+    if (!cat) return false;
+    h.showScreen?.('age');
+    if (!isMultiplayer()) return true;
+    try {
+      await pushState({
+        screen: 'age',
+        lastCategory: serializeCategory(cat),
+        lastIsSurprise: !!h.getLastIsSurprise?.(),
+        dice: h.getLastDiceRoll?.() || null,
+      });
+    } catch (e) {
+      showMpToast('Aviso: não foi possível sincronizar com a sala.');
+    }
+    return true;
+  }
+
   async function hostSelectAge(ageBand) {
     if (!canControl()) return false;
     gameHooks.setSelectedAgeBand?.(ageBand);
     if (isMultiplayer()) {
-      await pushState({
-        screen: 'age',
-        selectedAgeBand: ageBand,
-        lastCategory: serializeCategory(gameHooks.getLastCategory?.()),
-        lastIsSurprise: !!gameHooks.getLastIsSurprise?.(),
-      });
+      try {
+        await pushState({
+          screen: 'age',
+          selectedAgeBand: ageBand,
+          lastCategory: serializeCategory(gameHooks.getLastCategory?.()),
+          lastIsSurprise: !!gameHooks.getLastIsSurprise?.(),
+          dice: gameHooks.getLastDiceRoll?.() || null,
+        });
+      } catch (e) {
+        showMpToast('Aviso: não foi possível sincronizar com a sala.');
+      }
     }
     return true;
   }
@@ -1256,6 +1291,7 @@
     onSinglePlayerStart,
     onAnswerRevealed,
     hostRollDice,
+    hostGoToAgeSelection,
     hostSelectAge,
     hostQuestionReady,
     hostBackToCategories,

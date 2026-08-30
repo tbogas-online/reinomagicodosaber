@@ -46,6 +46,9 @@
     --quota-warn: #fde68a;
     --quota-err: #fca5a5;
     --surprise-card-bg: linear-gradient(160deg, rgba(192,99,47,0.18), rgba(125,91,196,0.10));
+    --stage-max: 760px;
+    --stage-vw: 92vw;
+    --stage-pad-x: clamp(16px, 6vw, 40px);
   }
   :root[data-theme="day"]{
     --night: #f4eed8;
@@ -155,11 +158,12 @@
 
   .stage{
     position:relative; z-index:1;
-    width:min(760px, 92vw);
+    width:min(var(--stage-max), var(--stage-vw));
     margin:0 auto;
-    padding: clamp(22px, 7vw, 44px) clamp(16px, 6vw, 40px) clamp(16px, 6vw, 40px);
+    padding: clamp(22px, 7vw, 44px) var(--stage-pad-x) clamp(16px, 6vw, 40px);
     text-align:center;
     flex:0 1 auto;
+    box-sizing: border-box;
   }
   .screen.active{ width:100%; }
 
@@ -446,7 +450,7 @@
     margin: clamp(8px, 2vh, 16px) auto 0;
     padding-bottom: clamp(12px, 3vw, 20px);
     flex: 0 0 auto;
-    width: min(760px, 92vw);
+    width: min(var(--stage-max), var(--stage-vw));
   }
   body.settings-screen-active #screen-settings .stack{
     width: 100%;
@@ -488,7 +492,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    width: min(760px, 92vw);
+    width: min(var(--stage-max), var(--stage-vw));
     margin: 0 auto;
     box-sizing: border-box;
     padding-bottom: clamp(12px, 3vw, 20px);
@@ -521,7 +525,7 @@
   body.center-stage-active.category-bar-active .stage{
     flex: 0 0 auto;
     display: block;
-    width: min(760px, 92vw);
+    width: min(var(--stage-max), var(--stage-vw));
     margin: 0 auto;
     padding-top: clamp(16px, 4vw, 28px);
     padding-bottom: clamp(12px, 3vw, 20px);
@@ -792,6 +796,8 @@
     min-height: 0;
     display:block;
     text-align:left;
+    width: 100%;
+    box-sizing: border-box;
   }
   .q-text{
     font-family:'EB Garamond', serif;
@@ -822,10 +828,13 @@
   .q-options{
     display:none; flex-direction:column; gap:10px;
     margin-top: 20px;
+    width: 100%;
   }
   .option-btn{
     font-family:'EB Garamond', serif; font-size:18px;
     text-align:left;
+    width: 100%;
+    box-sizing: border-box;
     padding: 12px 16px;
     border-radius: 10px;
     border: 1px solid rgba(var(--gold-rgb),0.35);
@@ -1223,27 +1232,52 @@
 
   footer{ margin-top:26px; }
 
+  #screen-question > .row,
+  #screen-question > footer{
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    box-sizing: border-box;
+  }
+  #screen-question > .row .btn,
+  #screen-question > footer .btn{
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
   .page-footer-chrome{
-    width: min(760px, 92vw);
+    width: min(var(--stage-max), var(--stage-vw));
     max-width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;
+    align-items: stretch;
     gap: 8px;
     margin-top: auto;
     margin-left: auto;
     margin-right: auto;
     flex-shrink: 0;
-    padding: 10px clamp(16px, 6vw, 40px) calc(12px + env(safe-area-inset-bottom));
+    padding: 10px var(--stage-pad-x) calc(12px + env(safe-area-inset-bottom));
     box-sizing: border-box;
     position: relative;
     z-index: 1;
   }
 
+  .page-footer-chrome > .mp-game-bar,
+  .page-footer-chrome > .game-clock,
+  .page-footer-chrome > .status-panel{
+    width: 100%;
+    max-width: 100%;
+    align-self: stretch;
+  }
+
   .game-clock{
     display:none;
     align-items:center; justify-content:center;
-    align-self:center;
+    align-self: stretch;
+    width: 100%;
+    box-sizing: border-box;
     font-family:'Cinzel', serif;
     font-size: 14px;
     letter-spacing:.05em;
@@ -1267,7 +1301,9 @@
     border: 1px solid rgba(var(--parchment-rgb),0.2);
     border-radius: 999px;
     padding: 6px 14px;
-    max-width: min(92vw, 420px);
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
     flex-wrap: wrap;
     position:relative;
     z-index: 51;
@@ -1315,14 +1351,16 @@
   .status-panel{
     display:flex;
     flex-direction:column;
-    align-items:center;
+    align-items:stretch;
     gap:8px;
     position:relative;
     z-index:1;
-    width:min(560px, 92vw);
+    width:100%;
+    max-width:100%;
     flex-shrink:0;
     margin:0;
     pointer-events:auto;
+    box-sizing: border-box;
   }
   .status-detail{
     margin:0;
@@ -1331,6 +1369,8 @@
     border-radius:10px;
     padding:8px 14px;
     text-align:center;
+    width: 100%;
+    box-sizing: border-box;
   }
   .status-detail.is-offline{
     color:#fecaca;
@@ -1535,13 +1575,17 @@
     }
     body{ font-size: 1rem; }
     .stage{
-      width: min(760px, 94vw);
-      padding: clamp(16px, 4.5vw, 28px) clamp(14px, 4vw, 24px);
+      width: min(var(--stage-max), var(--stage-vw));
+      padding: clamp(16px, 4.5vw, 28px) var(--stage-pad-x);
+    }
+    :root{
+      --stage-vw: 94vw;
+      --stage-pad-x: clamp(14px, 4vw, 24px);
     }
     .page-footer-chrome{
-      width: min(760px, 94vw);
-      padding-left: clamp(14px, 4vw, 24px);
-      padding-right: clamp(14px, 4vw, 24px);
+      width: min(var(--stage-max), var(--stage-vw));
+      padding-left: var(--stage-pad-x);
+      padding-right: var(--stage-pad-x);
     }
     .logo-img{
       width: clamp(148px, 42vw, 188px);
@@ -1634,13 +1678,13 @@
       margin-top: 8px;
     }
     body.center-stage-active:not(.category-bar-active) .stage{
-      padding: clamp(8px, 2.5vw, 14px) clamp(14px, 4vw, 22px) clamp(12px, 3vw, 20px);
+      padding: clamp(8px, 2.5vw, 14px) var(--stage-pad-x) clamp(12px, 3vw, 20px);
     }
     body.center-stage-active:not(.category-bar-active) .page-footer-chrome{
-      padding-left: clamp(14px, 4vw, 22px);
-      padding-right: clamp(14px, 4vw, 22px);
+      padding-left: var(--stage-pad-x);
+      padding-right: var(--stage-pad-x);
     }
-    .status-panel{ width: min(560px, 94vw); }
+    .status-panel{ width: 100%; max-width: 100%; }
     .status-badge{
       font-size: 0.72rem;
       padding: 7px 14px;
@@ -2814,7 +2858,7 @@
 <script src="game-history.js?v=20260829-174108"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-161500"></script>
+<script src="multiplayer-controller.js?v=20260830-163000"></script>
 <script src="question-engine.js?v=20260830-161700" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -4926,6 +4970,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   function showDiceResultOnScreen(d1, d2, cat, surprise){
     SFX.diceLand();
     const sum = d1 + d2;
+    lastDiceRoll = { d1, d2, sum };
     document.getElementById('sum-line').innerHTML = `${d1} + ${d2} = <b>${sum}</b>`;
     lastCategory = cat;
     lastIsSurprise = surprise;
@@ -4963,6 +5008,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         getLastCategory: () => lastCategory,
         setLastCategory: (cat, surprise) => { lastCategory = cat; lastIsSurprise = surprise; },
         getLastIsSurprise: () => lastIsSurprise,
+        getLastDiceRoll: () => lastDiceRoll,
         getSelectedAgeBand: () => selectedAgeBand,
         setSelectedAgeBand: (band) => { selectedAgeBand = band; },
         getCurrentQuestion: () => currentQuestion,
@@ -5010,6 +5056,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   let lastCategory = null;
   let lastIsSurprise = false;
+  let lastDiceRoll = null;
 
   document.getElementById('btn-novo-jogo').onclick = () => {
     clearSettingsQueryFromUrl();
@@ -5067,10 +5114,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     btn.onclick = async () => {
       SFX.select();
       selectedAgeBand = btn.dataset.age;
-      if(window.MultiplayerController?.isMultiplayer?.()){
-        await window.MultiplayerController.hostSelectAge(selectedAgeBand);
-      }
-      showQuestion(lastCategory, lastIsSurprise, selectedAgeBand);
+      await showQuestion(lastCategory, lastIsSurprise, selectedAgeBand);
     };
   });
 
@@ -5888,6 +5932,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     lastCategory = null;
     lastIsSurprise = false;
     selectedAgeBand = null;
+    lastDiceRoll = null;
   }
 
   function clearCategoryRollHighlight(){
@@ -5946,13 +5991,14 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
       lastIsSurprise = false;
     }
     selectedAgeBand = null;
+    lastDiceRoll = { d1: null, d2: null, sum };
     document.getElementById('sum-line').innerHTML = `Soma: <b>${sum}</b>`;
     document.getElementById('result-card').style.display = 'flex';
     renderResultCard();
     const btn = document.getElementById('btn-roll');
     btn.disabled = false;
     btn.textContent = '🎲 Lançar os Dados';
-    showScreen('age');
+    goToAgeSelection();
   }
 
   document.getElementById('btn-roll').onclick = () => {
@@ -5981,6 +6027,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     }
     SFX.diceLand();
     const sum = d1 + d2;
+    lastDiceRoll = { d1, d2, sum };
     document.getElementById('sum-line').innerHTML = `${d1} + ${d2} = <b>${sum}</b>`;
 
     if(sum === 12){
@@ -6004,6 +6051,9 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     if(!lastCategory) return;
     const cat = lastCategory;
     card.className = 'card card-compact pop' + (lastIsSurprise ? ' surprise' : '') + ' clickable';
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', `Categoria ${cat.name}. Toca para escolher a faixa etária.`);
     card.innerHTML = `
       ${lastIsSurprise ? '<div class="surprise-tag">✨ Categoria Surpresa ✨</div>' : ''}
       <div class="emoji">${cat.e}</div>
@@ -6015,18 +6065,24 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     `;
   }
 
-  document.getElementById('row-surprise').addEventListener('click', () => selectCategoryBySum(12));
-
-  document.getElementById('result-card').addEventListener('click', async () => {
+  async function goToAgeSelection(){
     if(!lastCategory) return;
-    if(window.MultiplayerController?.isMultiplayer?.()){
-      await window.MultiplayerController.pushState({
-        screen: 'age',
-        lastCategory: window.MultiplayerController.serializeCategory(lastCategory),
-        lastIsSurprise: lastIsSurprise,
-      });
+    if(window.MultiplayerController?.hostGoToAgeSelection){
+      await window.MultiplayerController.hostGoToAgeSelection();
+      return;
     }
     showScreen('age');
+  }
+
+  document.getElementById('row-surprise').addEventListener('click', () => selectCategoryBySum(12));
+
+  document.getElementById('result-card').addEventListener('click', () => {
+    goToAgeSelection();
+  });
+  document.getElementById('result-card').addEventListener('keydown', (e) => {
+    if(e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    goToAgeSelection();
   });
 
   // ---------- relógio de jogo ----------
