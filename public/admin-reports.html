@@ -54,8 +54,8 @@
     button.danger { background: #991b1b; border-color: #991b1b; }
     button.success { background: #047857; border-color: #047857; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
-    .stat strong { display: block; font-size: 1.4rem; line-height: 1.2; }
-    .stat span { color: var(--muted); font-size: 12px; }
+    .stat strong { display: block; font-size: 1.2rem; line-height: 1.2; }
+    .stat span { color: var(--muted); font-size: 10px; line-height: 1.25; }
     .stat.stat-open {
       border-color: #b45309;
       background: linear-gradient(180deg, rgba(245, 158, 11, 0.16) 0%, rgba(11, 18, 32, 0.95) 100%);
@@ -452,16 +452,17 @@
       overflow: hidden;
     }
     .stats {
-      display: grid;
-      grid-template-columns: repeat(5, minmax(0, 1fr));
+      display: flex;
+      flex-wrap: nowrap;
       gap: 0;
     }
     .stat {
+      flex: 1 1 0;
       background: #0b1220;
       border: none;
       border-right: 1px solid var(--border);
       border-radius: 0;
-      padding: 14px 12px;
+      padding: 10px 6px;
       min-width: 0;
       text-align: center;
     }
