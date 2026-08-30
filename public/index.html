@@ -214,7 +214,7 @@
   }
   .continue-session-row{
     display: flex;
-    align-items: stretch;
+    align-items: center;
     gap: 8px;
     width: 100%;
   }
@@ -259,8 +259,12 @@
   }
   .continue-session-end{
     flex-shrink: 0;
-    width: 42px;
-    min-height: 44px;
+    width: 38px;
+    height: 38px;
+    min-height: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 0;
     border-radius: 10px;
     border: 1px solid rgba(229, 72, 77, 0.55);
@@ -2906,7 +2910,7 @@
     <div class="emoji" style="font-size:44px;">📜</div>
     <h2>Continuar jogo</h2>
     <p class="subtitle">Escolhe a partida a retomar nesta sessão</p>
-    <div class="stack" id="continue-session-list" style="width:100%; max-width:20rem; margin:0 auto; gap:10px; align-items:stretch;"></div>
+    <div class="stack" id="continue-session-list" style="width:100%; max-width:min(28rem, 94vw); margin:0 auto; gap:10px; align-items:stretch;"></div>
     <button class="btn ghost" type="button" id="btn-continue-back" style="margin-top:16px;">← Voltar ao menu</button>
   </section>
 
