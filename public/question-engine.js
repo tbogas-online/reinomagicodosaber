@@ -885,6 +885,21 @@ Só json válido, sem markdown: ${jsonFormat}`;
     if (/\bestilo\s+borboleta\b/i.test(blob)) {
       issues.push('vocabulário de natação brasileiro — em PT-PT usa "estilo mariposa"');
     }
+    if (/\bvira\s+vapor\b/i.test(blob)) {
+      issues.push('colquialismo brasileiro — em PT-PT diz "transforma-se em vapor" (não "vira vapor")');
+    }
+    if (/\btrem-baleiro\b/i.test(blob)) {
+      issues.push('brasileirismo — em PT-PT usa "comboio maglev" ou "comboio de levitação magnética"');
+    }
+    if (/\btrem\b/i.test(blob) && /\b(carris|propulsão|propulsao|magnétic|magnetic|levita|veículo|veiculo|transporte)\b/i.test(blob)) {
+      issues.push('brasileirismo — em PT-PT usa "comboio" (não "trem")');
+    }
+    if (/\bviés\b/i.test(blob)) {
+      issues.push('brasileirismo — em PT-PT usa "enviesamento" ou "tendência de negatividade" (não "viés")');
+    }
+    if (/\bbolseiro\b/i.test(blob) && /\b(frodo|senhor dos an[eé]is|um anel|tolkien)\b/i.test(blob)) {
+      issues.push('nome de personagem — em PT-PT usa "Sacova" ou mantém "Baggins" (não a tradução brasileira Bolseiro)');
+    }
     if (/\bavoando\b/i.test(blob)) {
       issues.push('erro ortográfico — escreve "a voar" (não "avoando")');
     }
@@ -994,6 +1009,11 @@ Só json válido, sem markdown: ${jsonFormat}`;
     if (/\bpernas\b.*\bnão\s+anda\b/i.test(q) && /\b(bola|cadeira|mesa)\b/i.test(a)) {
       issues.push('ADIVINHA: charada fraca — a resposta não encaixa bem nas pistas');
     }
+    if (/\b(faz|fazem)\s+barulho\b/i.test(q) && /\bcorre\b/i.test(q) && /\b(cala|calou)\b/i.test(q)) {
+      if (/\b(cavalo|cabra|vaca|ovelha|carneiro|porco|rato)\b/i.test(a) && !/\b(apito|pião|piao|flauta|corneta|reco-reco)\b/i.test(a)) {
+        issues.push('ADIVINHA: charada clássica do apito — a resposta não deve ser um animal');
+      }
+    }
     return issues;
   }
 
@@ -1053,9 +1073,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
     if (/^(spacex|nasa|esa|agência espacial europeia|google|apple|meta|tesla|brt)$/i.test(t)) return 'brand';
     if (looksLikeProverbOption(t)) return 'proverb';
     if (looksLikeFilmTitle(t)) return 'film';
+    if (/\b(arcadismo|barroco|romantismo|modernismo|pós-modernismo|simbolismo|surrealismo|realismo|impressionismo|expressionismo)\b/i.test(t)) return 'literary_movement';
     if (looksLikePersonNameOption(t)) return 'person';
     if (/^\d/.test(t) || /\b(milhões|mil milhões|cerca de)\b/i.test(t)) return 'quantity';
-    if (/\b(arcadismo|barroco|romantismo|modernismo|pós-modernismo|simbolismo|surrealismo)\b/i.test(t)) return 'literary_movement';
     if (/\b(nylon|algodão|algodao|lã|la|seda|poliéster|poliester|linho|couro|borracha|plástico|plastico|lycra|elastano|acrílico|acrilico)\b/i.test(t)) return 'material';
     if (/\b(moda ética|moda genderless|vogue|fast fashion)\b/i.test(t)) return 'fashion_concept';
     if (/\b(tratado|missão|canal|narrador|viés|sistema|efeito|fenómeno|fenomeno|rotação|unidade|elipse)\b/i.test(t)) return 'concept';
@@ -1094,6 +1114,43 @@ Só json válido, sem markdown: ${jsonFormat}`;
       }
     }
 
+    if (/\b(feminino|masculino)\s+de\s+r[eé]u\b/i.test(q) || /\br[eé]u\b/i.test(q) && /\bfeminino\b/i.test(q)) {
+      const bad = kinds.filter((k) => ['literary_movement', 'film', 'year', 'country', 'brand'].includes(k));
+      if (bad.length) {
+        issues.push('opções incoerentes — distractores devem ser formas gramaticais (ré/ré), não movimentos literários nem outros temas');
+      }
+    }
+
+    if (/\bneur[oó]nio|c[eé]rebro humano\b/i.test(q)) {
+      const badOpts = clean.filter((o) => o.toLowerCase() !== correct.toLowerCase())
+        .filter((o) => /\bilus[aã]o|óptica|optica|müller|mueller|esfinge|d[eé]j[aà]\s*vu|enigma|filosof/i.test(o));
+      if (badOpts.length) {
+        issues.push('opções incoerentes — distractores devem ser quantidades ou conceitos de neurociência, não filosofia ou ilusões de ótica');
+      }
+    }
+
+    if (/\bmissão\b/i.test(q) && /\b(sonda|cometa|espacial|marte|lua)\b/i.test(q)) {
+      const bad = kinds.filter((k) => ['country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'].includes(k));
+      if (bad.length) {
+        issues.push('opções incoerentes — distractores devem ser missões ou programas espaciais');
+      }
+    }
+
+    if (/\bunidade\s+astron[oó]mic/i.test(q) || (/\bunidade\b/i.test(q) && /\b(terra|sol|dist[aâ]ncia)\b/i.test(q))) {
+      const bad = kinds.filter((k) => ['film', 'person', 'country', 'brand', 'proverb'].includes(k));
+      if (bad.length) {
+        issues.push('opções incoerentes — distractores devem ser unidades ou conceitos astronómicos');
+      }
+    }
+
+    if (/\brota[çc][ãa]o\b/i.test(q) && /\b(v[eé]nus|planeta)\b/i.test(q)) {
+      const badOpts = clean.filter((o) => o.toLowerCase() !== correct.toLowerCase())
+        .filter((o) => !/\b(rota[çc][ãa]o|órbita|transla[çc][ãa]o|revolu[çc][ãa]o|movimento|eixo|dia|ano|lentid)\b/i.test(o));
+      if (badOpts.length >= 2) {
+        issues.push('opções incoerentes — distractores devem descrever movimentos ou rotações planetárias');
+      }
+    }
+
     if (!isTimeQ && kinds.includes('year') && correctKind !== 'year') {
       issues.push('opções incoerentes — anos isolados não servem de distractores fora de perguntas QUANDO');
     }
@@ -1124,6 +1181,33 @@ Só json válido, sem markdown: ${jsonFormat}`;
       }
     }
 
+    return issues;
+  }
+
+  function validateMcTrivialMath(q, options, correctAnswer, stripTags) {
+    const issues = [];
+    const question = stripTags(q).trim();
+    const m = question.match(/\b(\d+)\s+dividido\s+por\s+(\d+)\b/i);
+    if (!m) return issues;
+    const dividend = Number(m[1]);
+    const divisor = Number(m[2]);
+    if (!dividend || !divisor || dividend % divisor !== 0) return issues;
+    const correct = stripTags(correctAnswer).trim();
+    const quotient = String(dividend / divisor);
+    if (correct === String(divisor) || correct === m[2]) {
+      issues.push('resposta matemática incorrecta ou demasiado óbvia — confirma o quociente da divisão');
+      return issues;
+    }
+    const wrong = (options || []).map((o) => stripTags(o).trim()).filter((o) => o.toLowerCase() !== correct.toLowerCase());
+    if (wrong.some((o) => o === m[1]) && wrong.some((o) => o === String(divisor))) {
+      issues.push('opções de divisão demasiado óbvias — os distractores não devem incluir dividendo e divisor');
+    }
+    if (correct === quotient && wrong.every((o) => /^\d+$/.test(o))) {
+      const nums = wrong.map(Number);
+      if (nums.includes(dividend) || nums.includes(divisor)) {
+        issues.push('opções de divisão demasiado óbvias — evita dividendo e divisor como distractores');
+      }
+    }
     return issues;
   }
 
@@ -1211,6 +1295,14 @@ Só json válido, sem markdown: ${jsonFormat}`;
     { when: (q, a) => /\bpastel\s+de\s+nata\b/i.test(q) && /\b(cidade|onde|fica|nasceu|origem|populariz|criado|inventado)\b/i.test(q) && !/\b(lisboa|bel[eé]m)\b/i.test(String(a || '')), issue: 'facto incorreto — o pastel de nata associa-se a Belém/Lisboa' },
     { when: (q, a) => /\bfrancesinha\b/i.test(q) && /\b(cidade|onde|fica|origem|nasceu|típic[ao])\b/i.test(q) && !/\bporto\b/i.test(String(a || '')), issue: 'facto incorreto — a francesinha é típica do Porto' },
     { when: (q) => /\bchita\b/i.test(q) && /\btraje\b/i.test(q) && /\bviana\b/i.test(q), issue: 'facto cultural — a chita associa-se sobretudo a Alcobaça; não confundir com o traje de Viana sem contexto histórico claro' },
+    { when: (q, a, opts) => {
+      if (!/\bbacalhau\b/i.test(q) || !/\b(prato|pratos|típic[oa]s?)\b/i.test(q)) return false;
+      const all = [a, ...(opts || [])].map((x) => String(x || ''));
+      return all.filter((x) => /\bbacalhau\b/i.test(x)).length >= 2;
+    }, issue: 'pergunta ambígua — vários pratos de bacalhau são igualmente defensáveis; indica um prato específico' },
+    { when: (q) => /\bpulsar\b/i.test(q) && (/\bpsr\b/i.test(q) || /\bplaneta\b.*\b[óo]rbita\b/i.test(q) || /\bpulsa[çc][õo]es\b/i.test(q)), issue: 'tema astronómico demasiado técnico ou obscuro para o jogo' },
+    { when: (q) => /\bmerckx\b/i.test(q) && /\b1975\b/.test(q) && /\btour\s+de\s+france\b/i.test(q) && /\bvenceu\b/i.test(q), issue: 'facto incorreto — Eddy Merckx não venceu o Tour de 1975 (vencedor: Bernard Thévenet)' },
+    { when: (q) => /\b(vantagem|diferen[çc]a)\b/i.test(q) && /\b\d+\s+dias\b/i.test(q) && /\b(tour|ciclismo|ciclista|volta)\b/i.test(q), issue: 'facto duvidoso — vantagens no ciclismo medem-se em minutos ou horas, não em dias' },
     { when: (q, a) => /\b(a|uma)\s+(engenheira|actriz|atriz|inventora|escritora|diretora|realizadora)\b/i.test(q) && /\b(dario|martin|james|john|robert|leonardo|quentin|stanley|heath|elon|ray|hiroshi)\b/i.test(String(a || '').toLowerCase()), issue: 'inconsistência de género — a pergunta pede uma mulher mas a resposta é um nome masculino' },
     { when: (q) => /\broald\s+dahl\b/i.test(q) && /\brato\b/i.test(q) && /\b(queria\s+ser|ser)\s+rei\b/i.test(q), issue: 'facto incorreto — Roald Dahl não escreveu "O rato que queria ser rei"' },
     { when: (q, a) => /\basfato\b/i.test(a) && !/\basfalto\b/i.test(a), issue: 'erro ortográfico — escreve "asfalto" (não "asfato")' },
@@ -1257,6 +1349,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
     }
     if (ageBandKey === '6-9' && /\b(homem|pessoa).{0,25}\blua\b|\bfoi\s+à\s+lua\b/i.test(q)) {
       issues.push('missão à Lua demasiado avançada para 6–9');
+    }
+    if (categoryN === 5 && /\b(solidifica[çc][ãa]o|congelamento|fundir|derreter|evapora[çc][ãa]o|estados?\s+(f[íi]sicos?|da\s+mat[ée]ria)|l[íi]quido\s+ao\s+s[óo]lido)\b/i.test(q)) {
+      issues.push('fenómenos físicos da água/matéria são Ciência (4), não Natureza (5)');
     }
     return issues;
   }
@@ -1463,9 +1558,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
       issues.push('QUANDO deve pedir tempo/data/período');
     }
     if (formatId === FORMAT_IDS.QUANDO && ageBandKey === '6-9'
-      && /\b(nasceu|nascimento)\b/i.test(q)
-      && /\b(picasso|einstein|shakespeare|beethoven|mozart|darwin|galileu|newton)\b/i.test(q)) {
-      issues.push('data de nascimento de figura histórica demasiado difícil para 6–9');
+      && /\b(nasceu|nascimento|subiram|escalada|primeira\s+vez)\b/i.test(q)
+      && /\b(picasso|einstein|shakespeare|beethoven|mozart|darwin|galileu|newton|everest|monte\s+everest)\b/i.test(q)) {
+      issues.push('data histórica demasiado difícil para 6–9');
     }
 
     if (formatId === FORMAT_IDS.ADIVINHA && /^qual\s+é\s+a\s+capital\b|^quem\s+descobriu\b/i.test(q)) {
@@ -1518,9 +1613,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
       if (a.split(/\s+/).filter(Boolean).length > maxAnswerWords) {
         issues.push(isCompleta ? 'resposta COMPLETA demasiado longa para 6–9 (máx. 2 palavras)' : 'resposta demasiado longa');
       }
-      if (formatId === FORMAT_IDS.QUANDO && /\b(nasceu|nascimento)\b/i.test(q)
-        && /\b(picasso|einstein|shakespeare|beethoven|mozart|darwin|galileu|newton)\b/i.test(q)) {
-        issues.push('data de nascimento de figura histórica demasiado difícil para 6–9');
+      if (formatId === FORMAT_IDS.QUANDO && /\b(nasceu|nascimento|subiram|escalada|primeira\s+vez)\b/i.test(q)
+        && /\b(picasso|einstein|shakespeare|beethoven|mozart|darwin|galileu|newton|everest|monte\s+everest)\b/i.test(q)) {
+        issues.push('data histórica demasiado difícil para 6–9');
       }
       if (abstractMath.test(blob)) issues.push('conceito matemático abstrato');
       if (veryTechnical.test(blob)) issues.push('vocabulário técnico');
@@ -1693,6 +1788,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
       ...validateMcConceptualClass(options, a, stripTags),
       ...validateMcDistractorMixing(q, options, a, stripTags, formatId),
       ...validateMcTooObvious(options, a, stripTags),
+      ...validateMcTrivialMath(q, options, a, stripTags),
       ...validateMcOptionsQuality(options, stripTags, collapseOptionKey, ageBandKey),
       ...validateDisneyCharacterAliases(options, a),
       ...validateAdivinhaMcAmbiguity(q, a, options, stripTags, formatId),

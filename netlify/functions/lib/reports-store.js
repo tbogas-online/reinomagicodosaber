@@ -116,7 +116,7 @@ async function saveReport(report, event) {
   await store.setJSON(`report:${report.reportId}`, report);
 
   const index = await readIndex(store);
-  index.items.unshift({
+  const indexEntry = {
     reportId: report.reportId,
     receivedAt: report.receivedAt,
     issueType: report.issueType,
@@ -125,7 +125,13 @@ async function saveReport(report, event) {
     reporterId: report.reporterId || '',
     deviceType: report.device?.type || '',
     status: normalizeReportStatus(report.status),
-  });
+  };
+  const existingIdx = index.items.findIndex((entry) => entry.reportId === report.reportId);
+  if (existingIdx >= 0) {
+    index.items[existingIdx] = { ...index.items[existingIdx], ...indexEntry };
+  } else {
+    index.items.unshift(indexEntry);
+  }
 
   if (index.items.length > MAX_REPORTS) {
     const removed = index.items.splice(MAX_REPORTS);
@@ -371,8 +377,10 @@ async function updateReportStatus(reportId, status, event) {
   if (nextStatus === 'cancelled') report.cancelledAt = now;
   await store.setJSON(`report:${report.reportId}`, report);
   const index = await readIndex(store);
-  const item = index.items.find((entry) => entry.reportId === reportId);
-  if (item) {
+  let updatedAny = false;
+  for (const item of index.items) {
+    if (item.reportId !== reportId) continue;
+    updatedAny = true;
     item.status = nextStatus;
     delete item.resolvedAt;
     delete item.resolvedAtPortugal;
@@ -382,8 +390,8 @@ async function updateReportStatus(reportId, status, event) {
       item.resolvedAtPortugal = report.resolvedAtPortugal;
     }
     if (nextStatus === 'cancelled') item.cancelledAt = report.cancelledAt;
-    await store.setJSON(INDEX_KEY, index);
   }
+  if (updatedAny) await store.setJSON(INDEX_KEY, index);
   return report;
 }
 

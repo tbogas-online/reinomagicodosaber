@@ -478,6 +478,103 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('53. narrador opções coerentes aceite', r10.ok, r10.issues?.join(', '));
 }
 
+// 54–66. reportes Aug 2026 — regras adicionais
+{
+  const bacalhau = {
+    q: 'Qual é o prato típico de Portugal feito com bacalhau?',
+    a: 'Bacalhau à Brás',
+    options: ['Bacalhau à Brás', 'Bacalhau com natas', 'Bacalhau à Gomes de Sá', 'Bacalhau assado'],
+  };
+  const r = QE.validateQuestion(bacalhau, baseCtx({ isMC: true, categoryNumber: 14, ageBandKey: '6-9' }));
+  assert('54. bacalhau ambíguo', !r.ok, r.issues?.join(', '));
+}
+{
+  const pulsar = {
+    q: 'O que é a estrela pulsar que, em 2003, revelou a primeira evidência de um planeta em órbita ao seu redor através de variações no tempo das suas pulsações?',
+    a: 'Psr b1257+12',
+  };
+  const r = QE.validateQuestion(pulsar, baseCtx({ formatId: QE.FORMAT_IDS.O_QUE_E, categoryNumber: 6 }));
+  assert('55. pulsar demasiado técnico', !r.ok, r.issues?.join(', '));
+}
+{
+  const everest = {
+    q: 'Quando foi a primeira vez que subiram ao Monte Everest?',
+    a: '1953',
+    options: ['1953', '1960', '1945', '1970'],
+  };
+  const r = QE.validateQuestion(everest, baseCtx({ formatId: QE.FORMAT_IDS.QUANDO, categoryNumber: 3, ageBandKey: '6-9', isMC: true }));
+  assert('56. Everest 6-9 demasiado difícil', !r.ok, r.issues?.join(', '));
+}
+{
+  const vira = { q: 'Quando a água evapora, ela vira vapor que fica no ar. Verdadeiro ou Falso?', a: 'Verdadeiro' };
+  const r = QE.validateQuestion(vira, baseCtx({ formatId: QE.FORMAT_IDS.VERDADEIRO_FALSO, categoryNumber: 4 }));
+  assert('57. vira vapor rejeitado', !r.ok, r.issues?.join(', '));
+}
+{
+  const merckx = { q: 'O ciclista belga Eddy Merckx venceu o Tour de France em 1975 com 4 dias de vantagem sobre o segundo colocado. Verdadeiro ou Falso?', a: 'Verdadeiro' };
+  const r = QE.validateQuestion(merckx, baseCtx({ formatId: QE.FORMAT_IDS.VERDADEIRO_FALSO, categoryNumber: 15 }));
+  assert('58. Merckx 1975 falso', !r.ok, r.issues?.join(', '));
+}
+{
+  const div = {
+    q: 'Quanto é 144 dividido por 12?',
+    a: '12',
+    options: ['12', '144', '24', '36'],
+  };
+  const r = QE.validateQuestion(div, baseCtx({ isMC: true, categoryNumber: 7 }));
+  assert('59. divisão trivial 144/12', !r.ok, r.issues?.join(', '));
+}
+{
+  const apito = {
+    q: 'Tenho cabeça sem cérebro, corpo sem coração e rabo sem osso. Quando corre, faz barulho, mas quando para, cala a boca. O que é?',
+    a: 'Cavalo',
+  };
+  const r = QE.validateQuestion(apito, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '15+' }));
+  assert('60. adivinha apito vs cavalo', !r.ok, r.issues?.join(', '));
+}
+{
+  const trem = { q: 'Que tipo de veículo usa um sistema de propulsão magnética para flutuar sobre os carris?', a: 'Trem-baleiro' };
+  const r = QE.validateQuestion(trem, baseCtx({ categoryNumber: 19, ageBandKey: '10-15' }));
+  assert('61. trem-baleiro rejeitado', !r.ok, r.issues?.join(', '));
+}
+{
+  const frodo = { q: "Qual é o nome do protagonista de 'O Senhor dos Anéis' que recebe a Tarefa de destruir o Um Anel?", a: 'Frodo Bolseiro' };
+  const r = QE.validateQuestion(frodo, baseCtx({ formatId: QE.FORMAT_IDS.QUEM_E, categoryNumber: 8, ageBandKey: '15+' }));
+  assert('62. Frodo Bolseiro rejeitado', !r.ok, r.issues?.join(', '));
+}
+{
+  const congelamento = { q: 'Completa: O processo de solidificação da água, passando do estado líquido ao sólido, é chamado de ___.', a: 'Congelamento' };
+  const r = QE.validateQuestion(congelamento, baseCtx({ formatId: QE.FORMAT_IDS.COMPLETA, categoryNumber: 5, ageBandKey: '15+' }));
+  assert('63. congelamento categoria errada', !r.ok, r.issues?.join(', '));
+}
+{
+  const vies = {
+    q: 'Como se chama o efeito que faz recordar informações negativas com mais intensidade do que as positivas?',
+    a: 'Viés de negatividade',
+    options: ['Viés de negatividade', 'Efeito placebo', 'Memória fotográfica', 'Déjà vu'],
+  };
+  const r = QE.validateQuestion(vies, baseCtx({ isMC: true, categoryNumber: 5, ageBandKey: '15+' }));
+  assert('64. viés brasileiro', !r.ok, r.issues?.join(', '));
+}
+{
+  const reu = {
+    q: 'Qual é o feminino de réu?',
+    a: 'Ré',
+    options: ['Ré', 'Arcadismo', 'Barroco', 'Romantismo'],
+  };
+  const r = QE.validateQuestion(reu, baseCtx({ isMC: true, categoryNumber: 9, ageBandKey: '15+' }));
+  assert('65. feminino de réu sem movimentos literários', !r.ok, r.issues?.join(', '));
+}
+{
+  const neuronios = {
+    q: 'Quantos neurónios tem, aproximadamente, o cérebro humano?',
+    a: 'Cerca de 86 mil milhões',
+    options: ['Cerca de 86 mil milhões', 'O Enigma da Esfinge', 'Déjà vu', '3 a 5'],
+  };
+  const r = QE.validateQuestion(neuronios, baseCtx({ isMC: true, categoryNumber: 5, ageBandKey: '15+' }));
+  assert('66. neurónios distractores coerentes', !r.ok, r.issues?.join(', '));
+}
+
 // 20. persistência histórico (em memória via API)
 {
   const testKey = 'reino_magico_q_history_v3_test_' + Date.now();
