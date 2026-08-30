@@ -426,6 +426,24 @@
       color: #fff;
     }
     .admin-tabs .spacer { flex: 1; }
+    .admin-tabs a.admin-tab-link {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 12px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text);
+      text-decoration: none;
+      font: inherit;
+      font-size: 14px;
+      white-space: nowrap;
+    }
+    .admin-tabs a.admin-tab-link:hover {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
     .card.stats {
       padding: 0;
       overflow: hidden;
@@ -830,6 +848,7 @@
         <button type="button" id="tabRooms" class="secondary">Salas multijogador</button>
         <button type="button" id="tabBank" class="secondary">Banco de perguntas</button>
         <span class="spacer"></span>
+        <a class="admin-tab-link" href="/test-questions.html">🧪 Teste de perguntas</a>
         <button type="button" id="logoutBtn" class="secondary">Sair</button>
       </div>
 
