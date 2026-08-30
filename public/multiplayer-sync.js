@@ -13,6 +13,7 @@
   let channel = null;
   let playersChannel = null;
   let heartbeatTimer = null;
+  let playersPollTimer = null;
   let onStateChange = null;
   let onPlayersChange = null;
   let onHostChange = null;
@@ -93,6 +94,10 @@
 
   async function fetchPlayers() {
     if (!client || !roomId) return [];
+    const { data: rpcData, error: rpcError } = await client.rpc('get_room_players', {
+      p_room_id: roomId,
+    });
+    if (!rpcError && Array.isArray(rpcData)) return rpcData;
     const { data, error } = await client
       .from('room_players')
       .select('id, player_id, nickname, score, is_host, is_connected, last_seen_at')
@@ -242,6 +247,26 @@
     }
   }
 
+  function startPlayersPoll() {
+    stopPlayersPoll();
+    playersPollTimer = setInterval(() => {
+      if (!roomId) return;
+      fetchPlayers()
+        .then((players) => {
+          syncHostFromPlayers(players);
+          onPlayersChange?.(players);
+        })
+        .catch(() => {});
+    }, 12000);
+  }
+
+  function stopPlayersPoll() {
+    if (playersPollTimer) {
+      clearInterval(playersPollTimer);
+      playersPollTimer = null;
+    }
+  }
+
   async function subscribe() {
     if (!client || !roomId) return;
     await unsubscribe();
@@ -281,6 +306,7 @@
       .subscribe();
 
     startHeartbeat();
+    startPlayersPoll();
     const players = await fetchPlayers();
     syncHostFromPlayers(players);
     onPlayersChange?.(players);
@@ -288,6 +314,7 @@
 
   async function unsubscribe() {
     stopHeartbeat();
+    stopPlayersPoll();
     if (channel) {
       await client.removeChannel(channel);
       channel = null;

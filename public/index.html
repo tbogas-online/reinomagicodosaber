@@ -2181,7 +2181,27 @@
     margin: 8px 0 16px;
     text-align: center;
   }
-  .mp-lobby-share{
+  .mp-players-count{
+    width: 100%;
+    max-width: 20rem;
+    margin: 0 auto 8px;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    color: var(--parchment-dim);
+    letter-spacing: 0.04em;
+  }
+  .mp-game-bar-players{
+    flex: 1 1 100%;
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--parchment-dim);
+    line-height: 1.35;
+    letter-spacing: 0.02em;
+  }
+  @media (min-width: 520px){
+    .mp-game-bar-players{ flex: 1 1 auto; text-align: left; }
+  }
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -2373,6 +2393,7 @@
       <input class="field-input" id="mp-lobby-nick" type="text" maxlength="24" placeholder="O teu nome" autocomplete="nickname">
       <button class="btn secondary" id="mp-btn-save-nick" type="button">Guardar</button>
     </div>
+    <p class="mp-players-count" id="mp-players-count"></p>
     <ul class="mp-players-list" id="mp-players-list"></ul>
     <p class="mp-error" id="mp-lobby-error" hidden></p>
     <div class="stack" style="gap:10px;">
@@ -2574,6 +2595,7 @@
     <span class="mp-game-bar-label">Sala</span>
     <span class="mp-game-bar-value" id="mp-game-room-code">----</span>
   </div>
+  <div class="mp-game-bar-players" id="mp-game-players" title="Jogadores na sala"></div>
   <div class="mp-game-bar-actions">
     <button type="button" class="mp-share-btn" id="mp-game-copy-link" title="Copiar link da sala">📋 Copiar</button>
     <button type="button" class="mp-share-btn" id="mp-game-share-wa" title="Enviar por WhatsApp">💬 WhatsApp</button>
@@ -2597,8 +2619,8 @@
 <script src="supabase-config.js?v=20260829-174108"></script>
 <script src="game-history.js?v=20260829-174108"></script>
 <script src="player-names.js?v=20260830-143600"></script>
-<script src="multiplayer-sync.js?v=20260830-144000"></script>
-<script src="multiplayer-controller.js?v=20260830-144000"></script>
+<script src="multiplayer-sync.js?v=20260830-145200"></script>
+<script src="multiplayer-controller.js?v=20260830-145200"></script>
 <script src="question-engine.js?v=20260829-174108" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).

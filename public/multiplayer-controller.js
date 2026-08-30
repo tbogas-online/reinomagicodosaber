@@ -189,7 +189,7 @@
     await MP.startGame(state, settings || {});
     gameHooks.fillCategoryList?.();
     gameHooks.showScreen?.('game');
-    renderLobbyPlayers(await MP.fetchPlayers());
+    renderPlayersUI(await MP.fetchPlayers());
     updateGameFooter();
   }
 
@@ -262,12 +262,35 @@
     gameHooks.showScreen?.('game');
   }
 
-  function renderLobbyPlayers(players) {
+  function renderPlayersUI(players) {
     MP.syncHostFromPlayers?.(players);
     const hostBadge = document.getElementById('mp-host-badge');
     const startBtn = document.getElementById('mp-btn-start');
     if (hostBadge) hostBadge.hidden = !isHost();
     if (startBtn) startBtn.hidden = !isHost();
+
+    const count = (players || []).length;
+    const connected = (players || []).filter((p) => p.is_connected).length;
+    const countLabel = count === 1 ? '1 jogador' : `${count} jogadores`;
+    const countEl = document.getElementById('mp-players-count');
+    if (countEl) {
+      countEl.textContent = connected < count
+        ? `${countLabel} (${connected} ligado${connected === 1 ? '' : 's'})`
+        : countLabel;
+    }
+
+    const gamePlayersEl = document.getElementById('mp-game-players');
+    if (gamePlayersEl) {
+      const names = (players || []).map((p) => {
+        const crown = p.is_host ? '👑 ' : '';
+        const dot = p.is_connected ? '' : ' ○';
+        return `${crown}${p.nickname}${dot}`;
+      });
+      gamePlayersEl.textContent = names.length
+        ? `👥 ${countLabel}: ${names.join(' · ')}`
+        : '';
+    }
+
     const list = document.getElementById('mp-players-list');
     if (!list) return;
     list.innerHTML = '';
@@ -279,6 +302,8 @@
       list.appendChild(li);
     });
   }
+
+  const renderLobbyPlayers = renderPlayersUI;
 
   function escapeHtml(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -464,17 +489,53 @@
     });
   }
 
-  function maybeOpenJoinFromUrl() {
+  async function maybeJoinFromUrl() {
     const code = getRoomCodeFromUrl();
-    if (!code) return;
+    if (!code || !MP.isConfigured() || !gameHooks) return;
+
     const codeInput = document.getElementById('mp-join-code');
     const nickInput = document.getElementById('mp-join-nick');
     if (codeInput) codeInput.value = code;
     if (nickInput && !nickInput.value.trim()) {
       nickInput.value = global.PlayerNames?.getNicknameOrRandom?.() || '';
     }
-    if (MP.isActive() || !MP.isConfigured()) return;
-    gameHooks?.showScreen?.('mp-join');
+
+    try {
+      await MP.ensureClient();
+      const currentCode = (MP.getRoomCode() || '').toUpperCase();
+      if (MP.isActive() && currentCode === code) {
+        const players = await MP.fetchPlayers();
+        renderPlayersUI(players);
+        return;
+      }
+      if (MP.isActive()) {
+        await MP.leaveRoom();
+        active = false;
+      }
+
+      const name = global.PlayerNames?.getNicknameOrRandom?.() || '';
+      const result = await MP.joinRoom(code, name);
+      active = true;
+      await initLobbyUI();
+      if (result.status === 'playing') {
+        await applyRemoteState(result.gameState, result.settings);
+        gameHooks.showScreen(result.gameState?.screen === 'question' ? 'question' : 'game');
+      } else {
+        gameHooks.showScreen('mp-lobby');
+      }
+    } catch (e) {
+      console.warn('[MP] auto-join', e.message || e);
+      gameHooks?.showScreen?.('mp-join');
+      const err = document.getElementById('mp-join-error');
+      if (err) {
+        err.textContent = e.message || 'Não foi possível entrar na sala';
+        err.hidden = false;
+      }
+    }
+  }
+
+  function maybeOpenJoinFromUrl() {
+    maybeJoinFromUrl();
   }
 
   function updateGameFooter() {
@@ -486,9 +547,14 @@
     if (codeEl && code) codeEl.textContent = code;
     if (show && gameHooks?.getCurrentScreenId) {
       const screen = gameHooks.getCurrentScreenId();
-      bar.hidden = !['game', 'age', 'question'].includes(screen);
+      bar.hidden = !['game', 'age', 'question', 'mp-lobby'].includes(screen);
     } else {
       bar.hidden = !show;
+    }
+    if (show) {
+      MP.fetchPlayers()
+        .then((players) => renderPlayersUI(players))
+        .catch(() => {});
     }
   }
 
@@ -504,7 +570,7 @@
           applyRemoteState(state, settings);
         }
       },
-      onPlayersChange: renderLobbyPlayers,
+      onPlayersChange: renderPlayersUI,
       onHostChange: (nowHost) => {
         if (hostBadge) hostBadge.hidden = !nowHost;
         if (startBtn) startBtn.hidden = !nowHost;
@@ -519,7 +585,7 @@
     try {
       await MP.syncHostFromServer?.();
       const players = await MP.fetchPlayers();
-      renderLobbyPlayers(players);
+      renderPlayersUI(players);
       const nickInput = document.getElementById('mp-lobby-nick');
       if (nickInput) {
         const myNick = await MP.getMyNickname();
@@ -541,7 +607,7 @@
         await MP.updateNickname(name);
         global.PlayerNames?.saveNickname?.(name);
         const players = await MP.fetchPlayers();
-        renderLobbyPlayers(players);
+        renderPlayersUI(players);
       } catch (e) {
         showMpError(errEl, e.message || 'Erro ao guardar nome');
       }
