@@ -193,6 +193,68 @@
     .bank-matrix tbody tr:nth-child(even) td {
       background: rgba(255, 255, 255, 0.015);
     }
+    .bank-matrix tbody tr.row-critical td {
+      background: rgba(239, 68, 68, 0.1);
+    }
+    .bank-matrix tbody tr.row-critical:nth-child(even) td {
+      background: rgba(239, 68, 68, 0.13);
+    }
+    .bank-matrix tbody tr.row-critical .cat-name {
+      color: #fca5a5;
+      font-weight: 600;
+    }
+    .bank-matrix tbody tr.row-low td {
+      background: rgba(245, 158, 11, 0.08);
+    }
+    .bank-matrix tbody tr.row-low:nth-child(even) td {
+      background: rgba(245, 158, 11, 0.11);
+    }
+    .bank-matrix tbody tr.row-low .cat-name {
+      color: #fbbf24;
+      font-weight: 600;
+    }
+    .bank-matrix tbody tr.row-critical:hover td,
+    .bank-matrix tbody tr.row-low:hover td {
+      filter: brightness(1.08);
+    }
+    .bank-matrix td.num.cell-gap {
+      box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.45);
+    }
+    .bank-matrix th.num.col-weak {
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.14);
+    }
+    .bank-gaps {
+      margin: 10px 0 14px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(245, 158, 11, 0.28);
+      background: rgba(245, 158, 11, 0.08);
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--text);
+    }
+    .bank-gaps strong { color: #fbbf24; }
+    .bank-gaps-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 8px;
+      margin-top: 6px;
+    }
+    .bank-gaps-list .pill {
+      background: rgba(0, 0, 0, 0.2);
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+    .chart-bank-category .bar-row.bar-weak {
+      background: rgba(245, 158, 11, 0.08);
+      border-radius: 8px;
+      padding: 2px 6px;
+      margin: 0 -6px 8px;
+    }
+    .chart-bank-category .bar-row.bar-weak .bar-label {
+      color: #fbbf24;
+      font-weight: 600;
+    }
     .bank-matrix .cat-name {
       font-weight: 500;
       white-space: nowrap;
@@ -445,6 +507,12 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+    }
+    .bar-label .cat-num {
+      display: inline-block;
+      min-width: 1.6em;
+      margin-right: 6px;
+      font-variant-numeric: tabular-nums;
     }
     .bar-track {
       height: 10px;
@@ -907,7 +975,8 @@
           <div id="roomsTimelineChart" class="chart"></div>
           <div class="rooms-legend">
             <span><i style="background:#3b82f6"></i> Salas criadas</span>
-            <span><i style="background:#10b981"></i> Jogos iniciados</span>
+            <span><i style="background:#10b981"></i> Jogos multijogador</span>
+            <span><i style="background:#a855f7"></i> Jogos locais</span>
           </div>
         </div>
 
@@ -993,15 +1062,17 @@
             <span><i class="lg-low"></i> 1–2</span>
             <span><i class="lg-mid"></i> 3–5</span>
             <span><i class="lg-high"></i> 6+</span>
+            <span style="margin-left:8px; opacity:0.85;">Linha âmbar: categoria com ≤5 perguntas · vermelho: 0 no total</span>
           </div>
+          <div id="bankGapsSummary" class="bank-gaps hidden" aria-live="polite"></div>
           <div class="bank-matrix-wrap">
             <table class="bank-matrix">
               <thead>
                 <tr>
                   <th>Categoria</th>
-                  <th class="num" title="6 a 9 anos">6–9</th>
-                  <th class="num" title="10 a 15 anos">10–15</th>
-                  <th class="num" title="Mais de 15 anos">+15</th>
+                  <th class="num" data-bank-age="6-9" title="6 a 9 anos">6–9</th>
+                  <th class="num" data-bank-age="10-15" title="10 a 15 anos">10–15</th>
+                  <th class="num" data-bank-age="15+" title="Mais de 15 anos">+15</th>
                   <th class="num">Σ</th>
                 </tr>
               </thead>
@@ -2481,7 +2552,8 @@
         <div class="stat stat-resolved"><strong>${stats.playingRooms || 0}</strong><span>A jogar</span></div>
         <div class="stat stat-total"><strong>${stats.lobbyRooms || 0}</strong><span>Em espera</span></div>
         <div class="stat stat-top-issue"><strong>${stats.totalRooms || 0}</strong><span>Salas criadas (total)</span></div>
-        <div class="stat stat-top-issue"><strong>${stats.totalGames || 0}</strong><span>Jogos iniciados (total)</span></div>
+        <div class="stat stat-resolved"><strong>${stats.totalGamesMp || 0}</strong><span>Jogos multijogador (total)</span></div>
+        <div class="stat stat-top-issue"><strong>${stats.totalGamesLocal || 0}</strong><span>Jogos locais (total)</span></div>
       `;
     }
 
@@ -2516,6 +2588,60 @@
       return 'high';
     }
 
+    const BANK_ROW_LOW_MAX = 5;
+    const BANK_CELL_GAP_MAX = 2;
+
+    function bankRowHighlightClass(rowTotal) {
+      const total = Number(rowTotal) || 0;
+      if (!total) return 'row-critical';
+      if (total <= BANK_ROW_LOW_MAX) return 'row-low';
+      return '';
+    }
+
+    function bankCellGapClass(n) {
+      return (Number(n) || 0) <= BANK_CELL_GAP_MAX ? 'cell-gap' : '';
+    }
+
+    function renderBankGapsSummary(grid) {
+      const el = document.getElementById('bankGapsSummary');
+      if (!el) return;
+
+      const gaps = BANK_CATEGORIES.map((cat) => {
+        const row = grid[cat.n] || {};
+        const weakAges = BANK_AGE_BANDS.filter((age) => (Number(row[age]) || 0) <= BANK_CELL_GAP_MAX);
+        const rowTotal = BANK_AGE_BANDS.reduce((sum, age) => sum + (Number(row[age]) || 0), 0);
+        return { cat, row, weakAges, rowTotal };
+      }).filter((item) => item.weakAges.length > 0)
+        .sort((a, b) => a.rowTotal - b.rowTotal || a.cat.n - b.cat.n);
+
+      if (!gaps.length) {
+        el.classList.add('hidden');
+        el.innerHTML = '';
+        return;
+      }
+
+      el.classList.remove('hidden');
+      el.innerHTML = `
+        <div><strong>Lacunas no banco</strong> — categorias/faixas com ≤${BANK_CELL_GAP_MAX} pergunta(s):</div>
+        <div class="bank-gaps-list">
+          ${gaps.map(({ cat, row, weakAges }) => {
+            const detail = weakAges
+              .map((age) => `${age}: ${row[age] || 0}`)
+              .join(', ');
+            return `<span class="pill" title="${esc(cat.name)}">${cat.n} ${esc(cat.name)} <strong>(${esc(detail)})</strong></span>`;
+          }).join('')}
+        </div>`;
+    }
+
+    function updateBankMatrixHeaders(ageTotals) {
+      document.querySelectorAll('.bank-matrix thead th[data-bank-age]').forEach((th) => {
+        const age = th.dataset.bankAge;
+        const total = Number(ageTotals[age]) || 0;
+        th.classList.toggle('col-weak', total <= BANK_ROW_LOW_MAX);
+        th.title = `${th.textContent.trim()} — total: ${total} pergunta(s)`;
+      });
+    }
+
     function bankCountCell(n, title = '') {
       const v = Number(n) || 0;
       const cls = bankCountClass(v);
@@ -2544,18 +2670,24 @@
         grandTotal += count;
       }
 
-      const cell = (n, title) => `<td class="num">${bankCountCell(n, title)}</td>`;
+      const cell = (n, title) => {
+        const gapCls = bankCellGapClass(n);
+        return `<td class="num${gapCls ? ` ${gapCls}` : ''}">${bankCountCell(n, title)}</td>`;
+      };
 
       body.innerHTML = BANK_CATEGORIES.map((cat) => {
         const row = grid[cat.n] || {};
         const rowTotal = BANK_AGE_BANDS.reduce((sum, age) => sum + (row[age] || 0), 0);
-        const rowCls = rowTotal ? '' : ' class="row-empty"';
-        return `<tr${rowCls}>
+        const rowCls = bankRowHighlightClass(rowTotal);
+        return `<tr${rowCls ? ` class="${rowCls}"` : ''}>
           <td class="cat-name"><span class="cat-num">${cat.n}</span>${esc(cat.name)}</td>
           ${BANK_AGE_BANDS.map((age) => cell(row[age] || 0, `${cat.name} · ${age}: ${row[age] || 0} pergunta(s) com opções`)).join('')}
           <td class="num">${bankCountCell(rowTotal, `${cat.name} · total: ${rowTotal}`)}</td>
         </tr>`;
       }).join('');
+
+      updateBankMatrixHeaders(ageTotals);
+      renderBankGapsSummary(grid);
 
       foot.innerHTML = `<tr class="total-row">
         <th>Total</th>
@@ -2652,6 +2784,7 @@
         return;
       }
       const max = Math.max(...rows.map((row) => row.total), 1);
+      const weakMax = Math.max(2, Math.ceil(max * 0.25));
       chartEl.innerHTML = rows.map((row) => {
         const segments = BANK_AGE_BANDS.map((age) => {
           const value = Number(row.ages[age]) || 0;
@@ -2663,8 +2796,9 @@
         const ageDetail = BANK_AGE_BANDS
           .map((age) => `${BANK_AGE_CHART_LABELS[age]}: ${row.ages[age] || 0}`)
           .join(' · ');
+        const weakCls = row.total <= weakMax ? ' bar-weak' : '';
         return `
-          <div class="bar-row" title="${esc(`${row.name} — ${ageDetail}`)}">
+          <div class="bar-row${weakCls}" title="${esc(`${row.name} — ${ageDetail}`)}">
             <div class="bar-label"><span class="cat-num">${row.n}</span>${esc(row.name)}</div>
             <div class="bar-track stacked">${segments || `<div class="bar-segment" style="width:0"></div>`}</div>
             <div class="bar-value">${row.total}</div>
@@ -2719,6 +2853,7 @@
       const svg = container.querySelector('svg');
       if (!tooltip || !svg || !labels.length) return;
       const formatLabel = meta.formatLabel || formatRoomsTimelineLabel;
+      const extraSeries = meta.extraSeries || [];
 
       const { padX, padY, innerW, innerH } = layout;
 
@@ -2740,14 +2875,19 @@
           focusLine.removeAttribute('hidden');
         }
         tooltip.hidden = false;
+        const extraRows = extraSeries.map((s) => {
+          const val = (s.map[t] || 0);
+          return `<div><span style="color:${s.color}">●</span> ${esc(s.label)}: <strong>${val}</strong></div>`;
+        }).join('');
         tooltip.innerHTML = `
           <div><strong>${esc(formatLabel(t, meta.granularity))}</strong></div>
           <div><span style="color:${meta.colorA}">●</span> ${esc(meta.labelA)}: <strong>${valA}</strong></div>
           <div><span style="color:${meta.colorB}">●</span> ${esc(meta.labelB)}: <strong>${valB}</strong></div>
+          ${extraRows}
         `;
         const rect = container.getBoundingClientRect();
         const left = Math.min(Math.max(clientX - rect.left + 12, 8), Math.max(8, rect.width - 170));
-        const top = Math.max(clientY - rect.top - 58, 8);
+        const top = Math.max(clientY - rect.top - 58 - extraSeries.length * 18, 8);
         tooltip.style.left = `${left}px`;
         tooltip.style.top = `${top}px`;
       }
@@ -2775,48 +2915,51 @@
       const labelB = options.labelB || 'Jogos iniciados';
       const granularity = options.granularity || 'day';
       const formatLabel = options.formatLabel || formatRoomsTimelineLabel;
-      const labels = [...new Set([
-        ...(seriesA || []).map((p) => p.t),
-        ...(seriesB || []).map((p) => p.t),
-      ])].sort();
+      const extraDefs = (options.extraSeries || []).filter((s) => s && Array.isArray(s.data));
+      const allSeries = [
+        { data: seriesA || [], color: colorA, label: labelA },
+        { data: seriesB || [], color: colorB, label: labelB },
+        ...extraDefs.map((s) => ({ data: s.data, color: s.color, label: s.label })),
+      ];
+      const labels = [...new Set(allSeries.flatMap((s) => s.data.map((p) => p.t)))].sort();
       if (!labels.length) {
         el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
         return;
       }
 
-      const mapA = Object.fromEntries((seriesA || []).map((p) => [p.t, p.v]));
-      const mapB = Object.fromEntries((seriesB || []).map((p) => [p.t, p.v]));
-      const max = Math.max(1, ...labels.map((t) => mapA[t] || 0), ...labels.map((t) => mapB[t] || 0));
+      const maps = allSeries.map((s) => Object.fromEntries(s.data.map((p) => [p.t, p.v])));
+      const max = Math.max(1, ...labels.flatMap((t) => maps.map((m) => m[t] || 0)));
       const layout = createTimelineLayout(labels.length, max);
       const { w, h, padX, padY, innerW, innerH } = layout;
       const xAt = (i) => padX + (i / Math.max(labels.length - 1, 1)) * innerW;
       const yAt = (v) => padY + innerH - (v / max) * innerH;
 
-      const buildSeries = (map, color) => labels.map((t, i) => ({
-        t,
-        i,
-        x: xAt(i),
-        y: yAt(map[t] || 0),
-        v: map[t] || 0,
-        color,
-      }));
+      const built = allSeries.map((s, idx) => {
+        const map = maps[idx];
+        const points = labels.map((t, i) => ({
+          t,
+          i,
+          x: xAt(i),
+          y: yAt(map[t] || 0),
+          v: map[t] || 0,
+          color: s.color,
+        }));
+        return { ...s, map, points, line: points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ') };
+      });
 
-      const pointsA = buildSeries(mapA, colorA);
-      const pointsB = buildSeries(mapB, colorB);
-      const lineA = pointsA.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
-      const lineB = pointsB.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
       const showPointValues = labels.length <= 24;
       const dotRadius = labels.length > 36 ? 2.5 : 3.5;
 
-      const valueLabels = (points) => points.map((p) => {
+      const valueLabels = built.flatMap((s) => s.points.map((p) => {
         if (!showPointValues || !p.v) return '';
         const dy = p.y < padY + 14 ? 10 : -6;
         return `<text class="line-value-label" x="${p.x.toFixed(1)}" y="${(p.y + dy).toFixed(1)}" text-anchor="middle">${p.v}</text>`;
-      }).join('');
+      })).join('');
 
-      const dots = (points, color) => points.map((p) =>
-        `<circle class="line-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${dotRadius}" fill="${color}" />`
-      ).join('');
+      const lines = built.map((s) => `<polyline class="line-path" points="${s.line}" style="stroke:${s.color}" />`).join('');
+      const dots = built.flatMap((s) => s.points.map((p) =>
+        `<circle class="line-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${dotRadius}" fill="${s.color}" />`
+      )).join('');
 
       const hitBands = labels.map((t, i) => {
         const cx = xAt(i);
@@ -2838,12 +2981,9 @@
           <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gráfico de salas e jogos">
             ${renderTimelineGrid(layout)}
             <line class="chart-focus-line" hidden x1="0" y1="0" x2="0" y2="0" />
-            <polyline class="line-path" points="${lineA}" style="stroke:${colorA}" />
-            <polyline class="line-path" points="${lineB}" style="stroke:${colorB}" />
-            ${dots(pointsA, colorA)}
-            ${dots(pointsB, colorB)}
-            ${valueLabels(pointsA)}
-            ${valueLabels(pointsB)}
+            ${lines}
+            ${dots}
+            ${valueLabels}
             ${xLabels}
             ${hitBands}
           </svg>
@@ -2854,9 +2994,17 @@
         el.querySelector('.chart-interactive'),
         layout,
         labels,
-        mapA,
-        mapB,
-        { labelA, labelB, colorA, colorB, granularity, formatLabel },
+        built[0]?.map || {},
+        built[1]?.map || {},
+        {
+          labelA,
+          labelB,
+          colorA,
+          colorB,
+          granularity,
+          formatLabel,
+          extraSeries: built.slice(2).map((s) => ({ map: s.map, color: s.color, label: s.label })),
+        },
       );
     }
 
@@ -2876,7 +3024,12 @@
       }
       renderDualLineChart(chartEl, bucket.rooms, bucket.games, '#3b82f6', '#10b981', {
         labelA: 'Salas criadas',
-        labelB: 'Jogos iniciados',
+        labelB: 'Jogos multijogador',
+        extraSeries: [{
+          data: bucket.localGames || [],
+          color: '#a855f7',
+          label: 'Jogos locais',
+        }],
         granularity: meta.granularity,
       });
     }

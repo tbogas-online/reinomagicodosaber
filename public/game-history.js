@@ -84,7 +84,44 @@
     saveAll(games);
     const done = currentGame;
     currentGame = null;
+    if (done.mode === 'single') syncSingleGameToServer(done);
     return done;
+  }
+
+  function getSupabaseClient() {
+    const cfg = global.SUPABASE_CONFIG;
+    const lib = global.supabase;
+    if (!cfg?.url || !cfg?.anonKey || !lib?.createClient) return null;
+    if (!global.__reinoSupabaseClient) {
+      global.__reinoSupabaseClient = lib.createClient(cfg.url, cfg.anonKey, {
+        auth: { persistSession: true, autoRefreshToken: true },
+      });
+    }
+    return global.__reinoSupabaseClient;
+  }
+
+  async function syncSingleGameToServer(game) {
+    const client = getSupabaseClient();
+    if (!client || !game?.finishedAt) return;
+    try {
+      await client.auth.signInAnonymously().catch(() => {});
+      const payload = {
+        mode: 'single',
+        started_at: game.startedAt,
+        finished_at: game.finishedAt,
+        rounds_count: Array.isArray(game.rounds) ? game.rounds.length : 0,
+        metadata: { source: 'local', gameId: game.id || null },
+      };
+      if (typeof game.id === 'string' && /^[0-9a-f-]{36}$/i.test(game.id)) {
+        payload.id = game.id;
+      }
+      const { error } = await client.from('game_matches').insert(payload);
+      if (error && !/duplicate|unique/i.test(error.message || '')) {
+        console.warn('[GameHistory] sync local game:', error.message);
+      }
+    } catch (err) {
+      console.warn('[GameHistory] sync local game failed:', err?.message || err);
+    }
   }
 
   function getGames() {

@@ -425,13 +425,37 @@
       return { ok: true, issues: [] };
     }
 
+    function stripMcOptionPrefix(value) {
+      return String(value || '').replace(/^\s*[A-Da-d]\)\s*/, '').trim();
+    }
+
+    function normalizeParsedAiPayload(raw) {
+      if (!raw || typeof raw !== 'object') return null;
+      const q = raw.q || raw.pergunta || raw.question || '';
+      const a = raw.a || raw.resposta || raw.answer || raw.resposta_correta || '';
+      const options = [raw.options, raw.opcoes, raw.opções, raw.choices].find(Array.isArray);
+      const distractors = [raw.distractors, raw.distractores, raw.distratores, raw.erradas, raw.incorretas].find(Array.isArray);
+      const out = {
+        q: stripMcOptionPrefix(q),
+        a: stripMcOptionPrefix(a),
+      };
+      if (options) {
+        out.options = options.map(stripMcOptionPrefix).map((item) => String(item || '').trim()).filter(Boolean);
+      }
+      if (distractors) {
+        out.distractors = distractors.map(stripMcOptionPrefix).map((item) => String(item || '').trim()).filter(Boolean);
+      }
+      return out;
+    }
+
     function parseAiJson(text) {
       const clean = String(text || '').replace(/```json|```/g, '').trim();
-      try { return JSON.parse(clean); } catch {
+      let parsed = null;
+      try { parsed = JSON.parse(clean); } catch {
         const m = clean.match(/\{[\s\S]*\}/);
-        if (m) try { return JSON.parse(m[0]); } catch { /* */ }
+        if (m) try { parsed = JSON.parse(m[0]); } catch { /* */ }
       }
-      return null;
+      return normalizeParsedAiPayload(parsed);
     }
 
     function ensureTrueFalsePrompt(str) {

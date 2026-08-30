@@ -3282,7 +3282,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js?v=20260829-174108"></script>
-<script src="game-history.js?v=20260830-171000"></script>
+<script src="game-history.js?v=20260830-191500"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
 <script src="multiplayer-controller.js?v=20260830-183400"></script>
@@ -4652,13 +4652,49 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     };
   }
 
+  function stripMcOptionPrefix(value){
+    return String(value || '').replace(/^\s*[A-Da-d]\)\s*/, '').trim();
+  }
+
+  function pickFirstArray(...candidates){
+    for(const value of candidates){
+      if(Array.isArray(value)) return value;
+    }
+    return null;
+  }
+
   function normalizeParsedAiPayload(raw){
     if(!raw || typeof raw !== 'object') return null;
     const q = raw.q || raw.pergunta || raw.question || '';
-    const a = raw.a || raw.resposta || raw.answer || '';
-    const options = raw.options || raw.opcoes || raw.choices;
-    const out = { ...raw, q: String(q || '').trim(), a: String(a || '').trim() };
-    if(Array.isArray(options)) out.options = options;
+    const a = raw.a || raw.resposta || raw.answer || raw.resposta_correta || '';
+    const options = pickFirstArray(
+      raw.options,
+      raw.opcoes,
+      raw.opções,
+      raw.choices,
+      raw.opcoes_resposta,
+      raw.opções_resposta,
+    );
+    const distractors = pickFirstArray(
+      raw.distractors,
+      raw.distractores,
+      raw.distratores,
+      raw.distractor,
+      raw.erradas,
+      raw.incorretas,
+      raw.opcoes_erradas,
+      raw.opções_erradas,
+    );
+    const out = {
+      q: stripMcOptionPrefix(q),
+      a: stripMcOptionPrefix(a),
+    };
+    if(Array.isArray(options)){
+      out.options = options.map(stripMcOptionPrefix).map((item) => String(item || '').trim()).filter(Boolean);
+    }
+    if(Array.isArray(distractors)){
+      out.distractors = distractors.map(stripMcOptionPrefix).map((item) => String(item || '').trim()).filter(Boolean);
+    }
     return out;
   }
 

@@ -169,7 +169,7 @@ async function getRoomStats() {
   since.setDate(since.getDate() - 14);
   const sinceIso = since.toISOString();
 
-  const [openRooms, allRoomsRecent, allMatchesRecent, totalRooms, totalGames] = await Promise.all([
+  const [openRooms, allRoomsRecent, allMatchesRecent, totalRooms, totalGames, totalGamesMp, totalGamesLocal] = await Promise.all([
     supabaseRequest(
       '/rooms?status=in.(lobby,playing)&select=id,status'
     ),
@@ -177,7 +177,12 @@ async function getRoomStats() {
     supabaseRequest(`/game_matches?started_at=gte.${encodeURIComponent(sinceIso)}&select=started_at,mode`),
     supabaseCount('rooms'),
     supabaseCount('game_matches'),
+    supabaseCount('game_matches', '&mode=eq.multiplayer'),
+    supabaseCount('game_matches', '&mode=eq.single'),
   ]);
+
+  const mpMatches = (allMatchesRecent || []).filter((row) => row.mode === 'multiplayer');
+  const localMatches = (allMatchesRecent || []).filter((row) => row.mode === 'single');
 
   const open = openRooms || [];
   const playing = open.filter((r) => r.status === 'playing').length;
@@ -192,8 +197,11 @@ async function getRoomStats() {
         ? buildHourSeries(allRoomsRecent, 'created_at', hourPoints)
         : buildDaySeries(allRoomsRecent, 'created_at', days),
       games: useHours
-        ? buildHourSeries(allMatchesRecent, 'started_at', hourPoints)
-        : buildDaySeries(allMatchesRecent, 'started_at', days),
+        ? buildHourSeries(mpMatches, 'started_at', hourPoints)
+        : buildDaySeries(mpMatches, 'started_at', days),
+      localGames: useHours
+        ? buildHourSeries(localMatches, 'started_at', hourPoints)
+        : buildDaySeries(localMatches, 'started_at', days),
     };
   });
 
@@ -203,6 +211,8 @@ async function getRoomStats() {
     lobbyRooms: lobby,
     totalRooms,
     totalGames,
+    totalGamesMp,
+    totalGamesLocal,
     timeline,
   };
 }
