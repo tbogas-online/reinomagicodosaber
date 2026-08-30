@@ -182,6 +182,32 @@
       letter-spacing: 0.04em;
       color: var(--muted);
     }
+    .bank-matrix thead th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    .bank-matrix thead th.sortable:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .bank-matrix thead th.sort-active {
+      color: var(--gold-bright, #eecb6b);
+    }
+    .bank-matrix thead th.sortable::after {
+      display: inline-block;
+      margin-left: 5px;
+      font-size: 9px;
+      opacity: 0.28;
+      content: '⇅';
+    }
+    .bank-matrix thead th.sort-active.sort-asc::after {
+      content: '▲';
+      opacity: 1;
+    }
+    .bank-matrix thead th.sort-active.sort-desc::after {
+      content: '▼';
+      opacity: 1;
+    }
     .bank-matrix tbody td {
       padding: 9px 12px;
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -1069,11 +1095,11 @@
             <table class="bank-matrix">
               <thead>
                 <tr>
-                  <th>Categoria</th>
-                  <th class="num" data-bank-age="6-9" title="6 a 9 anos">6–9</th>
-                  <th class="num" data-bank-age="10-15" title="10 a 15 anos">10–15</th>
-                  <th class="num" data-bank-age="15+" title="Mais de 15 anos">+15</th>
-                  <th class="num">Σ</th>
+                  <th class="sortable" data-bank-sort="cat" title="Ordenar por categoria">Categoria</th>
+                  <th class="num sortable" data-bank-age="6-9" data-bank-sort="6-9" title="6 a 9 anos">6–9</th>
+                  <th class="num sortable" data-bank-age="10-15" data-bank-sort="10-15" title="10 a 15 anos">10–15</th>
+                  <th class="num sortable" data-bank-age="15+" data-bank-sort="15+" title="Mais de 15 anos">+15</th>
+                  <th class="num sortable" data-bank-sort="total" title="Total por categoria">Σ</th>
                 </tr>
               </thead>
               <tbody id="bankMatrixBody"></tbody>
@@ -2519,6 +2545,7 @@
     let bankLoading = false;
     let lastBankStats = null;
     let bankTimelineRange = '24h';
+    let bankMatrixSort = { key: 'cat', dir: 'asc' };
     try {
       const savedBankRange = localStorage.getItem(BANK_TIMELINE_STORAGE_KEY);
       if (savedBankRange && BANK_TIMELINE_RANGES[savedBankRange]) bankTimelineRange = savedBankRange;
@@ -2638,8 +2665,44 @@
         const age = th.dataset.bankAge;
         const total = Number(ageTotals[age]) || 0;
         th.classList.toggle('col-weak', total <= BANK_ROW_LOW_MAX);
-        th.title = `${th.textContent.trim()} — total: ${total} pergunta(s)`;
+        const label = BANK_AGE_CHART_LABELS[age] || age;
+        th.title = `${label} — total: ${total} pergunta(s). Clica para ordenar.`;
       });
+      const totalTh = document.querySelector('.bank-matrix thead th[data-bank-sort="total"]');
+      if (totalTh) totalTh.title = 'Total por categoria. Clica para ordenar.';
+      updateBankMatrixSortHeaders();
+    }
+
+    function updateBankMatrixSortHeaders() {
+      document.querySelectorAll('.bank-matrix thead th[data-bank-sort]').forEach((th) => {
+        const key = th.dataset.bankSort;
+        const active = bankMatrixSort.key === key;
+        th.classList.toggle('sort-active', active);
+        th.classList.toggle('sort-asc', active && bankMatrixSort.dir === 'asc');
+        th.classList.toggle('sort-desc', active && bankMatrixSort.dir === 'desc');
+        th.setAttribute('aria-sort', active ? (bankMatrixSort.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+      });
+    }
+
+    function sortBankMatrixRows(grid) {
+      const rows = BANK_CATEGORIES.map((cat) => {
+        const row = grid[cat.n] || {};
+        const rowTotal = BANK_AGE_BANDS.reduce((sum, age) => sum + (Number(row[age]) || 0), 0);
+        return { cat, row, rowTotal };
+      });
+      rows.sort((a, b) => {
+        let cmp = 0;
+        if (bankMatrixSort.key === 'cat') {
+          cmp = a.cat.n - b.cat.n;
+        } else if (bankMatrixSort.key === 'total') {
+          cmp = a.rowTotal - b.rowTotal;
+        } else {
+          cmp = (Number(a.row[bankMatrixSort.key]) || 0) - (Number(b.row[bankMatrixSort.key]) || 0);
+        }
+        if (bankMatrixSort.dir === 'desc') cmp = -cmp;
+        return cmp || (a.cat.n - b.cat.n);
+      });
+      return rows;
     }
 
     function bankCountCell(n, title = '') {
@@ -2675,9 +2738,7 @@
         return `<td class="num${gapCls ? ` ${gapCls}` : ''}">${bankCountCell(n, title)}</td>`;
       };
 
-      body.innerHTML = BANK_CATEGORIES.map((cat) => {
-        const row = grid[cat.n] || {};
-        const rowTotal = BANK_AGE_BANDS.reduce((sum, age) => sum + (row[age] || 0), 0);
+      body.innerHTML = sortBankMatrixRows(grid).map(({ cat, row, rowTotal }) => {
         const rowCls = bankRowHighlightClass(rowTotal);
         return `<tr${rowCls ? ` class="${rowCls}"` : ''}>
           <td class="cat-name"><span class="cat-num">${cat.n}</span>${esc(cat.name)}</td>
@@ -3303,6 +3364,19 @@
     document.getElementById('tabBank')?.addEventListener('click', () => setAdminTab('bank'));
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
+    document.querySelector('.bank-matrix thead')?.addEventListener('click', (e) => {
+      const th = e.target.closest('th[data-bank-sort]');
+      if (!th) return;
+      const key = th.dataset.bankSort;
+      if (!key) return;
+      if (bankMatrixSort.key === key) {
+        bankMatrixSort.dir = bankMatrixSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        bankMatrixSort.key = key;
+        bankMatrixSort.dir = 'asc';
+      }
+      if (lastBankStats) renderBankMatrix(lastBankStats);
+    });
     document.getElementById('bankTimelineFilters')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-bank-range]');
       if (!btn || !BANK_TIMELINE_RANGES[btn.dataset.bankRange]) return;
