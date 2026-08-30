@@ -10,6 +10,7 @@
   let roomId = null;
   let roomCode = null;
   let isHost = false;
+  let roomHostPlayerId = null;
   let channel = null;
   let playersChannel = null;
   let heartbeatTimer = null;
@@ -85,10 +86,24 @@
     if (notify) onHostChange?.(becameHost);
   }
 
+  function applyHostPlayerId(hostId) {
+    if (!hostId) return;
+    roomHostPlayerId = hostId;
+    if (playerId) setHostFlag(roomHostPlayerId === playerId);
+  }
+
+  function getHostPlayerId() {
+    return roomHostPlayerId;
+  }
+
   function syncHostFromPlayers(players) {
     if (!playerId) return isHost;
-    const me = (players || []).find((p) => p.player_id === playerId);
-    setHostFlag(!!me?.is_host);
+    if (roomHostPlayerId) {
+      setHostFlag(roomHostPlayerId === playerId);
+    } else {
+      const me = (players || []).find((p) => p.player_id === playerId);
+      setHostFlag(!!me?.is_host);
+    }
     return isHost;
   }
 
@@ -108,6 +123,18 @@
   }
 
   async function syncHostFromServer() {
+    if (!client || !roomId) return isHost;
+    try {
+      const { data: room, error } = await client
+        .from('rooms')
+        .select('host_player_id')
+        .eq('id', roomId)
+        .single();
+      if (!error && room?.host_player_id) {
+        applyHostPlayerId(room.host_player_id);
+        return isHost;
+      }
+    } catch { /* fallback abaixo */ }
     const players = await fetchPlayers();
     return syncHostFromPlayers(players);
   }
@@ -122,6 +149,7 @@
     if (error) throw error;
     roomId = data.room_id;
     roomCode = data.code;
+    roomHostPlayerId = playerId;
     setHostFlag(true, false);
     await subscribe();
     await syncHostFromServer();
@@ -137,7 +165,11 @@
     if (error) throw error;
     roomId = data.room_id;
     roomCode = data.code;
-    setHostFlag(!!data.is_host, false);
+    if (data.host_player_id) {
+      applyHostPlayerId(data.host_player_id);
+    } else {
+      setHostFlag(!!data.is_host, false);
+    }
     await subscribe();
     await syncHostFromServer();
     return {
@@ -220,16 +252,6 @@
     if (!roomId) return;
     await setConnected(true);
     try {
-      if (!isHost) {
-        const { data: room } = await client
-          .from('rooms')
-          .select('host_player_id, status')
-          .eq('id', roomId)
-          .single();
-        if (room?.status === 'playing') {
-          await client.rpc('claim_host_if_disconnected', { p_room_id: roomId });
-        }
-      }
       await syncHostFromServer();
     } catch { /* ignore */ }
   }
@@ -279,6 +301,7 @@
         filter: 'id=eq.' + roomId,
       }, (payload) => {
         const row = payload.new;
+        if (row.host_player_id) applyHostPlayerId(row.host_player_id);
         const gs = row.game_state || {};
         const json = JSON.stringify(gs);
         if (json !== lastGameStateJson) {
@@ -330,6 +353,7 @@
     await unsubscribe();
     roomId = null;
     roomCode = null;
+    roomHostPlayerId = null;
     setHostFlag(false, false);
     lastGameStateJson = '';
   }
@@ -380,6 +404,7 @@
     getRoomId,
     getRoomCode,
     getIsHost,
+    getHostPlayerId,
     isActive,
     createRoom,
     joinRoom,

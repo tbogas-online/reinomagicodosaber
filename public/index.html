@@ -2191,17 +2191,20 @@
     color: var(--parchment-dim);
     letter-spacing: 0.04em;
   }
-  .mp-game-bar-players{
-    flex: 1 1 100%;
-    text-align: center;
-    font-size: 0.72rem;
-    color: var(--parchment-dim);
-    line-height: 1.35;
-    letter-spacing: 0.02em;
+  .mp-players-count-btn{
+    cursor: pointer;
+    border: 1px solid transparent;
+    border-radius: 999px;
+    padding: 6px 12px;
+    transition: color .15s ease, border-color .15s ease, background .15s ease;
   }
-  @media (min-width: 520px){
-    .mp-game-bar-players{ flex: 1 1 auto; text-align: left; }
+  .mp-players-count-btn:hover,
+  .mp-players-count-btn.open{
+    color: var(--gold-bright);
+    border-color: rgba(var(--gold-rgb), 0.35);
+    background: rgba(var(--gold-rgb), 0.08);
   }
+  .mp-lobby-share{
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -2210,6 +2213,65 @@
     max-width: 20rem;
     margin: 0 auto 16px;
   }
+  .mp-game-players-wrap{
+    position: relative;
+    flex: 0 0 auto;
+  }
+  .mp-players-toggle{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid rgba(var(--gold-rgb), 0.35);
+    background: rgba(var(--night-rgb), 0.35);
+    color: var(--parchment);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+    white-space: nowrap;
+  }
+  .mp-players-toggle:hover,
+  .mp-players-toggle.open{
+    background: rgba(var(--gold-rgb), 0.15);
+    border-color: rgba(var(--gold-rgb), 0.55);
+    color: var(--gold-bright);
+  }
+  .mp-players-toggle-caret{
+    font-size: 0.65rem;
+    opacity: 0.85;
+    transition: transform .15s ease;
+  }
+  .mp-players-toggle.open .mp-players-toggle-caret{
+    transform: rotate(180deg);
+  }
+  .mp-players-popover{
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 12rem;
+    max-width: 18rem;
+    margin: 0;
+    padding: 6px;
+    list-style: none;
+    border-radius: 12px;
+    background: rgba(var(--night-rgb), 0.96);
+    border: 1px solid rgba(var(--gold-rgb), 0.45);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    z-index: 130;
+    max-height: 12rem;
+    overflow-y: auto;
+  }
+  .mp-players-popover[hidden]{ display: none !important; }
+  .mp-players-popover .mp-player-row{
+    margin-bottom: 4px;
+    padding: 8px 10px;
+    font-size: 0.78rem;
+  }
+  .mp-players-popover .mp-player-row:last-child{ margin-bottom: 0; }
   .mp-lobby-share .btn{
     flex: 1 1 auto;
     min-width: 7rem;
@@ -2232,6 +2294,7 @@
     font-size: 0.82rem;
     color: var(--gold-bright);
     letter-spacing: 0.06em;
+    overflow: visible;
   }
   .mp-game-bar[hidden]{ display: none !important; }
   .mp-game-bar-code{
@@ -2393,8 +2456,8 @@
       <input class="field-input" id="mp-lobby-nick" type="text" maxlength="24" placeholder="O teu nome" autocomplete="nickname">
       <button class="btn secondary" id="mp-btn-save-nick" type="button">Guardar</button>
     </div>
-    <p class="mp-players-count" id="mp-players-count"></p>
-    <ul class="mp-players-list" id="mp-players-list"></ul>
+    <p class="mp-players-count mp-players-count-btn" id="mp-players-count" role="button" tabindex="0" title="Ver jogadores na sala" aria-expanded="false"></p>
+    <ul class="mp-players-list" id="mp-players-list" hidden></ul>
     <p class="mp-error" id="mp-lobby-error" hidden></p>
     <div class="stack" style="gap:10px;">
       <button class="btn" id="mp-btn-start" type="button" hidden>▶ Iniciar jogo</button>
@@ -2595,7 +2658,13 @@
     <span class="mp-game-bar-label">Sala</span>
     <span class="mp-game-bar-value" id="mp-game-room-code">----</span>
   </div>
-  <div class="mp-game-bar-players" id="mp-game-players" title="Jogadores na sala"></div>
+  <div class="mp-game-players-wrap" id="mp-game-players-wrap">
+    <button type="button" class="mp-players-toggle" id="mp-game-players-btn" aria-expanded="false" aria-haspopup="listbox" title="Ver jogadores na sala">
+      <span id="mp-game-players-count">👥 0 jogadores</span>
+      <span class="mp-players-toggle-caret" aria-hidden="true">▾</span>
+    </button>
+    <ul class="mp-players-popover" id="mp-game-players-list" hidden role="listbox"></ul>
+  </div>
   <div class="mp-game-bar-actions">
     <button type="button" class="mp-share-btn" id="mp-game-copy-link" title="Copiar link da sala">📋 Copiar</button>
     <button type="button" class="mp-share-btn" id="mp-game-share-wa" title="Enviar por WhatsApp">💬 WhatsApp</button>

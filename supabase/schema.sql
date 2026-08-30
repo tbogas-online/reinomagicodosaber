@@ -144,7 +144,8 @@ BEGIN
   RETURN jsonb_build_object(
     'room_id', v_room.id,
     'code', v_room.code,
-    'is_host', true
+    'is_host', true,
+    'host_player_id', v_uid
   );
 END;
 $$;
@@ -186,12 +187,14 @@ BEGIN
   ON CONFLICT (room_id, player_id) DO UPDATE
     SET nickname = EXCLUDED.nickname,
         is_connected = true,
+        is_host = (v_room.host_player_id = v_uid),
         last_seen_at = now();
 
   RETURN jsonb_build_object(
     'room_id', v_room.id,
     'code', v_room.code,
     'is_host', v_room.host_player_id = v_uid,
+    'host_player_id', v_room.host_player_id,
     'status', v_room.status,
     'settings', v_room.settings,
     'game_state', v_room.game_state
@@ -235,34 +238,9 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
-DECLARE
-  v_uid UUID := auth.uid();
-  v_host UUID;
-  v_host_online BOOLEAN;
 BEGIN
-  IF v_uid IS NULL THEN RETURN false; END IF;
-
-  SELECT host_player_id INTO v_host FROM rooms WHERE id = p_room_id;
-  IF NOT FOUND THEN RETURN false; END IF;
-
-  SELECT is_connected INTO v_host_online
-  FROM room_players
-  WHERE room_id = p_room_id AND player_id = v_host;
-
-  IF COALESCE(v_host_online, false) THEN
-    RETURN false;
-  END IF;
-
-  IF NOT EXISTS (
-    SELECT 1 FROM room_players WHERE room_id = p_room_id AND player_id = v_uid
-  ) THEN
-    RETURN false;
-  END IF;
-
-  UPDATE rooms SET host_player_id = v_uid WHERE id = p_room_id;
-  UPDATE room_players SET is_host = (player_id = v_uid) WHERE room_id = p_room_id;
-
-  RETURN true;
+  -- Anfitrião fixo: não transferir automaticamente para outros jogadores.
+  RETURN false;
 END;
 $$;
 
@@ -289,7 +267,7 @@ BEGIN
           'player_id', rp.player_id,
           'nickname', rp.nickname,
           'score', rp.score,
-          'is_host', rp.is_host,
+          'is_host', (rp.player_id = r.host_player_id),
           'is_connected', rp.is_connected,
           'last_seen_at', rp.last_seen_at,
           'joined_at', rp.joined_at
@@ -299,6 +277,7 @@ BEGIN
       '[]'::jsonb
     )
     FROM public.room_players rp
+    JOIN public.rooms r ON r.id = rp.room_id
     WHERE rp.room_id = p_room_id
   );
 END;

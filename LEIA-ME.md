@@ -43,7 +43,12 @@ Em qualquer uma delas, o jogo chama sempre `/api/generate` e podes configurar **
 - **Configuração Supabase:**
   1. Criar projecto em [supabase.com](https://supabase.com)
   2. **Authentication → Providers** → activar **Anonymous sign-ins**
-  3. **SQL Editor** → colar e executar `supabase/schema.sql`
+  3. **SQL Editor** → colar e executar, **por esta ordem**:
+     - `supabase/schema.sql`
+     - `supabase/fix-rls-recursion.sql`
+     - `supabase/update-multiplayer-players.sql`
+     - `supabase/get-room-players.sql`
+     - `supabase/fix-host-authority.sql` *(corrige coroa/anfitrião)*
   4. **Project Settings → API** → copiar URL e `anon` key para `public/supabase-config.js`
   5. **Database → Replication** → confirmar `rooms` e `room_players` no Realtime
 

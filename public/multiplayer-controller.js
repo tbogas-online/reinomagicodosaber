@@ -269,44 +269,108 @@
     if (hostBadge) hostBadge.hidden = !isHost();
     if (startBtn) startBtn.hidden = !isHost();
 
+    const hostId = MP.getHostPlayerId?.() || null;
+    const isPlayerHost = (p) => (hostId ? p.player_id === hostId : !!p.is_host);
+
     const count = (players || []).length;
     const connected = (players || []).filter((p) => p.is_connected).length;
-    const countLabel = count === 1 ? '1 jogador' : `${count} jogadores`;
+    const countLabel = buildPlayerCountLabel(count, connected);
     const countEl = document.getElementById('mp-players-count');
     if (countEl) {
-      countEl.textContent = connected < count
-        ? `${countLabel} (${connected} ligado${connected === 1 ? '' : 's'})`
-        : countLabel;
+      countEl.textContent = count ? `👥 ${countLabel} — toca para ver nomes` : '';
     }
 
-    const gamePlayersEl = document.getElementById('mp-game-players');
-    if (gamePlayersEl) {
-      const names = (players || []).map((p) => {
-        const crown = p.is_host ? '👑 ' : '';
-        const dot = p.is_connected ? '' : ' ○';
-        return `${crown}${p.nickname}${dot}`;
-      });
-      gamePlayersEl.textContent = names.length
-        ? `👥 ${countLabel}: ${names.join(' · ')}`
-        : '';
+    const gameCountEl = document.getElementById('mp-game-players-count');
+    if (gameCountEl) {
+      gameCountEl.textContent = `👥 ${countLabel}`;
     }
+
+    const gameList = document.getElementById('mp-game-players-list');
+    fillPlayerRows(gameList, players, isPlayerHost);
 
     const list = document.getElementById('mp-players-list');
+    fillPlayerRows(list, players, isPlayerHost);
     if (!list) return;
-    list.innerHTML = '';
-    (players || []).forEach((p) => {
-      const li = document.createElement('li');
-      li.className = 'mp-player-row' + (p.is_connected ? '' : ' offline');
-      li.innerHTML = `<span>${p.is_host ? '👑 ' : ''}${escapeHtml(p.nickname)}</span>`
-        + `<span class="mp-player-status">${p.is_connected ? '●' : '○'}</span>`;
-      list.appendChild(li);
-    });
   }
 
   const renderLobbyPlayers = renderPlayersUI;
 
   function escapeHtml(s) {
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  }
+
+  let lobbyPlayersOpen = false;
+  let gamePlayersOpen = false;
+
+  function buildPlayerCountLabel(count, connected) {
+    const countLabel = count === 1 ? '1 jogador' : `${count} jogadores`;
+    if (connected < count) {
+      return `${countLabel} (${connected} ligado${connected === 1 ? '' : 's'})`;
+    }
+    return countLabel;
+  }
+
+  function fillPlayerRows(container, players, isPlayerHost) {
+    if (!container) return;
+    container.innerHTML = '';
+    (players || []).forEach((p) => {
+      const li = document.createElement('li');
+      li.className = 'mp-player-row' + (p.is_connected ? '' : ' offline');
+      li.innerHTML = `<span>${isPlayerHost(p) ? '👑 ' : ''}${escapeHtml(p.nickname)}</span>`
+        + `<span class="mp-player-status">${p.is_connected ? '●' : '○'}</span>`;
+      container.appendChild(li);
+    });
+  }
+
+  function setLobbyPlayersOpen(open) {
+    lobbyPlayersOpen = !!open;
+    const countEl = document.getElementById('mp-players-count');
+    const list = document.getElementById('mp-players-list');
+    if (countEl) {
+      countEl.classList.toggle('open', lobbyPlayersOpen);
+      countEl.setAttribute('aria-expanded', lobbyPlayersOpen ? 'true' : 'false');
+    }
+    if (list) list.hidden = !lobbyPlayersOpen;
+  }
+
+  function setGamePlayersOpen(open) {
+    gamePlayersOpen = !!open;
+    const btn = document.getElementById('mp-game-players-btn');
+    const list = document.getElementById('mp-game-players-list');
+    if (btn) {
+      btn.classList.toggle('open', gamePlayersOpen);
+      btn.setAttribute('aria-expanded', gamePlayersOpen ? 'true' : 'false');
+    }
+    if (list) list.hidden = !gamePlayersOpen;
+  }
+
+  function wirePlayersToggle() {
+    const lobbyCount = document.getElementById('mp-players-count');
+    const gameBtn = document.getElementById('mp-game-players-btn');
+
+    const toggleLobby = (e) => {
+      e?.preventDefault?.();
+      setLobbyPlayersOpen(!lobbyPlayersOpen);
+    };
+    lobbyCount?.addEventListener('click', toggleLobby);
+    lobbyCount?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        toggleLobby(e);
+      }
+    });
+
+    gameBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      setGamePlayersOpen(!gamePlayersOpen);
+    });
+
+    document.addEventListener('click', (e) => {
+      const wrap = document.getElementById('mp-game-players-wrap');
+      if (gamePlayersOpen && wrap && !wrap.contains(e.target)) {
+        setGamePlayersOpen(false);
+      }
+    });
   }
 
   function renderHistoryList(filterMode) {
@@ -758,6 +822,7 @@
   function init() {
     wireMenuButtons();
     wireShareButtons();
+    wirePlayersToggle();
     maybeOpenJoinFromUrl();
   }
 

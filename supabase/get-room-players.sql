@@ -24,7 +24,7 @@ BEGIN
           'player_id', rp.player_id,
           'nickname', rp.nickname,
           'score', rp.score,
-          'is_host', rp.is_host,
+          'is_host', (rp.player_id = r.host_player_id),
           'is_connected', rp.is_connected,
           'last_seen_at', rp.last_seen_at,
           'joined_at', rp.joined_at
@@ -34,6 +34,7 @@ BEGIN
       '[]'::jsonb
     )
     FROM public.room_players rp
+    JOIN public.rooms r ON r.id = rp.room_id
     WHERE rp.room_id = p_room_id
   );
 END;
