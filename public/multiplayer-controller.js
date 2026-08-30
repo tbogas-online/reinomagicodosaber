@@ -82,6 +82,18 @@
 
   let lastGameStateJson = '';
 
+  function resolveCategoryFromState(state) {
+    let cat = deserializeCategory(state?.lastCategory);
+    if (cat?.e && cat?.name) return cat;
+    const sum = state?.dice?.sum;
+    if (sum != null && state?.gameCategoryMap) {
+      const raw = state.gameCategoryMap[String(sum)] ?? state.gameCategoryMap[sum];
+      cat = deserializeCategory(raw);
+      if (cat?.e && cat?.name) return cat;
+    }
+    return cat || null;
+  }
+
   async function applyRemoteState(state, settings, options = {}) {
     if (!state || !gameHooks || applyingRemote) return;
     if (!options.resume && state.actorId && state.actorId === MP.getPlayerId()) return;
@@ -101,7 +113,7 @@
       if (state.remainingCategories) {
         h.setRemainingCategories?.(state.remainingCategories.map(deserializeCategory));
       }
-      const lastCat = deserializeCategory(state.lastCategory);
+      const lastCat = resolveCategoryFromState(state);
       h.setLastCategory?.(lastCat, !!state.lastIsSurprise);
       h.setSelectedAgeBand?.(state.selectedAgeBand || null);
 

@@ -2755,7 +2755,7 @@
 <script src="game-history.js?v=20260829-174108"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-145200"></script>
+<script src="multiplayer-controller.js?v=20260830-152500"></script>
 <script src="question-engine.js?v=20260829-174108" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -4806,10 +4806,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   async function displayQuestionFromState(cat, isSurprise, ageBand, question){
+    if(!question) return;
     const requestId = ++questionRequestSeq;
     selectedAgeBand = ageBand;
-    lastCategory = cat;
-    lastIsSurprise = isSurprise;
+    lastCategory = cat || null;
+    lastIsSurprise = !!isSurprise;
     updateQuestionCategoryHeader(cat, isSurprise, ageBand);
     updateQuestionSourceDebug(null);
     document.getElementById('q-text').textContent = 'A convocar a pergunta do Reino… ✦';
@@ -5093,21 +5094,35 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function updateQuestionCategoryHeader(cat, isSurprise, ageBand){
-    document.getElementById('q-emoji').textContent = cat.e;
-    document.getElementById('q-cat-name').textContent = (isSurprise ? '✨ ' : '') + cat.name;
-    const descEl = document.getElementById('q-cat-desc');
-    if(descEl){
-      const desc = isSurprise ? 'Sorteada na hora — surpresa do dado' : (cat.desc || '');
-      descEl.textContent = desc;
-      descEl.style.display = desc ? '' : 'none';
+    const emojiEl = document.getElementById('q-emoji');
+    const nameEl = document.getElementById('q-cat-name');
+    if(!cat){
+      if(emojiEl) emojiEl.textContent = '✦';
+      if(nameEl) nameEl.textContent = isSurprise ? '✨ Categoria surpresa' : 'Categoria';
+      const descEl = document.getElementById('q-cat-desc');
+      if(descEl){
+        descEl.textContent = '';
+        descEl.style.display = 'none';
+      }
+    } else {
+      if(emojiEl) emojiEl.textContent = cat.e;
+      if(nameEl) nameEl.textContent = (isSurprise ? '✨ ' : '') + cat.name;
+      const descEl = document.getElementById('q-cat-desc');
+      if(descEl){
+        const desc = isSurprise ? 'Sorteada na hora — surpresa do dado' : (cat.desc || '');
+        descEl.textContent = desc;
+        descEl.style.display = desc ? '' : 'none';
+      }
     }
     const ageTagEl = document.getElementById('q-age-tag');
-    if(ageBand){
-      ageTagEl.textContent = AGE_BAND_LABELS[ageBand].split(' · ')[0];
-      ageTagEl.className = 'q-age-tag ' + (ageBand === '15+' ? 'tag-15plus' : 'tag-' + ageBand);
-    } else {
-      ageTagEl.textContent = 'Escolhe a idade';
-      ageTagEl.className = 'q-age-tag tag-pending';
+    if(ageTagEl){
+      if(ageBand){
+        ageTagEl.textContent = AGE_BAND_LABELS[ageBand].split(' · ')[0];
+        ageTagEl.className = 'q-age-tag ' + (ageBand === '15+' ? 'tag-15plus' : 'tag-' + ageBand);
+      } else {
+        ageTagEl.textContent = 'Escolhe a idade';
+        ageTagEl.className = 'q-age-tag tag-pending';
+      }
     }
     requestAnimationFrame(syncCategoryBarOffset);
   }
