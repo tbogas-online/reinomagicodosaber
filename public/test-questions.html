@@ -112,6 +112,12 @@
     .q-preview { font-size: 1.05rem; margin: 8px 0 4px; line-height: 1.45; }
     .a-preview { color: var(--gold-bright); margin-bottom: 6px; }
     .opts-preview { font-size: 0.88rem; color: var(--parchment-dim); }
+    .ai-usage-line {
+      font-size: 0.86rem; color: var(--parchment-dim); margin: 0 0 10px;
+      padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(201,162,39,0.2);
+    }
+    .ai-usage-line strong { color: var(--gold-bright); }
   </style>
 </head>
 <body>
@@ -128,6 +134,7 @@
       <span>✅ <strong id="stat-ok">0</strong></span>
       <span>❌ <strong id="stat-fail">0</strong></span>
       <span>💬 <strong id="stat-fb">0</strong> feedbacks</span>
+      <span>🤖 <strong id="stat-ai-label" title="Último fornecedor/modelo usado">—</strong></span>
     </div>
 
     <!-- Configuração principal -->
@@ -178,6 +185,7 @@
     <!-- Resultado -->
     <div class="card" id="result-card" hidden>
       <h2>Resultado</h2>
+      <div id="ai-usage-line" class="ai-usage-line" hidden></div>
       <div id="resolved-line" class="resolved"></div>
       <div id="q-preview" class="q-preview"></div>
       <div id="a-preview" class="a-preview"></div>
@@ -312,12 +320,29 @@
       category: 'Categoria', ptPt: 'PT-PT', semantic: 'Semântica', repetition: 'Repetição',
       mcOptions: 'MC', factual: 'Factual',
     };
+    const AI_PROVIDER_LABELS = {
+      groq: 'Groq',
+      openai: 'OpenAI',
+      anthropic: 'Anthropic',
+    };
+    const AI_MODEL_LABELS = {
+      'qwen/qwen3.6-27b': 'Qwen 3.6 27B',
+      'openai/gpt-oss-20b': 'GPT-OSS 20B',
+      'openai/gpt-oss-120b': 'GPT-OSS 120B',
+      'gpt-4o-mini': 'GPT-4o mini',
+      'gpt-4.1-mini': 'GPT-4.1 mini',
+      'gpt-4o': 'GPT-4o',
+      'claude-haiku-4-5-20251001': 'Claude Haiku 4.5',
+      'claude-sonnet-4-5-20250929': 'Claude Sonnet 4.5',
+      'claude-3-5-haiku-20241022': 'Claude 3.5 Haiku',
+    };
 
     const $ = (id) => document.getElementById(id);
     let stopBatch = false;
     let selectedVerdict = '';
     let currentEntry = null;
     let lastResolved = null;
+    let lastAiUsage = null;
 
     const session = {
       usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedFormats: [],
@@ -330,6 +355,69 @@
     function linesToArray(t) { return String(t || '').split(/\n/).map((l) => l.trim()).filter(Boolean); }
     function escapeHtml(s) { return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
     function pickRandom(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
+    function inferProviderFromModel(modelId) {
+      const m = String(modelId || '').toLowerCase();
+      if (!m || m === 'auto') return '';
+      if (/^claude-/.test(m)) return 'anthropic';
+      if (/^gpt-/.test(m)) return 'openai';
+      if (/^(llama-|mixtral|gemma|qwen\/|openai\/gpt-oss)/.test(m)) return 'groq';
+      return '';
+    }
+
+    function resolveAiUsage(data) {
+      const model = data?.model || '';
+      let provider = data?.provider || inferProviderFromModel(model);
+      if (!provider && Array.isArray(data?.providers_tried) && data.providers_tried.length) {
+        provider = data.providers_tried[data.providers_tried.length - 1];
+      }
+      return {
+        provider: provider || '',
+        model,
+        fallback: !!data?.fallback_used,
+        tried: Array.isArray(data?.providers_tried) ? data.providers_tried.slice() : [],
+        modelsTried: Array.isArray(data?.models_tried) ? data.models_tried.slice() : [],
+      };
+    }
+
+    function formatAiUsageLabel(usage) {
+      if (!usage?.provider && !usage?.model) return '';
+      const prov = AI_PROVIDER_LABELS[usage.provider] || usage.provider || 'IA';
+      const model = usage.model
+        ? (AI_MODEL_LABELS[usage.model] || usage.model)
+        : 'automático';
+      let line = `${prov} · ${model}`;
+      if (usage.fallback && usage.tried?.length > 1) {
+        line += ` (fallback ${usage.tried.join(' → ')})`;
+      }
+      return line;
+    }
+
+    function renderAiUsageLine(usage) {
+      const el = $('ai-usage-line');
+      if (!el) return;
+      const label = formatAiUsageLabel(usage);
+      if (!label) {
+        el.hidden = true;
+        el.textContent = '';
+        return;
+      }
+      const idNote = usage.model ? ` · ID: <code>${escapeHtml(usage.model)}</code>` : '';
+      el.hidden = false;
+      el.innerHTML = `<strong>IA:</strong> ${escapeHtml(label)}${idNote}`;
+    }
+
+    function rememberAiUsage(usage) {
+      if (!usage?.provider && !usage?.model) return;
+      lastAiUsage = usage;
+      const label = formatAiUsageLabel(usage);
+      if (label) $('stat-ai-label').textContent = label;
+    }
+
+    function aiUsageSuffix(usage) {
+      const label = formatAiUsageLabel(usage);
+      return label ? ` · ${label}` : '';
+    }
 
     function validateTrueFalseQuestion(parsed) {
       const q = stripTags(parsed?.q || '');
@@ -499,9 +587,10 @@
       return result;
     }
 
-    function showResult(result, parsed, resolved) {
+    function showResult(result, parsed, resolved, aiUsage = null) {
       $('result-card').hidden = false;
       lastResolved = resolved;
+      renderAiUsageLine(aiUsage || lastAiUsage);
 
       const modeLabel = MODE_LABELS[resolved.answerMode] || resolved.answerMode;
       $('resolved-line').innerHTML = `<strong>${escapeHtml(resolved.cat.name)}</strong> · ${resolved.ageBandKey} · ${modeLabel} · dif. ${resolved.difficulty} · <em>${escapeHtml(QE.FORMAT_LABELS[resolved.formatId] || resolved.formatId)}</em>${escapeHtml(resolved.sparseNote || '')}`;
@@ -516,7 +605,13 @@
 
       const el = $('result');
       const minScore = Number($('minScore').value) || 75;
-      currentEntry = { parsed: { ...parsed }, result: { ...result }, resolved: { ...resolved }, ts: Date.now() };
+      currentEntry = {
+        parsed: { ...parsed },
+        result: { ...result },
+        resolved: { ...resolved },
+        aiUsage: aiUsage || lastAiUsage,
+        ts: Date.now(),
+      };
 
       if (result.ok) {
         el.className = 'result ok';
@@ -561,13 +656,14 @@
       });
     }
 
-    function addLogEntry(parsed, result, resolved) {
+    function addLogEntry(parsed, result, resolved, aiUsage = null) {
       session.stats.total += 1;
       if (result.ok) session.stats.ok += 1; else session.stats.fail += 1;
       session.log.unshift({
         id: `log-${Date.now()}`, ok: result.ok,
         q: parsed.q, a: parsed.a, score: result.score,
         knowledgeKey: result.knowledgeKey, resolved,
+        aiUsage: aiUsage || lastAiUsage,
       });
       if (session.log.length > 40) session.log.pop();
       renderSessionLog();
@@ -580,7 +676,7 @@
       el.innerHTML = session.log.map((e) => `
         <div class="log-item ${e.ok ? 'accepted' : 'rejected'}" data-id="${e.id}">
           ${e.ok ? '✅' : '❌'} ${escapeHtml((e.q || '').slice(0, 80))}
-          <div class="meta">${e.score}/100 · ${escapeHtml(e.resolved?.cat?.name || '')} · ${escapeHtml(e.a || '')}</div>
+          <div class="meta">${e.score}/100 · ${escapeHtml(e.resolved?.cat?.name || '')} · ${escapeHtml(e.a || '')}${e.aiUsage ? ` · ${escapeHtml(formatAiUsageLabel(e.aiUsage))}` : ''}</div>
         </div>`).join('');
       el.querySelectorAll('.log-item').forEach((item) => {
         item.addEventListener('click', () => {
@@ -592,7 +688,8 @@
           const ctx = buildValidationCtx();
           const { parsed, isMC } = buildParsedFromForm();
           ctx.isMC = isMC;
-          showResult(validateParsed(parsed, ctx), parsed, e.resolved);
+          rememberAiUsage(e.aiUsage);
+          showResult(validateParsed(parsed, ctx), parsed, e.resolved, e.aiUsage);
         });
       });
     }
@@ -641,6 +738,7 @@
       let lastIssues = [];
       let lastParsed = null;
       let lastResult = null;
+      let lastAttemptUsage = null;
 
       const mcInstruction = isMC
         ? (isTrueFalse ? ' options: ["Verdadeiro","Falso"]' : ' Inclui "a" e "distractors" (3 erradas).')
@@ -683,6 +781,9 @@
         });
         if (!response.ok) throw new Error(`API ${response.status}`);
         const data = await response.json();
+        const aiUsage = resolveAiUsage(data);
+        lastAttemptUsage = aiUsage;
+        rememberAiUsage(aiUsage);
         const parsed = parseAiJson((data.content || []).map((b) => b.text || '').join(''));
         if (!parsed?.q || !parsed?.a) { lastIssues = ['JSON incompleto']; continue; }
 
@@ -702,10 +803,10 @@
 
         if (result.ok) {
           $('gen-status').className = 'result ok';
-          $('gen-status').textContent = `Aceite na tentativa ${attempt}.`;
-          showResult(result, parsed, resolved);
+          $('gen-status').textContent = `Aceite na tentativa ${attempt}.${aiUsageSuffix(aiUsage)}`;
+          showResult(result, parsed, resolved, aiUsage);
           rememberAccepted(parsed, result, { formatId, difficulty, subtopic });
-          addLogEntry(parsed, result, resolved);
+          addLogEntry(parsed, result, resolved, aiUsage);
           const bankSave = await saveAcceptedToBank(parsed, resolved, formatId, result.knowledgeKey);
           QE.persistQuestion(ageBandKey, parsed.q, parsed.a, normalizeQ, {
             category: cat.n, format: formatId, knowledgeKey: result.knowledgeKey, difficulty, subtopic,
@@ -716,12 +817,12 @@
           return { parsed, result, resolved };
         }
         lastIssues = result.issues || ['validação falhou'];
-        showResult(result, parsed, resolved);
+        showResult(result, parsed, resolved, aiUsage);
       }
 
       $('gen-status').className = 'result err';
-      $('gen-status').textContent = `Rejeitada após ${maxAttempts} tentativas.`;
-      if (lastParsed && lastResult) addLogEntry(lastParsed, lastResult, resolved);
+      $('gen-status').textContent = `Rejeitada após ${maxAttempts} tentativas.${aiUsageSuffix(lastAttemptUsage)}`;
+      if (lastParsed && lastResult) addLogEntry(lastParsed, lastResult, resolved, lastAttemptUsage);
       return null;
     }
 
@@ -768,6 +869,8 @@
         knowledgeKey: currentEntry.result.knowledgeKey,
         category: r.cat?.name, age: r.ageBandKey, format: r.formatId,
         difficulty: r.difficulty, answerMode: r.answerMode,
+        aiProvider: currentEntry.aiUsage?.provider || '',
+        aiModel: currentEntry.aiUsage?.model || '',
       };
     }
     function renderFeedbackList() {

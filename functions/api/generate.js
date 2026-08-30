@@ -42,8 +42,9 @@ const MAX_REASONING_OUTPUT_TOKENS = 2048;
 const REASONING_PROBE_MAX_TOKENS = 80;
 const DEFAULT_PROVIDER_ORDER = 'groq,openai,anthropic';
 const ALLOWED_PROVIDERS = ['groq', 'anthropic', 'openai'];
-const ANTHROPIC_JSON_SYSTEM = 'Responde apenas com JSON válido, sem markdown nem texto antes ou depois.';
+const ANTHROPIC_JSON_SYSTEM = 'Responde apenas com json válido, sem markdown nem texto antes ou depois.';
 const GROQ_JSON_SYSTEM = ANTHROPIC_JSON_SYSTEM;
+const OPENAI_JSON_SYSTEM = ANTHROPIC_JSON_SYSTEM;
 const DEFAULT_MODELS = {
   groq: 'openai/gpt-oss-20b',
   anthropic: 'claude-haiku-4-5-20251001',
@@ -376,7 +377,9 @@ async function callOpenAICompatibleOnce({ endpoint, apiKey, model, messages, max
   const isGroq = providerLabel === 'Groq';
   const apiMessages = isGroq
     ? [{ role: 'system', content: GROQ_JSON_SYSTEM }, ...messages]
-    : messages;
+    : (useJsonFormat
+      ? [{ role: 'system', content: OPENAI_JSON_SYSTEM }, ...messages]
+      : messages);
   const requestBody = {
     model,
     messages: apiMessages,

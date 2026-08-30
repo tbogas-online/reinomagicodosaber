@@ -932,6 +932,29 @@
       <div id="bankPanel" class="hidden">
         <div class="card stats" id="bankStatsRow"></div>
 
+        <div class="card" id="bankChartsSection">
+          <h2 class="charts-title">Perguntas guardadas no tempo</h2>
+          <div class="chart-head">
+            <h3 id="bankChartTitle">últimas 24 horas</h3>
+            <div class="timeline-filters" id="bankTimelineFilters" role="group" aria-label="Período do gráfico do banco">
+              <button type="button" class="secondary" data-bank-range="1h">1 h</button>
+              <button type="button" class="secondary" data-bank-range="3h">3 h</button>
+              <button type="button" class="secondary" data-bank-range="6h">6 h</button>
+              <button type="button" class="secondary" data-bank-range="12h">12 h</button>
+              <button type="button" class="secondary active" data-bank-range="24h">24 h</button>
+              <button type="button" class="secondary" data-bank-range="3d">3 dias</button>
+              <button type="button" class="secondary" data-bank-range="7d">7 dias</button>
+              <button type="button" class="secondary" data-bank-range="total">Total</button>
+            </div>
+          </div>
+          <p class="timeline-note" id="bankTimelineNote"></p>
+          <div id="bankTimelineChart" class="chart"></div>
+          <div class="rooms-legend">
+            <span><i style="background:#f59e0b"></i> Guardadas no banco</span>
+            <span><i style="background:#3b82f6"></i> Via IA (jogo + teste)</span>
+          </div>
+        </div>
+
         <div class="card">
           <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
             <h2 class="charts-title" style="margin:0;">Perguntas por categoria e faixa etária</h2>
@@ -1045,6 +1068,17 @@
       '7d': { label: 'últimos 7 dias', granularity: 'day', points: 7 },
       '14d': { label: 'últimos 14 dias', granularity: 'day', points: 14 },
     };
+    const BANK_TIMELINE_RANGES = {
+      '1h': { label: 'última hora', granularity: 'minute' },
+      '3h': { label: 'últimas 3 horas', granularity: 'minute' },
+      '6h': { label: 'últimas 6 horas', granularity: 'minute' },
+      '12h': { label: 'últimas 12 horas', granularity: 'hour' },
+      '24h': { label: 'últimas 24 horas', granularity: 'hour' },
+      '3d': { label: 'últimos 3 dias', granularity: 'hour' },
+      '7d': { label: 'últimos 7 dias', granularity: 'day' },
+      total: { label: 'total (por dia)', granularity: 'day' },
+    };
+    const BANK_TIMELINE_STORAGE_KEY = 'reino_admin_bank_timeline_range';
     const TIMELINE_STORAGE_KEY = 'reino_admin_timeline_range';
     const TIMELINE_CHART_TYPES = {
       line: 'Linhas',
@@ -2381,6 +2415,11 @@
     };
     let bankLoading = false;
     let lastBankStats = null;
+    let bankTimelineRange = '24h';
+    try {
+      const savedBankRange = localStorage.getItem(BANK_TIMELINE_STORAGE_KEY);
+      if (savedBankRange && BANK_TIMELINE_RANGES[savedBankRange]) bankTimelineRange = savedBankRange;
+    } catch { /* ignore */ }
 
     function setAdminTab(tab) {
       activeAdminTab = tab === 'rooms' ? 'rooms' : (tab === 'bank' ? 'bank' : 'reports');
@@ -2509,6 +2548,45 @@
       }
     }
 
+    function formatBankTimelineLabel(t, granularity) {
+      if (!t) return '';
+      if (granularity === 'minute' && String(t).includes(':')) {
+        const day = t.slice(8, 10);
+        const month = t.slice(5, 7);
+        const hour = t.slice(11, 13);
+        const minute = t.slice(14, 16);
+        return `${day}/${month} ${hour}:${minute}`;
+      }
+      return formatRoomsTimelineLabel(t, granularity);
+    }
+
+    function renderBankChart(stats) {
+      const meta = BANK_TIMELINE_RANGES[bankTimelineRange] || BANK_TIMELINE_RANGES['24h'];
+      const titleEl = document.getElementById('bankChartTitle');
+      const noteEl = document.getElementById('bankTimelineNote');
+      if (titleEl) titleEl.textContent = `Perguntas guardadas — ${meta.label}`;
+      document.querySelectorAll('#bankTimelineFilters [data-bank-range]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.bankRange === bankTimelineRange);
+      });
+      const chartEl = document.getElementById('bankTimelineChart');
+      if (!chartEl) return;
+      const bucket = stats?.timeline?.[bankTimelineRange];
+      if (!bucket) {
+        chartEl.innerHTML = '<div class="chart-empty">Sem dados.</div>';
+        if (noteEl) noteEl.textContent = '';
+        return;
+      }
+      if (noteEl) {
+        noteEl.innerHTML = `No período: <strong>${bucket.totalSaved || 0}</strong> guardada(s) · <strong>${bucket.totalAi || 0}</strong> via IA (jogo + teste).`;
+      }
+      renderDualLineChart(chartEl, bucket.saved, bucket.ai, '#f59e0b', '#3b82f6', {
+        labelA: 'Guardadas no banco',
+        labelB: 'Via IA (jogo + teste)',
+        granularity: meta.granularity,
+        formatLabel: formatBankTimelineLabel,
+      });
+    }
+
     async function loadBankDashboard(options = {}) {
       const { quiet = false } = options;
       if (bankLoading) return;
@@ -2522,6 +2600,7 @@
         const data = await api('/api/question-bank-admin');
         lastBankStats = data.stats;
         renderBankStats(lastBankStats);
+        renderBankChart(lastBankStats);
         renderBankMatrix(lastBankStats);
         const updatedEl = document.getElementById('bankLastUpdated');
         if (updatedEl) updatedEl.textContent = `Actualizado às ${formatPortugalDateTime(new Date())}`;
@@ -2553,6 +2632,7 @@
       const focusLine = container.querySelector('.chart-focus-line');
       const svg = container.querySelector('svg');
       if (!tooltip || !svg || !labels.length) return;
+      const formatLabel = meta.formatLabel || formatRoomsTimelineLabel;
 
       const { padX, padY, innerW, innerH } = layout;
 
@@ -2575,7 +2655,7 @@
         }
         tooltip.hidden = false;
         tooltip.innerHTML = `
-          <div><strong>${esc(formatRoomsTimelineLabel(t, meta.granularity))}</strong></div>
+          <div><strong>${esc(formatLabel(t, meta.granularity))}</strong></div>
           <div><span style="color:${meta.colorA}">●</span> ${esc(meta.labelA)}: <strong>${valA}</strong></div>
           <div><span style="color:${meta.colorB}">●</span> ${esc(meta.labelB)}: <strong>${valB}</strong></div>
         `;
@@ -2608,6 +2688,7 @@
       const labelA = options.labelA || 'Salas criadas';
       const labelB = options.labelB || 'Jogos iniciados';
       const granularity = options.granularity || 'day';
+      const formatLabel = options.formatLabel || formatRoomsTimelineLabel;
       const labels = [...new Set([
         ...(seriesA || []).map((p) => p.t),
         ...(seriesB || []).map((p) => p.t),
@@ -2662,7 +2743,7 @@
       const labelStep = Math.max(1, Math.ceil(labels.length / 8));
       const xLabels = labels.map((t, i) => {
         if (i % labelStep !== 0 && i !== labels.length - 1) return '';
-        return `<text class="line-label" x="${xAt(i).toFixed(1)}" y="${h - 6}" text-anchor="middle">${esc(formatRoomsTimelineLabel(t, granularity))}</text>`;
+        return `<text class="line-label" x="${xAt(i).toFixed(1)}" y="${h - 6}" text-anchor="middle">${esc(formatLabel(t, granularity))}</text>`;
       }).join('');
 
       el.innerHTML = `
@@ -2689,7 +2770,7 @@
         labels,
         mapA,
         mapB,
-        { labelA, labelB, colorA, colorB, granularity },
+        { labelA, labelB, colorA, colorB, granularity, formatLabel },
       );
     }
 
@@ -2983,6 +3064,13 @@
     document.getElementById('tabBank')?.addEventListener('click', () => setAdminTab('bank'));
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
+    document.getElementById('bankTimelineFilters')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-bank-range]');
+      if (!btn || !BANK_TIMELINE_RANGES[btn.dataset.bankRange]) return;
+      bankTimelineRange = btn.dataset.bankRange;
+      try { localStorage.setItem(BANK_TIMELINE_STORAGE_KEY, bankTimelineRange); } catch { /* ignore */ }
+      renderBankChart(lastBankStats);
+    });
     document.getElementById('roomsTimelineFilters')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-rooms-range]');
       if (!btn || !TIMELINE_RANGES[btn.dataset.roomsRange]) return;

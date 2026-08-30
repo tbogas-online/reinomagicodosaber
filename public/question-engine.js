@@ -596,7 +596,7 @@ ${buildHistoryRules({
 ${openModeExtra || ''}
 ${mcInstruction || ''}
 
-Só JSON, sem markdown: ${jsonFormat}`;
+Só json válido, sem markdown: ${jsonFormat}`;
   }
 
   function tokenize(text) {

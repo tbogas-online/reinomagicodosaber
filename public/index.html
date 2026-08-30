@@ -4235,7 +4235,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         lastAiError = localizeAiErrorMessage(err?.message || 'Erro desconhecido');
         lastAiErrorStatus = Number(err?.aiStatus) || 0;
         if(err?.aiStatus === 429 || isAiRateLimitError(lastAiError)){
-          console.warn('IA com limite atingido; a usar banco local:', err);
+          console.warn('IA com limite atingido; a usar banco local:', lastAiError);
           setOnlineStatus(false, lastAiError, err?.aiData || null);
           break;
         }
@@ -4457,8 +4457,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const prov = getEffectiveAiProviderChoice();
     if(prov === 'local') return 'Banco local · Supabase';
     if(!aiStatusOnline) return summarizeAiOfflineBadge(lastAiStatusDetail, lastAiStatusApiData);
+    const inUse = formatAiInUseLabel();
+    if(prov === 'auto'){
+      return inUse ? `IA Online · ${inUse}` : 'IA Online · Automática';
+    }
     const pref = formatAiPreferenceLabel();
-    return pref ? `IA Online · ${pref}` : 'IA Online';
+    return pref ? `IA Online · ${pref}` : (inUse ? `IA Online · ${inUse}` : 'IA Online');
   }
 
   function refreshStatusDetailText(){
@@ -4473,10 +4477,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const prov = getEffectiveAiProviderChoice();
     if(prov === 'local') return 'bank';
     if(!aiStatusOnline) return 'offline';
-    if(prov === 'openai') return 'openai';
-    if(prov === 'groq' || prov === 'anthropic') return 'groq';
-    const provider = String(lastAiUsage.provider || inferProviderFromModel(lastAiUsage.model) || 'groq').toLowerCase();
-    if(provider === 'openai') return 'openai';
+    const activeProvider = prov === 'auto'
+      ? String(lastAiUsage.provider || inferProviderFromModel(lastAiUsage.model) || 'groq').toLowerCase()
+      : prov;
+    if(activeProvider === 'openai') return 'openai';
     return 'groq';
   }
 
