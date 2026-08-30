@@ -22,6 +22,8 @@
     --violet-soft: #b7a0c4;
     --teal: #2f9e78;
     --ember: #c0632f;
+    --blue: #5ba3e8;
+    --blue-bright: #8ec5ff;
     --shadow: rgba(0,0,0,0.5);
     --night-rgb: 14,28,21;
     --parchment-rgb: 242,230,196;
@@ -29,6 +31,7 @@
     --teal-rgb: 47,158,120;
     --violet-rgb: 125,91,196;
     --ember-rgb: 192,99,47;
+    --blue-rgb: 91,163,232;
     --surface-glass: rgba(var(--night-rgb), 0.60);
     --surface-glass-strong: rgba(var(--night-rgb), 0.96);
     --bg-glow-a: rgba(125,91,196,0.14);
@@ -62,6 +65,8 @@
     --violet-soft: #8a79a8;
     --teal: #146b52;
     --ember: #9a4518;
+    --blue: #1d6fbd;
+    --blue-bright: #1456a0;
     --shadow: rgba(40,34,18,0.16);
     --night-rgb: 244,238,216;
     --parchment-rgb: 31,28,18;
@@ -69,6 +74,7 @@
     --teal-rgb: 20,107,82;
     --violet-rgb: 95,63,158;
     --ember-rgb: 154,69,24;
+    --blue-rgb: 29,111,189;
     --surface-glass: rgba(255,255,255,0.82);
     --surface-glass-strong: rgba(255,255,255,0.94);
     --bg-glow-a: rgba(154,114,24,0.10);
@@ -1506,6 +1512,33 @@
     background: #e5484d;
     box-shadow: 0 0 6px #e5484d;
   }
+  .status-badge.local-mode{
+    background: linear-gradient(160deg, rgba(var(--blue-rgb), 0.18), rgba(0, 0, 0, 0.32));
+    border-color: rgba(var(--blue-rgb), 0.58);
+    cursor: pointer;
+  }
+  .status-badge.local-mode #status-text{
+    color: var(--blue-bright);
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: min(72vw, 320px);
+  }
+  .status-badge.local-mode .status-dot{
+    background: #e5484d;
+    box-shadow: 0 0 6px #e5484d;
+  }
+  .status-badge.local-mode:hover{
+    border-color: var(--blue-bright);
+    background: linear-gradient(160deg, rgba(var(--blue-rgb), 0.28), rgba(0, 0, 0, 0.28));
+    color: var(--blue-bright);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  }
+  .status-badge.local-mode .status-badge-main{
+    flex-wrap: nowrap;
+  }
 
   .status-panel{
     display:flex;
@@ -1604,6 +1637,7 @@
     text-align:center;
   }
   .settings-ai-active.offline{ color:var(--parchment-dim); }
+  .settings-ai-active.local-mode{ color:var(--blue-bright); font-weight:600; }
   .settings-ai-planned{
     font-size:12px;
     line-height:1.45;
@@ -3509,21 +3543,35 @@
 
   async function tryPickFromQuestionBank(categoryN, ageBandKey, usedSet, maxAttempts = 6){
     const QB = window.QuestionBank;
-    if(!QB?.isConfigured?.()) return null;
+    if(!QB?.isConfigured?.()){
+      if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: não configurado — a usar código local');
+      return null;
+    }
     const excludeHashes = [];
+    let lastError = '';
     for(let attempt = 0; attempt < maxAttempts; attempt++){
       try {
         const row = await QB.pick(categoryN, ageBandKey, excludeHashes);
-        if(!row?.q) break;
+        if(!row?.q){
+          if(DEBUG_MODE && attempt === 0){
+            console.info(`[Reino debug] Banco Supabase: vazio para categoria ${categoryN}, faixa ${ageBandKey} — a usar código local`);
+          }
+          break;
+        }
         if(usedSet.has(normalizeQ(row.q))){
           if(row.question_hash) excludeHashes.push(row.question_hash);
           continue;
         }
+        if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: pergunta encontrada', row);
         return row;
       } catch(err) {
+        lastError = err?.message || String(err);
         console.warn('Banco Supabase indisponível:', err);
         break;
       }
+    }
+    if(DEBUG_MODE && lastError){
+      console.info('[Reino debug] Banco Supabase: erro —', lastError, '— a usar código local');
     }
     return null;
   }
@@ -4249,7 +4297,20 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     detailEl.hidden = true;
   }
 
+  function syncStatusBadgeClasses(){
+    const badge = document.getElementById('status-badge');
+    if(!badge) return;
+    const isLocal = aiProviderChoice === 'local';
+    badge.classList.toggle('local-mode', isLocal);
+    if(isLocal){
+      badge.classList.remove('offline');
+    } else {
+      badge.classList.toggle('offline', !aiStatusOnline);
+    }
+  }
+
   function refreshStatusBadgeText(){
+    syncStatusBadgeClasses();
     const text = document.getElementById('status-text');
     const provEl = document.getElementById('status-provider');
     if(!text) return;
@@ -4266,7 +4327,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(!el) return;
     if(aiProviderChoice === 'local'){
       el.textContent = 'Modo offline — banco de perguntas (sem IA)';
-      el.classList.add('offline');
+      el.classList.remove('offline');
+      el.classList.add('local-mode');
       if(modelIdEl){
         modelIdEl.textContent = '';
         modelIdEl.hidden = true;
@@ -4274,6 +4336,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       updateAiPlannedUI();
       return;
     }
+    el.classList.remove('local-mode');
     if(!aiStatusOnline){
       el.textContent = lastAiStatusDetail
         ? 'IA indisponível — última tentativa falhou'
@@ -4332,17 +4395,22 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       lastAiStatusDetail = '';
       lastAiStatusApiData = null;
     }
-    badge.classList.toggle('offline', !isOnline);
     refreshStatusBadgeText();
-    const statusHint = isOnline
+    const statusHint = aiProviderChoice === 'local'
       ? formatStatusBadgeLine()
-      : summarizeAiOfflineBadge(lastAiStatusDetail, lastAiStatusApiData);
-    badge.title = isOnline
-      ? `${statusHint} — clica para verificar estado`
-      : buildAiOfflineTooltip(lastAiStatusDetail, lastAiStatusApiData);
-    badge.setAttribute('aria-label', isOnline
-      ? `${statusHint} — verificar estado da Inteligência Artificial`
-      : `${statusHint} — ${buildAiOfflineTooltip(lastAiStatusDetail, lastAiStatusApiData)}`);
+      : (isOnline
+        ? formatStatusBadgeLine()
+        : summarizeAiOfflineBadge(lastAiStatusDetail, lastAiStatusApiData));
+    badge.title = aiProviderChoice === 'local'
+      ? `${statusHint} — modo banco local`
+      : (isOnline
+        ? `${statusHint} — clica para verificar estado`
+        : buildAiOfflineTooltip(lastAiStatusDetail, lastAiStatusApiData));
+    badge.setAttribute('aria-label', aiProviderChoice === 'local'
+      ? `${statusHint} — modo banco local activo`
+      : (isOnline
+        ? `${statusHint} — verificar estado da Inteligência Artificial`
+        : `${statusHint} — ${buildAiOfflineTooltip(lastAiStatusDetail, lastAiStatusApiData)}`));
     if(isOnline){
       stopAiStatusRecovery();
     } else {
@@ -5883,6 +5951,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     el.classList.toggle('source-local', question.source === 'local' || question.source === 'local-repeat');
     el.setAttribute('aria-hidden', 'false');
     console.info('[Reino debug] Fonte da pergunta:', label, question);
+    if(question.source === 'local' || question.source === 'local-repeat'){
+      const mode = aiProviderChoice === 'local' ? 'fornecedor offline' : (aiStatusOnline ? 'IA não usada nesta ronda' : 'IA indisponível');
+      console.info(`[Reino debug] Fallback código local (${mode})`);
+    }
   }
 
   async function showQuestion(cat, isSurprise, ageBand){
