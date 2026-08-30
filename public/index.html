@@ -499,6 +499,25 @@
     flex-direction: column;
     align-items: center;
   }
+  #screen-menu .stack,
+  #screen-mp-menu .stack{
+    width: 100%;
+    max-width: 16rem;
+    margin: 0 auto;
+    gap: 10px;
+    align-items: stretch;
+  }
+  #screen-menu .stack .btn,
+  #screen-mp-menu .stack .btn{
+    width: 100%;
+    min-height: 2.85rem;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.25;
+  }
   body.center-stage-active.category-bar-active .stage{
     flex: 0 0 auto;
     display: block;
@@ -1544,10 +1563,23 @@
     }
     #screen-menu .stack{
       width: 100%;
-      max-width: 13.5rem;
+      max-width: 16rem;
       margin: 0 auto;
-      gap: 8px;
+      gap: 10px;
       align-items: stretch;
+    }
+    #screen-menu .stack .btn,
+    #screen-mp-menu .stack .btn{
+      font-size: 0.88rem;
+      padding: 12px 14px;
+      min-height: 2.75rem;
+      width: 100%;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      line-height: 1.25;
     }
     .btn{
       font-size: 0.95rem;
@@ -1556,17 +1588,12 @@
       min-height: 2.85rem;
       text-align: center;
     }
-    #screen-menu .btn{
-      font-size: 0.84rem;
-      padding: 10px 16px;
-      min-height: 2.4rem;
-      width: 100%;
-      box-sizing: border-box;
-    }
     .btn.ghost{ font-size: 0.9rem; padding: 8px; }
-    #screen-menu .btn.ghost{
+    #screen-menu .btn.ghost,
+    #screen-mp-menu .btn.ghost{
       font-size: 0.82rem;
-      padding: 6px;
+      padding: 8px;
+      min-height: auto;
     }
     .game-about-btn{
       font-size: 0.85rem;
@@ -2174,13 +2201,25 @@
     <div class="divider"></div>
     <div class="stack">
       <button class="btn" id="btn-novo-jogo">✨ Novo Jogo</button>
-      <button class="btn secondary" id="btn-mp-create">👥 Criar sala</button>
-      <button class="btn secondary" id="btn-mp-join">🔗 Entrar com código</button>
+      <button class="btn secondary" id="btn-mp-menu">👥 Multijogador</button>
       <button class="btn secondary" id="btn-history">📚 Histórico de partidas</button>
       <button class="btn secondary" id="btn-continuar" disabled title="Ainda não há jogo em curso">📜 Continuar</button>
       <button class="btn secondary" id="btn-definicoes">⚙️ Definições</button>
     </div>
     <button class="game-about-btn" id="gameAboutButton" type="button" aria-label="Sobre o jogo">ⓘ Sobre</button>
+  </section>
+
+  <!-- MULTIJOGADOR — MENU -->
+  <section class="screen" id="screen-mp-menu">
+    <div class="emoji" style="font-size:44px;">👥</div>
+    <h2>Multijogador</h2>
+    <p class="subtitle">Joga em vários dispositivos na mesma partida</p>
+    <div class="stack" style="width:100%; max-width:16rem; margin:0 auto; gap:10px; align-items:stretch;">
+      <button class="btn" id="btn-mp-create" type="button">✨ Criar sala</button>
+      <button class="btn secondary" id="btn-mp-join" type="button">🔗 Entrar com código</button>
+      <p class="mp-error" id="mp-create-error" hidden></p>
+      <button class="btn ghost" type="button" data-mp-back-menu>← Voltar ao menu</button>
+    </div>
   </section>
 
   <!-- MULTIJOGADOR — ENTRAR -->
@@ -2193,7 +2232,7 @@
       <input class="field-input" id="mp-join-nick" type="text" maxlength="24" placeholder="Alcunha (opcional)" autocomplete="nickname" style="letter-spacing:0; text-transform:none;">
       <p class="mp-error" id="mp-join-error" hidden></p>
       <button class="btn" id="mp-join-submit" type="button">Entrar</button>
-      <button class="btn ghost" type="button" data-mp-back>← Voltar ao menu</button>
+      <button class="btn ghost" type="button" data-mp-back-mp>← Voltar</button>
     </div>
   </section>
 
@@ -3812,6 +3851,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     game: document.getElementById('screen-game'),
     question: document.getElementById('screen-question'),
     'mp-join': document.getElementById('screen-mp-join'),
+    'mp-menu': document.getElementById('screen-mp-menu'),
     'mp-lobby': document.getElementById('screen-mp-lobby'),
     'mp-config': document.getElementById('screen-mp-config'),
     history: document.getElementById('screen-history'),
@@ -3902,14 +3942,14 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     currentScreenId = id;
     Object.values(screens).forEach(s => s.classList.remove('active'));
     screens[id].classList.add('active');
-    if(id === 'menu' || id === 'game' || id === 'loading' || id === 'age' || id === 'question' || id === 'mp-join' || id === 'mp-lobby' || id === 'mp-config' || id === 'history'){
+    if(id === 'menu' || id === 'game' || id === 'loading' || id === 'age' || id === 'question' || id === 'mp-menu' || id === 'mp-join' || id === 'mp-lobby' || id === 'mp-config' || id === 'history'){
       clearSettingsQueryFromUrl();
     }
     const showCategoryBar = id === 'age' || id === 'question';
     const isSettingsLike = id === 'settings';
     const isScrollScreen = id === 'loading';
     const isGameScreen = id === 'game';
-    const isCenterStage = id === 'menu' || id === 'age' || id === 'mp-join' || id === 'mp-lobby' || id === 'mp-config' || id === 'history';
+    const isCenterStage = id === 'menu' || id === 'age' || id === 'mp-menu' || id === 'mp-join' || id === 'mp-lobby' || id === 'mp-config' || id === 'history';
     document.body.classList.toggle('center-stage-active', isCenterStage);
     document.body.classList.toggle('game-screen-active', isGameScreen);
     document.body.classList.toggle('settings-screen-active', isSettingsLike);
@@ -3933,7 +3973,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       refreshSettingsBuildInfo();
       refreshSettingsUI();
     }
-    if(id === 'question' || id === 'age' || id === 'game' || id === 'settings' || id === 'history' || id === 'mp-join' || id === 'mp-lobby'){
+    if(id === 'question' || id === 'age' || id === 'game' || id === 'settings' || id === 'history' || id === 'mp-menu' || id === 'mp-join' || id === 'mp-lobby'){
       window.scrollTo(0, 0);
     }
     if(id === 'game'){
