@@ -297,7 +297,12 @@
       const saved = getLastRoom();
       const code = (MP.getRoomCode() || saved?.code || '----').toUpperCase();
       btn.disabled = false;
-      btn.textContent = `📜 Continuar sala ${code}`;
+      btn.textContent = '';
+      btn.append('📜 Continuar sala ');
+      const codeEl = document.createElement('span');
+      codeEl.className = 'btn-room-code';
+      codeEl.textContent = code;
+      btn.append(codeEl);
       btn.title = 'Voltar à partida multijogador';
       return;
     }

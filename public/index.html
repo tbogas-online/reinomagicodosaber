@@ -199,6 +199,19 @@
     content:"✦"; position:absolute; top:50%; left:50%; transform:translate(-50%,-50%);
     color:var(--gold); background:transparent; font-size:12px;
   }
+  .menu-mini-divider{
+    width: 72px;
+    height: 1px;
+    margin: 2px auto;
+    background: linear-gradient(90deg, transparent, rgba(var(--gold-rgb), 0.42), transparent);
+    flex-shrink: 0;
+  }
+  #btn-continuar .btn-room-code{
+    color: var(--gold-bright);
+    font-style: italic;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+  }
 
   /* buttons */
   .btn{
@@ -2604,6 +2617,7 @@
     <div class="stack">
       <button class="btn" id="btn-open-novo-jogo" type="button">✨ 👥 Novo Jogo</button>
       <button class="btn secondary" id="btn-continuar" disabled title="Ainda não há jogo em curso">📜 Continuar</button>
+      <div class="menu-mini-divider" aria-hidden="true"></div>
       <button class="btn secondary" id="btn-history">📚 Histórico de partidas</button>
       <button class="btn secondary" id="btn-definicoes">⚙️ Definições</button>
     </div>
@@ -2904,7 +2918,7 @@
 <script src="game-history.js?v=20260829-174108"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-165000"></script>
+<script src="multiplayer-controller.js?v=20260830-165500"></script>
 <script src="question-engine.js?v=20260830-161700" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
