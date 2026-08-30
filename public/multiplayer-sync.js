@@ -214,20 +214,19 @@
   async function heartbeat() {
     if (!roomId) return;
     await setConnected(true);
-    if (!isHost) {
-      try {
+    try {
+      if (!isHost) {
         const { data: room } = await client
           .from('rooms')
           .select('host_player_id, status')
           .eq('id', roomId)
           .single();
-        // Só tenta assumir anfitrião em jogo activo, se o anfitrião saiu.
         if (room?.status === 'playing') {
           await client.rpc('claim_host_if_disconnected', { p_room_id: roomId });
         }
-        await syncHostFromServer();
-      } catch { /* ignore */ }
-    }
+      }
+      await syncHostFromServer();
+    } catch { /* ignore */ }
   }
 
   function startHeartbeat() {

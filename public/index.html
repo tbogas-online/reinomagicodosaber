@@ -2597,8 +2597,8 @@
 <script src="supabase-config.js?v=20260829-174108"></script>
 <script src="game-history.js?v=20260829-174108"></script>
 <script src="player-names.js?v=20260830-143600"></script>
-<script src="multiplayer-sync.js?v=20260830-141800"></script>
-<script src="multiplayer-controller.js?v=20260830-143200"></script>
+<script src="multiplayer-sync.js?v=20260830-144000"></script>
+<script src="multiplayer-controller.js?v=20260830-144000"></script>
 <script src="question-engine.js?v=20260829-174108" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -4727,8 +4727,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         setCurrentQuestion: (q) => { currentQuestion = q; },
         getCountdownPaused: () => countdownPaused,
         getCountdownRemaining: () => getCountdownSecondsLeft(),
+        getAnswerRevealed,
+        getLastSelectedAnswer: () => lastSelectedAnswer,
         isSameQuestion,
         applyCountdownSync,
+        applyAnswerFromRemote,
         showDiceResult: showDiceResultOnScreen,
         displayQuestion: displayQuestionFromState,
         applySettings(settings){
@@ -4836,6 +4839,17 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   let countdownRemaining = null;
   let countdownPaused = false;
   let applyingCountdownRemote = false;
+  let applyingAnswerRemote = false;
+
+  function getAnswerRevealed(){
+    return document.getElementById('q-answer')?.style.display === 'block';
+  }
+
+  function syncAnswerToRoom(){
+    const mp = window.MultiplayerController;
+    if(!mp?.isMultiplayer?.() || applyingAnswerRemote) return;
+    mp.pushAnswerState(lastSelectedAnswer).catch(() => {});
+  }
 
   function getCountdownSecondsLeft(){
     if(countdownPaused && Number.isFinite(countdownRemaining)) return countdownRemaining;
@@ -4871,6 +4885,39 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       }
     } finally {
       applyingCountdownRemote = false;
+    }
+  }
+
+  function applyAnswerFromRemote(selectedAnswer){
+    if(currentScreenId !== 'question' || !currentQuestion) return;
+    if(getAnswerRevealed()) return;
+    applyingAnswerRemote = true;
+    try {
+      stopQuestionCountdown();
+      countdownPaused = false;
+      document.getElementById('countdown-ring')?.classList.remove('is-paused');
+      const numEl = document.getElementById('countdown-num');
+      numEl?.classList.remove('is-pause-icon');
+      numEl?.removeAttribute('aria-label');
+      if(questionUsesMcOptions(currentQuestion) && selectedAnswer){
+        lastSelectedAnswer = selectedAnswer;
+        revealCorrectOption();
+        document.querySelectorAll('.option-btn').forEach((b) => {
+          const textEl = b.querySelector('.option-text');
+          if(textEl && stripTags(textEl.innerHTML) === selectedAnswer
+            && stripTags(selectedAnswer) !== stripTags(currentQuestion.a)){
+            b.classList.add('wrong');
+          }
+        });
+      } else if(questionUsesMcOptions(currentQuestion)){
+        revealCorrectOption();
+      }
+      document.getElementById('q-answer').style.display = 'block';
+      document.getElementById('btn-mostrar-resposta').style.display = 'none';
+      focusAnswerPanel();
+      window.MultiplayerController?.onAnswerRevealed?.();
+    } finally {
+      applyingAnswerRemote = false;
     }
   }
 
@@ -5011,10 +5058,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       SFX.correct();
     }
     document.getElementById('q-answer').style.display = 'block';
+    document.getElementById('btn-mostrar-resposta').style.display = 'none';
     focusAnswerPanel();
-    if(!window.MultiplayerController?.isMultiplayer?.()){
-      window.MultiplayerController?.onAnswerRevealed?.();
-    }
+    syncAnswerToRoom();
+    window.MultiplayerController?.onAnswerRevealed?.();
   }
 
   function resetSaberMais(){
@@ -5173,7 +5220,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     });
   }
 
-  function revealAnswer(){
+  function revealAnswer(syncMp = true){
     stopQuestionCountdown();
     if(currentQuestion && questionUsesMcOptions(currentQuestion)){
       revealCorrectOption();
@@ -5181,9 +5228,8 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     document.getElementById('q-answer').style.display = 'block';
     document.getElementById('btn-mostrar-resposta').style.display = 'none';
     focusAnswerPanel();
-    if(!window.MultiplayerController?.isMultiplayer?.()){
-      window.MultiplayerController?.onAnswerRevealed?.();
-    }
+    if(syncMp && !applyingAnswerRemote) syncAnswerToRoom();
+    window.MultiplayerController?.onAnswerRevealed?.();
   }
 
   document.getElementById('btn-mostrar-resposta').onclick = () => {

@@ -56,6 +56,8 @@
       currentQuestion: h.getCurrentQuestion?.() || null,
       countdownPaused: !!h.getCountdownPaused?.(),
       countdownRemaining: h.getCountdownRemaining?.() ?? null,
+      answerRevealed: !!h.getAnswerRevealed?.(),
+      selectedAnswer: h.getLastSelectedAnswer?.() ?? null,
       dice: extra?.dice || null,
       round: extra?.round ?? (GH.getCurrentGame()?.rounds?.length || 0),
       ...extra,
@@ -121,6 +123,9 @@
         if (typeof state.countdownPaused === 'boolean') {
           h.applyCountdownSync?.(state.countdownPaused, state.countdownRemaining);
         }
+        if (state.answerRevealed) {
+          h.applyAnswerFromRemote?.(state.selectedAnswer || null);
+        }
       }
     } finally {
       applyingRemote = false;
@@ -138,6 +143,22 @@
       selectedAgeBand: h.getSelectedAgeBand?.() || null,
       countdownPaused: !!paused,
       countdownRemaining: Number.isFinite(remaining) ? remaining : null,
+    });
+  }
+
+  async function pushAnswerState(selectedAnswer) {
+    if (!isMultiplayer() || !gameHooks) return;
+    const h = gameHooks;
+    await pushState({
+      screen: 'question',
+      currentQuestion: h.getCurrentQuestion?.(),
+      lastCategory: serializeCategory(h.getLastCategory?.()),
+      lastIsSurprise: !!h.getLastIsSurprise?.(),
+      selectedAgeBand: h.getSelectedAgeBand?.() || null,
+      countdownPaused: !!h.getCountdownPaused?.(),
+      countdownRemaining: h.getCountdownRemaining?.() ?? null,
+      answerRevealed: true,
+      selectedAnswer: selectedAnswer || null,
     });
   }
 
@@ -224,6 +245,10 @@
         lastCategory: serializeCategory(cat),
         lastIsSurprise: isSurprise,
         currentQuestion: question,
+        answerRevealed: false,
+        selectedAnswer: null,
+        countdownPaused: false,
+        countdownRemaining: null,
       });
     }
   }
@@ -492,6 +517,7 @@
     showMpError(errEl, '');
 
     try {
+      await MP.syncHostFromServer?.();
       const players = await MP.fetchPlayers();
       renderLobbyPlayers(players);
       const nickInput = document.getElementById('mp-lobby-nick');
@@ -655,15 +681,11 @@
     const cat = h?.getLastCategory?.();
     const age = h?.getSelectedAgeBand?.();
     if (!q || !cat) return;
-    if (isMultiplayer()) {
-      if (isHost()) recordRoundFromQuestion(q, cat, age);
-    } else {
-      const cur = GH.getCurrentGame();
-      const last = cur?.rounds?.[cur.rounds.length - 1];
-      const qPlain = (q.q || '').replace(/<[^>]*>/g, '');
-      if (!last || last.question !== qPlain) {
-        recordRoundFromQuestion(q, cat, age);
-      }
+    const cur = GH.getCurrentGame();
+    const last = cur?.rounds?.[cur.rounds.length - 1];
+    const qPlain = (q.q || '').replace(/<[^>]*>/g, '');
+    if (!last || last.question !== qPlain) {
+      recordRoundFromQuestion(q, cat, age);
     }
   }
 
@@ -692,6 +714,7 @@
     serializeCategory,
     deserializeCategory,
     pushCountdownState,
+    pushAnswerState,
     buildJoinUrl,
     copyJoinLink,
     shareViaWhatsApp,
