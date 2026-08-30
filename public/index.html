@@ -2272,6 +2272,60 @@
     font-size: 0.78rem;
   }
   .mp-players-popover .mp-player-row:last-child{ margin-bottom: 0; }
+  .mp-game-nick-wrap{
+    position: relative;
+    flex: 0 0 auto;
+  }
+  .mp-nick-popover{
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    min-width: 14rem;
+    padding: 8px;
+    border-radius: 12px;
+    background: rgba(var(--night-rgb), 0.96);
+    border: 1px solid rgba(var(--gold-rgb), 0.45);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.45);
+    z-index: 130;
+  }
+  .mp-nick-popover[hidden]{ display: none !important; }
+  .mp-nick-popover input{
+    flex: 1;
+    min-width: 0;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(var(--gold-rgb), 0.35);
+    background: rgba(0,0,0,0.25);
+    color: var(--parchment);
+    font: inherit;
+    font-size: 0.78rem;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .mp-nick-popover .mp-nick-save{
+    flex-shrink: 0;
+    border: 1px solid rgba(var(--gold-rgb), 0.45);
+    background: rgba(var(--gold-rgb), 0.12);
+    color: var(--gold-bright);
+    border-radius: 8px;
+    padding: 6px 10px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.68rem;
+    cursor: pointer;
+  }
+  .mp-share-btn-danger{
+    border-color: rgba(229, 72, 77, 0.45);
+    color: #f0a8ab;
+  }
+  .mp-share-btn-danger:hover{
+    background: rgba(229, 72, 77, 0.14);
+    border-color: rgba(229, 72, 77, 0.65);
+    color: #ffc8ca;
+  }
   .mp-lobby-share .btn{
     flex: 1 1 auto;
     min-width: 7rem;
@@ -2406,7 +2460,6 @@
     <div class="stack">
       <button class="btn" id="btn-novo-jogo">✨ Novo Jogo</button>
       <button class="btn secondary" id="btn-mp-menu">👥 Multijogador</button>
-      <button class="btn secondary" id="btn-mp-resume" type="button" hidden>🏰 Continuar sala</button>
       <button class="btn secondary" id="btn-history">📚 Histórico de partidas</button>
       <button class="btn secondary" id="btn-continuar" disabled title="Ainda não há jogo em curso">📜 Continuar</button>
       <button class="btn secondary" id="btn-definicoes">⚙️ Definições</button>
@@ -2462,7 +2515,7 @@
     <p class="mp-error" id="mp-lobby-error" hidden></p>
     <div class="stack" style="gap:10px;">
       <button class="btn" id="mp-btn-start" type="button" hidden>▶ Iniciar jogo</button>
-      <button class="btn secondary" id="mp-btn-leave" type="button">Sair da sala</button>
+      <button class="btn secondary" id="mp-btn-leave" type="button">Terminar sala</button>
       <button class="btn ghost" type="button" data-mp-back>← Voltar ao menu</button>
     </div>
   </section>
@@ -2666,11 +2719,22 @@
     </button>
     <ul class="mp-players-popover" id="mp-game-players-list" hidden role="listbox"></ul>
   </div>
+  <div class="mp-game-nick-wrap" id="mp-game-nick-wrap">
+    <button type="button" class="mp-players-toggle" id="mp-game-nick-btn" aria-expanded="false" title="Alterar o teu nome">
+      <span id="mp-game-nick-label">✏️ Nome</span>
+      <span class="mp-players-toggle-caret" aria-hidden="true">▾</span>
+    </button>
+    <div class="mp-nick-popover" id="mp-game-nick-popover" hidden>
+      <input type="text" id="mp-game-nick-input" maxlength="24" placeholder="O teu nome" autocomplete="nickname">
+      <button type="button" class="mp-nick-save" id="mp-game-nick-save">Guardar</button>
+    </div>
+  </div>
   <div class="mp-game-bar-actions">
     <button type="button" class="mp-share-btn" id="mp-game-menu-btn" title="Voltar ao menu (mantém-te na sala)">🏠 Menu</button>
     <button type="button" class="mp-share-btn" id="mp-game-copy-link" title="Copiar link da sala">📋 Copiar</button>
     <button type="button" class="mp-share-btn" id="mp-game-share-wa" title="Enviar por WhatsApp">💬 WhatsApp</button>
     <button type="button" class="mp-share-btn" id="mp-game-share-native" title="Partilhar convite">🔗 Partilhar</button>
+    <button type="button" class="mp-share-btn mp-share-btn-danger" id="mp-game-leave-btn" title="Terminar e sair da sala">🚪 Terminar</button>
   </div>
 </div>
 <div class="game-clock" id="game-clock">⏱ 00:00</div>
@@ -4217,7 +4281,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
     syncMpGameFooter();
     if(id === 'menu'){
-      window.MultiplayerController?.updateMenuResumeButton?.();
+      window.MultiplayerController?.updateContinueButton?.();
     }
     if(id === 'question'){
       requestAnimationFrame(setupCountdownCompactScroll);
@@ -4840,6 +4904,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           if(settings.categoryMode) categoryMode = settings.categoryMode;
           if(settings.selectedCategoryIds) selectedCategoryIds = new Set(settings.selectedCategoryIds);
         },
+        canContinueLocal: () => Object.keys(gameCategoryMap).length > 0,
+        continueLocalGame: () => showScreen('game'),
       });
       window.MultiplayerController.init();
     }
@@ -4873,7 +4939,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   };
 
   document.getElementById('btn-continuar').onclick = () => {
-    showScreen('game');
+    window.MultiplayerController?.handleContinue?.();
   };
 
   function runCategoryChoosingAnimation(){
@@ -4897,8 +4963,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       clearInterval(cycle);
       resetGameScreen();
       fillCategoryList();
-      document.getElementById('btn-continuar').disabled = false;
-      document.getElementById('btn-continuar').title = '';
+      window.MultiplayerController?.updateContinueButton?.();
       SFX.fanfare();
       showScreen('game');
     }, 1900);
