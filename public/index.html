@@ -1512,6 +1512,87 @@
     background: #e5484d;
     box-shadow: 0 0 6px #e5484d;
   }
+  .status-badge.status-groq{
+    background: linear-gradient(160deg, rgba(62, 207, 114, 0.2), rgba(0, 0, 0, 0.32));
+    border-color: rgba(62, 207, 114, 0.62);
+  }
+  .status-badge.status-groq #status-text{
+    color: #86efac;
+    font-weight: 600;
+  }
+  .status-badge.status-groq .status-dot{
+    background: #3ecf72;
+    box-shadow: 0 0 7px #3ecf72;
+  }
+  .status-badge.status-groq:hover{
+    border-color: #86efac;
+    background: linear-gradient(160deg, rgba(62, 207, 114, 0.28), rgba(0, 0, 0, 0.28));
+  }
+  .status-badge.status-openai{
+    background: linear-gradient(160deg, rgba(16, 185, 129, 0.18), rgba(0, 0, 0, 0.32));
+    border-color: rgba(16, 185, 129, 0.58);
+  }
+  .status-badge.status-openai #status-text{
+    color: #6ee7b7;
+    font-weight: 600;
+  }
+  .status-badge.status-openai .status-dot{
+    background: #10b981;
+    box-shadow: 0 0 7px #10b981;
+  }
+  .status-badge.status-openai:hover{
+    border-color: #6ee7b7;
+    background: linear-gradient(160deg, rgba(16, 185, 129, 0.26), rgba(0, 0, 0, 0.28));
+  }
+  .status-badge.status-bank{
+    background: linear-gradient(160deg, rgba(245, 158, 11, 0.22), rgba(0, 0, 0, 0.32));
+    border-color: rgba(245, 158, 11, 0.62);
+    cursor: pointer;
+  }
+  .status-badge.status-bank #status-text{
+    color: #fcd34d;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: min(72vw, 320px);
+  }
+  .status-badge.status-bank .status-dot{
+    background: #f59e0b;
+    box-shadow: 0 0 7px #f59e0b;
+  }
+  .status-badge.status-bank:hover{
+    border-color: #fcd34d;
+    background: linear-gradient(160deg, rgba(245, 158, 11, 0.3), rgba(0, 0, 0, 0.28));
+    transform: translateY(-1px);
+  }
+  .status-badge.status-bank .status-badge-main{
+    flex-wrap: nowrap;
+  }
+  .status-badge.status-offline{
+    background: rgba(229, 72, 77, 0.12);
+    border-color: rgba(229, 72, 77, 0.55);
+    cursor: pointer;
+  }
+  .status-badge.status-offline #status-text{
+    color: #fda4af;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: min(72vw, 320px);
+  }
+  .status-badge.status-offline .status-dot{
+    background: #e5484d;
+    box-shadow: 0 0 7px #e5484d;
+  }
+  .status-badge.status-offline .status-badge-main{
+    flex-wrap: nowrap;
+  }
+  .status-badge.status-offline:hover{
+    border-color: rgba(229, 72, 77, 0.75);
+    background: rgba(229, 72, 77, 0.18);
+  }
   .status-badge.local-mode{
     background: linear-gradient(160deg, rgba(var(--blue-rgb), 0.18), rgba(0, 0, 0, 0.32));
     border-color: rgba(var(--blue-rgb), 0.58);
@@ -4351,7 +4432,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function formatStatusBadgeLine(){
-    if(aiProviderChoice === 'local') return 'Modo offline · Banco local';
+    if(aiProviderChoice === 'local') return 'Banco local · Supabase';
     if(!aiStatusOnline) return summarizeAiOfflineBadge(lastAiStatusDetail, lastAiStatusApiData);
     const inUse = formatAiInUseLabel();
     return inUse ? `IA Online · ${inUse}` : 'IA Online';
@@ -4365,16 +4446,20 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     detailEl.hidden = true;
   }
 
+  function getStatusBadgeVariant(){
+    if(aiProviderChoice === 'local') return 'bank';
+    if(!aiStatusOnline) return 'offline';
+    const provider = String(lastAiUsage.provider || inferProviderFromModel(lastAiUsage.model) || 'groq').toLowerCase();
+    if(provider === 'openai') return 'openai';
+    return 'groq';
+  }
+
   function syncStatusBadgeClasses(){
     const badge = document.getElementById('status-badge');
     if(!badge) return;
-    const isLocal = aiProviderChoice === 'local';
-    badge.classList.toggle('local-mode', isLocal);
-    if(isLocal){
-      badge.classList.remove('offline');
-    } else {
-      badge.classList.toggle('offline', !aiStatusOnline);
-    }
+    const variant = getStatusBadgeVariant();
+    badge.classList.remove('offline', 'local-mode', 'status-groq', 'status-openai', 'status-bank', 'status-offline');
+    badge.classList.add(`status-${variant}`);
   }
 
   function refreshStatusBadgeText(){

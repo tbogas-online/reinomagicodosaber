@@ -964,10 +964,6 @@
               <tfoot id="bankMatrixFoot"></tfoot>
             </table>
           </div>
-          <div class="bank-actions">
-            <button type="button" class="danger" id="bankPurgeBtn">🗑️ Remover sem opções</button>
-            <span class="sub" id="bankPurgeHint">Apaga do Supabase perguntas activas sem 4 opções (ou 2 em V/F).</span>
-          </div>
           <div id="bankSourceBreakdown"></div>
         </div>
       </div>
@@ -1278,6 +1274,27 @@
       return `<div class="line-legend">${items.join('')}</div>`;
     }
 
+    function attachPointChartTooltip(container, layout, points, formatPoint) {
+      const tooltip = container.querySelector('.chart-tooltip');
+      const svg = container.querySelector('svg');
+      if (!tooltip || !svg || !points.length) return;
+      const { padX, innerW, w } = layout;
+      const hide = () => { tooltip.hidden = true; };
+      container.addEventListener('mouseleave', hide);
+      svg.addEventListener('mousemove', (e) => {
+        const box = svg.getBoundingClientRect();
+        const relX = ((e.clientX - box.left) / box.width) * w;
+        const ratio = Math.max(0, Math.min(1, (relX - padX) / Math.max(innerW, 1)));
+        const idx = Math.round(ratio * (points.length - 1));
+        const p = points[Math.max(0, Math.min(idx, points.length - 1))];
+        tooltip.innerHTML = formatPoint(p, idx);
+        tooltip.hidden = false;
+        const cBox = container.getBoundingClientRect();
+        tooltip.style.left = `${e.clientX - cBox.left + 12}px`;
+        tooltip.style.top = `${e.clientY - cBox.top - 10}px`;
+      });
+    }
+
     function renderLineChart(el, series, granularity = 'day', options = {}) {
       const color = options.color || getTotalChartColor();
       if (!series?.length) {
@@ -1312,21 +1329,31 @@
       ).join('');
       const granLabel = granularity === 'hour' ? 'por hora (UTC)' : 'por dia (UTC)';
       const gradId = 'lineGrad-' + color.replace('#', '');
+      const layout = { w, h, padX, padY, innerW, innerH };
       el.innerHTML = `
-        <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Reportes ${granLabel}">
-          <defs>
-            <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stop-color="${color}" stop-opacity="0.35"/>
-              <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
-            </linearGradient>
-          </defs>
-          ${gridLines}
-          <polygon class="line-area" points="${area}" fill="url(#${gradId})" />
-          <polyline class="line-path" points="${line}" style="stroke:${color}" />
-          ${dots}
-          ${xLabels}
-        </svg>
+        <div class="chart-interactive">
+          <div class="chart-tooltip" hidden></div>
+          <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Reportes ${granLabel}">
+            <defs>
+              <linearGradient id="${gradId}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="${color}" stop-opacity="0.35"/>
+                <stop offset="100%" stop-color="${color}" stop-opacity="0"/>
+              </linearGradient>
+            </defs>
+            ${gridLines}
+            <polygon class="line-area" points="${area}" fill="url(#${gradId})" />
+            <polyline class="line-path" points="${line}" style="stroke:${color}" />
+            ${dots}
+            ${xLabels}
+          </svg>
+        </div>
       `;
+      attachPointChartTooltip(
+        el.querySelector('.chart-interactive'),
+        layout,
+        points,
+        (p) => `<strong>${formatTimelineLabel(p.key, granularity)}</strong><br>${p.count} reporte(s)`
+      );
     }
 
     function renderMultiLineChart(el, series, issueTypes, granularity = 'day') {
@@ -1387,12 +1414,21 @@
       }).join('');
       const granLabel = granularity === 'hour' ? 'por hora (UTC)' : 'por dia (UTC)';
       el.innerHTML = `
-        <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Reportes ${granLabel}">
-          ${renderTimelineGrid(layout)}
-          ${bars}
-          ${renderTimelineColumnXLabels(series, layout, granularity)}
-        </svg>
+        <div class="chart-interactive">
+          <div class="chart-tooltip" hidden></div>
+          <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Reportes ${granLabel}">
+            ${renderTimelineGrid(layout)}
+            ${bars}
+            ${renderTimelineColumnXLabels(series, layout, granularity)}
+          </svg>
+        </div>
       `;
+      attachPointChartTooltip(
+        el.querySelector('.chart-interactive'),
+        layout,
+        series,
+        (p) => `<strong>${formatTimelineLabel(p.key, granularity)}</strong><br>${p.count} reporte(s)`
+      );
     }
 
     function renderStackedColumnChart(el, series, issueTypes, granularity = 'day') {
@@ -2409,10 +2445,11 @@
       return 'high';
     }
 
-    function bankCountCell(n) {
+    function bankCountCell(n, title = '') {
       const v = Number(n) || 0;
       const cls = bankCountClass(v);
-      return `<span class="bank-cell ${cls}">${v || 0}</span>`;
+      const tip = title ? ` title="${esc(title)}"` : '';
+      return `<span class="bank-cell ${cls}"${tip}>${v || 0}</span>`;
     }
 
     function renderBankMatrix(stats) {
@@ -2436,7 +2473,7 @@
         grandTotal += count;
       }
 
-      const cell = (n) => `<td class="num">${bankCountCell(n)}</td>`;
+      const cell = (n, title) => `<td class="num">${bankCountCell(n, title)}</td>`;
 
       body.innerHTML = BANK_CATEGORIES.map((cat) => {
         const row = grid[cat.n] || {};
@@ -2444,15 +2481,15 @@
         const rowCls = rowTotal ? '' : ' class="row-empty"';
         return `<tr${rowCls}>
           <td class="cat-name"><span class="cat-num">${cat.n}</span>${esc(cat.name)}</td>
-          ${BANK_AGE_BANDS.map((age) => cell(row[age] || 0)).join('')}
-          <td class="num">${bankCountCell(rowTotal)}</td>
+          ${BANK_AGE_BANDS.map((age) => cell(row[age] || 0, `${cat.name} · ${age}: ${row[age] || 0} pergunta(s) com opções`)).join('')}
+          <td class="num">${bankCountCell(rowTotal, `${cat.name} · total: ${rowTotal}`)}</td>
         </tr>`;
       }).join('');
 
       foot.innerHTML = `<tr class="total-row">
         <th>Total</th>
-        ${BANK_AGE_BANDS.map((age) => `<th class="num">${bankCountCell(ageTotals[age] || 0)}</th>`).join('')}
-        <th class="num">${bankCountCell(grandTotal)}</th>
+        ${BANK_AGE_BANDS.map((age) => `<th class="num">${bankCountCell(ageTotals[age] || 0, `Total ${age}: ${ageTotals[age] || 0}`)}</th>`).join('')}
+        <th class="num">${bankCountCell(grandTotal, `Total geral: ${grandTotal}`)}</th>
       </tr>`;
 
       if (sourceEl) {
@@ -2469,35 +2506,6 @@
               return `<span class="pill">${esc(label)}: <strong>${s.count || 0}</strong></span>`;
             }).join('')}
           </div>`;
-      }
-    }
-
-    async function purgeBankWithoutOptions() {
-      const ok = await confirmAction(
-        'Remover do Supabase todas as perguntas activas sem opções válidas? Esta acção não pode ser desfeita.',
-        { okLabel: 'Remover', danger: true }
-      );
-      if (!ok) return;
-      const statusEl = document.getElementById('bankListStatus');
-      if (statusEl) {
-        statusEl.textContent = 'A limpar perguntas sem opções…';
-        statusEl.className = 'status';
-      }
-      try {
-        const data = await api('/api/question-bank-admin', {
-          method: 'POST',
-          body: JSON.stringify({ action: 'purge-without-options' }),
-        });
-        if (statusEl) {
-          statusEl.textContent = `Removidas ${data.deleted || 0} pergunta(s) sem opções válidas.`;
-          statusEl.className = 'status ok';
-        }
-        await loadBankDashboard({ quiet: true });
-      } catch (err) {
-        if (statusEl) {
-          statusEl.textContent = err.message || 'Erro ao limpar banco.';
-          statusEl.className = 'status err';
-        }
       }
     }
 
@@ -2975,7 +2983,6 @@
     document.getElementById('tabBank')?.addEventListener('click', () => setAdminTab('bank'));
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
-    document.getElementById('bankPurgeBtn')?.addEventListener('click', () => purgeBankWithoutOptions());
     document.getElementById('roomsTimelineFilters')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-rooms-range]');
       if (!btn || !TIMELINE_RANGES[btn.dataset.roomsRange]) return;

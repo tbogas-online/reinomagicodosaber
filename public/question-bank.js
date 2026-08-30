@@ -371,12 +371,58 @@
     return result;
   }
 
+  const VALID_AGE_BANDS_LIST = ['6-9', '10-15', '15+'];
+
+  async function getCoverage() {
+    const c = await ensureClient();
+    if (!c) return [];
+    const { data, error } = await c.rpc('get_question_bank_coverage');
+    if (error) {
+      console.warn('[QuestionBank] coverage falhou:', error.message);
+      return [];
+    }
+    return Array.isArray(data) ? data : [];
+  }
+
+  async function pickSparseTarget(categories, { fixedCategoryN = null, fixedAgeBand = null } = {}) {
+    const cats = Array.isArray(categories) ? categories : [];
+    if (!cats.length) return null;
+    const coverage = await getCoverage();
+    const counts = new Map();
+    for (const row of coverage) {
+      const cat = Number(row.category_n);
+      const age = String(row.age_band || '');
+      if (!cat || !VALID_AGE_BANDS.has(age)) continue;
+      counts.set(`${cat}|${age}`, Number(row.count) || 0);
+    }
+    const candidates = [];
+    for (const cat of cats) {
+      const catN = Number(cat.n ?? cat.categoryN ?? cat);
+      if (!catN) continue;
+      if (fixedCategoryN && catN !== fixedCategoryN) continue;
+      for (const age of VALID_AGE_BANDS_LIST) {
+        if (fixedAgeBand && age !== fixedAgeBand) continue;
+        candidates.push({
+          categoryN: catN,
+          ageBand: age,
+          count: counts.get(`${catN}|${age}`) || 0,
+        });
+      }
+    }
+    if (!candidates.length) return null;
+    const min = Math.min(...candidates.map((item) => item.count));
+    const tied = candidates.filter((item) => item.count === min);
+    return tied[Math.floor(Math.random() * tied.length)];
+  }
+
   global.QuestionBank = {
     isConfigured,
     stripTags,
     hashQuestionKey,
     questionHash,
     hasValidMcOptions,
+    getCoverage,
+    pickSparseTarget,
     collectLocalStorageQuestions,
     importFromLocalStorage,
     pick,

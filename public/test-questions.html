@@ -117,7 +117,7 @@
 <body>
   <div class="wrap">
     <h1>🧪 Teste de Perguntas</h1>
-    <p class="sub">Gera com IA, valida com o motor e dá feedback para melhorar regras.</p>
+    <p class="sub">Gera com IA, valida com o motor, alimenta o banco Supabase e dá feedback para melhorar regras.</p>
     <div class="nav-links">
       <a href="/">← Jogo</a>
       <a href="/test-ai.html">Teste IA</a>
@@ -151,9 +151,7 @@
         <div>
           <label for="answerMode">Modo resposta</label>
           <select id="answerMode">
-            <option value="random" selected>🎲 Aleatório</option>
-            <option value="mc">Escolha múltipla</option>
-            <option value="open">Resposta aberta</option>
+            <option value="mc" selected>Escolha múltipla</option>
           </select>
         </div>
         <div>
@@ -262,15 +260,18 @@
     </details>
   </div>
 
-  <script src="question-engine.js?v=20260829-174108"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <script src="supabase-config.js?v=20260830-195800"></script>
+  <script src="question-bank.js?v=20260830-195800"></script>
+  <script src="question-engine.js?v=20260830-161700"></script>
   <script>
   (function () {
     'use strict';
     const QE = window.QuestionEngine;
     const FEEDBACK_KEY = 'reino_magico_engine_feedback';
     const AGES = ['6-9', '10-15', '15+'];
-    const MODES = ['mc', 'open'];
-    const MODE_LABELS = { mc: 'Escolha múltipla', open: 'Resposta aberta' };
+    const MODES = ['mc'];
+    const MODE_LABELS = { mc: 'Escolha múltipla' };
 
     if (!QE) {
       document.body.innerHTML = '<p style="color:#f4a6a8;padding:24px;">question-engine.js não carregou.</p>';
@@ -351,18 +352,42 @@
       return `${s}. Verdadeiro ou Falso?`;
     }
 
-    /** Resolve aleatórios para valores concretos */
-    function resolveConfig() {
+    /** Resolve aleatórios; prioriza categoria/faixa com menos perguntas no Supabase */
+    async function resolveConfig() {
       const catVal = $('cat').value;
       const ageVal = $('age').value;
       const modeVal = $('answerMode').value;
       const diffVal = $('difficulty').value;
 
-      const ageBandKey = ageVal === 'random' ? pickRandom(AGES) : ageVal;
+      const catRandom = catVal === 'random';
+      const ageRandom = ageVal === 'random';
+      let cat;
+      let ageBandKey;
+      let sparseNote = '';
+
+      if (catRandom || ageRandom) {
+        const sparse = window.QuestionBank?.pickSparseTarget
+          ? await window.QuestionBank.pickSparseTarget(CATEGORIES, {
+            fixedCategoryN: catRandom ? null : Number(catVal),
+            fixedAgeBand: ageRandom ? null : ageVal,
+          })
+          : null;
+        if (sparse) {
+          cat = CATEGORIES.find((c) => c.n === sparse.categoryN) || pickRandom(CATEGORIES);
+          ageBandKey = sparse.ageBand;
+          sparseNote = ` · banco: ${sparse.count} nesta célula`;
+        } else {
+          ageBandKey = ageRandom ? pickRandom(AGES) : ageVal;
+          cat = catRandom
+            ? pickRandom(CATEGORIES)
+            : (CATEGORIES.find((c) => c.n === Number(catVal)) || CATEGORIES[0]);
+        }
+      } else {
+        ageBandKey = ageVal;
+        cat = CATEGORIES.find((c) => c.n === Number(catVal)) || CATEGORIES[0];
+      }
+
       const answerMode = modeVal === 'random' ? pickRandom(MODES) : modeVal;
-      const cat = catVal === 'random'
-        ? pickRandom(CATEGORIES)
-        : (CATEGORIES.find((c) => c.n === Number(catVal)) || CATEGORIES[0]);
 
       let difficulty;
       if (diffVal === 'random') {
@@ -371,7 +396,7 @@
         difficulty = Number(diffVal);
       }
 
-      return { cat, ageBandKey, answerMode, difficulty };
+      return { cat, ageBandKey, answerMode, difficulty, sparseNote };
     }
 
     function resolveFormat(catN, ageBandKey, answerMode) {
@@ -397,8 +422,11 @@
     }
 
     function onConfigChange() {
-      const resolved = resolveConfig();
-      populateFormatSelect(resolved.cat.n, resolved.ageBandKey, resolved.answerMode);
+      const catVal = $('cat').value;
+      const ageVal = $('age').value;
+      const catN = catVal === 'random' ? (CATEGORIES[0]?.n || 1) : Number(catVal);
+      const ageBandKey = ageVal === 'random' ? AGES[0] : ageVal;
+      populateFormatSelect(catN, ageBandKey, 'mc');
     }
 
     function updateStats() {
@@ -435,23 +463,29 @@
     }
 
     function buildValidationCtx(overrides = {}) {
-      const r = lastResolved || resolveConfig();
-      const formatId = overrides.formatId || r.formatId || resolveFormat(r.cat.n, r.ageBandKey, r.answerMode);
+      const r = lastResolved;
+      const catVal = $('cat').value;
+      const ageVal = $('age').value;
+      const cat = r?.cat || (catVal === 'random'
+        ? CATEGORIES[0]
+        : (CATEGORIES.find((c) => c.n === Number(catVal)) || CATEGORIES[0]));
+      const ageBandKey = r?.ageBandKey || (ageVal === 'random' ? AGES[0] : ageVal);
+      const formatId = overrides.formatId || r?.formatId || resolveFormat(cat.n, ageBandKey, 'mc');
       const { isMC } = buildParsedFromForm();
       const useSession = $('accumulate-history').checked;
       return {
         formatId,
-        ageBandKey: r.ageBandKey,
-        categoryNumber: r.cat.n,
-        difficulty: r.difficulty,
+        ageBandKey,
+        categoryNumber: cat.n,
+        difficulty: r?.difficulty || Number($('difficulty').value) || 3,
         minQualityScore: 0,
         usedQuestions: useSession ? session.usedQuestions : [],
         usedAnswers: useSession ? session.usedAnswers : [],
         usedKnowledgeKeys: useSession ? session.usedKnowledgeKeys : [],
-        persistentKnowledgeKeys: QE.getPersistentSlice(r.ageBandKey).knowledgeKeys || [],
+        persistentKnowledgeKeys: QE.getPersistentSlice(ageBandKey).knowledgeKeys || [],
         isMC: overrides.isMC ?? isMC,
         stripTags, normalizeFn: normalizeQ,
-        helpers: { stripTags, validateTrueFalseQuestion, ageBandKey: r.ageBandKey },
+        helpers: { stripTags, validateTrueFalseQuestion, ageBandKey },
         ...overrides,
       };
     }
@@ -470,7 +504,7 @@
       lastResolved = resolved;
 
       const modeLabel = MODE_LABELS[resolved.answerMode] || resolved.answerMode;
-      $('resolved-line').innerHTML = `<strong>${escapeHtml(resolved.cat.name)}</strong> · ${resolved.ageBandKey} · ${modeLabel} · dif. ${resolved.difficulty} · <em>${escapeHtml(QE.FORMAT_LABELS[resolved.formatId] || resolved.formatId)}</em>`;
+      $('resolved-line').innerHTML = `<strong>${escapeHtml(resolved.cat.name)}</strong> · ${resolved.ageBandKey} · ${modeLabel} · dif. ${resolved.difficulty} · <em>${escapeHtml(QE.FORMAT_LABELS[resolved.formatId] || resolved.formatId)}</em>${escapeHtml(resolved.sparseNote || '')}`;
 
       $('q-preview').textContent = parsed.q || '';
       $('a-preview').textContent = parsed.a ? `→ ${parsed.a}` : '';
@@ -571,8 +605,29 @@
       }).filter(Boolean).join('\n');
     }
 
+    async function saveAcceptedToBank(parsed, resolved, formatId, knowledgeKey) {
+      const QB = window.QuestionBank;
+      if (!QB?.isConfigured?.() || !QB.hasValidMcOptions?.(parsed.options, formatId, parsed.a)) return null;
+      try {
+        return await QB.save({
+          categoryN: resolved.cat.n,
+          ageBand: resolved.ageBandKey,
+          question: parsed.q,
+          correctAnswer: parsed.a,
+          options: parsed.options,
+          format: formatId,
+          knowledgeKey,
+          questionHash: QB.questionHash(parsed.q, parsed.a),
+          source: 'test-page',
+        });
+      } catch (err) {
+        console.warn('[test-questions] save bank falhou:', err);
+        return null;
+      }
+    }
+
     async function generateOne() {
-      const resolved = resolveConfig();
+      const resolved = await resolveConfig();
       const { cat, ageBandKey, answerMode, difficulty } = resolved;
       const formatId = resolveFormat(cat.n, ageBandKey, answerMode);
       resolved.formatId = formatId;
@@ -580,7 +635,7 @@
       resolved.subtopic = subtopic;
 
       const isTrueFalse = formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO;
-      const isMC = answerMode === 'mc' && (isTrueFalse || formatId === QE.FORMAT_IDS.ESCOLHA_MULTIPLA);
+      const isMC = answerMode === 'mc' || isTrueFalse || formatId === QE.FORMAT_IDS.ESCOLHA_MULTIPLA;
       const persistent = QE.getPersistentSlice(ageBandKey);
       const maxAttempts = QE.ENGINE_CONFIG?.MAX_RETRIES || 5;
       let lastIssues = [];
@@ -636,6 +691,8 @@
           parsed.options = QE.shuffleMcOptions(
             QE.assembleMcOptions(parsed.a, parsed.distractors), parsed.a, normalizeQ, session.recentMcPositions,
           );
+        } else if (isMC && isTrueFalse && (!Array.isArray(parsed.options) || parsed.options.length < 2)) {
+          parsed.options = ['Verdadeiro', 'Falso'];
         }
 
         const ctx = buildValidationCtx({ formatId, isMC, difficulty });
@@ -649,9 +706,13 @@
           showResult(result, parsed, resolved);
           rememberAccepted(parsed, result, { formatId, difficulty, subtopic });
           addLogEntry(parsed, result, resolved);
+          const bankSave = await saveAcceptedToBank(parsed, resolved, formatId, result.knowledgeKey);
           QE.persistQuestion(ageBandKey, parsed.q, parsed.a, normalizeQ, {
             category: cat.n, format: formatId, knowledgeKey: result.knowledgeKey, difficulty, subtopic,
           });
+          if (bankSave?.ok || bankSave?.reason === 'exists') {
+            $('gen-status').textContent += bankSave.reason === 'exists' ? ' · Já no banco Supabase.' : ' · Guardada no banco Supabase.';
+          }
           return { parsed, result, resolved };
         }
         lastIssues = result.issues || ['validação falhou'];
@@ -728,10 +789,11 @@
     $('btn-generate').addEventListener('click', () => runBatch(1));
     $('btn-generate-5').addEventListener('click', () => runBatch(5));
     $('btn-stop').addEventListener('click', () => { stopBatch = true; });
-    $('btn-validate-manual').addEventListener('click', () => {
+    $('btn-validate-manual').addEventListener('click', async () => {
       const { parsed, isMC } = buildParsedFromForm();
       const ctx = buildValidationCtx({ isMC });
-      showResult(validateParsed(parsed, ctx), parsed, lastResolved || resolveConfig());
+      const resolved = lastResolved || await resolveConfig();
+      showResult(validateParsed(parsed, ctx), parsed, resolved);
     });
     document.querySelectorAll('#verdict-btns button').forEach((btn) => {
       btn.addEventListener('click', () => {

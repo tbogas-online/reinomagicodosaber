@@ -369,6 +369,38 @@ BEGIN
 END;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- RPC: cobertura por categoria/faixa (cliente — teste de perguntas)
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_question_bank_coverage()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+  RETURN COALESCE((
+    SELECT jsonb_agg(
+      jsonb_build_object(
+        'category_n', t.category_n,
+        'age_band', t.age_band,
+        'count', t.cnt
+      ) ORDER BY t.cnt ASC, t.category_n, t.age_band
+    )
+    FROM (
+      SELECT qb.category_n, qb.age_band, COUNT(*)::INT AS cnt
+      FROM public.question_bank qb
+      WHERE qb.is_reported = false
+        AND public.reino_has_valid_mc_options(qb.options, qb.format, qb.correct_answer)
+      GROUP BY qb.category_n, qb.age_band
+    ) t
+  ), '[]'::jsonb);
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_question_bank_coverage() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_question_bank_coverage() TO anon, authenticated;
+
 REVOKE ALL ON FUNCTION public.get_question_bank_stats() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_question_bank_stats() TO service_role;
 REVOKE ALL ON FUNCTION public.purge_question_bank_without_options() FROM PUBLIC;
