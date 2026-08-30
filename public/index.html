@@ -46,6 +46,10 @@
     --quota-warn: #fde68a;
     --quota-err: #fca5a5;
     --surprise-card-bg: linear-gradient(160deg, rgba(192,99,47,0.18), rgba(125,91,196,0.10));
+    --mp-content-width: 17rem;
+  }
+  body:has(#screen-mp-lobby.active){
+    --mp-content-width: 20rem;
   }
   :root[data-theme="day"]{
     --night: #f4eed8;
@@ -1447,12 +1451,22 @@
   .cat-list{
     display:flex; flex-direction:column; gap:8px;
     margin-bottom: 4px;
+    width: 100%;
+    max-width: var(--mp-content-width, 17rem);
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
   }
   .cat-list-surprise{
     display:flex; align-items:center; gap:14px;
     margin-top: 8px; padding: 10px 14px;
     border-radius: 10px;
     background: rgba(var(--parchment-rgb),0.05);
+    width: 100%;
+    max-width: var(--mp-content-width, 17rem);
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
   }
   .modal-row{
     display:flex; align-items:center; gap:14px;
@@ -1665,8 +1679,8 @@
       font-size: clamp(20px, 5.4vw, 26px);
       margin-bottom: 14px;
     }
-    #screen-game .row{ width: 100%; }
-    #screen-game .row .btn{ width: 100%; max-width: 17rem; }
+    #screen-game .row{ width: 100%; max-width: var(--mp-content-width, 17rem); margin-left: auto; margin-right: auto; }
+    #screen-game .row .btn{ width: 100%; max-width: 100%; }
     #screen-loading > h2{
       font-size: 1.25rem !important;
       margin-bottom: 8px;
@@ -2316,14 +2330,13 @@
   }
   .mp-game-bar{
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    justify-content: center;
-    gap: 10px 14px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
     width: 100%;
-    max-width: 28rem;
-    padding: 8px 14px;
-    border-radius: 999px;
+    max-width: var(--mp-content-width, 17rem);
+    padding: 10px 12px;
+    border-radius: 12px;
     background: var(--surface-glass);
     border: 1px solid rgba(var(--gold-rgb), 0.45);
     font-family: 'Cinzel', serif;
@@ -2331,6 +2344,14 @@
     color: var(--gold-bright);
     letter-spacing: 0.06em;
     overflow: visible;
+    box-sizing: border-box;
+  }
+  .mp-game-bar-row{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px 10px;
   }
   .mp-game-bar[hidden]{ display: none !important; }
   .mp-game-bar-code{
@@ -2353,12 +2374,13 @@
     gap: 6px;
     flex-wrap: wrap;
     justify-content: center;
+    width: 100%;
   }
   .mp-share-btn{
     border: 1px solid rgba(var(--gold-rgb), 0.35);
     background: rgba(var(--night-rgb), 0.35);
     color: var(--parchment);
-    border-radius: 999px;
+    border-radius: 8px;
     padding: 6px 12px;
     font-family: 'Cinzel', serif;
     font-size: 0.72rem;
@@ -2684,6 +2706,7 @@
 
 <footer class="page-footer-chrome" id="page-footer-chrome">
 <div class="mp-game-bar" id="mp-game-bar" hidden>
+  <div class="mp-game-bar-row">
   <div class="mp-game-bar-code">
     <span class="mp-game-bar-label">Sala</span>
     <span class="mp-game-bar-value" id="mp-game-room-code">----</span>
@@ -2704,6 +2727,7 @@
       <input type="text" id="mp-game-nick-input" maxlength="24" placeholder="O teu nome" autocomplete="nickname">
       <button type="button" class="mp-nick-save" id="mp-game-nick-save">Guardar</button>
     </div>
+  </div>
   </div>
   <div class="mp-game-bar-actions">
     <button type="button" class="mp-share-btn" id="mp-game-menu-btn" title="Voltar ao menu (mantém-te na sala)">🏠 Menu</button>
