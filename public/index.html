@@ -2045,6 +2045,99 @@
     color: var(--ink);
     font-weight: 600;
   }
+  .mp-code-display{
+    font-family: 'Cinzel', serif;
+    font-size: 2.4rem;
+    letter-spacing: 0.35em;
+    color: var(--gold-bright);
+    margin: 12px 0 20px;
+    text-align: center;
+  }
+  .mp-players-list{
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px;
+    width: 100%;
+    max-width: 20rem;
+  }
+  .mp-player-row{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    border-radius: 10px;
+    background: var(--card-bg);
+    border: 1px solid rgba(var(--gold-rgb), 0.25);
+  }
+  .mp-player-row.offline{ opacity: 0.55; }
+  .mp-player-status{ color: var(--teal); font-size: 0.75rem; }
+  .mp-error{
+    color: var(--quota-err);
+    font-size: 0.95rem;
+    margin: 8px 0;
+    text-align: center;
+  }
+  .mp-host-badge{
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(var(--gold-rgb), 0.2);
+    color: var(--gold-bright);
+    font-size: 0.85rem;
+    margin-bottom: 10px;
+  }
+  .history-game-card{
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    width: 100%;
+    max-width: 22rem;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    border-radius: 12px;
+    border: 1px solid rgba(var(--gold-rgb), 0.3);
+    background: var(--card-bg);
+    color: var(--parchment);
+    cursor: pointer;
+    font: inherit;
+    text-align: left;
+  }
+  .history-game-card span{ font-size: 0.9rem; opacity: 0.85; }
+  .history-round-card{
+    width: 100%;
+    max-width: 22rem;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+    border-radius: 10px;
+    background: rgba(0,0,0,0.15);
+    border: 1px solid rgba(var(--gold-rgb), 0.2);
+    text-align: left;
+  }
+  .history-round-meta{ font-size: 0.85rem; opacity: 0.8; margin-bottom: 6px; }
+  .history-q{ margin: 0 0 8px; }
+  .history-a{ margin: 0; font-size: 0.95rem; }
+  .mp-waiting-hint{
+    font-size: 0.95rem;
+    opacity: 0.85;
+    margin: 8px 0 16px;
+    text-align: center;
+  }
+  .field-input{
+    width: 100%;
+    max-width: 16rem;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid rgba(var(--gold-rgb), 0.4);
+    background: rgba(0,0,0,0.2);
+    color: var(--parchment);
+    font: inherit;
+    font-size: 1.1rem;
+    text-align: center;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
 </style>
 
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -2081,10 +2174,66 @@
     <div class="divider"></div>
     <div class="stack">
       <button class="btn" id="btn-novo-jogo">✨ Novo Jogo</button>
+      <button class="btn secondary" id="btn-mp-create">👥 Criar sala</button>
+      <button class="btn secondary" id="btn-mp-join">🔗 Entrar com código</button>
+      <button class="btn secondary" id="btn-history">📚 Histórico de partidas</button>
       <button class="btn secondary" id="btn-continuar" disabled title="Ainda não há jogo em curso">📜 Continuar</button>
       <button class="btn secondary" id="btn-definicoes">⚙️ Definições</button>
     </div>
     <button class="game-about-btn" id="gameAboutButton" type="button" aria-label="Sobre o jogo">ⓘ Sobre</button>
+  </section>
+
+  <!-- MULTIJOGADOR — ENTRAR -->
+  <section class="screen" id="screen-mp-join">
+    <div class="emoji" style="font-size:44px;">🔗</div>
+    <h2>Entrar na sala</h2>
+    <p class="subtitle">Introduz o código que o anfitrião partilhou</p>
+    <div class="stack" style="gap:12px; align-items:center;">
+      <input class="field-input" id="mp-join-code" type="text" maxlength="6" placeholder="AB12" autocomplete="off" inputmode="text">
+      <input class="field-input" id="mp-join-nick" type="text" maxlength="24" placeholder="Alcunha (opcional)" autocomplete="nickname" style="letter-spacing:0; text-transform:none;">
+      <p class="mp-error" id="mp-join-error" hidden></p>
+      <button class="btn" id="mp-join-submit" type="button">Entrar</button>
+      <button class="btn ghost" type="button" data-mp-back>← Voltar ao menu</button>
+    </div>
+  </section>
+
+  <!-- MULTIJOGADOR — SALA DE ESPERA -->
+  <section class="screen" id="screen-mp-lobby">
+    <div class="emoji" style="font-size:44px;">🏰</div>
+    <h2>Sala multijogador</h2>
+    <p class="subtitle">Partilha este código com os outros dispositivos</p>
+    <div class="mp-code-display" id="mp-room-code">----</div>
+    <span class="mp-host-badge" id="mp-host-badge" hidden>👑 És o anfitrião</span>
+    <ul class="mp-players-list" id="mp-players-list"></ul>
+    <p class="mp-error" id="mp-lobby-error" hidden></p>
+    <div class="stack" style="gap:10px;">
+      <button class="btn" id="mp-btn-start" type="button" hidden>▶ Iniciar jogo</button>
+      <button class="btn secondary" id="mp-btn-leave" type="button">Sair da sala</button>
+      <button class="btn ghost" type="button" data-mp-back>← Menu</button>
+    </div>
+  </section>
+
+  <!-- CONFIG SUPABASE -->
+  <section class="screen" id="screen-mp-config">
+    <div class="emoji" style="font-size:44px;">⚙️</div>
+    <h2>Multijogador</h2>
+    <p class="subtitle" style="max-width:22rem;">Para usar salas em vários dispositivos, configura o Supabase em <code>public/supabase-config.js</code> e executa <code>supabase/schema.sql</code> no teu projecto.</p>
+    <button class="btn ghost" type="button" data-mp-back style="margin-top:20px;">← Voltar</button>
+  </section>
+
+  <!-- HISTÓRICO DE PARTIDAS -->
+  <section class="screen" id="screen-history">
+    <div class="emoji" style="font-size:44px;">📚</div>
+    <h2>Histórico de partidas</h2>
+    <p class="subtitle">Perguntas e respostas das tuas partidas anteriores</p>
+    <select id="history-filter" class="field-input" style="letter-spacing:0; text-transform:none; margin-bottom:16px;">
+      <option value="all">Todas</option>
+      <option value="single">Individual</option>
+      <option value="multiplayer">Multijogador</option>
+    </select>
+    <div id="history-games-list" class="stack" style="align-items:center;"></div>
+    <div id="history-detail" hidden class="stack" style="align-items:center; width:100%;"></div>
+    <button class="btn ghost" type="button" data-mp-back style="margin-top:20px;">← Menu</button>
   </section>
 
   <!-- DEFINIÇÕES -->
@@ -2263,6 +2412,11 @@
 </div>
 </footer>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script src="supabase-config.js?v=20260829-174108"></script>
+<script src="game-history.js?v=20260829-174108"></script>
+<script src="multiplayer-sync.js?v=20260829-174108"></script>
+<script src="multiplayer-controller.js?v=20260829-174108"></script>
 <script src="question-engine.js?v=20260829-174108" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -3657,6 +3811,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     loading: document.getElementById('screen-loading'),
     game: document.getElementById('screen-game'),
     question: document.getElementById('screen-question'),
+    'mp-join': document.getElementById('screen-mp-join'),
+    'mp-lobby': document.getElementById('screen-mp-lobby'),
+    'mp-config': document.getElementById('screen-mp-config'),
+    history: document.getElementById('screen-history'),
   };
   let currentScreenId = 'menu';
 
@@ -3744,14 +3902,14 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     currentScreenId = id;
     Object.values(screens).forEach(s => s.classList.remove('active'));
     screens[id].classList.add('active');
-    if(id === 'menu' || id === 'game' || id === 'loading' || id === 'age' || id === 'question'){
+    if(id === 'menu' || id === 'game' || id === 'loading' || id === 'age' || id === 'question' || id === 'mp-join' || id === 'mp-lobby' || id === 'mp-config' || id === 'history'){
       clearSettingsQueryFromUrl();
     }
     const showCategoryBar = id === 'age' || id === 'question';
     const isSettingsLike = id === 'settings';
     const isScrollScreen = id === 'loading';
     const isGameScreen = id === 'game';
-    const isCenterStage = id === 'menu' || id === 'age';
+    const isCenterStage = id === 'menu' || id === 'age' || id === 'mp-join' || id === 'mp-lobby' || id === 'mp-config' || id === 'history';
     document.body.classList.toggle('center-stage-active', isCenterStage);
     document.body.classList.toggle('game-screen-active', isGameScreen);
     document.body.classList.toggle('settings-screen-active', isSettingsLike);
@@ -3775,8 +3933,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       refreshSettingsBuildInfo();
       refreshSettingsUI();
     }
-    if(id === 'question' || id === 'age' || id === 'game' || id === 'settings'){
+    if(id === 'question' || id === 'age' || id === 'game' || id === 'settings' || id === 'history' || id === 'mp-join' || id === 'mp-lobby'){
       window.scrollTo(0, 0);
+    }
+    if(id === 'game'){
+      syncMultiplayerControls();
     }
     if(id === 'question'){
       requestAnimationFrame(setupCountdownCompactScroll);
@@ -4275,9 +4436,135 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     );
   }
 
+  function getSettingsSnapshot(){
+    return {
+      countdownSeconds: TIME_OPTIONS[countdownIndex],
+      answerMode,
+      categoryMode,
+      selectedCategoryIds: [...selectedCategoryIds],
+      aiProviderChoice,
+      aiModelChoice,
+    };
+  }
+
+  function syncMultiplayerControls(){
+    const mp = window.MultiplayerController;
+    const isMp = mp?.isMultiplayer?.();
+    const canCtrl = !isMp || mp.canControl?.();
+    const rollBtn = document.getElementById('btn-roll');
+    if(rollBtn) rollBtn.disabled = isMp && !canCtrl;
+    document.querySelectorAll('.age-btn').forEach((btn) => {
+      btn.disabled = isMp && !canCtrl;
+    });
+    let hint = document.getElementById('mp-client-hint');
+    if(isMp && !canCtrl){
+      if(!hint){
+        hint = document.createElement('p');
+        hint.id = 'mp-client-hint';
+        hint.className = 'mp-waiting-hint';
+        hint.textContent = '👀 A seguir o anfitrião — aguarda a sua acção…';
+        document.getElementById('screen-game')?.querySelector('footer')?.prepend(hint);
+      }
+      hint.hidden = false;
+    } else if(hint){
+      hint.hidden = true;
+    }
+  }
+
+  async function displayQuestionFromState(cat, isSurprise, ageBand, question){
+    const requestId = ++questionRequestSeq;
+    selectedAgeBand = ageBand;
+    lastCategory = cat;
+    lastIsSurprise = isSurprise;
+    updateQuestionCategoryHeader(cat, isSurprise, ageBand);
+    updateQuestionSourceDebug(null);
+    document.getElementById('q-text').textContent = 'A convocar a pergunta do Reino… ✦';
+    document.getElementById('q-answer-text').textContent = '';
+    document.getElementById('q-answer').style.display = 'none';
+    document.getElementById('btn-mostrar-resposta').style.display = 'none';
+    const optionsBox = document.getElementById('q-options');
+    optionsBox.innerHTML = '';
+    optionsBox.style.display = 'none';
+    resetSaberMais();
+    setReportButtonVisible(false);
+    lastSelectedAnswer = null;
+    countdownPaused = false;
+    countdownRemaining = null;
+    stopQuestionCountdown();
+    showScreen('question');
+    if(requestId !== questionRequestSeq) return;
+    currentQuestion = question;
+    updateQuestionSourceDebug(question);
+    setReportButtonVisible(true);
+    document.getElementById('q-text').innerHTML = question.q;
+    document.getElementById('q-answer-text').innerHTML = question.a;
+    if(questionUsesMcOptions(question)){
+      renderOptions(question);
+    } else {
+      document.getElementById('btn-mostrar-resposta').style.display = 'inline-block';
+      document.getElementById('btn-mostrar-resposta').textContent = '👁️ Mostrar Resposta';
+    }
+    startQuestionCountdown();
+  }
+
+  function showDiceResultOnScreen(d1, d2, cat, surprise){
+    SFX.diceLand();
+    const sum = d1 + d2;
+    document.getElementById('sum-line').innerHTML = `${d1} + ${d2} = <b>${sum}</b>`;
+    lastCategory = cat;
+    lastIsSurprise = surprise;
+    selectedAgeBand = null;
+    renderResultCard();
+    focusDiceRollResult(sum);
+    const btn = document.getElementById('btn-roll');
+    btn.disabled = false;
+    btn.textContent = '🎲 Lançar Novamente';
+    syncMultiplayerControls();
+  }
+
   function bootAfterQuestionEngine(){
     warnIfQuestionEngineMissing();
     maybeOpenAiSettingsFromUrl();
+    if(window.MultiplayerController){
+      window.MultiplayerController.bindGame({
+        CATEGORIES,
+        showScreen,
+        getSettingsSnapshot,
+        assignCategoriesForNewGame,
+        startGameClock,
+        fillCategoryList,
+        resetGameScreen,
+        resetGameScreenPartial(){
+          document.getElementById('sum-line').innerHTML = '';
+          const card = document.getElementById('result-card');
+          card.style.display = 'none';
+        },
+        getGameCategoryMap: () => gameCategoryMap,
+        setGameCategoryMap: (map) => { gameCategoryMap = map; },
+        getRemainingCategories: () => remainingCategories,
+        setRemainingCategories: (arr) => { remainingCategories = arr; },
+        getLastCategory: () => lastCategory,
+        setLastCategory: (cat, surprise) => { lastCategory = cat; lastIsSurprise = surprise; },
+        getLastIsSurprise: () => lastIsSurprise,
+        getSelectedAgeBand: () => selectedAgeBand,
+        setSelectedAgeBand: (band) => { selectedAgeBand = band; },
+        getCurrentQuestion: () => currentQuestion,
+        setCurrentQuestion: (q) => { currentQuestion = q; },
+        showDiceResult: showDiceResultOnScreen,
+        displayQuestion: displayQuestionFromState,
+        applySettings(settings){
+          if(!settings) return;
+          if(settings.countdownSeconds){
+            const idx = TIME_OPTIONS.indexOf(settings.countdownSeconds);
+            if(idx >= 0) countdownIndex = idx;
+          }
+          if(settings.answerMode) answerMode = settings.answerMode;
+          if(settings.categoryMode) categoryMode = settings.categoryMode;
+          if(settings.selectedCategoryIds) selectedCategoryIds = new Set(settings.selectedCategoryIds);
+        },
+      });
+      window.MultiplayerController.init();
+    }
   }
 
   if(window.QuestionEngine){
@@ -4301,6 +4588,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   document.getElementById('btn-novo-jogo').onclick = () => {
     clearSettingsQueryFromUrl();
     if(currentScreenId !== 'menu') showScreen('menu');
+    window.MultiplayerController?.onSinglePlayerStart?.();
     assignCategoriesForNewGame();
     startGameClock();
     runCategoryChoosingAnimation();
@@ -4341,15 +4629,23 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     resetGameScreen();
     showScreen('game');
   };
-  document.getElementById('btn-game-back').onclick = () => {
+  document.getElementById('btn-game-back').onclick = async () => {
+    if(window.MultiplayerController?.isMultiplayer?.()){
+      if(window.GameHistory?.getCurrentGame()?.mode === 'multiplayer') window.GameHistory.finishGame();
+      await window.MultiplayerSync?.leaveRoom?.();
+    }
     resetGameScreen();
     showScreen('menu');
   };
 
   document.querySelectorAll('.age-btn').forEach(btn => {
-    btn.onclick = () => {
+    btn.onclick = async () => {
+      if(window.MultiplayerController?.isMultiplayer?.() && !window.MultiplayerController.canControl?.()) return;
       SFX.select();
       selectedAgeBand = btn.dataset.age;
+      if(window.MultiplayerController?.isMultiplayer?.()){
+        await window.MultiplayerController.hostSelectAge(selectedAgeBand);
+      }
       showQuestion(lastCategory, lastIsSurprise, selectedAgeBand);
     };
   });
@@ -4435,7 +4731,17 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     document.getElementById('countdown-num').textContent = '';
     showScreen('question');
 
-    const question = await generateQuestion(cat, ageBand);
+    let question;
+    const mp = window.MultiplayerController;
+    if(mp?.isMultiplayer?.() && !mp.isHost?.()){
+      question = currentQuestion;
+      if(!question) return;
+    } else {
+      question = await generateQuestion(cat, ageBand);
+      if(mp?.isMultiplayer?.() && mp.isHost?.()){
+        await mp.hostQuestionReady(cat, isSurprise, ageBand, question);
+      }
+    }
     if(requestId !== questionRequestSeq) return;
 
     currentQuestion = question;
@@ -4495,6 +4801,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
     document.getElementById('q-answer').style.display = 'block';
     focusAnswerPanel();
+    if(!window.MultiplayerController?.isMultiplayer?.()){
+      window.MultiplayerController?.onAnswerRevealed?.();
+    }
   }
 
   function resetSaberMais(){
@@ -4618,6 +4927,9 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     document.getElementById('q-answer').style.display = 'block';
     document.getElementById('btn-mostrar-resposta').style.display = 'none';
     focusAnswerPanel();
+    if(!window.MultiplayerController?.isMultiplayer?.()){
+      window.MultiplayerController?.onAnswerRevealed?.();
+    }
   }
 
   document.getElementById('btn-mostrar-resposta').onclick = () => {
@@ -4992,6 +5304,10 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
 
   document.getElementById('btn-voltar-categorias').onclick = () => {
     stopQuestionCountdown();
+    if(window.MultiplayerController?.isMultiplayer?.()){
+      window.MultiplayerController.hostBackToCategories();
+      return;
+    }
     resetGameScreen();
     showScreen('game');
   };
@@ -5058,6 +5374,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
   // Escolha manual: usada tanto para o dado virtual como para quando se
   // usa um dado físico e se toca na categoria correspondente à soma saída.
   function selectCategoryBySum(sum){
+    if(window.MultiplayerController?.isMultiplayer?.() && !window.MultiplayerController.canControl?.()) return;
     if(sum === 12){
       lastCategory = remainingCategories[Math.floor(Math.random()*remainingCategories.length)];
       lastIsSurprise = true;
@@ -5076,6 +5393,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
   }
 
   document.getElementById('btn-roll').onclick = () => {
+    if(window.MultiplayerController?.isMultiplayer?.() && !window.MultiplayerController.canControl?.()) return;
     const btn = document.getElementById('btn-roll');
     const sumLine = document.getElementById('sum-line');
     const card = document.getElementById('result-card');
@@ -5095,6 +5413,10 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
   };
 
   function finishRoll(d1, d2){
+    if(window.MultiplayerController?.isMultiplayer?.()){
+      window.MultiplayerController.hostRollDice(d1, d2);
+      return;
+    }
     SFX.diceLand();
     const sum = d1 + d2;
     document.getElementById('sum-line').innerHTML = `${d1} + ${d2} = <b>${sum}</b>`;
@@ -5133,8 +5455,16 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
 
   document.getElementById('row-surprise').addEventListener('click', () => selectCategoryBySum(12));
 
-  document.getElementById('result-card').addEventListener('click', () => {
+  document.getElementById('result-card').addEventListener('click', async () => {
     if(!lastCategory) return;
+    if(window.MultiplayerController?.isMultiplayer?.()){
+      if(!window.MultiplayerController.canControl()) return;
+      await window.MultiplayerController.pushState({
+        screen: 'age',
+        lastCategory: window.MultiplayerController.serializeCategory(lastCategory),
+        lastIsSurprise: lastIsSurprise,
+      });
+    }
     showScreen('age');
   });
 

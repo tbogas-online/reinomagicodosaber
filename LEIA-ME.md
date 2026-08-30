@@ -36,6 +36,17 @@ Em qualquer uma delas, o jogo chama sempre `/api/generate` e podes configurar **
 - Gate **binário**: qualquer issue reprova; score 0–100 é só diagnóstico (UI/testes).
 - **Novo Jogo** limpa histórico de sessão (perguntas, respostas, formatos, knowledgeKeys, posições MC).
 
+### Multijogador e histórico de partidas
+
+- **Individual:** histórico de partidas em `localStorage` (`reino_magico_game_history_v1`) — menu **📚 Histórico de partidas**.
+- **Multijogador:** salas sincronizadas via **Supabase Realtime** (vários dispositivos, mesmo estado).
+- **Configuração Supabase:**
+  1. Criar projecto em [supabase.com](https://supabase.com)
+  2. **Authentication → Providers** → activar **Anonymous sign-ins**
+  3. **SQL Editor** → colar e executar `supabase/schema.sql`
+  4. **Project Settings → API** → copiar URL e `anon` key para `public/supabase-config.js`
+  5. **Database → Replication** → confirmar `rooms` e `room_players` no Realtime
+
 ---
 
 ## Opção A — GitHub + Netlify (recomendado)
