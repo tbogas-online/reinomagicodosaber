@@ -45,6 +45,8 @@ async function getQuestionBankStats() {
   return {
     total: Number(data.total) || 0,
     active: Number(data.active) || 0,
+    validActive: Number(data.validActive) || 0,
+    invalidActive: Number(data.invalidActive) || 0,
     reported: Number(data.reported) || 0,
     blocked: Number(data.blocked) || 0,
     byCategoryAge: Array.isArray(data.byCategoryAge) ? data.byCategoryAge : [],
@@ -52,6 +54,14 @@ async function getQuestionBankStats() {
   };
 }
 
+async function purgeQuestionsWithoutOptions() {
+  const data = await supabaseRpc('purge_question_bank_without_options');
+  return {
+    deleted: Number(data?.deleted) || 0,
+  };
+}
+
 module.exports = {
   getQuestionBankStats,
+  purgeQuestionsWithoutOptions,
 };

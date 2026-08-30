@@ -33,7 +33,45 @@ ALTER TABLE public.question_bank ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.question_bank_blocked ENABLE ROW LEVEL SECURITY;
 
 -- ---------------------------------------------------------------------------
--- RPC: escolher pergunta aleatória (não reportada)
+-- Helper: opções válidas para escolha múltipla (2 = V/F, 4 = MC normal)
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.reino_has_valid_mc_options(
+  p_options JSONB,
+  p_format TEXT,
+  p_correct_answer TEXT
+)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+IMMUTABLE
+AS $$
+DECLARE
+  v_len INT;
+  v_expected INT;
+  v_norm TEXT;
+BEGIN
+  IF p_options IS NULL OR jsonb_typeof(p_options) <> 'array' THEN
+    RETURN FALSE;
+  END IF;
+
+  v_len := jsonb_array_length(p_options);
+  IF v_len < 2 THEN
+    RETURN FALSE;
+  END IF;
+
+  v_norm := lower(trim(regexp_replace(COALESCE(p_correct_answer, ''), '<[^>]*>', '', 'gi')));
+  IF COALESCE(p_format, '') = 'VERDADEIRO_FALSO'
+     OR v_norm IN ('verdadeiro', 'falso') THEN
+    v_expected := 2;
+  ELSE
+    v_expected := 4;
+  END IF;
+
+  RETURN v_len = v_expected;
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- RPC: escolher pergunta aleatória (não reportada, com opções válidas)
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.pick_question_from_bank(
   p_category_n INT,
@@ -62,6 +100,7 @@ BEGIN
       SELECT 1 FROM public.question_bank_blocked b WHERE b.question_hash = qb.question_hash
     )
     AND (p_exclude_hashes IS NULL OR cardinality(p_exclude_hashes) = 0 OR qb.question_hash <> ALL(p_exclude_hashes))
+    AND public.reino_has_valid_mc_options(qb.options, qb.format, qb.correct_answer)
   ORDER BY random()
   LIMIT 1;
 
@@ -120,6 +159,10 @@ BEGIN
       RETURN jsonb_build_object('ok', false, 'reason', 'reported');
     END IF;
     RETURN jsonb_build_object('ok', true, 'reason', 'exists');
+  END IF;
+
+  IF NOT public.reino_has_valid_mc_options(p_options, p_format, p_correct_answer) THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'missing_options');
   END IF;
 
   INSERT INTO public.question_bank (
@@ -204,6 +247,11 @@ BEGIN
       OR item->>'age_band' NOT IN ('6-9', '10-15', '15+')
       OR length(trim(COALESCE(item->>'question', ''))) = 0
       OR length(trim(COALESCE(item->>'correct_answer', ''))) = 0
+      OR NOT public.reino_has_valid_mc_options(
+        item->'options',
+        NULLIF(item->>'format', ''),
+        item->>'correct_answer'
+      )
     THEN
       v_skipped := v_skipped + 1;
       CONTINUE;
@@ -242,6 +290,8 @@ AS $$
 DECLARE
   v_total INT;
   v_active INT;
+  v_valid_active INT;
+  v_invalid_active INT;
   v_reported INT;
   v_blocked INT;
   v_by_category_age JSONB;
@@ -251,6 +301,11 @@ BEGIN
   SELECT COUNT(*) INTO v_active FROM public.question_bank WHERE is_reported = false;
   SELECT COUNT(*) INTO v_reported FROM public.question_bank WHERE is_reported = true;
   SELECT COUNT(*) INTO v_blocked FROM public.question_bank_blocked;
+  SELECT COUNT(*) INTO v_valid_active
+  FROM public.question_bank qb
+  WHERE qb.is_reported = false
+    AND public.reino_has_valid_mc_options(qb.options, qb.format, qb.correct_answer);
+  v_invalid_active := GREATEST(v_active - v_valid_active, 0);
 
   SELECT COALESCE(jsonb_agg(
     jsonb_build_object(
@@ -262,8 +317,9 @@ BEGIN
   INTO v_by_category_age
   FROM (
     SELECT category_n, age_band, COUNT(*)::INT AS cnt
-    FROM public.question_bank
-    WHERE is_reported = false
+    FROM public.question_bank qb
+    WHERE qb.is_reported = false
+      AND public.reino_has_valid_mc_options(qb.options, qb.format, qb.correct_answer)
     GROUP BY category_n, age_band
   ) t;
 
@@ -273,14 +329,17 @@ BEGIN
   INTO v_by_source
   FROM (
     SELECT source, COUNT(*)::INT AS cnt
-    FROM public.question_bank
-    WHERE is_reported = false
+    FROM public.question_bank qb
+    WHERE qb.is_reported = false
+      AND public.reino_has_valid_mc_options(qb.options, qb.format, qb.correct_answer)
     GROUP BY source
   ) t;
 
   RETURN jsonb_build_object(
     'total', v_total,
     'active', v_active,
+    'validActive', v_valid_active,
+    'invalidActive', v_invalid_active,
     'reported', v_reported,
     'blocked', v_blocked,
     'byCategoryAge', v_by_category_age,
@@ -289,8 +348,31 @@ BEGIN
 END;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- RPC: remover perguntas activas sem opções válidas (admin)
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.purge_question_bank_without_options()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_deleted INT;
+BEGIN
+  DELETE FROM public.question_bank qb
+  WHERE qb.is_reported = false
+    AND NOT public.reino_has_valid_mc_options(qb.options, qb.format, qb.correct_answer);
+
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
+  RETURN jsonb_build_object('ok', true, 'deleted', v_deleted);
+END;
+$$;
+
 REVOKE ALL ON FUNCTION public.get_question_bank_stats() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_question_bank_stats() TO service_role;
+REVOKE ALL ON FUNCTION public.purge_question_bank_without_options() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.purge_question_bank_without_options() TO service_role;
 
 GRANT EXECUTE ON FUNCTION public.pick_question_from_bank(INT, TEXT, TEXT[]) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.save_question_to_bank(INT, TEXT, TEXT, TEXT, TEXT, JSONB, TEXT, TEXT, TEXT) TO anon, authenticated;

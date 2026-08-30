@@ -3004,13 +3004,9 @@
           <button class="time-option" data-seconds="90">90s</button>
         </div>
       </div>
-      <div class="settings-row settings-row-column" id="answer-mode-row">
+      <div class="settings-row settings-row-column" id="answer-mode-row" hidden>
         <span class="settings-label">❓ Tipo de pergunta</span>
-        <div class="time-bar" id="answer-mode-bar">
-          <button type="button" class="time-option" data-answer-mode="mc" id="answer-mode-mc">🔤 Escolha múltipla</button>
-          <button type="button" class="time-option" data-answer-mode="open">✍️ Resposta aberta</button>
-        </div>
-        <p class="settings-scroll-hint" id="answer-mode-offline-hint" hidden>Escolha múltipla é o modo por defeito e requer IA online. Sem IA, o jogo usa resposta aberta temporariamente.</p>
+        <p class="settings-scroll-hint" style="margin:0;">Todas as perguntas são apresentadas em <strong>escolha múltipla</strong> (4 opções, ou 2 em Verdadeiro/Falso).</p>
       </div>
       <div class="settings-row settings-row-column">
         <span class="settings-label">🌗 Aparência</span>
@@ -3529,6 +3525,72 @@
     return shuffled([correctAnswer, ...candidates.slice(0, 3)]);
   }
 
+  function parseOptionsArray(raw){
+    if(Array.isArray(raw)) return raw;
+    if(typeof raw === 'string'){
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : null;
+      } catch { /* ignore */ }
+    }
+    return null;
+  }
+
+  function expectedMcOptionCount(format, correctAnswer){
+    const norm = normalizeQ(correctAnswer);
+    if(format === 'VERDADEIRO_FALSO' || norm === 'verdadeiro' || norm === 'falso') return 2;
+    return 4;
+  }
+
+  function hasValidMcOptions(options, format, correctAnswer){
+    const QB = window.QuestionBank;
+    if(QB?.hasValidMcOptions) return QB.hasValidMcOptions(options, format, correctAnswer);
+    const opts = parseOptionsArray(options);
+    if(!opts?.length) return false;
+    const expected = expectedMcOptionCount(format, correctAnswer);
+    const cleaned = opts.map(o => String(o || '').trim()).filter(o => o.length > 0);
+    if(cleaned.length !== expected) return false;
+    const normalized = cleaned.map(normalizeQ);
+    if(new Set(normalized).size !== expected) return false;
+    return normalized.includes(normalizeQ(correctAnswer));
+  }
+
+  function buildTrueFalseOptions(correctAnswer){
+    const norm = normalizeQ(correctAnswer);
+    if(norm !== 'verdadeiro' && norm !== 'falso') return null;
+    return ['Verdadeiro', 'Falso'];
+  }
+
+  function ensureMcOptionsForQuestion(item, categoryNumber, ageBandKey, format){
+    const fmt = format || item.format;
+    const optsFromBank = parseOptionsArray(item.options);
+    if(hasValidMcOptions(optsFromBank, fmt, item.a)){
+      return { ...item, options: optsFromBank };
+    }
+    if(expectedMcOptionCount(fmt, item.a) === 2){
+      const vfOpts = buildTrueFalseOptions(item.a);
+      if(vfOpts) return { ...item, options: vfOpts };
+    }
+    const fallbackOpts = buildFallbackOptions(item.a, categoryNumber, ageBandKey);
+    if(fallbackOpts) return { ...item, options: fallbackOpts };
+    return null;
+  }
+
+  function pickQuestionWithMcOptions(categoryNumber, ageBand, excludeSet){
+    const bank = QUESTIONS[categoryNumber] && QUESTIONS[categoryNumber][ageBand];
+    if(!bank || bank.length === 0) return null;
+    let pool = bank;
+    if(excludeSet && excludeSet.size){
+      const unused = bank.filter(item => !excludeSet.has(normalizeQ(item.q)));
+      if(unused.length > 0) pool = unused;
+    }
+    for(const item of shuffled([...pool])){
+      const withOpts = ensureMcOptionsForQuestion(item, categoryNumber, ageBand, item.format);
+      if(withOpts) return withOpts;
+    }
+    return null;
+  }
+
   function pickQuestion(categoryNumber, ageBand, excludeSet){
     const bank = QUESTIONS[categoryNumber] && QUESTIONS[categoryNumber][ageBand];
     if(!bank || bank.length === 0){
@@ -3564,8 +3626,19 @@
           if(row.question_hash) excludeHashes.push(row.question_hash);
           continue;
         }
-        if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: pergunta encontrada', row);
-        return row;
+        const withOpts = ensureMcOptionsForQuestion(
+          { q: row.q, a: row.a, options: row.options, format: row.format },
+          categoryN,
+          ageBandKey,
+          row.format
+        );
+        if(!withOpts){
+          if(row.question_hash) excludeHashes.push(row.question_hash);
+          if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: pergunta sem opções válidas — ignorada', row.question_hash);
+          continue;
+        }
+        if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: pergunta encontrada', withOpts);
+        return { ...row, options: withOpts.options };
       } catch(err) {
         lastError = err?.message || String(err);
         console.warn('Banco Supabase indisponível:', err);
@@ -3578,43 +3651,51 @@
     return null;
   }
 
-  async function finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine, isMC){
+  async function finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine){
     const bankRow = await tryPickFromQuestionBank(category.n, ageBandKey, usedSet);
     if(bankRow){
       rememberGlobalQuestion(ageBandKey, bankRow.q);
       rememberGlobalAnswer(ageBandKey, bankRow.a);
       if(bankRow.knowledge_key) rememberGlobalKnowledgeKey(ageBandKey, bankRow.knowledge_key);
-      const out = {
-        q: bankRow.q,
-        a: bankRow.a,
-        source: 'bank',
-        format: bankRow.format || engine.FORMAT_IDS.RESPOSTA_DIRETA,
-        formatLabel: engine.FORMAT_LABELS[bankRow.format] || 'Resposta direta',
-        knowledgeKey: bankRow.knowledge_key || undefined,
-      };
-      if(Array.isArray(bankRow.options) && bankRow.options.length){
-        out.options = bankRow.options;
-      } else if(isMC){
-        const options = buildFallbackOptions(bankRow.a, category.n, ageBandKey);
-        if(options) out.options = options;
+      const withOpts = ensureMcOptionsForQuestion(
+        { q: bankRow.q, a: bankRow.a, options: bankRow.options },
+        category.n,
+        ageBandKey,
+        bankRow.format
+      );
+      if(withOpts){
+        const out = {
+          q: withOpts.q,
+          a: withOpts.a,
+          options: withOpts.options,
+          source: 'bank',
+          format: bankRow.format || engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
+          formatLabel: engine.FORMAT_LABELS[bankRow.format] || 'Escolha múltipla',
+          knowledgeKey: bankRow.knowledge_key || undefined,
+        };
+        return finalizeQuestion(out);
       }
-      return finalizeQuestion(out);
     }
-    const fallback = pickQuestion(category.n, ageBandKey, usedSet);
-    const isRepeat = usedSet.has(normalizeQ(fallback.q));
-    rememberGlobalQuestion(ageBandKey, fallback.q);
-    rememberGlobalAnswer(ageBandKey, fallback.a);
-    const fallbackOut = {
-      ...fallback,
-      source: isRepeat ? 'local-repeat' : 'local',
-      format: engine.FORMAT_IDS.RESPOSTA_DIRETA,
-      formatLabel: 'Resposta direta',
-    };
-    if(isMC){
-      const options = buildFallbackOptions(fallback.a, category.n, ageBandKey);
-      if(options) fallbackOut.options = options;
+    const fallback = pickQuestionWithMcOptions(category.n, ageBandKey, usedSet);
+    if(fallback){
+      const isRepeat = usedSet.has(normalizeQ(fallback.q));
+      rememberGlobalQuestion(ageBandKey, fallback.q);
+      rememberGlobalAnswer(ageBandKey, fallback.a);
+      return finalizeQuestion({
+        ...fallback,
+        source: isRepeat ? 'local-repeat' : 'local',
+        format: engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
+        formatLabel: 'Escolha múltipla',
+      });
     }
-    return finalizeQuestion(fallbackOut);
+    return finalizeQuestion({
+      q: 'Ainda não há perguntas com opções para esta categoria e faixa etária.',
+      a: '—',
+      options: ['—', '—', '—', '—'],
+      source: 'local',
+      format: engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
+      formatLabel: 'Escolha múltipla',
+    });
   }
 
   // Deixa passar apenas as tags <i>/</i> (itálico para termos não-PT); remove tudo o resto.
@@ -3712,7 +3793,7 @@
     const format = engine.chooseFormat(
       categoryNumber,
       ageBandKey,
-      answerMode,
+      'mc',
       usedQuestionFormats[ageBandKey] || []
     );
     if(!usedQuestionFormats[ageBandKey]) usedQuestionFormats[ageBandKey] = [];
@@ -3821,8 +3902,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const engine = QE();
     const localOnly = aiProviderChoice === 'local';
     if(!localOnly && !aiStatusOnline) await tryRestoreAiOnline();
-    const wantsMC = answerMode === 'mc';
-    const isMC = wantsMC && aiStatusOnline && !localOnly;
+    const isMC = true;
     const remember = (qText) => rememberGlobalQuestion(ageBandKey, qText);
     const questionFormat = chooseQuestionFormat(category.n, ageBandKey);
     const isTrueFalse = questionFormat === engine.FORMAT_IDS.VERDADEIRO_FALSO;
@@ -3837,9 +3917,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(usedSubtopics[ageBandKey].length > 30) usedSubtopics[ageBandKey].shift();
     let lastValidationIssues = [];
 
-    const openModeExtra = !isMC
-      ? `MODO RESPOSTA ABERTA — resposta muito curta no campo "a" (${ageBandKey === '6-9' ? '1–4' : (ageBandKey === '10-15' ? '1–5' : '1–6')} palavras, excepto ADIVINHA/COMPLETA até 8). Verdadeiro ou falso: resposta exactamente "Verdadeiro" ou "Falso". Sem explicações no campo "a".`
-      : '';
+    const openModeExtra = '';
 
     const ageDifficultyExtra = ageBandKey === '15+'
       ? `NÍVEL DE DIFICULDADE ELEVADO (+15): não simplifiques. Prefere curiosidades menos óbvias, detalhes específicos, datas exactas, autores ou nomes menos conhecidos, tratados, teorias, movimentos artísticos/literários/científicos, ou raciocínio que obrigue a ligar duas ideias. Evita perguntas de ensino básico ou de "senso comum" imediato.`
@@ -3848,16 +3926,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       ? ' As 3 opções erradas têm de ser MUITO plausíveis para alguém com conhecimento parcial — evita distrações ridiculamente fáceis.'
       : '';
 
-    const mcInstruction = isMC
-      ? (isTrueFalse
-        ? ` Inclui também um array "options" com EXATAMENTE 2 opções: ["Verdadeiro","Falso"] (nesta ordem), sendo "a" igual a "Verdadeiro" ou "Falso" consoante a resposta correta.`
-        : ` Inclui "a" com a resposta correcta e um array "distractors" com EXACTAMENTE 3 opções erradas plausíveis da mesma classe conceptual (nomes/termos curtos). O JavaScript baralhará as opções — NÃO envies "options" completo. Campos OBRIGATÓRIOS: "q" (pergunta completa), "a" (resposta), "distractors" (3 strings) — nunca omitas "q".${mcDifficultyExtra}`)
-      : '';
-    const jsonFormat = isMC
-      ? (isTrueFalse
-        ? '{"q":"A Lua orbita a Terra. Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]}'
-        : '{"q":"pergunta","a":"resposta correta","distractors":["errada1","errada2","errada3"]}')
-      : '{"q":"pergunta","a":"resposta"}';
+    const mcInstruction = isTrueFalse
+      ? ` Inclui também um array "options" com EXATAMENTE 2 opções: ["Verdadeiro","Falso"] (nesta ordem), sendo "a" igual a "Verdadeiro" ou "Falso" consoante a resposta correta.`
+      : ` Inclui "a" com a resposta correcta e um array "distractors" com EXACTAMENTE 3 opções erradas plausíveis da mesma classe conceptual (nomes/termos curtos). O JavaScript baralhará as opções — NÃO envies "options" completo. Campos OBRIGATÓRIOS: "q" (pergunta completa), "a" (resposta), "distractors" (3 strings) — nunca omitas "q".${mcDifficultyExtra}`;
+    const jsonFormat = isTrueFalse
+      ? '{"q":"A Lua orbita a Terra. Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]}'
+      : '{"q":"pergunta","a":"resposta correta","distractors":["errada1","errada2","errada3"]}';
 
     const usedSet = getGlobalUsedSet(ageBandKey);
     const usedAnswerSet = new Set(
@@ -3868,7 +3942,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const persistentQSet = new Set((persistent.questions || []).map(normalizeQ));
 
     if(localOnly){
-      return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine, isMC);
+      return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine);
     }
 
     let aiWasAttempted = false;
@@ -4002,14 +4076,6 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             if(!recentMcPositions[ageBandKey]) recentMcPositions[ageBandKey] = [];
             parsed.options = engine.shuffleMcOptions(parsed.options, parsed.a, normalizeQ, recentMcPositions[ageBandKey]);
           }
-        } else {
-          delete parsed.options;
-          const openCheck = validateOpenAnswerMode(parsed, effectiveTrueFalse, ageBandKey, questionFormat);
-          if(!openCheck.ok){
-            lastAiError = 'Formato de resposta aberta inválido: ' + openCheck.issues.join(', ');
-            console.warn(`Validação resposta aberta falhou (tentativa ${attempt}):`, openCheck.issues, parsed);
-            continue;
-          }
         }
 
         const qualityCheck = engine.validateQuestion(parsed, {
@@ -4064,7 +4130,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           subtopic,
         });
         const questionHash = hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a));
-        if(window.QuestionBank?.isConfigured?.()){
+        if(window.QuestionBank?.isConfigured?.() && hasValidMcOptions(parsed.options, questionFormat, parsed.a)){
           window.QuestionBank.save({
             categoryN: category.n,
             ageBand: ageBandKey,
@@ -4110,7 +4176,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       }
     }
 
-    return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine, isMC);
+    return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine);
   }
 
   const AI_PROVIDER_LABELS = {
@@ -5055,16 +5121,16 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   let selectedAgeBand = null;
 
-  // Tipo de pergunta: escolha múltipla (mc) por defeito; resposta aberta (open) é opcional.
+  // Todas as perguntas são escolha múltipla (sem modo resposta aberta).
   let answerMode = 'mc';
-  let draftAnswerMode = answerMode;
+  let draftAnswerMode = 'mc';
 
   function mcModeActive(){
-    return answerMode === 'mc' && aiStatusOnline && aiProviderChoice !== 'local';
+    return true;
   }
 
   function questionUsesMcOptions(question){
-    return !!(question?.options?.length && mcModeActive());
+    return Array.isArray(question?.options) && question.options.length >= 2;
   }
   const TIME_OPTIONS = [15, 30, 45, 60, 90];
   let countdownIndex = 2; // 45s por defeito
@@ -5149,7 +5215,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       updateCatPickerUI(true);
       return;
     }
-    answerMode = draftAnswerMode;
+    answerMode = 'mc';
+    draftAnswerMode = 'mc';
     countdownIndex = draftCountdownIndex;
     categoryMode = draftCategoryMode;
     selectedCategoryIds = new Set(draftSelectedCategoryIds);
@@ -5313,23 +5380,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   });
 
   function updateAnswerModeBar(){
-    const mcBtn = document.getElementById('answer-mode-mc');
-    const hint = document.getElementById('answer-mode-offline-hint');
-    const mcAllowed = aiStatusOnline && (draftAiProviderChoice || aiProviderChoice) !== 'local';
-    if(mcBtn) mcBtn.disabled = !mcAllowed;
-    if(hint) hint.hidden = mcAllowed;
-    document.querySelectorAll('#answer-mode-bar .time-option').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.answerMode === draftAnswerMode);
-    });
+    /* modo fixo: escolha múltipla */
   }
-  document.querySelectorAll('#answer-mode-bar .time-option').forEach(btn => {
-    btn.onclick = () => {
-      const mcAllowed = aiStatusOnline && (draftAiProviderChoice || aiProviderChoice) !== 'local';
-      if(btn.dataset.answerMode === 'mc' && !mcAllowed) return;
-      draftAnswerMode = btn.dataset.answerMode;
-      updateAnswerModeBar();
-    };
-  });
 
   function isProviderAvailableForSelection(id, quota){
     if(id === 'auto' || id === 'local') return true;
@@ -5376,10 +5428,6 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     btn.onclick = () => {
       if(btn.hidden || btn.disabled) return;
       draftAiProviderChoice = btn.dataset.aiProvider;
-      if(draftAiProviderChoice === 'local' && draftAnswerMode === 'mc'){
-        draftAnswerMode = 'open';
-        updateAnswerModeBar();
-      }
       const models = AI_MODEL_OPTIONS[draftAiProviderChoice] || AI_MODEL_OPTIONS.auto;
       if(!models.some(m => m.id === draftAiModelChoice)) draftAiModelChoice = 'auto';
       updateAiProviderBar();
@@ -5708,7 +5756,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             const idx = TIME_OPTIONS.indexOf(settings.countdownSeconds);
             if(idx >= 0) countdownIndex = idx;
           }
-          if(settings.answerMode) answerMode = settings.answerMode;
+          if(settings.answerMode) answerMode = 'mc';
           if(settings.categoryMode) categoryMode = settings.categoryMode;
           if(settings.selectedCategoryIds) selectedCategoryIds = new Set(settings.selectedCategoryIds);
         },
@@ -6959,7 +7007,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     <div class="game-about-body">
     <p>Jogo de perguntas por categorias, com faixas etárias <strong>6–9</strong>, <strong>10–15</strong> e <strong>15+</strong>. As perguntas são geradas por IA (Groq, OpenAI ou Anthropic) ou pelo banco local quando a IA não está disponível.</p>
     <ul class="game-about-features">
-      <li>Escolha múltipla ou resposta aberta; verdadeiro ou falso ocasional (~1 em cada 7–8 perguntas).</li>
+      <li>Todas as perguntas são em escolha múltipla (4 opções); verdadeiro ou falso ocasional (~1 em cada 7–8 perguntas).</li>
       <li>Modo dia/noite, sons e categorias personalizáveis nas definições.</li>
       <li>Fallback automático entre modelos e fornecedores no modo Automático.</li>
       <li>Painel de quotas com estado a cores (disponível, aguardar reset, erro).</li>

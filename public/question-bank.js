@@ -66,6 +66,34 @@
     return String(str || '').replace(/<[^>]*>/g, '').trim();
   }
 
+  function parseOptionsArray(raw) {
+    if (Array.isArray(raw)) return raw;
+    if (typeof raw === 'string') {
+      try {
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : null;
+      } catch { /* ignore */ }
+    }
+    return null;
+  }
+
+  function expectedOptionCount(format, correctAnswer) {
+    const norm = stripTags(correctAnswer).toLowerCase();
+    if (format === 'VERDADEIRO_FALSO' || norm === 'verdadeiro' || norm === 'falso') return 2;
+    return 4;
+  }
+
+  function hasValidMcOptions(options, format, correctAnswer) {
+    const opts = parseOptionsArray(options);
+    if (!opts || !opts.length) return false;
+    const expected = expectedOptionCount(format, correctAnswer);
+    const cleaned = opts.map((o) => String(o || '').trim()).filter((o) => o.length > 0);
+    if (cleaned.length !== expected) return false;
+    const normalized = cleaned.map((o) => stripTags(o).toLowerCase());
+    if (new Set(normalized).size !== expected) return false;
+    return normalized.includes(stripTags(correctAnswer).toLowerCase());
+  }
+
   function hashQuestionKey(text) {
     const s = String(text || '');
     let h = 2166136261;
@@ -245,6 +273,9 @@
   async function save(meta) {
     const c = await ensureClient();
     if (!c || !meta?.questionHash) return { ok: false };
+    if (!hasValidMcOptions(meta.options, meta.format, meta.correctAnswer)) {
+      return { ok: false, reason: 'missing_options' };
+    }
     const { data, error } = await c.rpc('save_question_to_bank', {
       p_category_n: meta.categoryN,
       p_age_band: meta.ageBand,
@@ -300,8 +331,13 @@
       return result;
     }
 
-    for (let i = 0; i < items.length; i += batchSize) {
-      const batch = items.slice(i, i + batchSize).map((item) => ({
+    const validItems = items.filter((item) =>
+      hasValidMcOptions(item.options, item.format, item.correctAnswer)
+    );
+    result.skipped += items.length - validItems.length;
+
+    for (let i = 0; i < validItems.length; i += batchSize) {
+      const batch = validItems.slice(i, i + batchSize).map((item) => ({
         category_n: item.categoryN,
         age_band: item.ageBand,
         question: item.question,
@@ -324,8 +360,8 @@
       result.skipped += Number(data?.skipped) || 0;
       if (typeof onProgress === 'function') {
         onProgress({
-          done: Math.min(i + batch.length, items.length),
-          total: items.length,
+          done: Math.min(i + batch.length, validItems.length),
+          total: validItems.length,
           ...result,
         });
       }
@@ -340,6 +376,7 @@
     stripTags,
     hashQuestionKey,
     questionHash,
+    hasValidMcOptions,
     collectLocalStorageQuestions,
     importFromLocalStorage,
     pick,

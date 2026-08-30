@@ -156,19 +156,135 @@
       text-align: right;
       white-space: nowrap;
     }
-    .bank-matrix-wrap { overflow-x: auto; margin-top: 8px; }
-    .bank-matrix { min-width: 520px; }
-    .bank-matrix th.num,
-    .bank-matrix td.num {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
+    .bank-matrix-wrap {
+      overflow-x: auto;
+      margin-top: 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.12);
+    }
+    .bank-matrix {
+      width: 100%;
+      min-width: 640px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .bank-matrix thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: var(--card);
+      padding: 10px 12px;
+      border-bottom: 2px solid var(--border);
+      text-align: left;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+    }
+    .bank-matrix tbody td {
+      padding: 9px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      vertical-align: middle;
+    }
+    .bank-matrix tbody tr:hover td {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    .bank-matrix tbody tr:nth-child(even) td {
+      background: rgba(255, 255, 255, 0.015);
+    }
+    .bank-matrix .cat-name {
+      font-weight: 500;
       white-space: nowrap;
     }
-    .bank-matrix td.zero { color: var(--muted); opacity: 0.55; }
+    .bank-matrix .cat-num {
+      display: inline-block;
+      min-width: 1.6em;
+      margin-right: 6px;
+      color: var(--muted);
+      font-variant-numeric: tabular-nums;
+    }
+    .bank-matrix th.num,
+    .bank-matrix td.num {
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+      width: 72px;
+    }
+    .bank-matrix td.num .bank-cell {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2.2em;
+      min-height: 2em;
+      padding: 2px 8px;
+      border-radius: 8px;
+      font-weight: 600;
+    }
+    .bank-matrix td.num .bank-cell.zero {
+      color: var(--muted);
+      opacity: 0.45;
+      font-weight: 400;
+      background: transparent;
+    }
+    .bank-matrix td.num .bank-cell.low {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+    }
+    .bank-matrix td.num .bank-cell.mid {
+      background: rgba(34, 197, 94, 0.16);
+      color: #4ade80;
+    }
+    .bank-matrix td.num .bank-cell.high {
+      background: rgba(59, 130, 246, 0.2);
+      color: #93c5fd;
+    }
     .bank-matrix tr.total-row td,
     .bank-matrix tr.total-row th {
       border-top: 2px solid var(--border);
-      font-weight: 600;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .bank-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 16px;
+      margin: 10px 0 0;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .bank-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .bank-legend i {
+      display: inline-block;
+      width: 14px;
+      height: 14px;
+      border-radius: 4px;
+      font-style: normal;
+    }
+    .bank-legend .lg-zero { background: transparent; border: 1px dashed rgba(255,255,255,0.2); }
+    .bank-legend .lg-low { background: rgba(245, 158, 11, 0.35); }
+    .bank-legend .lg-mid { background: rgba(34, 197, 94, 0.35); }
+    .bank-legend .lg-high { background: rgba(59, 130, 246, 0.35); }
+    .bank-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-top: 8px;
+    }
+    .bank-alert {
+      margin-top: 10px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      background: rgba(245, 158, 11, 0.1);
+      color: #fcd34d;
+      font-size: 13px;
+      line-height: 1.45;
     }
     .bank-source-list {
       display: flex;
@@ -825,21 +941,32 @@
             </div>
           </div>
           <p class="status" id="bankListStatus"></p>
-          <p class="sub" style="margin-top:0;">Contagem de perguntas activas (não reportadas) no Supabase.</p>
+          <p class="sub" style="margin-top:0;">Perguntas activas com <strong>opções válidas</strong> (escolha múltipla) no Supabase.</p>
+          <div id="bankInvalidAlert" class="bank-alert hidden"></div>
+          <div class="bank-legend" aria-hidden="true">
+            <span><i class="lg-zero"></i> 0</span>
+            <span><i class="lg-low"></i> 1–2</span>
+            <span><i class="lg-mid"></i> 3–5</span>
+            <span><i class="lg-high"></i> 6+</span>
+          </div>
           <div class="bank-matrix-wrap">
             <table class="bank-matrix">
               <thead>
                 <tr>
                   <th>Categoria</th>
-                  <th class="num">6–9</th>
-                  <th class="num">10–15</th>
-                  <th class="num">+15</th>
-                  <th class="num">Total</th>
+                  <th class="num" title="6 a 9 anos">6–9</th>
+                  <th class="num" title="10 a 15 anos">10–15</th>
+                  <th class="num" title="Mais de 15 anos">+15</th>
+                  <th class="num">Σ</th>
                 </tr>
               </thead>
               <tbody id="bankMatrixBody"></tbody>
               <tfoot id="bankMatrixFoot"></tfoot>
             </table>
+          </div>
+          <div class="bank-actions">
+            <button type="button" class="danger" id="bankPurgeBtn">🗑️ Remover sem opções</button>
+            <span class="sub" id="bankPurgeHint">Apaga do Supabase perguntas activas sem 4 opções (ou 2 em V/F).</span>
           </div>
           <div id="bankSourceBreakdown"></div>
         </div>
@@ -2255,11 +2382,37 @@
       const el = document.getElementById('bankStatsRow');
       if (!el || !stats) return;
       el.innerHTML = `
-        <div class="stat stat-total"><strong>${stats.active || 0}</strong><span>Activas no banco</span></div>
-        <div class="stat stat-open"><strong>${stats.total || 0}</strong><span>Total registadas</span></div>
+        <div class="stat stat-resolved"><strong>${stats.validActive ?? stats.active ?? 0}</strong><span>Com opções (jogáveis)</span></div>
+        <div class="stat stat-open"><strong>${stats.invalidActive || 0}</strong><span>Sem opções válidas</span></div>
+        <div class="stat stat-total"><strong>${stats.total || 0}</strong><span>Total registadas</span></div>
         <div class="stat stat-cancelled"><strong>${stats.reported || 0}</strong><span>Reportadas</span></div>
         <div class="stat stat-top-issue"><strong>${stats.blocked || 0}</strong><span>Hashes bloqueados</span></div>
       `;
+      const alertEl = document.getElementById('bankInvalidAlert');
+      if (alertEl) {
+        const invalid = Number(stats.invalidActive) || 0;
+        if (invalid > 0) {
+          alertEl.classList.remove('hidden');
+          alertEl.textContent = `${invalid} pergunta(s) activa(s) no Supabase não têm opções válidas e não aparecem no jogo. Usa «Remover sem opções» para as apagar.`;
+        } else {
+          alertEl.classList.add('hidden');
+          alertEl.textContent = '';
+        }
+      }
+    }
+
+    function bankCountClass(n) {
+      const v = Number(n) || 0;
+      if (!v) return 'zero';
+      if (v <= 2) return 'low';
+      if (v <= 5) return 'mid';
+      return 'high';
+    }
+
+    function bankCountCell(n) {
+      const v = Number(n) || 0;
+      const cls = bankCountClass(v);
+      return `<span class="bank-cell ${cls}">${v || 0}</span>`;
     }
 
     function renderBankMatrix(stats) {
@@ -2283,25 +2436,23 @@
         grandTotal += count;
       }
 
-      const cell = (n) => {
-        const cls = n ? 'num' : 'num zero';
-        return `<td class="${cls}">${n || 0}</td>`;
-      };
+      const cell = (n) => `<td class="num">${bankCountCell(n)}</td>`;
 
       body.innerHTML = BANK_CATEGORIES.map((cat) => {
         const row = grid[cat.n] || {};
         const rowTotal = BANK_AGE_BANDS.reduce((sum, age) => sum + (row[age] || 0), 0);
-        return `<tr>
-          <td>${cat.n}. ${esc(cat.name)}</td>
+        const rowCls = rowTotal ? '' : ' class="row-empty"';
+        return `<tr${rowCls}>
+          <td class="cat-name"><span class="cat-num">${cat.n}</span>${esc(cat.name)}</td>
           ${BANK_AGE_BANDS.map((age) => cell(row[age] || 0)).join('')}
-          <td class="num">${rowTotal}</td>
+          <td class="num">${bankCountCell(rowTotal)}</td>
         </tr>`;
       }).join('');
 
       foot.innerHTML = `<tr class="total-row">
         <th>Total</th>
-        ${BANK_AGE_BANDS.map((age) => `<th class="num">${ageTotals[age] || 0}</th>`).join('')}
-        <th class="num">${grandTotal}</th>
+        ${BANK_AGE_BANDS.map((age) => `<th class="num">${bankCountCell(ageTotals[age] || 0)}</th>`).join('')}
+        <th class="num">${bankCountCell(grandTotal)}</th>
       </tr>`;
 
       if (sourceEl) {
@@ -2318,6 +2469,35 @@
               return `<span class="pill">${esc(label)}: <strong>${s.count || 0}</strong></span>`;
             }).join('')}
           </div>`;
+      }
+    }
+
+    async function purgeBankWithoutOptions() {
+      const ok = await confirmAction(
+        'Remover do Supabase todas as perguntas activas sem opções válidas? Esta acção não pode ser desfeita.',
+        { okLabel: 'Remover', danger: true }
+      );
+      if (!ok) return;
+      const statusEl = document.getElementById('bankListStatus');
+      if (statusEl) {
+        statusEl.textContent = 'A limpar perguntas sem opções…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/question-bank-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'purge-without-options' }),
+        });
+        if (statusEl) {
+          statusEl.textContent = `Removidas ${data.deleted || 0} pergunta(s) sem opções válidas.`;
+          statusEl.className = 'status ok';
+        }
+        await loadBankDashboard({ quiet: true });
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao limpar banco.';
+          statusEl.className = 'status err';
+        }
       }
     }
 
@@ -2795,6 +2975,7 @@
     document.getElementById('tabBank')?.addEventListener('click', () => setAdminTab('bank'));
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
+    document.getElementById('bankPurgeBtn')?.addEventListener('click', () => purgeBankWithoutOptions());
     document.getElementById('roomsTimelineFilters')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-rooms-range]');
       if (!btn || !TIMELINE_RANGES[btn.dataset.roomsRange]) return;

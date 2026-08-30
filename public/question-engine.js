@@ -503,7 +503,7 @@ ${limits[ageBandKey] || limits['15+']}`;
 
   function chooseFormat(categoryNumber, ageBandKey, answerMode, recentFormats) {
     const allowed = getAllowedFormats(categoryNumber, ageBandKey, answerMode);
-    if (!allowed.length) return FORMAT_IDS.RESPOSTA_DIRETA;
+    if (!allowed.length) return FORMAT_IDS.ESCOLHA_MULTIPLA;
 
     const recent = recentFormats || [];
     const vfRecentlyUsed = recent.slice(-TRUE_FALSE_MIN_GAP).includes(FORMAT_IDS.VERDADEIRO_FALSO);
