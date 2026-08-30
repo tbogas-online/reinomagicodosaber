@@ -3282,9 +3282,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js?v=20260829-174108"></script>
-<script src="game-history.js?v=20260830-191500"></script>
+<script src="supabase-client.js?v=20260830-201600"></script>
+<script src="game-history.js?v=20260830-201600"></script>
 <script src="player-names.js?v=20260830-143600"></script>
-<script src="multiplayer-sync.js?v=20260830-193700"></script>
+<script src="multiplayer-sync.js?v=20260830-201600"></script>
 <script src="multiplayer-controller.js?v=20260830-194000"></script>
 <script src="question-engine.js?v=20260830-192950" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
@@ -4689,6 +4690,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       q: stripMcOptionPrefix(q),
       a: stripMcOptionPrefix(a),
     };
+    const explicacao = raw.explicacao || raw.explanation || raw.texto || raw.text || '';
+    if(explicacao) out.explicacao = String(explicacao).trim();
     if(Array.isArray(options)){
       out.options = options.map(stripMcOptionPrefix).map((item) => String(item || '').trim()).filter(Boolean);
     }
@@ -5895,6 +5898,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         resumeGameClock,
         stopGameClock,
         fillCategoryList,
+        returnToCategoryBoard,
         resetGameScreen,
         abortQuestionFlow,
         resetGameScreenPartial(){
@@ -6334,8 +6338,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     box.style.display = 'block';
     text.textContent = 'A desenrolar o pergaminho… ✦';
 
-    const prompt = `Pergunta: "${currentQuestion.q}"
-Resposta: "${currentQuestion.a}"
+    const prompt = `Pergunta: "${stripTags(currentQuestion.q)}"
+Resposta: "${stripTags(currentQuestion.a)}"
 Escreve uma explicação ${selectedAgeBand === '6-9' ? 'MUITO curta (1–2 frases simples, vocabulário de criança de 7 anos)' : 'curta (2–4 frases)'} sobre esta resposta, adequada para ${AGE_BAND_PROMPT_TEXT[selectedAgeBand]}. PT-PT exclusivo (nunca "você"/"ônibus"/"trem"/"suco"). Maiúsculas e minúsculas normais de uma frase (nunca tudo em maiúsculas). Termos que não sejam português (estrangeirismos) entre <i> e </i>.
 Só JSON, sem markdown: {"explicacao":"texto"}`;
 
@@ -6347,12 +6351,15 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
       recordAiUsage(data);
       const raw = (data.content || []).map(b => b.text || '').join('');
       const parsed = parseAiJson(raw);
-      if(!parsed?.explicacao) throw new Error('JSON inválido');
-      const explicacao = fixAllCaps(sanitizeItalics(parsed.explicacao)) || 'Sem explicação disponível.';
-      text.innerHTML = explicacao;
+      const explicacao = parsed?.explicacao || parsed?.explanation || parsed?.texto;
+      if(!explicacao) throw new Error('JSON inválido');
+      const formatted = fixAllCaps(sanitizeItalics(explicacao)) || 'Sem explicação disponível.';
+      text.innerHTML = formatted;
     } catch(err){
       console.error('Não foi possível gerar a explicação:', err);
       text.textContent = 'Não foi possível trazer mais detalhes agora. Tenta novamente daqui a pouco.';
+      link.style.display = 'inline-block';
+      link.textContent = '🔎 Tentar Saber Mais de novo';
     }
   }
 
@@ -6870,10 +6877,22 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
       window.MultiplayerController.hostBackToCategories();
       return;
     }
+    returnToCategoryBoard();
+  };
+
+  function getCategoryForSum(sum){
+    return gameCategoryMap[sum] || gameCategoryMap[String(sum)];
+  }
+
+  function returnToCategoryBoard(){
     abortQuestionFlow();
     resetGameScreen();
+    if(Object.keys(gameCategoryMap).length === 0){
+      loadLocalGamePauseFromStorage();
+    }
+    fillCategoryList();
     showScreen('game');
-  };
+  }
 
   function resetGameScreen(){
     document.getElementById('sum-line').innerHTML = '';
@@ -6922,9 +6941,11 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
 
   function fillCategoryList(){
     const list = document.getElementById('cat-list');
-    list.innerHTML = '';
+    if(!list) return;
+    const fragment = document.createDocumentFragment();
     for(let sum = 2; sum <= 11; sum++){
-      const cat = gameCategoryMap[sum];
+      const cat = getCategoryForSum(sum);
+      if(!cat?.e || !cat?.name) continue;
       const row = document.createElement('div');
       row.className = 'modal-row row-clickable';
       row.innerHTML = `
@@ -6933,8 +6954,9 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
         <span class="modal-cat-name">${cat.name}</span>
       `;
       row.addEventListener('click', () => selectCategoryBySum(sum));
-      list.appendChild(row);
+      fragment.appendChild(row);
     }
+    list.replaceChildren(fragment);
   }
 
   // Escolha manual: usada tanto para o dado virtual como para quando se
@@ -6944,7 +6966,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
       lastCategory = remainingCategories[Math.floor(Math.random()*remainingCategories.length)];
       lastIsSurprise = true;
     } else {
-      lastCategory = gameCategoryMap[sum];
+      lastCategory = getCategoryForSum(sum);
       lastIsSurprise = false;
     }
     selectedAgeBand = null;
@@ -6991,7 +7013,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
       lastCategory = remainingCategories[Math.floor(Math.random()*remainingCategories.length)];
       lastIsSurprise = true;
     } else {
-      lastCategory = gameCategoryMap[sum];
+      lastCategory = getCategoryForSum(sum);
       lastIsSurprise = false;
     }
     selectedAgeBand = null;

@@ -21,48 +21,17 @@
   let onRoomExpired = null;
   let lastGameStateJson = '';
 
-  function getConfig() {
-    const cfg = global.SUPABASE_CONFIG || {};
-    return {
-      url: (cfg.url || '').trim(),
-      anonKey: (cfg.anonKey || '').trim(),
-    };
-  }
-
   function isConfigured() {
-    const { url, anonKey } = getConfig();
-    return !!(url && anonKey && global.supabase?.createClient);
-  }
-
-  function getAuthStorage() {
-    try {
-      if (global.sessionStorage) return global.sessionStorage;
-    } catch { /* ignore */ }
-    return undefined;
+    return !!global.ReinoSupabase?.isConfigured?.();
   }
 
   async function ensureClient() {
     if (!isConfigured()) {
       throw new Error('Supabase não configurado — edita public/supabase-config.js');
     }
-    if (client) return client;
-    const { url, anonKey } = getConfig();
-    const authStorage = getAuthStorage();
-    client = global.supabase.createClient(url, anonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: false,
-        ...(authStorage ? { storage: authStorage } : {}),
-      },
-      realtime: { params: { eventsPerSecond: 8 } },
-    });
-    const { data, error } = await client.auth.getSession();
-    if (error) throw error;
-    if (!data.session) {
-      const signIn = await client.auth.signInAnonymously();
-      if (signIn.error) throw signIn.error;
-    }
+    const shared = await global.ReinoSupabase.ensureClient();
+    if (!shared) throw new Error('Supabase não configurado — edita public/supabase-config.js');
+    client = shared;
     const session = (await client.auth.getSession()).data.session;
     playerId = session?.user?.id || null;
     if (!playerId) throw new Error('Falha na autenticação anónima');

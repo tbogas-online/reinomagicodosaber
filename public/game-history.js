@@ -88,23 +88,16 @@
     return done;
   }
 
-  function getSupabaseClient() {
-    const cfg = global.SUPABASE_CONFIG;
-    const lib = global.supabase;
-    if (!cfg?.url || !cfg?.anonKey || !lib?.createClient) return null;
-    if (!global.__reinoSupabaseClient) {
-      global.__reinoSupabaseClient = lib.createClient(cfg.url, cfg.anonKey, {
-        auth: { persistSession: true, autoRefreshToken: true },
-      });
-    }
-    return global.__reinoSupabaseClient;
-  }
-
   async function syncSingleGameToServer(game) {
-    const client = getSupabaseClient();
-    if (!client || !game?.finishedAt) return;
+    if (!game?.finishedAt || !global.ReinoSupabase?.isConfigured?.()) return;
+    let client;
     try {
-      await client.auth.signInAnonymously().catch(() => {});
+      client = await global.ReinoSupabase.ensureClient();
+    } catch {
+      return;
+    }
+    if (!client) return;
+    try {
       const payload = {
         mode: 'single',
         started_at: game.startedAt,

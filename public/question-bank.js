@@ -33,26 +33,12 @@
     'Adivinhas e Curiosidades': 20,
   };
 
-  let client = null;
-
-  function getConfig() {
-    const cfg = global.SUPABASE_CONFIG || {};
-    return {
-      url: (cfg.url || '').trim(),
-      anonKey: (cfg.anonKey || '').trim(),
-    };
-  }
-
   function isConfigured() {
-    const { url, anonKey } = getConfig();
-    return !!(url && anonKey && global.supabase?.createClient);
+    return !!global.ReinoSupabase?.isConfigured?.();
   }
 
-  function getAuthStorage() {
-    try {
-      if (global.sessionStorage) return global.sessionStorage;
-    } catch { /* ignore */ }
-    return undefined;
+  async function ensureClient() {
+    return global.ReinoSupabase?.ensureClient?.() ?? null;
   }
 
   function getLocalStorage() {
@@ -110,28 +96,6 @@
 
   function categoryNameToN(name) {
     return CATEGORY_NAME_TO_N[String(name || '').trim()] || null;
-  }
-
-  async function ensureClient() {
-    if (!isConfigured()) return null;
-    if (client) return client;
-    const { url, anonKey } = getConfig();
-    const authStorage = getAuthStorage();
-    client = global.supabase.createClient(url, anonKey, {
-      auth: {
-        persistSession: true,
-        autoRefreshToken: true,
-        detectSessionInUrl: false,
-        ...(authStorage ? { storage: authStorage } : {}),
-      },
-    });
-    const { data, error } = await client.auth.getSession();
-    if (error) throw error;
-    if (!data.session) {
-      const signIn = await client.auth.signInAnonymously();
-      if (signIn.error) throw signIn.error;
-    }
-    return client;
   }
 
   function collectFromGameHistory(storage, byHash) {

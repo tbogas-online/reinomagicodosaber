@@ -136,7 +136,7 @@
       if (settings && Object.keys(settings).length) {
         h.applySettings?.(settings);
       }
-      if (state.gameCategoryMap) {
+      if (state.gameCategoryMap && Object.keys(state.gameCategoryMap).length > 0) {
         const map = {};
         Object.keys(state.gameCategoryMap).forEach((k) => {
           map[k] = deserializeCategory(state.gameCategoryMap[k]);
@@ -151,21 +151,19 @@
       h.setSelectedAgeBand?.(state.selectedAgeBand || null);
 
       if (state.screen === 'game') {
-        h.fillCategoryList?.();
         const backToCategories = !state.dice && !state.currentQuestion;
         if (backToCategories) {
-          h.abortQuestionFlow?.();
-          h.resetGameScreen?.();
-          h.setCurrentQuestion?.(null);
+          h.returnToCategoryBoard?.();
         } else {
+          h.fillCategoryList?.();
           h.resetGameScreenPartial?.();
           if (state.dice) {
             h.showDiceResult?.(state.dice.d1, state.dice.d2, lastCat, state.lastIsSurprise);
           }
           h.setCurrentQuestion?.(state.currentQuestion || null);
+          h.showScreen?.('game');
         }
         syncGameClockForSession();
-        h.showScreen?.('game');
       } else if (state.screen === 'age') {
         if (!lastCat?.n) {
           h.showScreen?.('game');
@@ -908,9 +906,6 @@
 
   async function hostBackToCategories() {
     if (!canControl()) return;
-    gameHooks.abortQuestionFlow?.();
-    gameHooks.resetGameScreen?.();
-    gameHooks.setCurrentQuestion?.(null);
     try {
       if (isMultiplayer()) {
         await pushState({
@@ -929,7 +924,7 @@
     } catch (e) {
       showMpToast('Aviso: não foi possível sincronizar com a sala.');
     }
-    gameHooks.showScreen?.('game');
+    gameHooks.returnToCategoryBoard?.();
   }
 
   async function hostBackToDiceResult() {
