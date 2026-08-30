@@ -143,6 +143,28 @@
     .status { min-height: 1.2em; margin-top: 8px; font-size: 13px; }
     .status.err { color: var(--danger); }
     .status.ok { color: var(--ok); }
+    .rooms-last-updated { font-size: 12px; color: var(--muted); margin-left: auto; }
+    .confirm-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.62);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+      padding: 16px;
+    }
+    .confirm-box {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 440px;
+      width: 100%;
+      box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
+    }
+    .confirm-box p { margin: 0 0 18px; line-height: 1.5; }
+    .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
     .pager { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
     .hidden { display: none !important; }
     .admin-tabs {
@@ -690,8 +712,9 @@
         </div>
 
         <div class="card">
-          <div class="row" style="justify-content:space-between; margin-bottom:12px;">
+          <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%;">
             <h2 class="charts-title" style="margin:0;">Salas em aberto</h2>
+            <span id="roomsLastUpdated" class="rooms-last-updated"></span>
             <button type="button" class="secondary" id="roomsRefreshBtn">↻ Actualizar</button>
           </div>
           <p class="status" id="roomsListStatus"></p>
@@ -717,6 +740,16 @@
         </div>
       </div>
     </section>
+  </div>
+
+  <div id="confirmOverlay" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="confirmMessage">
+    <div class="confirm-box">
+      <p id="confirmMessage"></p>
+      <div class="confirm-actions">
+        <button type="button" class="secondary" id="confirmCancel">Cancelar</button>
+        <button type="button" class="danger" id="confirmOk">Confirmar</button>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1453,6 +1486,7 @@
     let offset = 0;
     const limit = 50;
     const AUTO_REFRESH_MS = 30000;
+    const ROOMS_AUTO_REFRESH_MS = 10000;
     let lastTotal = 0;
     let lastReports = [];
     let reportsById = {};
@@ -1474,6 +1508,40 @@
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+    }
+
+    function confirmAction(message, options = {}) {
+      const { okLabel = 'Confirmar', danger = false } = options;
+      const overlay = document.getElementById('confirmOverlay');
+      const msgEl = document.getElementById('confirmMessage');
+      const okBtn = document.getElementById('confirmOk');
+      const cancelBtn = document.getElementById('confirmCancel');
+      if (!overlay || !msgEl || !okBtn || !cancelBtn) {
+        return Promise.resolve(window.confirm(message));
+      }
+      return new Promise((resolve) => {
+        msgEl.textContent = message;
+        okBtn.textContent = okLabel;
+        okBtn.className = danger ? 'danger' : '';
+        overlay.classList.remove('hidden');
+        const finish = (result) => {
+          overlay.classList.add('hidden');
+          okBtn.removeEventListener('click', onOk);
+          cancelBtn.removeEventListener('click', onCancel);
+          overlay.removeEventListener('click', onBackdrop);
+          document.removeEventListener('keydown', onKey);
+          resolve(result);
+        };
+        const onOk = () => finish(true);
+        const onCancel = () => finish(false);
+        const onBackdrop = (e) => { if (e.target === overlay) finish(false); };
+        const onKey = (e) => { if (e.key === 'Escape') finish(false); };
+        okBtn.addEventListener('click', onOk);
+        cancelBtn.addEventListener('click', onCancel);
+        overlay.addEventListener('click', onBackdrop);
+        document.addEventListener('keydown', onKey);
+        cancelBtn.focus();
+      });
     }
 
     function formatPortugalDateTime(dateInput) {
@@ -1766,12 +1834,17 @@
       }
     }
 
+    function getAutoRefreshMs() {
+      return activeAdminTab === 'rooms' ? ROOMS_AUTO_REFRESH_MS : AUTO_REFRESH_MS;
+    }
+
     function startAutoRefresh() {
       stopAutoRefresh();
-      refreshTimer = setInterval(() => {
+      const tick = () => {
         if (document.hidden || dashboard.classList.contains('hidden')) return;
         refreshActiveTab({ quiet: true, keepSelection: true });
-      }, AUTO_REFRESH_MS);
+      };
+      refreshTimer = setInterval(tick, getAutoRefreshMs());
     }
 
     function stopAutoRefresh() {
@@ -1995,6 +2068,7 @@
     let lastRoomsStats = null;
     let lastOpenRooms = [];
     let roomsLoading = false;
+    let roomsClosing = false;
     const selectedRoomIds = new Set();
     let roomsById = {};
 
@@ -2011,6 +2085,7 @@
       document.getElementById('roomsPanel')?.classList.toggle('hidden', activeAdminTab !== 'rooms');
       if (activeAdminTab === 'reports') loadDashboard({ quiet: true });
       else loadRoomsDashboard({ quiet: true });
+      if (!dashboard.classList.contains('hidden')) startAutoRefresh();
     }
 
     function refreshActiveTab(options = { quiet: true, keepSelection: true }) {
@@ -2159,6 +2234,8 @@
         renderRoomsStats(lastRoomsStats);
         renderRoomsChart(lastRoomsStats);
         renderRoomsTable(lastOpenRooms);
+        const updatedEl = document.getElementById('roomsLastUpdated');
+        if (updatedEl) updatedEl.textContent = `Actualizado às ${formatPortugalDateTime(new Date())}`;
         if (!quiet && statusEl) statusEl.textContent = '';
       } catch (err) {
         if (statusEl) {
@@ -2173,12 +2250,15 @@
 
     async function closeRoomsAdmin(roomIds) {
       const ids = [...new Set((roomIds || []).filter(Boolean))];
-      if (!ids.length) return;
-      const codes = ids.map((id) => roomsById[id]?.code || id).filter(Boolean);
-      const label = codes.length === 1
-        ? `a sala ${codes[0]}`
-        : `${codes.length} salas (${codes.join(', ')})`;
-      if (!global.confirm(`Desligar ${label}? Todos os jogadores serão desconectados.`)) return;
+      if (!ids.length || roomsClosing) return;
+      const codes = ids.map((id) => roomsById[id]?.code).filter(Boolean);
+      const message = ids.length === 1
+        ? `Desligar a sala ${codes[0] || 'seleccionada'}? Todos os jogadores serão desconectados.`
+        : `Desligar ${ids.length} salas seleccionadas? Todos os jogadores serão desconectados.`;
+      const okLabel = ids.length === 1 ? 'Desligar sala' : `Desligar ${ids.length} salas`;
+      const confirmed = await confirmAction(message, { okLabel, danger: true });
+      if (!confirmed) return;
+      roomsClosing = true;
       const statusEl = document.getElementById('roomsListStatus');
       if (statusEl) {
         statusEl.textContent = 'A desligar salas…';
@@ -2190,10 +2270,12 @@
           body: JSON.stringify({ action: 'close', roomIds: ids }),
         });
         clearRoomSelection();
-        await loadRoomsDashboard({ quiet: true });
+        await loadRoomsDashboard({ quiet: true, keepSelection: false });
         if (statusEl) {
-          statusEl.textContent = ids.length === 1 ? `Sala ${codes[0]} desligada.` : `${ids.length} salas desligadas.`;
-          statusEl.className = 'status';
+          statusEl.textContent = ids.length === 1
+            ? `Sala ${codes[0] || ''} desligada.`
+            : `${ids.length} salas desligadas.`;
+          statusEl.className = 'status ok';
           setTimeout(() => {
             if (statusEl.textContent.includes('desligad')) statusEl.textContent = '';
           }, 2500);
@@ -2203,6 +2285,8 @@
           statusEl.textContent = err.message || 'Erro ao desligar salas.';
           statusEl.className = 'status err';
         }
+      } finally {
+        roomsClosing = false;
       }
     }
 

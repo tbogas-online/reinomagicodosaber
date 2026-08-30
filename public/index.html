@@ -48,9 +48,6 @@
     --surprise-card-bg: linear-gradient(160deg, rgba(192,99,47,0.18), rgba(125,91,196,0.10));
     --mp-content-width: 17rem;
   }
-  body:has(#screen-mp-lobby.active){
-    --mp-content-width: 20rem;
-  }
   :root[data-theme="day"]{
     --night: #f4eed8;
     --night-2: #e6dcb8;
@@ -1220,15 +1217,18 @@
   footer{ margin-top:26px; }
 
   .page-footer-chrome{
-    width: 100%;
-    max-width: 100vw;
+    width: min(760px, 92vw);
+    max-width: 100%;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
     margin-top: auto;
+    margin-left: auto;
+    margin-right: auto;
     flex-shrink: 0;
-    padding: 10px 0 calc(12px + env(safe-area-inset-bottom));
+    padding: 10px clamp(16px, 6vw, 40px) calc(12px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
     position: relative;
     z-index: 1;
   }
@@ -1541,6 +1541,11 @@
       width: min(760px, 94vw);
       padding: clamp(16px, 4.5vw, 28px) clamp(14px, 4vw, 24px);
     }
+    .page-footer-chrome{
+      width: min(760px, 94vw);
+      padding-left: clamp(14px, 4vw, 24px);
+      padding-right: clamp(14px, 4vw, 24px);
+    }
     .logo-img{
       width: clamp(148px, 42vw, 188px);
       height: clamp(148px, 42vw, 188px);
@@ -1633,6 +1638,10 @@
     }
     body.center-stage-active:not(.category-bar-active) .stage{
       padding: clamp(8px, 2.5vw, 14px) clamp(14px, 4vw, 22px) clamp(12px, 3vw, 20px);
+    }
+    body.center-stage-active:not(.category-bar-active) .page-footer-chrome{
+      padding-left: clamp(14px, 4vw, 22px);
+      padding-right: clamp(14px, 4vw, 22px);
     }
     .status-panel{ width: min(560px, 94vw); }
     .status-badge{
@@ -2335,6 +2344,8 @@
     gap: 8px;
     width: 100%;
     max-width: var(--mp-content-width, 17rem);
+    margin-left: auto;
+    margin-right: auto;
     padding: 10px 12px;
     border-radius: 12px;
     background: var(--surface-glass);
