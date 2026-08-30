@@ -1154,7 +1154,7 @@
         gameHooks?.showScreen?.('mp-lobby');
       } catch (e) {
         showMpError(err, e.message);
-        gameHooks?.showScreen?.('menu');
+        gameHooks?.showScreen?.('mp-menu');
       }
     });
 
@@ -1229,7 +1229,7 @@
 
     document.querySelectorAll('[data-mp-back-mp]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        gameHooks?.showScreen?.('menu');
+        gameHooks?.showScreen?.('mp-menu');
       });
     });
 

@@ -511,44 +511,6 @@
     gap: 10px;
     align-items: stretch;
   }
-  .menu-game-group{
-    width: 100%;
-    border: 1px solid rgba(var(--gold-rgb), 0.38);
-    border-radius: 14px;
-    padding: 12px 12px 10px;
-    background: rgba(var(--parchment-rgb), 0.04);
-    box-sizing: border-box;
-  }
-  .menu-game-group-head{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    margin-bottom: 10px;
-    font-family: 'Cinzel', serif;
-    font-size: 0.92rem;
-    letter-spacing: 0.07em;
-    color: var(--gold-bright);
-    text-transform: uppercase;
-  }
-  .menu-game-group-icons{
-    font-size: 1.05rem;
-    line-height: 1;
-    letter-spacing: 0.12em;
-  }
-  .menu-game-group-actions{
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    width: 100%;
-  }
-  .menu-game-group-actions .btn{
-    width: 100%;
-  }
-  .menu-game-group .mp-error{
-    margin: 8px 0 0;
-    text-align: center;
-  }
   #screen-menu .stack .btn,
   #screen-mp-menu .stack .btn{
     width: 100%;
@@ -1302,19 +1264,34 @@
     z-index: 1;
   }
 
-  .page-footer-chrome > .mp-game-bar,
-  .page-footer-chrome > .game-clock,
-  .page-footer-chrome > .status-panel{
+  .page-footer-chrome > .mp-game-bar{
     width: 100%;
     max-width: 100%;
     align-self: stretch;
   }
 
+  .footer-status-row{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .footer-status-row > .game-clock,
+  .footer-status-row > .status-panel{
+    width: auto;
+    max-width: none;
+    flex: 0 1 auto;
+    align-self: center;
+  }
+
   .game-clock{
     display:none;
     align-items:center; justify-content:center;
-    align-self: stretch;
-    width: 100%;
+    align-self: center;
+    width: auto;
     box-sizing: border-box;
     font-family:'Cinzel', serif;
     font-size: 14px;
@@ -1330,7 +1307,10 @@
 
   .status-badge{
     display:flex;
-    align-items:center; justify-content:center; gap:8px;
+    flex-direction: column;
+    align-items:center;
+    justify-content:center;
+    gap: 3px;
     font-family:'Cinzel', serif;
     font-size: 12px;
     letter-spacing:.03em;
@@ -1338,9 +1318,9 @@
     background: var(--surface-glass);
     border: 1px solid rgba(var(--parchment-rgb),0.2);
     border-radius: 999px;
-    padding: 6px 14px;
-    width: 100%;
-    max-width: 100%;
+    padding: 6px 14px 7px;
+    width: auto;
+    max-width: min(92vw, 420px);
     box-sizing: border-box;
     flex-wrap: wrap;
     position:relative;
@@ -1349,6 +1329,14 @@
     cursor: pointer;
     pointer-events:auto;
     transition: background .15s ease, border-color .15s ease, transform .12s ease;
+  }
+  .status-badge-main{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    width: 100%;
   }
   .status-badge .status-provider{
     color: var(--gold-bright);
@@ -1389,12 +1377,12 @@
   .status-panel{
     display:flex;
     flex-direction:column;
-    align-items:stretch;
-    gap:8px;
+    align-items:center;
+    gap:0;
     position:relative;
     z-index:1;
-    width:100%;
-    max-width:100%;
+    width:auto;
+    max-width:min(560px, 92vw);
     flex-shrink:0;
     margin:0;
     pointer-events:auto;
@@ -1402,18 +1390,33 @@
   }
   .status-detail{
     margin:0;
-    font-size:12.5px;
-    line-height:1.4;
-    border-radius:10px;
-    padding:8px 14px;
+    font-size:10.5px;
+    line-height:1.25;
+    border-radius:0;
+    padding:0;
     text-align:center;
     width: 100%;
     box-sizing: border-box;
+    background: transparent;
+    border: none;
+    opacity: 0.92;
   }
   .status-detail.is-offline{
     color:#fecaca;
     background:rgba(229,72,77,0.12);
     border:1px solid rgba(229,72,77,0.35);
+  }
+  .status-badge .status-detail.is-offline,
+  .status-badge .status-detail.is-online{
+    background: transparent;
+    border: none;
+    padding: 0;
+  }
+  .status-badge .status-detail.is-online{
+    color: var(--gold-bright);
+  }
+  .status-badge .status-detail.is-offline{
+    color: #fecaca;
   }
   .status-detail.is-online{
     color:var(--gold-bright);
@@ -1678,21 +1681,6 @@
       gap: 10px;
       align-items: stretch;
     }
-    .menu-game-group{
-      padding: 10px 10px 8px;
-    }
-    .menu-game-group-head{
-      font-size: 0.82rem;
-      margin-bottom: 8px;
-    }
-    .menu-game-group-actions{
-      gap: 7px;
-    }
-    .menu-game-group-actions .btn{
-      font-size: 0.84rem;
-      padding: 11px 12px;
-      min-height: 2.65rem;
-    }
     #screen-menu .stack .btn,
     #screen-mp-menu .stack .btn{
       font-size: 0.88rem;
@@ -1737,12 +1725,13 @@
       padding-left: var(--stage-pad-x);
       padding-right: var(--stage-pad-x);
     }
-    .status-panel{ width: 100%; max-width: 100%; }
+    .status-panel{ width: auto; max-width: min(560px, 94vw); }
     .status-badge{
       font-size: 0.72rem;
-      padding: 7px 14px;
+      padding: 7px 14px 8px;
+      max-width: min(94vw, 420px);
     }
-    .status-detail{ font-size: 0.72rem; }
+    .status-detail{ font-size: 0.65rem; }
     .game-clock{ font-size: 0.85rem; padding: 8px 16px; }
     .time-option{ font-size: 0.75rem; padding: 8px 12px; }
     .ai-model-bar .time-option{ font-size: 0.68rem; padding: 7px 9px; }
@@ -2613,18 +2602,7 @@
     <p class="subtitle">Onde cada lançamento dos dados abre um novo capítulo do conhecimento</p>
     <div class="divider"></div>
     <div class="stack">
-      <div class="menu-game-group">
-        <div class="menu-game-group-head">
-          <span class="menu-game-group-icons" aria-hidden="true">✨ 👥</span>
-          <span class="menu-game-group-title">Novo Jogo</span>
-        </div>
-        <div class="menu-game-group-actions">
-          <button class="btn" id="btn-novo-jogo" type="button">✨ Local / Privado</button>
-          <button class="btn secondary" id="btn-mp-create" type="button">👥 Criar Sala</button>
-          <button class="btn secondary" id="btn-mp-join" type="button">🔗 Entrar Sala (Código)</button>
-        </div>
-        <p class="mp-error" id="mp-create-error" hidden></p>
-      </div>
+      <button class="btn" id="btn-open-novo-jogo" type="button">✨ 👥 Novo Jogo</button>
       <button class="btn secondary" id="btn-continuar" disabled title="Ainda não há jogo em curso">📜 Continuar</button>
       <button class="btn secondary" id="btn-history">📚 Histórico de partidas</button>
       <button class="btn secondary" id="btn-definicoes">⚙️ Definições</button>
@@ -2632,12 +2610,18 @@
     <button class="game-about-btn" id="gameAboutButton" type="button" aria-label="Sobre o jogo">ⓘ Sobre</button>
   </section>
 
-  <!-- MULTIJOGADOR — MENU (ecrã legado; opções estão no menu principal) -->
+  <!-- NOVO JOGO — SUBMENU -->
   <section class="screen" id="screen-mp-menu">
-    <div class="emoji" style="font-size:44px;">👥</div>
-    <h2>Multijogador</h2>
-    <p class="subtitle">As opções de sala estão no menu principal, em Novo Jogo.</p>
-    <button class="btn ghost" type="button" data-mp-back-menu style="margin-top:20px;">← Voltar ao menu</button>
+    <div class="emoji" style="font-size:44px;">✨</div>
+    <h2>Novo Jogo</h2>
+    <p class="subtitle">Escolhe como queres jogar</p>
+    <div class="stack">
+      <button class="btn" id="btn-novo-jogo" type="button">✨ Local / Privado</button>
+      <button class="btn secondary" id="btn-mp-create" type="button">👥 Criar Sala</button>
+      <button class="btn secondary" id="btn-mp-join" type="button">🔗 Entrar Sala (Código)</button>
+      <p class="mp-error" id="mp-create-error" hidden></p>
+      <button class="btn ghost" type="button" data-mp-back-menu>← Voltar ao menu</button>
+    </div>
   </section>
 
   <!-- MULTIJOGADOR — ENTRAR -->
@@ -2898,15 +2882,19 @@
     <button type="button" class="mp-share-btn mp-share-btn-danger" id="mp-game-leave-btn" title="Terminar e sair da sala">🚪 Terminar</button>
   </div>
 </div>
+<div class="footer-status-row">
 <div class="game-clock" id="game-clock">⏱ 00:00</div>
 
 <div class="status-panel" id="status-panel">
   <div class="status-badge offline" id="status-badge" role="button" tabindex="0" title="Estado da IA — clica para verificar" aria-label="Estado da IA — verificar ligação">
-    <span class="status-dot" id="status-dot"></span>
-    <span id="status-text">IA a verificar…</span>
-    <span class="status-provider" id="status-provider" hidden></span>
+    <div class="status-badge-main">
+      <span class="status-dot" id="status-dot"></span>
+      <span id="status-text">IA a verificar…</span>
+      <span class="status-provider" id="status-provider" hidden></span>
+    </div>
+    <p class="status-detail" id="status-detail" hidden></p>
   </div>
-  <p class="status-detail" id="status-detail" hidden></p>
+</div>
 </div>
 </footer>
 <span class="mp-share-toast" id="mp-share-toast" hidden>Link copiado!</span>
@@ -2916,7 +2904,7 @@
 <script src="game-history.js?v=20260829-174108"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-164500"></script>
+<script src="multiplayer-controller.js?v=20260830-165000"></script>
 <script src="question-engine.js?v=20260830-161700" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -3848,6 +3836,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     lastAiUsage.tried = usage.tried;
     updateAiInUseUI();
     refreshStatusBadgeText();
+    refreshStatusDetailText();
   }
 
   function formatAiInUseLabel(){
@@ -3865,6 +3854,27 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const bits = [`ID: ${model}`];
     if(fallback && tried.length > 1) bits.push(`fallback ${tried.join(' → ')}`);
     return bits.join(' · ');
+  }
+
+  function refreshStatusDetailText(){
+    const detailEl = document.getElementById('status-detail');
+    if(!detailEl) return;
+    detailEl.classList.remove('is-online', 'is-offline');
+    if(aiStatusOnline){
+      const inUse = formatAiInUseLabel();
+      let onlineDetail = inUse ? `A usar ${inUse}` : '';
+      if(lastAiUsage.fallback && lastAiUsage.tried.length > 1){
+        onlineDetail += (onlineDetail ? ' · ' : '') + `reserva (${lastAiUsage.tried.join(' → ')})`;
+      }
+      detailEl.textContent = onlineDetail;
+      detailEl.hidden = !onlineDetail;
+      if(onlineDetail) detailEl.classList.add('is-online');
+    } else {
+      const offlineDetail = lastAiStatusDetail;
+      detailEl.textContent = offlineDetail || '';
+      detailEl.hidden = !offlineDetail;
+      if(offlineDetail) detailEl.classList.add('is-offline');
+    }
   }
 
   function refreshStatusBadgeText(){
@@ -3964,21 +3974,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       startAiStatusRecovery();
     }
     if(detailEl){
-      detailEl.classList.remove('is-online', 'is-offline');
-      if(isOnline){
-        let onlineDetail = inUse ? `A usar ${inUse}` : '';
-        if(lastAiUsage.fallback && lastAiUsage.tried.length > 1){
-          onlineDetail += (onlineDetail ? ' · ' : '') + `reserva (${lastAiUsage.tried.join(' → ')})`;
-        }
-        detailEl.textContent = onlineDetail;
-        detailEl.hidden = !onlineDetail;
-        if(onlineDetail) detailEl.classList.add('is-online');
-      } else {
-        const offlineDetail = detail || lastAiStatusDetail;
-        detailEl.textContent = offlineDetail;
-        detailEl.hidden = !offlineDetail;
-        if(offlineDetail) detailEl.classList.add('is-offline');
-      }
+      refreshStatusDetailText();
     }
     updateAiInUseUI();
     updateAnswerModeBar();
@@ -5115,6 +5111,15 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   let lastCategory = null;
   let lastIsSurprise = false;
   let lastDiceRoll = null;
+
+  document.getElementById('btn-open-novo-jogo').onclick = () => {
+    const err = document.getElementById('mp-create-error');
+    if(err){
+      err.hidden = true;
+      err.textContent = '';
+    }
+    showScreen('mp-menu');
+  };
 
   document.getElementById('btn-novo-jogo').onclick = () => {
     clearSettingsQueryFromUrl();
