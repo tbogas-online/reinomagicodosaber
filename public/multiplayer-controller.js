@@ -262,8 +262,6 @@
         screen === 'question' ? 'question' : screen === 'age' ? 'age' : 'game'
       );
     } else {
-      const codeEl = document.getElementById('mp-room-code');
-      if (codeEl) codeEl.textContent = MP.getRoomCode() || '----';
       try {
         renderPlayersUI(await MP.fetchPlayers());
       } catch { /* ignore */ }
@@ -357,8 +355,6 @@
 
       saveLastRoom(MP.getRoomCode(), false);
       if (room.status === 'lobby') {
-        const codeEl = document.getElementById('mp-room-code');
-        if (codeEl) codeEl.textContent = MP.getRoomCode() || '----';
         const players = await MP.fetchPlayers();
         renderPlayersUI(players);
         gameHooks?.showScreen?.('mp-lobby');
@@ -948,9 +944,6 @@
 
   function wireShareButtons() {
     const pairs = [
-      ['mp-lobby-copy-link', copyJoinLink],
-      ['mp-lobby-share-wa', shareViaWhatsApp],
-      ['mp-lobby-share-native', shareNative],
       ['mp-game-copy-link', copyJoinLink],
       ['mp-game-share-wa', shareViaWhatsApp],
       ['mp-game-share-native', shareNative],
@@ -1029,7 +1022,6 @@
   }
 
   async function initLobbyUI() {
-    const codeEl = document.getElementById('mp-room-code');
     const hostBadge = document.getElementById('mp-host-badge');
     const startBtn = document.getElementById('mp-btn-start');
     const errEl = document.getElementById('mp-lobby-error');
@@ -1053,7 +1045,6 @@
       onRoomExpired: handleRoomExpired,
     });
 
-    if (codeEl) codeEl.textContent = MP.getRoomCode() || '----';
     if (hostBadge) hostBadge.hidden = !isHost();
     if (startBtn) startBtn.hidden = !isHost();
     showMpError(errEl, '');

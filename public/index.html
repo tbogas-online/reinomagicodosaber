@@ -2084,14 +2084,6 @@
     color: var(--ink);
     font-weight: 600;
   }
-  .mp-code-display{
-    font-family: 'Cinzel', serif;
-    font-size: 2.4rem;
-    letter-spacing: 0.35em;
-    color: var(--gold-bright);
-    margin: 12px 0 20px;
-    text-align: center;
-  }
   .mp-players-list{
     list-style: none;
     padding: 0;
@@ -2209,15 +2201,6 @@
     border-color: rgba(var(--gold-rgb), 0.35);
     background: rgba(var(--gold-rgb), 0.08);
   }
-  .mp-lobby-share{
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    justify-content: center;
-    width: 100%;
-    max-width: 20rem;
-    margin: 0 auto 16px;
-  }
   .mp-game-players-wrap{
     position: relative;
     flex: 0 0 auto;
@@ -2330,12 +2313,6 @@
     background: rgba(229, 72, 77, 0.14);
     border-color: rgba(229, 72, 77, 0.65);
     color: #ffc8ca;
-  }
-  .mp-lobby-share .btn{
-    flex: 1 1 auto;
-    min-width: 7rem;
-    padding: 8px 12px;
-    font-size: 0.82rem;
   }
   .mp-game-bar{
     display: flex;
@@ -2503,13 +2480,7 @@
   <section class="screen" id="screen-mp-lobby">
     <div class="emoji" style="font-size:44px;">🏰</div>
     <h2>Sala multijogador</h2>
-    <p class="subtitle">Partilha este código com os outros dispositivos</p>
-    <div class="mp-code-display" id="mp-room-code">----</div>
-    <div class="mp-lobby-share" id="mp-lobby-share">
-      <button class="btn secondary" type="button" id="mp-lobby-copy-link">📋 Copiar link</button>
-      <button class="btn secondary" type="button" id="mp-lobby-share-wa">💬 WhatsApp</button>
-      <button class="btn secondary" type="button" id="mp-lobby-share-native">🔗 Partilhar</button>
-    </div>
+    <p class="subtitle">Aguarda outros jogadores ou inicia quando estiveres pronto</p>
     <span class="mp-host-badge" id="mp-host-badge" hidden>👑 És o anfitrião</span>
     <div class="mp-nickname-row">
       <input class="field-input" id="mp-lobby-nick" type="text" maxlength="24" placeholder="O teu nome" autocomplete="nickname">
