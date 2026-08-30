@@ -1158,6 +1158,10 @@
     color: var(--parchment);
     text-shadow: var(--countdown-text-shadow);
   }
+  #countdown-num.is-pause-icon{
+    font-size: calc(var(--ring-num-size) * 0.9);
+    line-height: 1;
+  }
   .countdown-ring.is-compact.urgent{
     animation: pulse-urgent-compact 1s ease-in-out infinite;
   }
@@ -2177,6 +2181,97 @@
     margin: 8px 0 16px;
     text-align: center;
   }
+  .mp-lobby-share{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    width: 100%;
+    max-width: 20rem;
+    margin: 0 auto 16px;
+  }
+  .mp-lobby-share .btn{
+    flex: 1 1 auto;
+    min-width: 7rem;
+    padding: 8px 12px;
+    font-size: 0.82rem;
+  }
+  .mp-game-bar{
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 10px 14px;
+    width: 100%;
+    max-width: 28rem;
+    padding: 8px 14px;
+    border-radius: 999px;
+    background: var(--surface-glass);
+    border: 1px solid rgba(var(--gold-rgb), 0.45);
+    font-family: 'Cinzel', serif;
+    font-size: 0.82rem;
+    color: var(--gold-bright);
+    letter-spacing: 0.06em;
+  }
+  .mp-game-bar[hidden]{ display: none !important; }
+  .mp-game-bar-code{
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+  }
+  .mp-game-bar-label{
+    color: var(--parchment-dim);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+  }
+  .mp-game-bar-value{
+    font-size: 1.15rem;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+  }
+  .mp-game-bar-actions{
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .mp-share-btn{
+    border: 1px solid rgba(var(--gold-rgb), 0.35);
+    background: rgba(var(--night-rgb), 0.35);
+    color: var(--parchment);
+    border-radius: 999px;
+    padding: 6px 12px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .mp-share-btn:hover{
+    background: rgba(var(--gold-rgb), 0.15);
+    border-color: rgba(var(--gold-rgb), 0.55);
+  }
+  .mp-share-toast{
+    position: fixed;
+    bottom: calc(72px + env(safe-area-inset-bottom));
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 18px;
+    border-radius: 999px;
+    background: rgba(var(--night-rgb), 0.92);
+    border: 1px solid rgba(var(--gold-rgb), 0.5);
+    color: var(--gold-bright);
+    font-family: 'Cinzel', serif;
+    font-size: 0.85rem;
+    z-index: 120;
+    pointer-events: none;
+    animation: mp-toast-in .25s ease;
+  }
+  .mp-share-toast[hidden]{ display: none !important; }
+  @keyframes mp-toast-in{
+    from{ opacity: 0; transform: translateX(-50%) translateY(8px); }
+    to{ opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
   .field-input{
     width: 100%;
     max-width: 16rem;
@@ -2268,6 +2363,11 @@
     <h2>Sala multijogador</h2>
     <p class="subtitle">Partilha este código com os outros dispositivos</p>
     <div class="mp-code-display" id="mp-room-code">----</div>
+    <div class="mp-lobby-share" id="mp-lobby-share">
+      <button class="btn secondary" type="button" id="mp-lobby-copy-link">📋 Copiar link</button>
+      <button class="btn secondary" type="button" id="mp-lobby-share-wa">💬 WhatsApp</button>
+      <button class="btn secondary" type="button" id="mp-lobby-share-native">🔗 Partilhar</button>
+    </div>
     <span class="mp-host-badge" id="mp-host-badge" hidden>👑 És o anfitrião</span>
     <div class="mp-nickname-row">
       <input class="field-input" id="mp-lobby-nick" type="text" maxlength="24" placeholder="O teu nome" autocomplete="nickname">
@@ -2469,6 +2569,17 @@
 </div>
 
 <footer class="page-footer-chrome" id="page-footer-chrome">
+<div class="mp-game-bar" id="mp-game-bar" hidden>
+  <div class="mp-game-bar-code">
+    <span class="mp-game-bar-label">Sala</span>
+    <span class="mp-game-bar-value" id="mp-game-room-code">----</span>
+  </div>
+  <div class="mp-game-bar-actions">
+    <button type="button" class="mp-share-btn" id="mp-game-copy-link" title="Copiar link da sala">📋 Copiar</button>
+    <button type="button" class="mp-share-btn" id="mp-game-share-wa" title="Enviar por WhatsApp">💬 WhatsApp</button>
+    <button type="button" class="mp-share-btn" id="mp-game-share-native" title="Partilhar convite">🔗 Partilhar</button>
+  </div>
+</div>
 <div class="game-clock" id="game-clock">⏱ 00:00</div>
 
 <div class="status-panel" id="status-panel">
@@ -2480,13 +2591,14 @@
   <p class="status-detail" id="status-detail" hidden></p>
 </div>
 </footer>
+<span class="mp-share-toast" id="mp-share-toast" hidden>Link copiado!</span>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js?v=20260829-174108"></script>
 <script src="game-history.js?v=20260829-174108"></script>
 <script src="player-names.js?v=20260830-141800"></script>
 <script src="multiplayer-sync.js?v=20260830-141800"></script>
-<script src="multiplayer-controller.js?v=20260830-141800"></script>
+<script src="multiplayer-controller.js?v=20260830-143200"></script>
 <script src="question-engine.js?v=20260829-174108" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -4010,6 +4122,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(id === 'game'){
       syncMultiplayerControls();
     }
+    syncMpGameFooter();
     if(id === 'question'){
       requestAnimationFrame(setupCountdownCompactScroll);
     } else {
@@ -4518,6 +4631,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     };
   }
 
+  function syncMpGameFooter(){
+    window.MultiplayerController?.updateGameFooter?.();
+  }
+
   function syncMultiplayerControls(){
     const rollBtn = document.getElementById('btn-roll');
     if(rollBtn) rollBtn.disabled = false;
@@ -4586,6 +4703,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       window.MultiplayerController.bindGame({
         CATEGORIES,
         showScreen,
+        getCurrentScreenId: () => currentScreenId,
         getSettingsSnapshot,
         assignCategoriesForNewGame,
         startGameClock,
@@ -4607,6 +4725,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         setSelectedAgeBand: (band) => { selectedAgeBand = band; },
         getCurrentQuestion: () => currentQuestion,
         setCurrentQuestion: (q) => { currentQuestion = q; },
+        getCountdownPaused: () => countdownPaused,
+        getCountdownRemaining: () => getCountdownSecondsLeft(),
+        isSameQuestion,
+        applyCountdownSync,
         showDiceResult: showDiceResultOnScreen,
         displayQuestion: displayQuestionFromState,
         applySettings(settings){
@@ -4713,6 +4835,44 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   let lastSelectedAnswer = null;
   let countdownRemaining = null;
   let countdownPaused = false;
+  let applyingCountdownRemote = false;
+
+  function getCountdownSecondsLeft(){
+    if(countdownPaused && Number.isFinite(countdownRemaining)) return countdownRemaining;
+    const n = parseInt(document.getElementById('countdown-num')?.textContent, 10);
+    if(Number.isFinite(n)) return n;
+    return Number.isFinite(countdownRemaining) ? countdownRemaining : null;
+  }
+
+  function isSameQuestion(q){
+    if(!currentQuestion || !q) return false;
+    if(q.id && currentQuestion.id) return q.id === currentQuestion.id;
+    return stripTags(q.q) === stripTags(currentQuestion.q);
+  }
+
+  function syncCountdownToRoom(){
+    const mp = window.MultiplayerController;
+    if(!mp?.isMultiplayer?.() || applyingCountdownRemote) return;
+    mp.pushCountdownState(!!countdownPaused, getCountdownSecondsLeft()).catch(() => {});
+  }
+
+  function applyCountdownSync(paused, remaining){
+    if(currentScreenId !== 'question') return;
+    if(document.getElementById('q-answer')?.style.display === 'block') return;
+    applyingCountdownRemote = true;
+    try {
+      if(paused){
+        if(Number.isFinite(remaining)) countdownRemaining = remaining;
+        else if(!countdownPaused) countdownRemaining = getCountdownSecondsLeft();
+        if(!countdownPaused) pauseQuestionCountdownUI();
+      } else if(countdownPaused){
+        if(Number.isFinite(remaining)) countdownRemaining = remaining;
+        resumeQuestionCountdownUI();
+      }
+    } finally {
+      applyingCountdownRemote = false;
+    }
+  }
 
   function setReportButtonVisible(visible, sent){
     const btn = document.getElementById('btn-report-question');
@@ -4910,9 +5070,11 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     countdownPaused = false;
     const ring = document.getElementById('countdown-ring');
     ring?.classList.remove('is-paused');
+    const num = document.getElementById('countdown-num');
+    num?.classList.remove('is-pause-icon');
+    num?.removeAttribute('aria-label');
     const total = TIME_OPTIONS[countdownIndex];
     let secondsLeft = Number.isFinite(fromSeconds) ? fromSeconds : total;
-    const num = document.getElementById('countdown-num');
     const bandColor = AGE_BAND_COLORS[selectedAgeBand] || 'var(--teal)';
     ring.classList.remove('urgent');
     ring.style.setProperty('--pct', 100);
@@ -4944,29 +5106,52 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     }
   }
 
-  function pauseQuestionCountdown(){
+  function pauseQuestionCountdownUI(){
     if(!questionCountdown && !countdownPaused) return;
-    const n = parseInt(document.getElementById('countdown-num')?.textContent, 10);
-    countdownRemaining = Number.isFinite(n) ? n : null;
+    const numEl = document.getElementById('countdown-num');
+    if(!countdownPaused){
+      const n = parseInt(numEl?.textContent, 10);
+      countdownRemaining = Number.isFinite(n) ? n : countdownRemaining;
+    }
     countdownPaused = true;
     stopQuestionCountdown();
-    document.getElementById('countdown-ring')?.classList.add('is-paused');
+    const ring = document.getElementById('countdown-ring');
+    ring?.classList.add('is-paused');
+    if(numEl){
+      numEl.textContent = '⏸';
+      numEl.classList.add('is-pause-icon');
+      numEl.setAttribute('aria-label', 'Pausado — clica para continuar');
+    }
   }
 
-  function resumeQuestionCountdown(){
+  function resumeQuestionCountdownUI(){
     if(!countdownPaused) return;
     countdownPaused = false;
     document.getElementById('countdown-ring')?.classList.remove('is-paused');
+    const numEl = document.getElementById('countdown-num');
+    numEl?.classList.remove('is-pause-icon');
+    numEl?.removeAttribute('aria-label');
     const answerVisible = document.getElementById('q-answer')?.style.display === 'block';
     const left = countdownRemaining;
     countdownRemaining = null;
     if(!answerVisible && left > 0) startQuestionCountdown(left);
   }
 
+  function pauseQuestionCountdown(syncMp = true){
+    pauseQuestionCountdownUI();
+    if(syncMp && !applyingCountdownRemote) syncCountdownToRoom();
+  }
+
+  function resumeQuestionCountdown(syncMp = true){
+    resumeQuestionCountdownUI();
+    if(syncMp && !applyingCountdownRemote) syncCountdownToRoom();
+  }
+
   function toggleQuestionCountdown(){
     if(document.getElementById('q-answer')?.style.display === 'block') return;
+    if(applyingCountdownRemote) return;
     if(countdownPaused) resumeQuestionCountdown();
-    else if(questionCountdown) pauseQuestionCountdown();
+    else if(questionCountdown || getCountdownSecondsLeft() > 0) pauseQuestionCountdown();
   }
 
   document.getElementById('countdown-ring')?.addEventListener('click', toggleQuestionCountdown);

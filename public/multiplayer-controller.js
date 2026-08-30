@@ -54,6 +54,8 @@
       lastIsSurprise: !!h.getLastIsSurprise?.(),
       selectedAgeBand: h.getSelectedAgeBand?.() || null,
       currentQuestion: h.getCurrentQuestion?.() || null,
+      countdownPaused: !!h.getCountdownPaused?.(),
+      countdownRemaining: h.getCountdownRemaining?.() ?? null,
       dice: extra?.dice || null,
       round: extra?.round ?? (GH.getCurrentGame()?.rounds?.length || 0),
       ...extra,
@@ -108,12 +110,35 @@
         }
         h.showScreen?.('age');
       } else if (state.screen === 'question' && state.currentQuestion) {
-        h.setCurrentQuestion?.(state.currentQuestion);
-        await h.displayQuestion?.(lastCat, state.lastIsSurprise, state.selectedAgeBand, state.currentQuestion);
+        const sameQ = h.isSameQuestion?.(state.currentQuestion);
+        if (!sameQ) {
+          h.setCurrentQuestion?.(state.currentQuestion);
+          await h.displayQuestion?.(lastCat, state.lastIsSurprise, state.selectedAgeBand, state.currentQuestion);
+        } else if (h.getCurrentScreenId?.() !== 'question') {
+          h.setCurrentQuestion?.(state.currentQuestion);
+          await h.displayQuestion?.(lastCat, state.lastIsSurprise, state.selectedAgeBand, state.currentQuestion);
+        }
+        if (typeof state.countdownPaused === 'boolean') {
+          h.applyCountdownSync?.(state.countdownPaused, state.countdownRemaining);
+        }
       }
     } finally {
       applyingRemote = false;
     }
+  }
+
+  async function pushCountdownState(paused, remaining) {
+    if (!isMultiplayer() || !gameHooks) return;
+    const h = gameHooks;
+    await pushState({
+      screen: 'question',
+      currentQuestion: h.getCurrentQuestion?.(),
+      lastCategory: serializeCategory(h.getLastCategory?.()),
+      lastIsSurprise: !!h.getLastIsSurprise?.(),
+      selectedAgeBand: h.getSelectedAgeBand?.() || null,
+      countdownPaused: !!paused,
+      countdownRemaining: Number.isFinite(remaining) ? remaining : null,
+    });
   }
 
   function recordRoundFromQuestion(q, cat, ageBand) {
@@ -144,6 +169,7 @@
     gameHooks.fillCategoryList?.();
     gameHooks.showScreen?.('game');
     renderLobbyPlayers(await MP.fetchPlayers());
+    updateGameFooter();
   }
 
   async function hostRollDice(d1, d2) {
@@ -212,6 +238,11 @@
   }
 
   function renderLobbyPlayers(players) {
+    MP.syncHostFromPlayers?.(players);
+    const hostBadge = document.getElementById('mp-host-badge');
+    const startBtn = document.getElementById('mp-btn-start');
+    if (hostBadge) hostBadge.hidden = !isHost();
+    if (startBtn) startBtn.hidden = !isHost();
     const list = document.getElementById('mp-players-list');
     if (!list) return;
     list.innerHTML = '';
@@ -288,6 +319,152 @@
     if (!el) return;
     el.textContent = msg || '';
     el.hidden = !msg;
+  }
+
+  function getRoomCodeFromUrl() {
+    try {
+      const params = new URLSearchParams(global.location.search);
+      return (params.get('sala') || params.get('room') || '').trim().toUpperCase();
+    } catch {
+      return '';
+    }
+  }
+
+  function buildJoinUrl(code) {
+    const roomCode = String(code || MP.getRoomCode() || '').trim().toUpperCase();
+    if (!roomCode) return '';
+    try {
+      const url = new URL(global.location.href);
+      url.searchParams.set('sala', roomCode);
+      url.hash = '';
+      return url.toString();
+    } catch {
+      return `${global.location.origin}${global.location.pathname}?sala=${encodeURIComponent(roomCode)}`;
+    }
+  }
+
+  function getShareMessage(code) {
+    const roomCode = String(code || MP.getRoomCode() || '').trim().toUpperCase();
+    const link = buildJoinUrl(roomCode);
+    return `Junta-te à minha partida no Reino Mágico do Saber! 🏰\nCódigo da sala: ${roomCode}\n${link}`;
+  }
+
+  let shareToastTimer = null;
+
+  function showShareToast(message) {
+    const toast = document.getElementById('mp-share-toast');
+    if (!toast) return;
+    toast.textContent = message || 'Link copiado!';
+    toast.hidden = false;
+    if (shareToastTimer) clearTimeout(shareToastTimer);
+    shareToastTimer = setTimeout(() => {
+      toast.hidden = true;
+    }, 2200);
+  }
+
+  async function copyJoinLink() {
+    const link = buildJoinUrl();
+    if (!link) return false;
+    try {
+      await global.navigator.clipboard.writeText(link);
+      showShareToast('Link copiado!');
+      return true;
+    } catch {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = link;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        showShareToast('Link copiado!');
+        return true;
+      } catch {
+        showShareToast('Não foi possível copiar');
+        return false;
+      }
+    }
+  }
+
+  function shareViaWhatsApp() {
+    const text = getShareMessage();
+    if (!text) return;
+    const url = `https://wa.me/?text=${encodeURIComponent(text)}`;
+    global.open(url, '_blank', 'noopener,noreferrer');
+  }
+
+  function shareViaSms() {
+    const text = getShareMessage();
+    if (!text) return;
+    global.location.href = `sms:?body=${encodeURIComponent(text)}`;
+  }
+
+  async function shareNative() {
+    const code = MP.getRoomCode();
+    const link = buildJoinUrl(code);
+    if (!link) return;
+    if (global.navigator.share) {
+      try {
+        await global.navigator.share({
+          title: 'Reino Mágico do Saber',
+          text: `Junta-te à minha partida! Código: ${code}`,
+          url: link,
+        });
+        return;
+      } catch (err) {
+        if (err?.name === 'AbortError') return;
+      }
+    }
+    const copied = await copyJoinLink();
+    if (!copied) shareViaWhatsApp();
+  }
+
+  function wireShareButtons() {
+    const pairs = [
+      ['mp-lobby-copy-link', copyJoinLink],
+      ['mp-lobby-share-wa', shareViaWhatsApp],
+      ['mp-lobby-share-native', shareNative],
+      ['mp-game-copy-link', copyJoinLink],
+      ['mp-game-share-wa', shareViaWhatsApp],
+      ['mp-game-share-native', shareNative],
+    ];
+    pairs.forEach(([id, handler]) => {
+      document.getElementById(id)?.addEventListener('click', (e) => {
+        e.preventDefault();
+        handler();
+      });
+    });
+  }
+
+  function maybeOpenJoinFromUrl() {
+    const code = getRoomCodeFromUrl();
+    if (!code) return;
+    const codeInput = document.getElementById('mp-join-code');
+    const nickInput = document.getElementById('mp-join-nick');
+    if (codeInput) codeInput.value = code;
+    if (nickInput && !nickInput.value.trim()) {
+      nickInput.value = global.PlayerNames?.getNicknameOrRandom?.() || '';
+    }
+    if (MP.isActive() || !MP.isConfigured()) return;
+    gameHooks?.showScreen?.('mp-join');
+  }
+
+  function updateGameFooter() {
+    const bar = document.getElementById('mp-game-bar');
+    const codeEl = document.getElementById('mp-game-room-code');
+    if (!bar) return;
+    const code = MP.getRoomCode();
+    const show = isMultiplayer() && !!code;
+    if (codeEl && code) codeEl.textContent = code;
+    if (show && gameHooks?.getCurrentScreenId) {
+      const screen = gameHooks.getCurrentScreenId();
+      bar.hidden = !['game', 'age', 'question'].includes(screen);
+    } else {
+      bar.hidden = !show;
+    }
   }
 
   async function initLobbyUI() {
@@ -373,6 +550,7 @@
       }
       try {
         await MP.ensureClient();
+        if (MP.isActive()) await MP.leaveRoom();
         const settings = gameHooks?.getSettingsSnapshot?.() || {};
         const nick = global.PlayerNames?.getNicknameOrRandom?.() || '';
         await MP.createRoom(settings, nick);
@@ -386,7 +564,9 @@
       }
     });
 
-    document.getElementById('btn-mp-join')?.addEventListener('click', () => {
+    document.getElementById('btn-mp-join')?.addEventListener('click', async () => {
+      if (MP.isActive()) await MP.leaveRoom();
+      active = false;
       const nickInput = document.getElementById('mp-join-nick');
       if (nickInput && !nickInput.value.trim()) {
         nickInput.value = global.PlayerNames?.getNicknameOrRandom?.() || '';
@@ -414,6 +594,7 @@
       }
       try {
         await MP.ensureClient();
+        if (MP.isActive()) await MP.leaveRoom();
         const name = nick || global.PlayerNames?.getNicknameOrRandom?.() || '';
         global.PlayerNames?.saveNickname?.(name);
         const result = await MP.joinRoom(code, name);
@@ -443,7 +624,9 @@
     });
 
     document.querySelectorAll('[data-mp-back-menu]').forEach((btn) => {
-      btn.addEventListener('click', () => {
+      btn.addEventListener('click', async () => {
+        if (MP.isActive()) await MP.leaveRoom();
+        active = false;
         gameHooks?.showScreen?.('menu');
       });
     });
@@ -488,6 +671,8 @@
 
   function init() {
     wireMenuButtons();
+    wireShareButtons();
+    maybeOpenJoinFromUrl();
   }
 
   global.MultiplayerController = {
@@ -508,5 +693,13 @@
     buildGameState,
     serializeCategory,
     deserializeCategory,
+    pushCountdownState,
+    buildJoinUrl,
+    copyJoinLink,
+    shareViaWhatsApp,
+    shareViaSms,
+    shareNative,
+    updateGameFooter,
+    getRoomCodeFromUrl,
   };
 })(typeof window !== 'undefined' ? window : global);

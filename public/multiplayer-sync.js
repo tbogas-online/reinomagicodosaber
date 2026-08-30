@@ -77,6 +77,20 @@
     return !!roomId && !!client;
   }
 
+  function setHostFlag(nextHost, notify = true) {
+    const becameHost = !!nextHost;
+    if (isHost === becameHost) return;
+    isHost = becameHost;
+    if (notify) onHostChange?.(becameHost);
+  }
+
+  function syncHostFromPlayers(players) {
+    if (!playerId) return isHost;
+    const me = (players || []).find((p) => p.player_id === playerId);
+    setHostFlag(!!me?.is_host);
+    return isHost;
+  }
+
   async function fetchPlayers() {
     if (!client || !roomId) return [];
     const { data, error } = await client
@@ -86,6 +100,11 @@
       .order('joined_at', { ascending: true });
     if (error) throw error;
     return data || [];
+  }
+
+  async function syncHostFromServer() {
+    const players = await fetchPlayers();
+    return syncHostFromPlayers(players);
   }
 
   async function createRoom(settings, nickname) {
@@ -98,8 +117,9 @@
     if (error) throw error;
     roomId = data.room_id;
     roomCode = data.code;
-    isHost = true;
+    setHostFlag(true, false);
     await subscribe();
+    await syncHostFromServer();
     return { roomId, code: roomCode, isHost: true };
   }
 
@@ -112,8 +132,9 @@
     if (error) throw error;
     roomId = data.room_id;
     roomCode = data.code;
-    isHost = !!data.is_host;
+    setHostFlag(!!data.is_host, false);
     await subscribe();
+    await syncHostFromServer();
     return {
       roomId,
       code: roomCode,
@@ -195,12 +216,16 @@
     await setConnected(true);
     if (!isHost) {
       try {
-        await client.rpc('claim_host_if_disconnected', { p_room_id: roomId });
-        const { data: room } = await client.from('rooms').select('host_player_id').eq('id', roomId).single();
-        if (room && room.host_player_id === playerId && !isHost) {
-          isHost = true;
-          onHostChange?.(true);
+        const { data: room } = await client
+          .from('rooms')
+          .select('host_player_id, status')
+          .eq('id', roomId)
+          .single();
+        // Só tenta assumir anfitrião em jogo activo, se o anfitrião saiu.
+        if (room?.status === 'playing') {
+          await client.rpc('claim_host_if_disconnected', { p_room_id: roomId });
         }
+        await syncHostFromServer();
       } catch { /* ignore */ }
     }
   }
@@ -230,21 +255,13 @@
         filter: 'id=eq.' + roomId,
       }, (payload) => {
         const row = payload.new;
-        if (row.host_player_id && row.host_player_id !== playerId) {
-          if (isHost) {
-            isHost = false;
-            onHostChange?.(false);
-          }
-        } else if (row.host_player_id === playerId && !isHost) {
-          isHost = true;
-          onHostChange?.(true);
-        }
         const gs = row.game_state || {};
         const json = JSON.stringify(gs);
         if (json !== lastGameStateJson) {
           lastGameStateJson = json;
           onStateChange?.(gs, row.settings || {}, row.status);
         }
+        syncHostFromServer().catch(() => {});
       })
       .subscribe();
 
@@ -258,6 +275,7 @@
       }, async () => {
         try {
           const players = await fetchPlayers();
+          syncHostFromPlayers(players);
           onPlayersChange?.(players);
         } catch { /* ignore */ }
       })
@@ -265,6 +283,7 @@
 
     startHeartbeat();
     const players = await fetchPlayers();
+    syncHostFromPlayers(players);
     onPlayersChange?.(players);
   }
 
@@ -285,7 +304,7 @@
     await unsubscribe();
     roomId = null;
     roomCode = null;
-    isHost = false;
+    setHostFlag(false, false);
     lastGameStateJson = '';
   }
 
@@ -351,5 +370,7 @@
     updateNickname,
     getMyNickname,
     setLastGameStateJson,
+    syncHostFromPlayers,
+    syncHostFromServer,
   };
 })(typeof window !== 'undefined' ? window : global);
