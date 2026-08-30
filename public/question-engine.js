@@ -1480,7 +1480,7 @@ Só JSON, sem markdown: ${jsonFormat}`;
     }
 
     if (formatId === FORMAT_IDS.CAUSA_CONSEQUENCIA) {
-      const maxQ = ageBandKey === '6-9' ? 120 : (ageBandKey === '10-15' ? 180 : 220);
+      const maxQ = ageBandKey === '6-9' ? 120 : (ageBandKey === '10-15' ? 180 : 200);
       if (q.length > maxQ) issues.push('pergunta CAUSA_CONSEQUENCIA demasiado longa para ler em voz alta');
     }
 
