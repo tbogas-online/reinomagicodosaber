@@ -267,12 +267,41 @@ function buildTimeline(rows) {
   return timeline;
 }
 
+const BANK_AGE_BANDS = ['6-9', '10-15', '15+'];
+
+function rowInRange(iso, config) {
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return false;
+  if (config.all) return true;
+  return t >= Date.now() - config.lookbackMs;
+}
+
+function buildTimelineByCategory(rows) {
+  const byRange = {};
+  Object.entries(TIMELINE_RANGE_CONFIG).forEach(([key, config]) => {
+    const categories = {};
+    for (let n = 1; n <= 20; n += 1) {
+      categories[n] = { '6-9': 0, '10-15': 0, '15+': 0, total: 0 };
+    }
+    (rows || []).forEach((row) => {
+      if (!rowInRange(row.created_at, config)) return;
+      const cat = Number(row.category_n);
+      const age = row.age_band;
+      if (!cat || cat < 1 || cat > 20 || !BANK_AGE_BANDS.includes(age)) return;
+      categories[cat][age] += 1;
+      categories[cat].total += 1;
+    });
+    byRange[key] = categories;
+  });
+  return byRange;
+}
+
 async function fetchQuestionTimelineRows() {
   const rows = [];
   const pageSize = 1000;
   let offset = 0;
   while (true) {
-    const path = `/question_bank?select=created_at,source&order=created_at.asc&limit=${pageSize}&offset=${offset}`;
+    const path = `/question_bank?select=created_at,source,category_n,age_band&order=created_at.asc&limit=${pageSize}&offset=${offset}`;
     const batch = await supabaseRequest(path);
     if (!batch?.length) break;
     rows.push(...batch);
@@ -314,6 +343,7 @@ async function getQuestionBankStats() {
   return {
     ...base,
     timeline: buildTimeline(timelineRows),
+    timelineByCategory: buildTimelineByCategory(timelineRows),
   };
 }
 

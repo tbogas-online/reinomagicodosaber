@@ -464,6 +464,19 @@
       min-width: 1.5em;
       text-align: right;
     }
+    .bar-track.stacked {
+      display: flex;
+      border-radius: 999px;
+    }
+    .bar-segment {
+      height: 100%;
+      min-width: 2px;
+    }
+    .chart-bank-category {
+      max-height: 560px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
     .donut-wrap {
       display: flex;
       flex-wrap: wrap;
@@ -952,6 +965,15 @@
           <div class="rooms-legend">
             <span><i style="background:#f59e0b"></i> Guardadas no banco</span>
             <span><i style="background:#3b82f6"></i> Via IA (jogo + teste)</span>
+          </div>
+
+          <h3 class="charts-title" id="bankCategoryChartTitle" style="font-size:1rem; margin:22px 0 6px;">Por categoria e faixa etária</h3>
+          <p class="timeline-note" id="bankCategoryNote"></p>
+          <div id="bankCategoryChart" class="chart chart-bank-category"></div>
+          <div class="rooms-legend">
+            <span><i style="background:#3b82f6"></i> 6–9 anos</span>
+            <span><i style="background:#10b981"></i> 10–15 anos</span>
+            <span><i style="background:#f59e0b"></i> 15+ anos</span>
           </div>
         </div>
 
@@ -2404,6 +2426,16 @@
       { n: 20, name: 'Adivinhas e Curiosidades' },
     ];
     const BANK_AGE_BANDS = ['6-9', '10-15', '15+'];
+    const BANK_AGE_CHART_LABELS = {
+      '6-9': '6–9 anos',
+      '10-15': '10–15 anos',
+      '15+': '15+ anos',
+    };
+    const BANK_AGE_COLORS = {
+      '6-9': '#3b82f6',
+      '10-15': '#10b981',
+      '15+': '#f59e0b',
+    };
     const BANK_SOURCE_LABELS = {
       ai: 'IA',
       history: 'Histórico MP',
@@ -2587,6 +2619,59 @@
       });
     }
 
+    function renderBankCategoryChart(stats) {
+      const meta = BANK_TIMELINE_RANGES[bankTimelineRange] || BANK_TIMELINE_RANGES['24h'];
+      const titleEl = document.getElementById('bankCategoryChartTitle');
+      const noteEl = document.getElementById('bankCategoryNote');
+      const chartEl = document.getElementById('bankCategoryChart');
+      if (!chartEl) return;
+      if (titleEl) titleEl.textContent = `Por categoria e faixa etária — ${meta.label}`;
+      const bucket = stats?.timelineByCategory?.[bankTimelineRange];
+      if (!bucket) {
+        chartEl.innerHTML = '<div class="chart-empty">Sem dados.</div>';
+        if (noteEl) noteEl.textContent = '';
+        return;
+      }
+      const rows = BANK_CATEGORIES.map((cat) => {
+        const ages = bucket[cat.n] || { '6-9': 0, '10-15': 0, '15+': 0, total: 0 };
+        return {
+          n: cat.n,
+          name: cat.name,
+          ages,
+          total: Number(ages.total) || 0,
+        };
+      }).filter((row) => row.total > 0).sort((a, b) => b.total - a.total);
+      const periodTotal = rows.reduce((sum, row) => sum + row.total, 0);
+      if (noteEl) {
+        noteEl.innerHTML = periodTotal
+          ? `No período: <strong>${periodTotal}</strong> pergunta(s) em <strong>${rows.length}</strong> categoria(s).`
+          : 'Sem perguntas guardadas neste período.';
+      }
+      if (!rows.length) {
+        chartEl.innerHTML = '<div class="chart-empty">Sem perguntas neste período.</div>';
+        return;
+      }
+      const max = Math.max(...rows.map((row) => row.total), 1);
+      chartEl.innerHTML = rows.map((row) => {
+        const segments = BANK_AGE_BANDS.map((age) => {
+          const value = Number(row.ages[age]) || 0;
+          if (!value) return '';
+          const width = (value / max) * 100;
+          const title = `${row.name} · ${BANK_AGE_CHART_LABELS[age]}: ${value}`;
+          return `<div class="bar-segment" style="width:${width}%;background:${BANK_AGE_COLORS[age]}" title="${esc(title)}"></div>`;
+        }).join('');
+        const ageDetail = BANK_AGE_BANDS
+          .map((age) => `${BANK_AGE_CHART_LABELS[age]}: ${row.ages[age] || 0}`)
+          .join(' · ');
+        return `
+          <div class="bar-row" title="${esc(`${row.name} — ${ageDetail}`)}">
+            <div class="bar-label"><span class="cat-num">${row.n}</span>${esc(row.name)}</div>
+            <div class="bar-track stacked">${segments || `<div class="bar-segment" style="width:0"></div>`}</div>
+            <div class="bar-value">${row.total}</div>
+          </div>`;
+      }).join('');
+    }
+
     async function loadBankDashboard(options = {}) {
       const { quiet = false } = options;
       if (bankLoading) return;
@@ -2601,6 +2686,7 @@
         lastBankStats = data.stats;
         renderBankStats(lastBankStats);
         renderBankChart(lastBankStats);
+        renderBankCategoryChart(lastBankStats);
         renderBankMatrix(lastBankStats);
         const updatedEl = document.getElementById('bankLastUpdated');
         if (updatedEl) updatedEl.textContent = `Actualizado às ${formatPortugalDateTime(new Date())}`;
@@ -3070,6 +3156,7 @@
       bankTimelineRange = btn.dataset.bankRange;
       try { localStorage.setItem(BANK_TIMELINE_STORAGE_KEY, bankTimelineRange); } catch { /* ignore */ }
       renderBankChart(lastBankStats);
+      renderBankCategoryChart(lastBankStats);
     });
     document.getElementById('roomsTimelineFilters')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-rooms-range]');
