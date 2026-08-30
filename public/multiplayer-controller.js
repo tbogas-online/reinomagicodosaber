@@ -497,7 +497,7 @@
       const nickInput = document.getElementById('mp-lobby-nick');
       if (nickInput) {
         const myNick = await MP.getMyNickname();
-        nickInput.value = myNick || global.PlayerNames?.getNicknameOrRandom?.() || '';
+        nickInput.value = myNick || global.PlayerNames?.generateRandomPlayerName?.() || '';
       }
     } catch (e) {
       showMpError(errEl, e.message);
@@ -554,7 +554,6 @@
         const settings = gameHooks?.getSettingsSnapshot?.() || {};
         const nick = global.PlayerNames?.getNicknameOrRandom?.() || '';
         await MP.createRoom(settings, nick);
-        global.PlayerNames?.saveNickname?.(nick);
         active = true;
         await initLobbyUI();
         gameHooks?.showScreen?.('mp-lobby');
@@ -596,7 +595,6 @@
         await MP.ensureClient();
         if (MP.isActive()) await MP.leaveRoom();
         const name = nick || global.PlayerNames?.getNicknameOrRandom?.() || '';
-        global.PlayerNames?.saveNickname?.(name);
         const result = await MP.joinRoom(code, name);
         active = true;
         await initLobbyUI();
