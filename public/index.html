@@ -2406,6 +2406,7 @@
     <div class="stack">
       <button class="btn" id="btn-novo-jogo">✨ Novo Jogo</button>
       <button class="btn secondary" id="btn-mp-menu">👥 Multijogador</button>
+      <button class="btn secondary" id="btn-mp-resume" type="button" hidden>🏰 Continuar sala</button>
       <button class="btn secondary" id="btn-history">📚 Histórico de partidas</button>
       <button class="btn secondary" id="btn-continuar" disabled title="Ainda não há jogo em curso">📜 Continuar</button>
       <button class="btn secondary" id="btn-definicoes">⚙️ Definições</button>
@@ -2462,7 +2463,7 @@
     <div class="stack" style="gap:10px;">
       <button class="btn" id="mp-btn-start" type="button" hidden>▶ Iniciar jogo</button>
       <button class="btn secondary" id="mp-btn-leave" type="button">Sair da sala</button>
-      <button class="btn ghost" type="button" data-mp-back>← Menu</button>
+      <button class="btn ghost" type="button" data-mp-back>← Voltar ao menu</button>
     </div>
   </section>
 
@@ -2666,6 +2667,7 @@
     <ul class="mp-players-popover" id="mp-game-players-list" hidden role="listbox"></ul>
   </div>
   <div class="mp-game-bar-actions">
+    <button type="button" class="mp-share-btn" id="mp-game-menu-btn" title="Voltar ao menu (mantém-te na sala)">🏠 Menu</button>
     <button type="button" class="mp-share-btn" id="mp-game-copy-link" title="Copiar link da sala">📋 Copiar</button>
     <button type="button" class="mp-share-btn" id="mp-game-share-wa" title="Enviar por WhatsApp">💬 WhatsApp</button>
     <button type="button" class="mp-share-btn" id="mp-game-share-native" title="Partilhar convite">🔗 Partilhar</button>
@@ -4214,6 +4216,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       syncMultiplayerControls();
     }
     syncMpGameFooter();
+    if(id === 'menu'){
+      window.MultiplayerController?.updateMenuResumeButton?.();
+    }
     if(id === 'question'){
       requestAnimationFrame(setupCountdownCompactScroll);
     } else {
@@ -4903,9 +4908,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     showScreen('game');
   };
   document.getElementById('btn-game-back').onclick = async () => {
-    if(window.MultiplayerController?.isMultiplayer?.()){
-      if(window.GameHistory?.getCurrentGame()?.mode === 'multiplayer') window.GameHistory.finishGame();
-      await window.MultiplayerSync?.leaveRoom?.();
+    if(window.MultiplayerController?.isInRoom?.()){
+      window.MultiplayerController.goToMenuKeepRoom?.();
+      return;
     }
     resetGameScreen();
     showScreen('menu');

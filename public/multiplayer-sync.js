@@ -18,6 +18,7 @@
   let onStateChange = null;
   let onPlayersChange = null;
   let onHostChange = null;
+  let onRoomExpired = null;
   let lastGameStateJson = '';
 
   function getConfig() {
@@ -239,6 +240,18 @@
     if (error) console.warn('[MP] match insert', error.message);
   }
 
+  async function touchRoomActivity() {
+    if (!client || !roomId) return { expired: false };
+    const { data, error } = await client.rpc('touch_room_activity', { p_room_id: roomId });
+    if (error) throw error;
+    return { expired: !!data?.expired };
+  }
+
+  async function notifyRoomExpired() {
+    await leaveRoom();
+    onRoomExpired?.();
+  }
+
   async function setConnected(connected) {
     if (!client || !roomId || !playerId) return;
     await client
@@ -252,6 +265,11 @@
     if (!roomId) return;
     await setConnected(true);
     try {
+      const touch = await touchRoomActivity();
+      if (touch.expired) {
+        await notifyRoomExpired();
+        return;
+      }
       await syncHostFromServer();
     } catch { /* ignore */ }
   }
@@ -348,6 +366,29 @@
     }
   }
 
+  async function fetchRoom() {
+    if (!client || !roomId) return null;
+    const { data: expired, error: expErr } = await client.rpc('expire_room_if_inactive', {
+      p_room_id: roomId,
+    });
+    if (expErr) throw expErr;
+    if (expired) {
+      await notifyRoomExpired();
+      return { status: 'finished', expired: true };
+    }
+    const { data, error } = await client
+      .from('rooms')
+      .select('status, settings, game_state')
+      .eq('id', roomId)
+      .single();
+    if (error) throw error;
+    if (data?.status === 'finished') {
+      await notifyRoomExpired();
+      return { ...data, expired: true };
+    }
+    return data;
+  }
+
   async function leaveRoom() {
     await setConnected(false);
     await unsubscribe();
@@ -395,6 +436,7 @@
     onStateChange = cbs?.onStateChange || null;
     onPlayersChange = cbs?.onPlayersChange || null;
     onHostChange = cbs?.onHostChange || null;
+    onRoomExpired = cbs?.onRoomExpired || null;
   }
 
   global.MultiplayerSync = {
@@ -414,7 +456,9 @@
     insertHistoryRound,
     insertMatch,
     fetchPlayers,
+    fetchRoom,
     fetchRoomHistory,
+    touchRoomActivity,
     leaveRoom,
     setConnected,
     setCallbacks,

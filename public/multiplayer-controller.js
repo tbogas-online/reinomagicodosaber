@@ -9,6 +9,7 @@
   const GH = global.GameHistory;
 
   let active = false;
+  let roomPaused = false;
   let applyingRemote = false;
   let gameHooks = null;
   let currentMatchId = null;
@@ -17,8 +18,12 @@
     gameHooks = hooks;
   }
 
+  function isInRoom() {
+    return !!MP?.isActive();
+  }
+
   function isMultiplayer() {
-    return active && MP?.isActive();
+    return active && MP?.isActive() && !roomPaused;
   }
 
   function isHost() {
@@ -75,9 +80,9 @@
 
   let lastGameStateJson = '';
 
-  async function applyRemoteState(state, settings) {
+  async function applyRemoteState(state, settings, options = {}) {
     if (!state || !gameHooks || applyingRemote) return;
-    if (state.actorId && state.actorId === MP.getPlayerId()) return;
+    if (!options.resume && state.actorId && state.actorId === MP.getPlayerId()) return;
     applyingRemote = true;
     try {
       const h = gameHooks;
@@ -177,6 +182,94 @@
       MP.insertHistoryRound(round, currentMatchId).catch(() => {});
     }
     return round;
+  }
+
+  function clearRoomPause() {
+    roomPaused = false;
+    updateMenuResumeButton();
+  }
+
+  function updateMenuResumeButton() {
+    const btn = document.getElementById('btn-mp-resume');
+    if (!btn) return;
+    const show = isInRoom() && roomPaused;
+    btn.hidden = !show;
+    if (show) {
+      const code = MP.getRoomCode() || '----';
+      btn.textContent = `🏰 Continuar sala ${code}`;
+      btn.disabled = false;
+      btn.title = 'Voltar à sala multijogador sem sair';
+    }
+  }
+
+  function goToMenuKeepRoom() {
+    if (!isInRoom()) {
+      gameHooks?.showScreen?.('menu');
+      return;
+    }
+    roomPaused = true;
+    active = true;
+    updateMenuResumeButton();
+    gameHooks?.showScreen?.('menu');
+  }
+
+  async function resumeRoomSession() {
+    if (!isInRoom()) return;
+    roomPaused = false;
+    active = true;
+    try {
+      await MP.setConnected(true);
+      await MP.syncHostFromServer?.();
+      const room = await MP.fetchRoom();
+      if (!room || room.expired) return;
+      if (room.status === 'lobby') {
+        const codeEl = document.getElementById('mp-room-code');
+        if (codeEl) codeEl.textContent = MP.getRoomCode() || '----';
+        const players = await MP.fetchPlayers();
+        renderPlayersUI(players);
+        gameHooks?.showScreen?.('mp-lobby');
+      } else if (room.status === 'playing' && room.game_state) {
+        await applyRemoteState(room.game_state, room.settings || {}, { resume: true });
+        const screen = room.game_state.screen;
+        if (screen === 'question' || screen === 'age') {
+          gameHooks?.showScreen?.(screen);
+        } else {
+          gameHooks?.showScreen?.('game');
+        }
+      } else {
+        gameHooks?.showScreen?.('mp-lobby');
+      }
+      updateGameFooter();
+    } catch (e) {
+      console.warn('[MP] resume', e.message || e);
+      gameHooks?.showScreen?.('mp-lobby');
+    }
+    updateMenuResumeButton();
+  }
+
+  function showMpExpiredToast() {
+    const toast = document.getElementById('mp-share-toast');
+    if (!toast) return;
+    toast.textContent = 'A sala expirou por inatividade (24 horas).';
+    toast.hidden = false;
+    clearTimeout(showMpExpiredToast._timer);
+    showMpExpiredToast._timer = setTimeout(() => { toast.hidden = true; }, 5000);
+  }
+
+  function handleRoomExpired() {
+    if (GH.getCurrentGame()?.mode === 'multiplayer') GH.finishGame();
+    active = false;
+    clearRoomPause();
+    gameHooks?.showScreen?.('menu');
+    showMpExpiredToast();
+  }
+
+  async function leaveRoomAndMenu() {
+    if (GH.getCurrentGame()?.mode === 'multiplayer') GH.finishGame();
+    await MP.leaveRoom();
+    active = false;
+    clearRoomPause();
+    gameHooks?.showScreen?.('menu');
   }
 
   async function hostStartFromLobby(settings) {
@@ -575,11 +668,13 @@
       if (MP.isActive()) {
         await MP.leaveRoom();
         active = false;
+        clearRoomPause();
       }
 
       const name = global.PlayerNames?.getNicknameOrRandom?.() || '';
       const result = await MP.joinRoom(code, name);
       active = true;
+      clearRoomPause();
       await initLobbyUI();
       if (result.status === 'playing') {
         await applyRemoteState(result.gameState, result.settings);
@@ -639,6 +734,7 @@
         if (hostBadge) hostBadge.hidden = !nowHost;
         if (startBtn) startBtn.hidden = !nowHost;
       },
+      onRoomExpired: handleRoomExpired,
     });
 
     if (codeEl) codeEl.textContent = MP.getRoomCode() || '----';
@@ -706,11 +802,15 @@
       }
       try {
         await MP.ensureClient();
-        if (MP.isActive()) await MP.leaveRoom();
+        if (MP.isActive()) {
+          await MP.leaveRoom();
+          clearRoomPause();
+        }
         const settings = gameHooks?.getSettingsSnapshot?.() || {};
         const nick = global.PlayerNames?.getNicknameOrRandom?.() || '';
         await MP.createRoom(settings, nick);
         active = true;
+        clearRoomPause();
         await initLobbyUI();
         gameHooks?.showScreen?.('mp-lobby');
       } catch (e) {
@@ -720,7 +820,10 @@
     });
 
     document.getElementById('btn-mp-join')?.addEventListener('click', async () => {
-      if (MP.isActive()) await MP.leaveRoom();
+      if (MP.isActive()) {
+        await MP.leaveRoom();
+        clearRoomPause();
+      }
       active = false;
       const nickInput = document.getElementById('mp-join-nick');
       if (nickInput && !nickInput.value.trim()) {
@@ -749,10 +852,14 @@
       }
       try {
         await MP.ensureClient();
-        if (MP.isActive()) await MP.leaveRoom();
+        if (MP.isActive()) {
+          await MP.leaveRoom();
+          clearRoomPause();
+        }
         const name = nick || global.PlayerNames?.getNicknameOrRandom?.() || '';
         const result = await MP.joinRoom(code, name);
         active = true;
+        clearRoomPause();
         await initLobbyUI();
         if (result.status === 'playing') {
           await applyRemoteState(result.gameState, result.settings);
@@ -770,18 +877,16 @@
     });
 
     document.querySelectorAll('[data-mp-back]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        if (MP.isActive()) await MP.leaveRoom();
-        active = false;
-        gameHooks?.showScreen?.('menu');
+      btn.addEventListener('click', () => {
+        if (isInRoom()) goToMenuKeepRoom();
+        else gameHooks?.showScreen?.('menu');
       });
     });
 
     document.querySelectorAll('[data-mp-back-menu]').forEach((btn) => {
-      btn.addEventListener('click', async () => {
-        if (MP.isActive()) await MP.leaveRoom();
-        active = false;
-        gameHooks?.showScreen?.('menu');
+      btn.addEventListener('click', () => {
+        if (isInRoom()) goToMenuKeepRoom();
+        else gameHooks?.showScreen?.('menu');
       });
     });
 
@@ -791,11 +896,16 @@
       });
     });
 
-    document.getElementById('mp-btn-leave')?.addEventListener('click', async () => {
-      if (GH.getCurrentGame()?.mode === 'multiplayer') GH.finishGame();
-      await MP.leaveRoom();
-      active = false;
-      gameHooks?.showScreen?.('menu');
+    document.getElementById('mp-btn-leave')?.addEventListener('click', () => {
+      leaveRoomAndMenu();
+    });
+
+    document.getElementById('btn-mp-resume')?.addEventListener('click', () => {
+      resumeRoomSession();
+    });
+
+    document.getElementById('mp-game-menu-btn')?.addEventListener('click', () => {
+      goToMenuKeepRoom();
     });
   }
 
@@ -829,6 +939,7 @@
   global.MultiplayerController = {
     bindGame,
     init,
+    isInRoom,
     isMultiplayer,
     isHost,
     canControl,
@@ -852,6 +963,10 @@
     shareViaSms,
     shareNative,
     updateGameFooter,
+    updateMenuResumeButton,
+    goToMenuKeepRoom,
+    resumeRoomSession,
+    leaveRoomAndMenu,
     getRoomCodeFromUrl,
   };
 })(typeof window !== 'undefined' ? window : global);

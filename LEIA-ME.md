@@ -49,6 +49,7 @@ Em qualquer uma delas, o jogo chama sempre `/api/generate` e podes configurar **
      - `supabase/update-multiplayer-players.sql`
      - `supabase/get-room-players.sql`
      - `supabase/fix-host-authority.sql` *(corrige coroa/anfitrião)*
+     - `supabase/expire-rooms-24h.sql` *(expira salas inactivas após 24h)*
   4. **Project Settings → API** → copiar URL e `anon` key para `public/supabase-config.js`
   5. **Database → Replication** → confirmar `rooms` e `room_players` no Realtime
 
