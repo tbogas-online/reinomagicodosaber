@@ -240,17 +240,25 @@
   }
 
   async function insertMatch(matchId, metadata) {
-    if (!client || !roomId || !isHost) return;
+    if (!client || !roomId || !isHost || !matchId) return;
+    const meta = metadata || {};
     const { error } = await client.from('game_matches').insert({
       id: matchId,
       room_id: roomId,
       mode: 'multiplayer',
       host_player_id: playerId,
-      finished_at: new Date().toISOString(),
-      rounds_count: metadata?.roundsCount || 0,
-      metadata: metadata || {},
+      started_at: meta.startedAt || new Date().toISOString(),
+      finished_at: meta.finishedAt || new Date().toISOString(),
+      rounds_count: Number(meta.roundsCount) || 0,
+      metadata: {
+        source: 'multiplayer',
+        roomCode: meta.roomCode || null,
+        gameId: meta.gameId || null,
+      },
     });
-    if (error) console.warn('[MP] match insert', error.message);
+    if (error && !/duplicate|unique/i.test(error.message || '')) {
+      console.warn('[MP] match insert', error.message);
+    }
   }
 
   async function touchRoomActivity() {

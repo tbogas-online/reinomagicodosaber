@@ -34,6 +34,27 @@
     return isMultiplayer() && MP.getIsHost();
   }
 
+  async function finishMultiplayerGame() {
+    const game = GH.getCurrentGame();
+    if (!game || game.mode !== 'multiplayer') return;
+    const matchId = currentMatchId;
+    try {
+      if (isHost() && matchId && /^[0-9a-f-]{36}$/i.test(matchId)) {
+        await MP.insertMatch(matchId, {
+          startedAt: game.startedAt,
+          finishedAt: new Date().toISOString(),
+          roundsCount: Array.isArray(game.rounds) ? game.rounds.length : 0,
+          roomCode: MP.getRoomCode(),
+          gameId: game.id || null,
+        });
+      }
+    } catch (e) {
+      console.warn('[MP] match sync', e?.message || e);
+    }
+    currentMatchId = null;
+    GH.finishGame();
+  }
+
   function canControl() {
     return true;
   }
@@ -390,7 +411,7 @@
     if (!global.confirm(`Terminar a sala multijogador (${code})?\n\nDeixarás de a poder retomar.`)) return;
     try {
       if (isInRoom()) {
-        if (GH.getCurrentGame()?.mode === 'multiplayer') GH.finishGame();
+        await finishMultiplayerGame();
         await MP.leaveRoom();
       }
     } catch (e) {
@@ -400,6 +421,7 @@
     clearLastRoom();
     clearRoomPause();
     gameHooks?.stopGameClock?.();
+    gameHooks?.clearJoinQueryFromUrl?.();
     refreshContinueScreen();
   }
 
@@ -579,6 +601,7 @@
     }
     updateGameFooter();
     updateContinueButton();
+    gameHooks?.clearJoinQueryFromUrl?.();
   }
 
   function clearRoomPause() {
@@ -692,7 +715,8 @@
   }
 
   function handleRoomExpired(message) {
-    if (GH.getCurrentGame()?.mode === 'multiplayer') GH.finishGame();
+    finishMultiplayerGame().catch(() => {});
+    gameHooks?.clearJoinQueryFromUrl?.();
     active = false;
     clearLastRoom();
     clearRoomPause();
@@ -701,8 +725,9 @@
   }
 
   async function leaveRoomAndMenu() {
-    if (GH.getCurrentGame()?.mode === 'multiplayer') GH.finishGame();
+    await finishMultiplayerGame();
     await MP.leaveRoom();
+    gameHooks?.clearJoinQueryFromUrl?.();
     active = false;
     pendingLobbyJoin = null;
     lobbyReadyForGame = false;
@@ -764,7 +789,8 @@
   async function hostLeaveRoomAndMenu(action) {
     try {
       const result = await MP.hostLeaveRoom(action);
-      if (GH.getCurrentGame()?.mode === 'multiplayer') GH.finishGame();
+      await finishMultiplayerGame();
+      gameHooks?.clearJoinQueryFromUrl?.();
       active = false;
       clearLastRoom();
       clearRoomPause();
@@ -781,6 +807,7 @@
 
   async function hostStartFromLobby(settings) {
     if (!isHost() || !gameHooks) return;
+    await finishMultiplayerGame();
     gameHooks.assignCategoriesForNewGame?.();
     markLastRoomGameStarted();
     gameHooks.startGameClock?.(Date.now(), true);
@@ -1420,8 +1447,9 @@
             pendingLobbyJoin = { gameState: room.game_state, settings: room.settings || {} };
           }
         } catch { /* ignore */ }
-        gameHooks?.showScreen?.('mp-lobby');
-        return;
+      gameHooks?.showScreen?.('mp-lobby');
+      gameHooks?.clearJoinQueryFromUrl?.();
+      return;
       }
       if (MP.isActive()) {
         await MP.leaveRoom();
@@ -1670,7 +1698,11 @@
       saveLastRoom(MP.getRoomCode(), true);
       roomPaused = true;
     }
-    if (GH.getCurrentGame()) GH.finishGame();
+    if (GH.getCurrentGame()?.mode === 'multiplayer') {
+      finishMultiplayerGame().catch(() => {});
+    } else if (GH.getCurrentGame()) {
+      GH.finishGame();
+    }
     GH.startGame('single', {});
     active = false;
     updateContinueButton();

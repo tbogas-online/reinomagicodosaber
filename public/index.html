@@ -3284,8 +3284,8 @@
 <script src="supabase-config.js?v=20260829-174108"></script>
 <script src="game-history.js?v=20260830-191500"></script>
 <script src="player-names.js?v=20260830-143600"></script>
-<script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-183400"></script>
+<script src="multiplayer-sync.js?v=20260830-193700"></script>
+<script src="multiplayer-controller.js?v=20260830-194000"></script>
 <script src="question-engine.js?v=20260830-192950" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>
@@ -5025,6 +5025,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     localGameStartedAt = null;
     clearLocalGamePause();
     stopGameClock();
+    clearJoinQueryFromUrl();
   }
 
   function getLocalGameStartedAt(){
@@ -5220,6 +5221,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     currentScreenId = id;
     Object.values(screens).forEach(s => s.classList.remove('active'));
     screens[id].classList.add('active');
+    if(id === 'menu'){
+      clearJoinQueryFromUrl();
+    }
     if(id === 'menu' || id === 'game' || id === 'loading' || id === 'age' || id === 'question' || id === 'mp-menu' || id === 'mp-join' || id === 'mp-lobby' || id === 'mp-config' || id === 'history' || id === 'continue'){
       clearSettingsQueryFromUrl();
     }
@@ -5318,10 +5322,32 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     showScreen('settings');
   };
 
+  function clearJoinQueryFromUrl(){
+    try {
+      const params = new URLSearchParams(location.search);
+      let changed = false;
+      ['sala', 'room'].forEach((key) => {
+        if (params.has(key)) {
+          params.delete(key);
+          changed = true;
+        }
+      });
+      if (!changed) return;
+      const qs = params.toString();
+      const next = location.pathname + (qs ? `?${qs}` : '') + (location.hash || '');
+      history.replaceState(null, '', next);
+    } catch { /* ignore */ }
+  }
+
+  function clearTransientQueryFromUrl(){
+    clearSettingsQueryFromUrl();
+    clearJoinQueryFromUrl();
+  }
+
   function clearSettingsQueryFromUrl(){
     try {
       const params = new URLSearchParams(location.search);
-      if(params.get('settings') !== 'ai') return;
+      if (params.get('settings') !== 'ai') return;
       params.delete('settings');
       const qs = params.toString();
       const next = location.pathname + (qs ? `?${qs}` : '') + (location.hash || '');
@@ -5915,6 +5941,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         endLocalGamePause,
         getLocalGameStartedAt,
         resumeLocalGame,
+        clearJoinQueryFromUrl,
       });
       window.MultiplayerController.init();
     }
