@@ -575,7 +575,7 @@
     const countLabel = buildPlayerCountLabel(count, connected);
     const countEl = document.getElementById('mp-players-count');
     if (countEl) {
-      countEl.textContent = count ? `👥 ${countLabel} — toca para ver nomes` : '';
+      countEl.textContent = count ? `👥 ${countLabel}` : '';
     }
 
     const gameCountEl = document.getElementById('mp-game-players-count');
@@ -588,7 +588,7 @@
 
     const list = document.getElementById('mp-players-list');
     fillPlayerRows(list, players, isPlayerHost);
-    if (!list) return;
+    if (list) list.hidden = count === 0;
   }
 
   const renderLobbyPlayers = renderPlayersUI;
@@ -597,7 +597,6 @@
     return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
 
-  let lobbyPlayersOpen = false;
   let gamePlayersOpen = false;
   let gameNickOpen = false;
 
@@ -685,17 +684,6 @@
     });
   }
 
-  function setLobbyPlayersOpen(open) {
-    lobbyPlayersOpen = !!open;
-    const countEl = document.getElementById('mp-players-count');
-    const list = document.getElementById('mp-players-list');
-    if (countEl) {
-      countEl.classList.toggle('open', lobbyPlayersOpen);
-      countEl.setAttribute('aria-expanded', lobbyPlayersOpen ? 'true' : 'false');
-    }
-    if (list) list.hidden = !lobbyPlayersOpen;
-  }
-
   function setGameNickOpen(open) {
     gameNickOpen = !!open;
     const btn = document.getElementById('mp-game-nick-btn');
@@ -723,20 +711,7 @@
   }
 
   function wirePlayersToggle() {
-    const lobbyCount = document.getElementById('mp-players-count');
     const gameBtn = document.getElementById('mp-game-players-btn');
-
-    const toggleLobby = (e) => {
-      e?.preventDefault?.();
-      setLobbyPlayersOpen(!lobbyPlayersOpen);
-    };
-    lobbyCount?.addEventListener('click', toggleLobby);
-    lobbyCount?.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        toggleLobby(e);
-      }
-    });
 
     gameBtn?.addEventListener('click', (e) => {
       e.stopPropagation();
@@ -953,6 +928,24 @@
         e.preventDefault();
         handler();
       });
+    });
+  }
+
+  function fillRandomNickname(input) {
+    if (!input) return;
+    const next = global.PlayerNames?.generateRandomPlayerName?.() || '';
+    if (next) input.value = next;
+  }
+
+  function wireNickRefreshButtons() {
+    document.getElementById('mp-lobby-nick-refresh')?.addEventListener('click', () => {
+      fillRandomNickname(document.getElementById('mp-lobby-nick'));
+    });
+    document.getElementById('mp-join-nick-refresh')?.addEventListener('click', () => {
+      fillRandomNickname(document.getElementById('mp-join-nick'));
+    });
+    document.getElementById('mp-game-nick-refresh')?.addEventListener('click', () => {
+      fillRandomNickname(document.getElementById('mp-game-nick-input'));
     });
   }
 
@@ -1248,6 +1241,7 @@
     wireShareButtons();
     wirePlayersToggle();
     wireJoinCodeInput();
+    wireNickRefreshButtons();
     updateContinueButton();
     maybeOpenJoinFromUrl();
   }

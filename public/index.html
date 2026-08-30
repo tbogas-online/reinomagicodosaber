@@ -2107,7 +2107,7 @@
   .mp-players-list{
     list-style: none;
     padding: 0;
-    margin: 0 0 20px;
+    margin: 0 auto 20px;
     width: 100%;
     max-width: 20rem;
   }
@@ -2161,6 +2161,32 @@
     padding: 10px 14px;
     font-size: 0.9rem;
   }
+  .mp-nick-refresh{
+    flex-shrink: 0;
+    width: 2.55rem;
+    min-width: 2.55rem;
+    align-self: stretch;
+    padding: 0;
+    border-radius: 10px;
+    border: 1px solid rgba(var(--gold-rgb), 0.45);
+    background: rgba(var(--night-rgb), 0.35);
+    color: var(--gold-bright);
+    font-size: 1.05rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background .15s ease, border-color .15s ease;
+  }
+  .mp-nick-refresh:hover{
+    background: rgba(var(--gold-rgb), 0.15);
+    border-color: rgba(var(--gold-rgb), 0.65);
+  }
+  .mp-nick-refresh:focus-visible{
+    outline: 2px solid var(--gold-bright);
+    outline-offset: 2px;
+  }
   .history-game-card{
     display: flex;
     flex-direction: column;
@@ -2201,25 +2227,12 @@
   .mp-players-count{
     width: 100%;
     max-width: 20rem;
-    margin: 0 auto 8px;
+    margin: 0 auto 10px;
     text-align: center;
     font-family: 'Cinzel', serif;
     font-size: 0.85rem;
-    color: var(--parchment-dim);
-    letter-spacing: 0.04em;
-  }
-  .mp-players-count-btn{
-    cursor: pointer;
-    border: 1px solid transparent;
-    border-radius: 999px;
-    padding: 6px 12px;
-    transition: color .15s ease, border-color .15s ease, background .15s ease;
-  }
-  .mp-players-count-btn:hover,
-  .mp-players-count-btn.open{
     color: var(--gold-bright);
-    border-color: rgba(var(--gold-rgb), 0.35);
-    background: rgba(var(--gold-rgb), 0.08);
+    letter-spacing: 0.04em;
   }
   .mp-game-players-wrap{
     position: relative;
@@ -2324,6 +2337,13 @@
     font-family: 'Cinzel', serif;
     font-size: 0.68rem;
     cursor: pointer;
+  }
+  .mp-nick-popover .mp-nick-refresh{
+    width: 2rem;
+    min-width: 2rem;
+    align-self: center;
+    border-radius: 8px;
+    font-size: 0.95rem;
   }
   .mp-share-btn-danger{
     border-color: rgba(229, 72, 77, 0.45);
@@ -2496,7 +2516,10 @@
     <p class="subtitle">Introduz o código que o anfitrião partilhou</p>
     <div class="stack" style="gap:12px; align-items:center;">
       <input class="field-input" id="mp-join-code" type="text" maxlength="6" placeholder="AB12" autocomplete="off" inputmode="text">
-      <input class="field-input" id="mp-join-nick" type="text" maxlength="24" placeholder="O teu nome (podes mudar depois)" autocomplete="nickname" style="letter-spacing:0; text-transform:none;">
+      <div class="mp-nickname-row" style="margin-bottom:0;">
+        <input class="field-input" id="mp-join-nick" type="text" maxlength="24" placeholder="O teu nome (podes mudar depois)" autocomplete="nickname" style="letter-spacing:0; text-transform:none;">
+        <button type="button" class="mp-nick-refresh" id="mp-join-nick-refresh" title="Gerar outro nome" aria-label="Gerar outro nome">↻</button>
+      </div>
       <p class="mp-error" id="mp-join-error" hidden></p>
       <button class="btn" id="mp-join-submit" type="button">Entrar</button>
       <button class="btn ghost" type="button" data-mp-back-mp>← Voltar</button>
@@ -2511,10 +2534,11 @@
     <span class="mp-host-badge" id="mp-host-badge" hidden>👑 És o anfitrião</span>
     <div class="mp-nickname-row">
       <input class="field-input" id="mp-lobby-nick" type="text" maxlength="24" placeholder="O teu nome" autocomplete="nickname">
+      <button type="button" class="mp-nick-refresh" id="mp-lobby-nick-refresh" title="Gerar outro nome" aria-label="Gerar outro nome">↻</button>
       <button class="btn secondary" id="mp-btn-save-nick" type="button">Guardar</button>
     </div>
-    <p class="mp-players-count mp-players-count-btn" id="mp-players-count" role="button" tabindex="0" title="Ver jogadores na sala" aria-expanded="false"></p>
-    <ul class="mp-players-list" id="mp-players-list" hidden></ul>
+    <p class="mp-players-count" id="mp-players-count"></p>
+    <ul class="mp-players-list" id="mp-players-list"></ul>
     <p class="mp-error" id="mp-lobby-error" hidden></p>
     <div class="stack" style="gap:10px;">
       <button class="btn" id="mp-btn-start" type="button" hidden>▶ Iniciar jogo</button>
@@ -2730,6 +2754,7 @@
     </button>
     <div class="mp-nick-popover" id="mp-game-nick-popover" hidden>
       <input type="text" id="mp-game-nick-input" maxlength="24" placeholder="O teu nome" autocomplete="nickname">
+      <button type="button" class="mp-nick-refresh" id="mp-game-nick-refresh" title="Gerar outro nome" aria-label="Gerar outro nome">↻</button>
       <button type="button" class="mp-nick-save" id="mp-game-nick-save">Guardar</button>
     </div>
   </div>
@@ -2760,7 +2785,7 @@
 <script src="game-history.js?v=20260829-174108"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-160300"></script>
+<script src="multiplayer-controller.js?v=20260830-161500"></script>
 <script src="question-engine.js?v=20260829-174108" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
