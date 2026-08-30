@@ -186,10 +186,18 @@
     return round;
   }
 
+  function mpStorage() {
+    try {
+      return global.sessionStorage || global.localStorage;
+    } catch {
+      return null;
+    }
+  }
+
   function saveLastRoom(code, paused = false) {
     if (!code) return;
     try {
-      global.localStorage?.setItem(LAST_ROOM_KEY, JSON.stringify({
+      mpStorage()?.setItem(LAST_ROOM_KEY, JSON.stringify({
         code: String(code).toUpperCase(),
         paused: !!paused,
         at: Date.now(),
@@ -199,7 +207,7 @@
 
   function getLastRoom() {
     try {
-      const raw = global.localStorage?.getItem(LAST_ROOM_KEY);
+      const raw = mpStorage()?.getItem(LAST_ROOM_KEY);
       if (!raw) return null;
       const data = JSON.parse(raw);
       return data?.code ? data : null;
@@ -209,7 +217,7 @@
   }
 
   function clearLastRoom() {
-    try { global.localStorage?.removeItem(LAST_ROOM_KEY); } catch { /* ignore */ }
+    try { mpStorage()?.removeItem(LAST_ROOM_KEY); } catch { /* ignore */ }
     updateContinueButton();
   }
 

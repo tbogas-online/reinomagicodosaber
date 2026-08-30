@@ -34,17 +34,26 @@
     return !!(url && anonKey && global.supabase?.createClient);
   }
 
+  function getAuthStorage() {
+    try {
+      if (global.sessionStorage) return global.sessionStorage;
+    } catch { /* ignore */ }
+    return undefined;
+  }
+
   async function ensureClient() {
     if (!isConfigured()) {
       throw new Error('Supabase não configurado — edita public/supabase-config.js');
     }
     if (client) return client;
     const { url, anonKey } = getConfig();
+    const authStorage = getAuthStorage();
     client = global.supabase.createClient(url, anonKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
         detectSessionInUrl: false,
+        ...(authStorage ? { storage: authStorage } : {}),
       },
       realtime: { params: { eventsPerSecond: 8 } },
     });
