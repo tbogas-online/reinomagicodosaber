@@ -250,6 +250,77 @@
     return true;
   }
 
+  function getResumableSessions() {
+    const sessions = [];
+    if (canContinueLastRoom()) {
+      const saved = getLastRoom();
+      const code = (MP.getRoomCode() || saved?.code || '----').toUpperCase();
+      sessions.push({
+        id: 'mp-' + code,
+        type: 'multiplayer',
+        title: 'Sala multijogador',
+        meta: code,
+        icon: '👥',
+      });
+    }
+    if (gameHooks?.hasLocalGamePause?.()) {
+      sessions.push({
+        id: 'local',
+        type: 'local',
+        title: 'Jogo local / privado',
+        meta: 'Neste dispositivo',
+        icon: '✨',
+      });
+    }
+    return sessions;
+  }
+
+  function renderContinuePicker(sessions) {
+    const list = document.getElementById('continue-session-list');
+    if (!list) return;
+    list.innerHTML = '';
+    sessions.forEach((session) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn secondary continue-session-btn';
+      btn.innerHTML = `
+        <span class="continue-session-icon" aria-hidden="true">${session.icon}</span>
+        <span class="continue-session-body">
+          <span class="continue-session-title">${session.title}</span>
+          <span class="continue-session-meta">${session.meta}</span>
+        </span>`;
+      btn.addEventListener('click', async () => {
+        if (session.type === 'multiplayer') {
+          await resumeRoomSession();
+        } else {
+          gameHooks?.resumeLocalGame?.();
+        }
+      });
+      list.appendChild(btn);
+    });
+    gameHooks?.showScreen?.('continue');
+  }
+
+  function setContinueButtonLabel(btn, sessions) {
+    btn.textContent = '';
+    if (sessions.length === 1 && sessions[0].type === 'multiplayer') {
+      btn.append('📜 Continuar sala ');
+      const codeEl = document.createElement('span');
+      codeEl.className = 'btn-room-code';
+      codeEl.textContent = sessions[0].meta;
+      btn.append(codeEl);
+      btn.title = 'Voltar à partida multijogador';
+      return;
+    }
+    if (sessions.length === 1 && sessions[0].type === 'local') {
+      btn.textContent = '📜 Continuar jogo local';
+      btn.title = 'Retomar o jogo local / privado';
+      return;
+    }
+    btn.textContent = `📜 Continuar (${sessions.length})`;
+    btn.title = 'Escolher partida a retomar';
+  }
+
   function showMpToast(message, ms = 5000) {
     const toast = document.getElementById('mp-share-toast');
     if (!toast) return;
@@ -290,44 +361,32 @@
     const btn = document.getElementById('btn-continuar');
     if (!btn) return;
 
-    const mpCanContinue = canContinueLastRoom();
-    const localCanContinue = !mpCanContinue && !!gameHooks?.canContinueLocal?.();
+    const sessions = getResumableSessions();
 
-    if (mpCanContinue) {
-      const saved = getLastRoom();
-      const code = (MP.getRoomCode() || saved?.code || '----').toUpperCase();
-      btn.disabled = false;
-      btn.textContent = '';
-      btn.append('📜 Continuar sala ');
-      const codeEl = document.createElement('span');
-      codeEl.className = 'btn-room-code';
-      codeEl.textContent = code;
-      btn.append(codeEl);
-      btn.title = 'Voltar à partida multijogador';
-      return;
-    }
-
-    if (localCanContinue) {
-      btn.disabled = false;
+    if (!sessions.length) {
+      btn.disabled = true;
       btn.textContent = '📜 Continuar';
-      btn.title = 'Continuar o jogo local';
+      btn.title = 'Ainda não há jogo em curso';
       return;
     }
 
-    btn.disabled = true;
-    btn.textContent = '📜 Continuar';
-    btn.title = 'Ainda não há jogo em curso';
+    btn.disabled = false;
+    setContinueButtonLabel(btn, sessions);
   }
 
   function handleContinue() {
-    if (canContinueLastRoom()) {
-      resumeRoomSession();
+    const sessions = getResumableSessions();
+    if (!sessions.length) return;
+    if (sessions.length === 1) {
+      if (sessions[0].type === 'multiplayer') resumeRoomSession();
+      else gameHooks?.resumeLocalGame?.();
       return;
     }
-    gameHooks?.continueLocalGame?.();
+    renderContinuePicker(sessions);
   }
 
   function goToMenuKeepRoom() {
+    gameHooks?.saveLocalGamePause?.();
     if (!isInRoom()) {
       gameHooks?.showScreen?.('menu');
       return;
@@ -794,6 +853,82 @@
     });
   }
 
+  function collapseAllHistoryItems(list) {
+    if (!list) return;
+    list.querySelectorAll('.history-game-item').forEach((item) => {
+      item.querySelector('.history-game-card')?.classList.remove('is-expanded');
+      const panel = item.querySelector('.history-game-detail');
+      if (panel) {
+        panel.hidden = true;
+        panel.innerHTML = '';
+      }
+    });
+  }
+
+  function renderHistoryRounds(game, panel) {
+    panel.innerHTML = '';
+    if (!game.rounds.length) {
+      panel.innerHTML = '<p class="subtitle" style="margin:0; font-size:0.9rem;">Sem perguntas registadas nesta partida.</p>';
+      return;
+    }
+    game.rounds.forEach((r) => {
+      const block = document.createElement('div');
+      block.className = 'history-round-card';
+      const correctNorm = String(r.correctAnswer || '').replace(/<[^>]*>/g, '').trim().toLowerCase();
+      let opts = '';
+      if (r.options?.length) {
+        const items = r.options.map((o) => {
+          const plain = String(o).replace(/<[^>]*>/g, '').trim();
+          const isCorrect = plain.toLowerCase() === correctNorm;
+          return `<li class="${isCorrect ? 'is-correct' : ''}">${escapeHtml(plain)}</li>`;
+        }).join('');
+        opts = `<ul class="history-options">${items}</ul>`;
+      }
+      const question = String(r.question || '').replace(/<[^>]*>/g, '').trim();
+      const answer = String(r.correctAnswer || '').replace(/<[^>]*>/g, '').trim();
+      block.innerHTML = `
+        <div class="history-round-meta">Pergunta ${r.round} · ${escapeHtml(r.category || '—')}${r.ageBand ? ` · ${escapeHtml(r.ageBand)}` : ''}</div>
+        <p class="history-q">${escapeHtml(question)}</p>
+        <p class="history-a"><strong>Resposta:</strong> ${escapeHtml(answer)}</p>
+        ${opts}`;
+      panel.appendChild(block);
+    });
+    const back = document.createElement('button');
+    back.type = 'button';
+    back.className = 'btn secondary history-back-btn';
+    back.textContent = '← Voltar à lista';
+    back.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const item = panel.closest('.history-game-item');
+      if (item) {
+        item.querySelector('.history-game-card')?.classList.remove('is-expanded');
+        panel.hidden = true;
+        panel.innerHTML = '';
+      }
+    });
+    panel.appendChild(back);
+  }
+
+  function toggleHistoryDetail(gameId, list) {
+    const item = list.querySelector(`.history-game-item[data-game-id="${gameId}"]`);
+    if (!item) return;
+    const card = item.querySelector('.history-game-card');
+    const panel = item.querySelector('.history-game-detail');
+    if (!card || !panel) return;
+
+    const willOpen = panel.hidden;
+    collapseAllHistoryItems(list);
+    if (!willOpen) return;
+
+    const game = GH.getGame(gameId);
+    if (!game) return;
+
+    card.classList.add('is-expanded');
+    panel.hidden = false;
+    renderHistoryRounds(game, panel);
+    panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
   function renderHistoryList(filterMode) {
     const list = document.getElementById('history-games-list');
     if (!list || !GH) return;
@@ -807,47 +942,26 @@
       return;
     }
     games.forEach((game) => {
+      const item = document.createElement('div');
+      item.className = 'history-game-item';
+      item.dataset.gameId = game.id;
+
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'history-game-card';
       card.innerHTML = `<strong>${escapeHtml(GH.formatGameTitle(game))}</strong>`
-        + `<span>${game.rounds.length} pergunta(s)</span>`;
-      card.onclick = () => showHistoryDetail(game.id);
-      list.appendChild(card);
-    });
-  }
+        + `<span>${game.rounds.length} pergunta(s)</span>`
+        + `<span class="history-game-caret" aria-hidden="true">▾</span>`;
+      card.addEventListener('click', () => toggleHistoryDetail(game.id, list));
 
-  function showHistoryDetail(gameId) {
-    const game = GH.getGame(gameId);
-    const detail = document.getElementById('history-detail');
-    const list = document.getElementById('history-games-list');
-    if (!game || !detail) return;
-    if (list) list.hidden = true;
-    detail.hidden = false;
-    detail.innerHTML = `<h3>${escapeHtml(GH.formatGameTitle(game))}</h3>`;
-    game.rounds.forEach((r) => {
-      const block = document.createElement('div');
-      block.className = 'history-round-card';
-      const opts = r.options?.length
-        ? `<ul>${r.options.map((o) => `<li>${escapeHtml(o)}</li>`).join('')}</ul>`
-        : '';
-      block.innerHTML = `
-        <div class="history-round-meta">#${r.round} · ${escapeHtml(r.category)} · ${escapeHtml(r.ageBand || '')}</div>
-        <p class="history-q">${escapeHtml(r.question)}</p>
-        <p class="history-a"><strong>Resposta:</strong> ${escapeHtml(r.correctAnswer)}</p>
-        ${opts}`;
-      detail.appendChild(block);
+      const panel = document.createElement('div');
+      panel.className = 'history-game-detail';
+      panel.hidden = true;
+
+      item.appendChild(card);
+      item.appendChild(panel);
+      list.appendChild(item);
     });
-    const back = document.createElement('button');
-    back.type = 'button';
-    back.className = 'btn secondary';
-    back.textContent = '← Voltar à lista';
-    back.style.marginTop = '16px';
-    back.onclick = () => {
-      detail.hidden = true;
-      if (list) list.hidden = false;
-    };
-    detail.appendChild(back);
   }
 
   function showMpError(el, msg) {
@@ -1252,9 +1366,14 @@
   }
 
   function onSinglePlayerStart() {
+    if (isInRoom()) {
+      saveLastRoom(MP.getRoomCode(), true);
+      roomPaused = true;
+    }
     if (GH.getCurrentGame()) GH.finishGame();
     GH.startGame('single', {});
     active = false;
+    updateContinueButton();
   }
 
   function onAnswerRevealed() {

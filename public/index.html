@@ -212,6 +212,35 @@
     font-weight: 600;
     letter-spacing: 0.14em;
   }
+  .continue-session-btn{
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+    padding: 12px 14px;
+    line-height: 1.3;
+  }
+  .continue-session-btn .continue-session-icon{
+    font-size: 1.35rem;
+    flex-shrink: 0;
+  }
+  .continue-session-btn .continue-session-body{
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .continue-session-btn .continue-session-title{
+    font-size: 0.92em;
+    letter-spacing: 0.03em;
+  }
+  .continue-session-btn .continue-session-meta{
+    font-size: 0.78em;
+    opacity: 0.88;
+    font-style: italic;
+    color: var(--gold-bright);
+    letter-spacing: 0.08em;
+  }
 
   /* buttons */
   .btn{
@@ -2311,15 +2340,19 @@
     outline: 2px solid var(--gold-bright);
     outline-offset: 2px;
   }
-  .history-game-card{
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
+  .history-game-item{
     width: 100%;
     max-width: 22rem;
+    margin-bottom: 8px;
+  }
+  .history-game-card{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    width: 100%;
     padding: 14px 16px;
-    margin-bottom: 10px;
     border-radius: 12px;
     border: 1px solid rgba(var(--gold-rgb), 0.3);
     background: var(--card-bg);
@@ -2327,21 +2360,109 @@
     cursor: pointer;
     font: inherit;
     text-align: left;
+    transition: border-color .15s ease, background .15s ease;
   }
-  .history-game-card span{ font-size: 0.9rem; opacity: 0.85; }
+  .history-game-card:hover{
+    border-color: rgba(var(--gold-rgb), 0.5);
+  }
+  .history-game-card.is-expanded{
+    border-color: rgba(var(--gold-rgb), 0.55);
+    background: rgba(var(--gold-rgb), 0.08);
+    border-radius: 12px 12px 0 0;
+    margin-bottom: 0;
+  }
+  .history-game-card strong{
+    flex: 1 1 100%;
+    font-family: 'Cinzel', serif;
+    font-size: 0.88rem;
+    letter-spacing: 0.03em;
+    line-height: 1.35;
+    color: var(--gold-bright);
+  }
+  .history-game-card span{
+    font-size: 0.82rem;
+    opacity: 0.8;
+  }
+  .history-game-card .history-game-caret{
+    margin-left: auto;
+    font-size: 0.75rem;
+    opacity: 0.65;
+    transition: transform .15s ease;
+  }
+  .history-game-card.is-expanded .history-game-caret{
+    transform: rotate(180deg);
+  }
+  .history-game-detail{
+    width: 100%;
+    padding: 10px 12px 14px;
+    border: 1px solid rgba(var(--gold-rgb), 0.35);
+    border-top: none;
+    border-radius: 0 0 12px 12px;
+    background: rgba(0,0,0,0.12);
+    text-align: left;
+    box-sizing: border-box;
+  }
   .history-round-card{
     width: 100%;
-    max-width: 22rem;
-    padding: 12px 14px;
-    margin-bottom: 12px;
-    border-radius: 10px;
-    background: rgba(0,0,0,0.15);
-    border: 1px solid rgba(var(--gold-rgb), 0.2);
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(var(--gold-rgb), 0.15);
     text-align: left;
   }
-  .history-round-meta{ font-size: 0.85rem; opacity: 0.8; margin-bottom: 6px; }
-  .history-q{ margin: 0 0 8px; }
-  .history-a{ margin: 0; font-size: 0.95rem; }
+  .history-round-card:last-of-type{
+    border-bottom: none;
+    padding-bottom: 4px;
+  }
+  .history-round-meta{
+    font-family: 'Cinzel', serif;
+    font-size: 0.72rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--parchment-dim);
+    margin-bottom: 8px;
+  }
+  .history-q{
+    margin: 0 0 10px;
+    font-family: 'EB Garamond', serif;
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: var(--parchment);
+  }
+  .history-a{
+    margin: 0 0 4px;
+    font-size: 0.95rem;
+    line-height: 1.4;
+    color: var(--teal);
+  }
+  .history-a strong{
+    color: var(--gold-bright);
+    font-weight: 600;
+  }
+  .history-options{
+    list-style: none;
+    margin: 10px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .history-options li{
+    font-size: 0.9rem;
+    line-height: 1.35;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: rgba(var(--parchment-rgb), 0.04);
+    border: 1px solid rgba(var(--parchment-rgb), 0.08);
+  }
+  .history-options li.is-correct{
+    color: var(--gold-bright);
+    border-color: rgba(var(--gold-rgb), 0.35);
+    background: rgba(var(--gold-rgb), 0.1);
+    font-weight: 600;
+  }
+  .history-back-btn{
+    margin-top: 12px;
+    width: 100%;
+  }
   .mp-waiting-hint{
     font-size: 0.95rem;
     opacity: 0.85;
@@ -2684,6 +2805,15 @@
     <button class="btn ghost" type="button" data-mp-back style="margin-top:20px;">← Voltar</button>
   </section>
 
+  <!-- CONTINUAR — ESCOLHER SESSÃO -->
+  <section class="screen" id="screen-continue">
+    <div class="emoji" style="font-size:44px;">📜</div>
+    <h2>Continuar jogo</h2>
+    <p class="subtitle">Escolhe a partida a retomar nesta sessão</p>
+    <div class="stack" id="continue-session-list" style="width:100%; max-width:16rem; margin:0 auto; gap:10px; align-items:stretch;"></div>
+    <button class="btn ghost" type="button" id="btn-continue-back" style="margin-top:16px;">← Voltar ao menu</button>
+  </section>
+
   <!-- HISTÓRICO DE PARTIDAS -->
   <section class="screen" id="screen-history">
     <div class="emoji" style="font-size:44px;">📚</div>
@@ -2694,8 +2824,7 @@
       <option value="single">Individual</option>
       <option value="multiplayer">Multijogador</option>
     </select>
-    <div id="history-games-list" class="stack" style="align-items:center;"></div>
-    <div id="history-detail" hidden class="stack" style="align-items:center; width:100%;"></div>
+    <div id="history-games-list" class="stack" style="align-items:center; width:100%;"></div>
     <button class="btn ghost" type="button" data-mp-back style="margin-top:20px;">← Menu</button>
   </section>
 
@@ -2915,10 +3044,10 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js?v=20260829-174108"></script>
-<script src="game-history.js?v=20260829-174108"></script>
+<script src="game-history.js?v=20260830-171000"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-165500"></script>
+<script src="multiplayer-controller.js?v=20260830-172000"></script>
 <script src="question-engine.js?v=20260830-161700" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -4301,6 +4430,79 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   // A soma 12 sorteia sempre de entre as categorias que sobraram (não usadas no mapa).
   let gameCategoryMap = {};
   let remainingCategories = [];
+  const LOCAL_PAUSE_KEY = 'reino_local_pause_v1';
+
+  function serializeCategoryForPause(cat){
+    if(!cat) return null;
+    return { n: cat.n, e: cat.e, name: cat.name, desc: cat.desc || '' };
+  }
+
+  function restoreCategoryFromPause(cat){
+    if(!cat) return null;
+    return CATEGORIES.find((c) => c.n === cat.n) || cat;
+  }
+
+  function saveLocalGamePause(){
+    if(Object.keys(gameCategoryMap).length === 0) return;
+    try {
+      const map = {};
+      Object.keys(gameCategoryMap).forEach((k) => {
+        map[k] = serializeCategoryForPause(gameCategoryMap[k]);
+      });
+      localStorage.setItem(LOCAL_PAUSE_KEY, JSON.stringify({
+        pausedAt: Date.now(),
+        gameCategoryMap: map,
+        remainingCategories: remainingCategories.map(serializeCategoryForPause).filter(Boolean),
+      }));
+    } catch { /* quota */ }
+  }
+
+  function clearLocalGamePause(){
+    try { localStorage.removeItem(LOCAL_PAUSE_KEY); } catch { /* ignore */ }
+  }
+
+  function loadLocalGamePauseFromStorage(){
+    try {
+      const raw = localStorage.getItem(LOCAL_PAUSE_KEY);
+      if(!raw) return false;
+      const data = JSON.parse(raw);
+      if(!data?.gameCategoryMap || !Object.keys(data.gameCategoryMap).length) return false;
+      gameCategoryMap = {};
+      Object.keys(data.gameCategoryMap).forEach((k) => {
+        gameCategoryMap[k] = restoreCategoryFromPause(data.gameCategoryMap[k]);
+      });
+      remainingCategories = (data.remainingCategories || [])
+        .map(restoreCategoryFromPause)
+        .filter(Boolean);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  function hasLocalGamePause(){
+    if(Object.keys(gameCategoryMap).length > 0) return true;
+    try {
+      const raw = localStorage.getItem(LOCAL_PAUSE_KEY);
+      if(!raw) return false;
+      const data = JSON.parse(raw);
+      return !!(data?.gameCategoryMap && Object.keys(data.gameCategoryMap).length);
+    } catch {
+      return false;
+    }
+  }
+
+  function resumeLocalGame(){
+    if(Object.keys(gameCategoryMap).length === 0){
+      if(!loadLocalGamePauseFromStorage()) return false;
+    }
+    fillCategoryList();
+    resetGameScreen();
+    if(!gameStartTime) startGameClock();
+    showScreen('game');
+    return true;
+  }
+
   function assignCategoriesForNewGame(){
     gameCategoryMap = {};
     Object.keys(usedQuestions).forEach((key) => { delete usedQuestions[key]; });
@@ -4348,6 +4550,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     'mp-lobby': document.getElementById('screen-mp-lobby'),
     'mp-config': document.getElementById('screen-mp-config'),
     history: document.getElementById('screen-history'),
+    continue: document.getElementById('screen-continue'),
   };
   let currentScreenId = 'menu';
 
@@ -4435,14 +4638,14 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     currentScreenId = id;
     Object.values(screens).forEach(s => s.classList.remove('active'));
     screens[id].classList.add('active');
-    if(id === 'menu' || id === 'game' || id === 'loading' || id === 'age' || id === 'question' || id === 'mp-menu' || id === 'mp-join' || id === 'mp-lobby' || id === 'mp-config' || id === 'history'){
+    if(id === 'menu' || id === 'game' || id === 'loading' || id === 'age' || id === 'question' || id === 'mp-menu' || id === 'mp-join' || id === 'mp-lobby' || id === 'mp-config' || id === 'history' || id === 'continue'){
       clearSettingsQueryFromUrl();
     }
     const showCategoryBar = id === 'age' || id === 'question';
     const isSettingsLike = id === 'settings';
     const isScrollScreen = id === 'loading';
     const isGameScreen = id === 'game';
-    const isCenterStage = id === 'menu' || id === 'age' || id === 'mp-menu' || id === 'mp-join' || id === 'mp-lobby' || id === 'mp-config' || id === 'history';
+    const isCenterStage = id === 'menu' || id === 'age' || id === 'mp-menu' || id === 'mp-join' || id === 'mp-lobby' || id === 'mp-config' || id === 'history' || id === 'continue';
     document.body.classList.toggle('center-stage-active', isCenterStage);
     document.body.classList.toggle('game-screen-active', isGameScreen);
     document.body.classList.toggle('settings-screen-active', isSettingsLike);
@@ -4466,7 +4669,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       refreshSettingsBuildInfo();
       refreshSettingsUI();
     }
-    if(id === 'question' || id === 'age' || id === 'game' || id === 'settings' || id === 'history' || id === 'mp-menu' || id === 'mp-join' || id === 'mp-lobby'){
+    if(id === 'question' || id === 'age' || id === 'game' || id === 'settings' || id === 'history' || id === 'mp-menu' || id === 'mp-join' || id === 'mp-lobby' || id === 'continue'){
       window.scrollTo(0, 0);
     }
     if(id === 'game'){
@@ -5100,8 +5303,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           if(settings.categoryMode) categoryMode = settings.categoryMode;
           if(settings.selectedCategoryIds) selectedCategoryIds = new Set(settings.selectedCategoryIds);
         },
-        canContinueLocal: () => Object.keys(gameCategoryMap).length > 0,
-        continueLocalGame: () => showScreen('game'),
+        canContinueLocal: () => hasLocalGamePause(),
+        continueLocalGame: () => resumeLocalGame(),
+        hasLocalGamePause,
+        saveLocalGamePause,
+        clearLocalGamePause,
+        resumeLocalGame,
       });
       window.MultiplayerController.init();
     }
@@ -5138,11 +5345,16 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   document.getElementById('btn-novo-jogo').onclick = () => {
     clearSettingsQueryFromUrl();
     if(currentScreenId !== 'menu') showScreen('menu');
+    clearLocalGamePause();
     window.MultiplayerController?.onSinglePlayerStart?.();
     assignCategoriesForNewGame();
     startGameClock();
     runCategoryChoosingAnimation();
   };
+
+  document.getElementById('btn-continue-back')?.addEventListener('click', () => {
+    showScreen('menu');
+  });
 
   document.getElementById('btn-continuar').onclick = () => {
     window.MultiplayerController?.handleContinue?.();
@@ -5169,6 +5381,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       clearInterval(cycle);
       resetGameScreen();
       fillCategoryList();
+      saveLocalGamePause();
       window.MultiplayerController?.updateContinueButton?.();
       SFX.fanfare();
       showScreen('game');
@@ -5180,9 +5393,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   };
   document.getElementById('btn-game-back').onclick = async () => {
     if(window.MultiplayerController?.isInRoom?.()){
+      saveLocalGamePause();
       window.MultiplayerController.goToMenuKeepRoom?.();
       return;
     }
+    saveLocalGamePause();
     resetGameScreen();
     showScreen('menu');
   };

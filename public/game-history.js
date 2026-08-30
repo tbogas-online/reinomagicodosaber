@@ -105,8 +105,11 @@
     const d = date.toLocaleDateString('pt-PT');
     const t = date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
     const mode = game.mode === 'multiplayer' ? 'Multijogador' : 'Individual';
-    const code = game.roomCode ? ` · ${game.roomCode}` : '';
-    return `${mode}${code} · ${d} ${t}`;
+    const parts = [mode];
+    const code = String(game.roomCode || '').trim();
+    if (code) parts.push(code.toUpperCase());
+    parts.push(`${d} ${t}`);
+    return parts.join(' · ');
   }
 
   global.GameHistory = {
