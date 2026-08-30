@@ -5,7 +5,7 @@
 
 CREATE TABLE IF NOT EXISTS public.question_bank (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  category_n      INT NOT NULL CHECK (category_n BETWEEN 1 AND 12),
+  category_n      INT NOT NULL CHECK (category_n BETWEEN 1 AND 20),
   age_band        TEXT NOT NULL CHECK (age_band IN ('6-9', '10-15', '15+')),
   question        TEXT NOT NULL,
   correct_answer  TEXT NOT NULL,
@@ -160,6 +160,139 @@ BEGIN
 END;
 $$;
 
+-- ---------------------------------------------------------------------------
+-- RPC: importar várias perguntas (ex.: histórico localStorage no browser)
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.import_questions_batch(p_items JSONB)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  item JSONB;
+  v_hash TEXT;
+  v_inserted INT := 0;
+  v_exists INT := 0;
+  v_skipped INT := 0;
+BEGIN
+  IF p_items IS NULL OR jsonb_typeof(p_items) <> 'array' THEN
+    RETURN jsonb_build_object('ok', false, 'inserted', 0, 'exists', 0, 'skipped', 0);
+  END IF;
+
+  FOR item IN SELECT value FROM jsonb_array_elements(p_items)
+  LOOP
+    v_hash := item->>'question_hash';
+    IF v_hash IS NULL OR v_hash = '' THEN
+      v_skipped := v_skipped + 1;
+      CONTINUE;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM public.question_bank_blocked WHERE question_hash = v_hash) THEN
+      v_skipped := v_skipped + 1;
+      CONTINUE;
+    END IF;
+
+    IF EXISTS (SELECT 1 FROM public.question_bank WHERE question_hash = v_hash) THEN
+      v_exists := v_exists + 1;
+      CONTINUE;
+    END IF;
+
+    IF (item->>'category_n')::INT IS NULL
+      OR (item->>'category_n')::INT NOT BETWEEN 1 AND 20
+      OR item->>'age_band' IS NULL
+      OR item->>'age_band' NOT IN ('6-9', '10-15', '15+')
+      OR length(trim(COALESCE(item->>'question', ''))) = 0
+      OR length(trim(COALESCE(item->>'correct_answer', ''))) = 0
+    THEN
+      v_skipped := v_skipped + 1;
+      CONTINUE;
+    END IF;
+
+    INSERT INTO public.question_bank (
+      category_n, age_band, question, correct_answer,
+      options, format, knowledge_key, question_hash, source
+    ) VALUES (
+      (item->>'category_n')::INT,
+      item->>'age_band',
+      item->>'question',
+      item->>'correct_answer',
+      item->'options',
+      NULLIF(item->>'format', ''),
+      NULLIF(item->>'knowledge_key', ''),
+      v_hash,
+      COALESCE(NULLIF(item->>'source', ''), 'local')
+    );
+    v_inserted := v_inserted + 1;
+  END LOOP;
+
+  RETURN jsonb_build_object('ok', true, 'inserted', v_inserted, 'exists', v_exists, 'skipped', v_skipped);
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- RPC: estatísticas do banco (painel admin — service role)
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_question_bank_stats()
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_total INT;
+  v_active INT;
+  v_reported INT;
+  v_blocked INT;
+  v_by_category_age JSONB;
+  v_by_source JSONB;
+BEGIN
+  SELECT COUNT(*) INTO v_total FROM public.question_bank;
+  SELECT COUNT(*) INTO v_active FROM public.question_bank WHERE is_reported = false;
+  SELECT COUNT(*) INTO v_reported FROM public.question_bank WHERE is_reported = true;
+  SELECT COUNT(*) INTO v_blocked FROM public.question_bank_blocked;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'category_n', t.category_n,
+      'age_band', t.age_band,
+      'count', t.cnt
+    ) ORDER BY t.category_n, t.age_band
+  ), '[]'::jsonb)
+  INTO v_by_category_age
+  FROM (
+    SELECT category_n, age_band, COUNT(*)::INT AS cnt
+    FROM public.question_bank
+    WHERE is_reported = false
+    GROUP BY category_n, age_band
+  ) t;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object('source', t.source, 'count', t.cnt) ORDER BY t.cnt DESC, t.source
+  ), '[]'::jsonb)
+  INTO v_by_source
+  FROM (
+    SELECT source, COUNT(*)::INT AS cnt
+    FROM public.question_bank
+    WHERE is_reported = false
+    GROUP BY source
+  ) t;
+
+  RETURN jsonb_build_object(
+    'total', v_total,
+    'active', v_active,
+    'reported', v_reported,
+    'blocked', v_blocked,
+    'byCategoryAge', v_by_category_age,
+    'bySource', v_by_source
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_question_bank_stats() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_question_bank_stats() TO service_role;
+
 GRANT EXECUTE ON FUNCTION public.pick_question_from_bank(INT, TEXT, TEXT[]) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.save_question_to_bank(INT, TEXT, TEXT, TEXT, TEXT, JSONB, TEXT, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_question_reported(TEXT) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.import_questions_batch(JSONB) TO anon, authenticated;

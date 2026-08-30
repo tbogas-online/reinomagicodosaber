@@ -3058,7 +3058,9 @@
         <div class="settings-ai-actions">
           <a class="btn secondary" id="btn-ai-test-page" href="/test-ai.html">🔌 🧪 Página de teste de IA</a>
           <a class="btn secondary" id="btn-questions-test-page" href="/test-questions.html">🧪 Teste de perguntas</a>
+          <button type="button" class="btn secondary" id="btn-import-local-bank">📥 Importar histórico local → banco</button>
         </div>
+        <p class="settings-ai-planned" id="settings-import-bank-status" hidden></p>
         <p class="settings-ai-error" id="settings-ai-last-error" hidden></p>
       </div>
     </div>
@@ -3210,7 +3212,7 @@
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
 <script src="multiplayer-controller.js?v=20260830-183400"></script>
 <script src="question-engine.js?v=20260830-161700" id="question-engine-script"></script>
-<script src="question-bank.js?v=20260830-190000"></script>
+<script src="question-bank.js?v=20260830-195800"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
   const DEBUG_MODE = new URLSearchParams(location.search).has('debug');
@@ -5280,6 +5282,35 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       el.textContent = 'Quotas dos servidores: não foi possível obter dados.';
     }
   }
+
+  document.getElementById('btn-import-local-bank')?.addEventListener('click', async () => {
+    const btn = document.getElementById('btn-import-local-bank');
+    const statusEl = document.getElementById('settings-import-bank-status');
+    if(!window.QuestionBank?.importFromLocalStorage){
+      if(statusEl){
+        statusEl.hidden = false;
+        statusEl.textContent = 'Módulo do banco de perguntas indisponível.';
+      }
+      return;
+    }
+    btn.disabled = true;
+    if(statusEl){
+      statusEl.hidden = false;
+      statusEl.textContent = 'A importar histórico deste dispositivo…';
+    }
+    try {
+      const res = await window.QuestionBank.importFromLocalStorage();
+      if(statusEl){
+        statusEl.textContent = res.ok
+          ? `Importação concluída: ${res.inserted} novas · ${res.exists} já existiam · ${res.skipped} ignoradas (${res.scanned} lidas do localStorage).`
+          : `Falha na importação: ${res.error || 'erro desconhecido'}`;
+      }
+    } catch(err){
+      if(statusEl) statusEl.textContent = `Falha: ${err?.message || err}`;
+    } finally {
+      btn.disabled = false;
+    }
+  });
 
   function updateAnswerModeBar(){
     const mcBtn = document.getElementById('answer-mode-mc');

@@ -22,6 +22,9 @@
 [functions."rooms-admin"]
   node_bundler = "esbuild"
 
+[functions."question-bank-admin"]
+  node_bundler = "esbuild"
+
 [[redirects]]
   from = "/api/generate"
   to = "/.netlify/functions/generate"
@@ -45,6 +48,11 @@
 [[redirects]]
   from = "/api/rooms-admin"
   to = "/.netlify/functions/rooms-admin"
+  status = 200
+
+[[redirects]]
+  from = "/api/question-bank-admin"
+  to = "/.netlify/functions/question-bank-admin"
   status = 200
 
 [[redirects]]

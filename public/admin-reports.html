@@ -156,6 +156,27 @@
       text-align: right;
       white-space: nowrap;
     }
+    .bank-matrix-wrap { overflow-x: auto; margin-top: 8px; }
+    .bank-matrix { min-width: 520px; }
+    .bank-matrix th.num,
+    .bank-matrix td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .bank-matrix td.zero { color: var(--muted); opacity: 0.55; }
+    .bank-matrix tr.total-row td,
+    .bank-matrix tr.total-row th {
+      border-top: 2px solid var(--border);
+      font-weight: 600;
+    }
+    .bank-source-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 14px;
+    }
+    .bank-source-list .pill { font-size: 12px; }
     .confirm-overlay {
       position: fixed;
       inset: 0;
@@ -418,6 +439,43 @@
       font-size: 10px;
       font-family: inherit;
     }
+    .line-value-label {
+      fill: var(--text);
+      font-size: 9px;
+      font-family: inherit;
+      font-weight: 600;
+      paint-order: stroke;
+      stroke: rgba(11, 18, 32, 0.85);
+      stroke-width: 3px;
+      stroke-linejoin: round;
+    }
+    .chart-interactive {
+      position: relative;
+      width: 100%;
+    }
+    .chart-tooltip {
+      position: absolute;
+      pointer-events: none;
+      z-index: 12;
+      min-width: 140px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(11, 18, 32, 0.96);
+      color: var(--text);
+      font-size: 12px;
+      line-height: 1.45;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
+    }
+    .chart-tooltip[hidden] { display: none !important; }
+    .chart-focus-line {
+      stroke: rgba(148, 163, 184, 0.45);
+      stroke-width: 1;
+      stroke-dasharray: 4 3;
+    }
+    .chart-hit {
+      cursor: crosshair;
+    }
     .chart-head {
       display: flex;
       flex-wrap: wrap;
@@ -526,7 +584,7 @@
 <body>
   <div class="wrap">
     <h1>Painel admin</h1>
-    <p class="sub">Reportes de perguntas e salas multijogador. Acesso com utilizador e palavra-passe.</p>
+    <p class="sub">Reportes, salas multijogador e banco de perguntas. Acesso com utilizador e palavra-passe.</p>
 
     <section class="card" id="loginCard">
       <div class="row">
@@ -547,6 +605,7 @@
       <div class="admin-tabs">
         <button type="button" id="tabReports" class="active">Reportes</button>
         <button type="button" id="tabRooms" class="secondary">Salas multijogador</button>
+        <button type="button" id="tabBank" class="secondary">Banco de perguntas</button>
         <span class="spacer"></span>
         <button type="button" id="logoutBtn" class="secondary">Sair</button>
       </div>
@@ -751,6 +810,38 @@
             </thead>
             <tbody id="roomsBody"></tbody>
           </table>
+        </div>
+      </div>
+
+      <div id="bankPanel" class="hidden">
+        <div class="card stats" id="bankStatsRow"></div>
+
+        <div class="card">
+          <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
+            <h2 class="charts-title" style="margin:0;">Perguntas por categoria e faixa etária</h2>
+            <div class="rooms-refresh-wrap">
+              <button type="button" class="secondary" id="bankRefreshBtn">↻ Actualizar</button>
+              <span id="bankLastUpdated" class="rooms-last-updated"></span>
+            </div>
+          </div>
+          <p class="status" id="bankListStatus"></p>
+          <p class="sub" style="margin-top:0;">Contagem de perguntas activas (não reportadas) no Supabase.</p>
+          <div class="bank-matrix-wrap">
+            <table class="bank-matrix">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th class="num">6–9</th>
+                  <th class="num">10–15</th>
+                  <th class="num">+15</th>
+                  <th class="num">Total</th>
+                </tr>
+              </thead>
+              <tbody id="bankMatrixBody"></tbody>
+              <tfoot id="bankMatrixFoot"></tfoot>
+            </table>
+          </div>
+          <div id="bankSourceBreakdown"></div>
         </div>
       </div>
     </section>
@@ -1849,7 +1940,9 @@
     }
 
     function getAutoRefreshMs() {
-      return activeAdminTab === 'rooms' ? ROOMS_AUTO_REFRESH_MS : AUTO_REFRESH_MS;
+      if (activeAdminTab === 'rooms') return ROOMS_AUTO_REFRESH_MS;
+      if (activeAdminTab === 'bank') return ROOMS_AUTO_REFRESH_MS;
+      return AUTO_REFRESH_MS;
     }
 
     function startAutoRefresh() {
@@ -2091,19 +2184,58 @@
       playing: 'A jogar',
     };
 
+    const BANK_CATEGORIES = [
+      { n: 1, name: 'Conhecimentos Gerais' },
+      { n: 2, name: 'Geografia' },
+      { n: 3, name: 'História' },
+      { n: 4, name: 'Ciência' },
+      { n: 5, name: 'Natureza' },
+      { n: 6, name: 'Espaço' },
+      { n: 7, name: 'Matemática e Lógica' },
+      { n: 8, name: 'Literatura' },
+      { n: 9, name: 'Português' },
+      { n: 10, name: 'Arte' },
+      { n: 11, name: 'Cinema e Séries' },
+      { n: 12, name: 'Música' },
+      { n: 13, name: 'Moda' },
+      { n: 14, name: 'Gastronomia' },
+      { n: 15, name: 'Desporto' },
+      { n: 16, name: 'Jogos' },
+      { n: 17, name: 'Tecnologia' },
+      { n: 18, name: 'Culturas do Mundo' },
+      { n: 19, name: 'Transportes' },
+      { n: 20, name: 'Adivinhas e Curiosidades' },
+    ];
+    const BANK_AGE_BANDS = ['6-9', '10-15', '15+'];
+    const BANK_SOURCE_LABELS = {
+      ai: 'IA',
+      history: 'Histórico MP',
+      'local-history': 'Local (partidas)',
+      'local-engine': 'Local (motor)',
+      'local-engine-v2': 'Local (v2)',
+      local: 'Local',
+      bank: 'Banco',
+    };
+    let bankLoading = false;
+    let lastBankStats = null;
+
     function setAdminTab(tab) {
-      activeAdminTab = tab === 'rooms' ? 'rooms' : 'reports';
+      activeAdminTab = tab === 'rooms' ? 'rooms' : (tab === 'bank' ? 'bank' : 'reports');
       document.getElementById('tabReports')?.classList.toggle('active', activeAdminTab === 'reports');
       document.getElementById('tabRooms')?.classList.toggle('active', activeAdminTab === 'rooms');
+      document.getElementById('tabBank')?.classList.toggle('active', activeAdminTab === 'bank');
       document.getElementById('reportsPanel')?.classList.toggle('hidden', activeAdminTab !== 'reports');
       document.getElementById('roomsPanel')?.classList.toggle('hidden', activeAdminTab !== 'rooms');
+      document.getElementById('bankPanel')?.classList.toggle('hidden', activeAdminTab !== 'bank');
       if (activeAdminTab === 'reports') loadDashboard({ quiet: true });
-      else loadRoomsDashboard({ quiet: true });
+      else if (activeAdminTab === 'rooms') loadRoomsDashboard({ quiet: true });
+      else loadBankDashboard({ quiet: true });
       if (!dashboard.classList.contains('hidden')) startAutoRefresh();
     }
 
     function refreshActiveTab(options = { quiet: true, keepSelection: true }) {
       if (activeAdminTab === 'rooms') loadRoomsDashboard(options);
+      else if (activeAdminTab === 'bank') loadBankDashboard(options);
       else loadDashboard(options);
     }
 
@@ -2119,7 +2251,175 @@
       `;
     }
 
-    function renderDualLineChart(el, seriesA, seriesB, colorA, colorB) {
+    function renderBankStats(stats) {
+      const el = document.getElementById('bankStatsRow');
+      if (!el || !stats) return;
+      el.innerHTML = `
+        <div class="stat stat-total"><strong>${stats.active || 0}</strong><span>Activas no banco</span></div>
+        <div class="stat stat-open"><strong>${stats.total || 0}</strong><span>Total registadas</span></div>
+        <div class="stat stat-cancelled"><strong>${stats.reported || 0}</strong><span>Reportadas</span></div>
+        <div class="stat stat-top-issue"><strong>${stats.blocked || 0}</strong><span>Hashes bloqueados</span></div>
+      `;
+    }
+
+    function renderBankMatrix(stats) {
+      const body = document.getElementById('bankMatrixBody');
+      const foot = document.getElementById('bankMatrixFoot');
+      const sourceEl = document.getElementById('bankSourceBreakdown');
+      if (!body || !foot) return;
+
+      const grid = {};
+      const ageTotals = Object.fromEntries(BANK_AGE_BANDS.map((b) => [b, 0]));
+      let grandTotal = 0;
+
+      for (const row of stats?.byCategoryAge || []) {
+        const cat = Number(row.category_n);
+        const age = row.age_band;
+        const count = Number(row.count) || 0;
+        if (!cat || !BANK_AGE_BANDS.includes(age)) continue;
+        if (!grid[cat]) grid[cat] = {};
+        grid[cat][age] = count;
+        ageTotals[age] += count;
+        grandTotal += count;
+      }
+
+      const cell = (n) => {
+        const cls = n ? 'num' : 'num zero';
+        return `<td class="${cls}">${n || 0}</td>`;
+      };
+
+      body.innerHTML = BANK_CATEGORIES.map((cat) => {
+        const row = grid[cat.n] || {};
+        const rowTotal = BANK_AGE_BANDS.reduce((sum, age) => sum + (row[age] || 0), 0);
+        return `<tr>
+          <td>${cat.n}. ${esc(cat.name)}</td>
+          ${BANK_AGE_BANDS.map((age) => cell(row[age] || 0)).join('')}
+          <td class="num">${rowTotal}</td>
+        </tr>`;
+      }).join('');
+
+      foot.innerHTML = `<tr class="total-row">
+        <th>Total</th>
+        ${BANK_AGE_BANDS.map((age) => `<th class="num">${ageTotals[age] || 0}</th>`).join('')}
+        <th class="num">${grandTotal}</th>
+      </tr>`;
+
+      if (sourceEl) {
+        const sources = stats?.bySource || [];
+        if (!sources.length) {
+          sourceEl.innerHTML = '<p class="sub" style="margin-bottom:0;">Sem perguntas activas por origem.</p>';
+          return;
+        }
+        sourceEl.innerHTML = `
+          <h3 class="charts-title" style="font-size:1rem; margin:0 0 4px;">Por origem</h3>
+          <div class="bank-source-list">
+            ${sources.map((s) => {
+              const label = BANK_SOURCE_LABELS[s.source] || s.source || '—';
+              return `<span class="pill">${esc(label)}: <strong>${s.count || 0}</strong></span>`;
+            }).join('')}
+          </div>`;
+      }
+    }
+
+    async function loadBankDashboard(options = {}) {
+      const { quiet = false } = options;
+      if (bankLoading) return;
+      bankLoading = true;
+      const statusEl = document.getElementById('bankListStatus');
+      if (!quiet && statusEl) {
+        statusEl.textContent = 'A carregar…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/question-bank-admin');
+        lastBankStats = data.stats;
+        renderBankStats(lastBankStats);
+        renderBankMatrix(lastBankStats);
+        const updatedEl = document.getElementById('bankLastUpdated');
+        if (updatedEl) updatedEl.textContent = `Actualizado às ${formatPortugalDateTime(new Date())}`;
+        if (!quiet && statusEl) statusEl.textContent = '';
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao carregar banco de perguntas.';
+          statusEl.className = 'status err';
+        }
+        if (String(err.message || '').includes('incorretos')) logout();
+      } finally {
+        bankLoading = false;
+      }
+    }
+
+    function formatRoomsTimelineLabel(t, granularity) {
+      if (!t) return '';
+      if (granularity === 'hour' || String(t).includes('T')) {
+        const day = t.slice(8, 10);
+        const month = t.slice(5, 7);
+        const hour = t.slice(11, 13);
+        return `${day}/${month} ${hour}h`;
+      }
+      return formatShortDate(t);
+    }
+
+    function attachDualLineChartInteraction(container, layout, labels, mapA, mapB, meta) {
+      const tooltip = container.querySelector('.chart-tooltip');
+      const focusLine = container.querySelector('.chart-focus-line');
+      const svg = container.querySelector('svg');
+      if (!tooltip || !svg || !labels.length) return;
+
+      const { padX, padY, innerW, innerH } = layout;
+
+      function hideTooltip() {
+        tooltip.hidden = true;
+        if (focusLine) focusLine.setAttribute('hidden', '');
+      }
+
+      function showTooltip(i, clientX, clientY) {
+        const t = labels[Math.max(0, Math.min(i, labels.length - 1))];
+        const valA = mapA[t] || 0;
+        const valB = mapB[t] || 0;
+        const x = padX + (i / Math.max(labels.length - 1, 1)) * innerW;
+        if (focusLine) {
+          focusLine.setAttribute('x1', x);
+          focusLine.setAttribute('x2', x);
+          focusLine.setAttribute('y1', padY);
+          focusLine.setAttribute('y2', padY + innerH);
+          focusLine.removeAttribute('hidden');
+        }
+        tooltip.hidden = false;
+        tooltip.innerHTML = `
+          <div><strong>${esc(formatRoomsTimelineLabel(t, meta.granularity))}</strong></div>
+          <div><span style="color:${meta.colorA}">●</span> ${esc(meta.labelA)}: <strong>${valA}</strong></div>
+          <div><span style="color:${meta.colorB}">●</span> ${esc(meta.labelB)}: <strong>${valB}</strong></div>
+        `;
+        const rect = container.getBoundingClientRect();
+        const left = Math.min(Math.max(clientX - rect.left + 12, 8), Math.max(8, rect.width - 170));
+        const top = Math.max(clientY - rect.top - 58, 8);
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+      }
+
+      svg.addEventListener('mousemove', (e) => {
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const ctm = svg.getScreenCTM();
+        if (!ctm) return;
+        const svgPt = pt.matrixTransform(ctm.inverse());
+        const relX = svgPt.x - padX;
+        if (relX < 0 || relX > innerW) {
+          hideTooltip();
+          return;
+        }
+        const i = labels.length <= 1 ? 0 : Math.round((relX / innerW) * (labels.length - 1));
+        showTooltip(i, e.clientX, e.clientY);
+      });
+      svg.addEventListener('mouseleave', hideTooltip);
+    }
+
+    function renderDualLineChart(el, seriesA, seriesB, colorA, colorB, options = {}) {
+      const labelA = options.labelA || 'Salas criadas';
+      const labelB = options.labelB || 'Jogos iniciados';
+      const granularity = options.granularity || 'day';
       const labels = [...new Set([
         ...(seriesA || []).map((p) => p.t),
         ...(seriesB || []).map((p) => p.t),
@@ -2128,29 +2428,81 @@
         el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
         return;
       }
+
       const mapA = Object.fromEntries((seriesA || []).map((p) => [p.t, p.v]));
       const mapB = Object.fromEntries((seriesB || []).map((p) => [p.t, p.v]));
       const max = Math.max(1, ...labels.map((t) => mapA[t] || 0), ...labels.map((t) => mapB[t] || 0));
-      const w = Math.max(labels.length * 36, 360);
-      const h = 180;
-      const pad = 28;
-      const plotW = w - pad * 2;
-      const plotH = h - pad * 2;
-      const xAt = (i) => pad + (labels.length <= 1 ? plotW / 2 : (i / (labels.length - 1)) * plotW);
-      const yAt = (v) => pad + plotH - (v / max) * plotH;
-      const toPoints = (map) => labels.map((t, i) => `${xAt(i)},${yAt(map[t] || 0)}`).join(' ');
-      const step = Math.max(1, Math.ceil(labels.length / 8));
-      const xLabels = labels.map((t, i) => {
-        if (i % step !== 0 && i !== labels.length - 1) return '';
-        const short = t.includes('T') ? t.slice(11) + 'h' : t.slice(5);
-        return `<text x="${xAt(i)}" y="${h - 6}" text-anchor="middle" fill="#94a3b8" font-size="10">${esc(short)}</text>`;
+      const layout = createTimelineLayout(labels.length, max);
+      const { w, h, padX, padY, innerW, innerH } = layout;
+      const xAt = (i) => padX + (i / Math.max(labels.length - 1, 1)) * innerW;
+      const yAt = (v) => padY + innerH - (v / max) * innerH;
+
+      const buildSeries = (map, color) => labels.map((t, i) => ({
+        t,
+        i,
+        x: xAt(i),
+        y: yAt(map[t] || 0),
+        v: map[t] || 0,
+        color,
+      }));
+
+      const pointsA = buildSeries(mapA, colorA);
+      const pointsB = buildSeries(mapB, colorB);
+      const lineA = pointsA.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+      const lineB = pointsB.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+      const showPointValues = labels.length <= 24;
+      const dotRadius = labels.length > 36 ? 2.5 : 3.5;
+
+      const valueLabels = (points) => points.map((p) => {
+        if (!showPointValues || !p.v) return '';
+        const dy = p.y < padY + 14 ? 10 : -6;
+        return `<text class="line-value-label" x="${p.x.toFixed(1)}" y="${(p.y + dy).toFixed(1)}" text-anchor="middle">${p.v}</text>`;
       }).join('');
+
+      const dots = (points, color) => points.map((p) =>
+        `<circle class="line-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${dotRadius}" fill="${color}" />`
+      ).join('');
+
+      const hitBands = labels.map((t, i) => {
+        const cx = xAt(i);
+        const bandW = labels.length <= 1 ? innerW : innerW / (labels.length - 1);
+        const x = Math.max(padX, cx - bandW / 2);
+        const width = Math.min(bandW, padX + innerW - x);
+        return `<rect class="chart-hit" data-index="${i}" x="${x.toFixed(1)}" y="${padY}" width="${width.toFixed(1)}" height="${innerH}" fill="transparent" />`;
+      }).join('');
+
+      const labelStep = Math.max(1, Math.ceil(labels.length / 8));
+      const xLabels = labels.map((t, i) => {
+        if (i % labelStep !== 0 && i !== labels.length - 1) return '';
+        return `<text class="line-label" x="${xAt(i).toFixed(1)}" y="${h - 6}" text-anchor="middle">${esc(formatRoomsTimelineLabel(t, granularity))}</text>`;
+      }).join('');
+
       el.innerHTML = `
-        <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Gráfico de salas e jogos">
-          <polyline points="${toPoints(mapA)}" fill="none" stroke="${colorA}" stroke-width="2.5"/>
-          <polyline points="${toPoints(mapB)}" fill="none" stroke="${colorB}" stroke-width="2.5"/>
-          ${xLabels}
-        </svg>`;
+        <div class="chart-interactive">
+          <div class="chart-tooltip" hidden></div>
+          <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Gráfico de salas e jogos">
+            ${renderTimelineGrid(layout)}
+            <line class="chart-focus-line" hidden x1="0" y1="0" x2="0" y2="0" />
+            <polyline class="line-path" points="${lineA}" style="stroke:${colorA}" />
+            <polyline class="line-path" points="${lineB}" style="stroke:${colorB}" />
+            ${dots(pointsA, colorA)}
+            ${dots(pointsB, colorB)}
+            ${valueLabels(pointsA)}
+            ${valueLabels(pointsB)}
+            ${xLabels}
+            ${hitBands}
+          </svg>
+        </div>
+      `;
+
+      attachDualLineChartInteraction(
+        el.querySelector('.chart-interactive'),
+        layout,
+        labels,
+        mapA,
+        mapB,
+        { labelA, labelB, colorA, colorB, granularity },
+      );
     }
 
     function renderRoomsChart(stats) {
@@ -2167,7 +2519,11 @@
         chartEl.innerHTML = '<div class="chart-empty">Sem dados.</div>';
         return;
       }
-      renderDualLineChart(chartEl, bucket.rooms, bucket.games, '#3b82f6', '#10b981');
+      renderDualLineChart(chartEl, bucket.rooms, bucket.games, '#3b82f6', '#10b981', {
+        labelA: 'Salas criadas',
+        labelB: 'Jogos iniciados',
+        granularity: meta.granularity,
+      });
     }
 
     function updateRoomsBulkUi() {
@@ -2436,7 +2792,9 @@
     });
     document.getElementById('tabReports')?.addEventListener('click', () => setAdminTab('reports'));
     document.getElementById('tabRooms')?.addEventListener('click', () => setAdminTab('rooms'));
+    document.getElementById('tabBank')?.addEventListener('click', () => setAdminTab('bank'));
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
+    document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
     document.getElementById('roomsTimelineFilters')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-rooms-range]');
       if (!btn || !TIMELINE_RANGES[btn.dataset.roomsRange]) return;
