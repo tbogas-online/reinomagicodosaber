@@ -932,7 +932,7 @@
   function renderHistoryList(filterMode) {
     const list = document.getElementById('history-games-list');
     if (!list || !GH) return;
-    let games = GH.getGames();
+    let games = GH.getGames().filter((g) => (g.rounds?.length || 0) > 0);
     if (filterMode && filterMode !== 'all') {
       games = games.filter((g) => g.mode === filterMode);
     }
