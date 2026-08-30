@@ -2424,7 +2424,7 @@
   }
   .history-game-item{
     width: 100%;
-    max-width: 22rem;
+    max-width: min(28rem, 94vw);
     margin-bottom: 8px;
   }
   .history-game-card{
@@ -2558,9 +2558,14 @@
     background: rgba(var(--gold-rgb), 0.18) !important;
   }
   #screen-history #history-filter{
+    max-width: min(28rem, 94vw);
     border-color: rgba(var(--gold-rgb), 0.55);
     color: var(--parchment);
     background: rgba(0, 0, 0, 0.28);
+  }
+  #screen-history #history-games-list{
+    max-width: min(28rem, 94vw);
+    margin: 0 auto;
   }
   .mp-waiting-hint{
     font-size: 0.95rem;
