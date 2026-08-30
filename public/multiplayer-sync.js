@@ -99,7 +99,7 @@
   function applyHostPlayerId(hostId) {
     if (!hostId) return;
     roomHostPlayerId = hostId;
-    if (playerId) setHostFlag(roomHostPlayerId === playerId);
+    if (playerId) setHostFlag(String(roomHostPlayerId) === String(playerId));
   }
 
   function getHostPlayerId() {
@@ -108,10 +108,14 @@
 
   function syncHostFromPlayers(players) {
     if (!playerId) return isHost;
+    const hostPlayer = (players || []).find((p) => p.is_host);
+    if (hostPlayer?.player_id) {
+      roomHostPlayerId = hostPlayer.player_id;
+    }
     if (roomHostPlayerId) {
-      setHostFlag(roomHostPlayerId === playerId);
+      setHostFlag(String(roomHostPlayerId) === String(playerId));
     } else {
-      const me = (players || []).find((p) => p.player_id === playerId);
+      const me = (players || []).find((p) => String(p.player_id) === String(playerId));
       setHostFlag(!!me?.is_host);
     }
     return isHost;
@@ -256,9 +260,14 @@
     return { expired: !!data?.expired };
   }
 
-  async function notifyRoomExpired() {
+  async function notifyRoomEnded(message) {
+    const msg = message || 'A sala terminou.';
     await leaveRoom();
-    onRoomExpired?.();
+    onRoomExpired?.(msg);
+  }
+
+  async function notifyRoomExpired() {
+    await notifyRoomEnded('A sala expirou por inatividade (24 horas).');
   }
 
   async function setConnected(connected) {
@@ -328,6 +337,10 @@
         filter: 'id=eq.' + roomId,
       }, (payload) => {
         const row = payload.new;
+        if (row.status === 'finished') {
+          notifyRoomEnded('O anfitrião terminou a sala.').catch(() => {});
+          return;
+        }
         if (row.host_player_id) applyHostPlayerId(row.host_player_id);
         const gs = row.game_state || {};
         const json = JSON.stringify(gs);
@@ -335,7 +348,13 @@
           lastGameStateJson = json;
           onStateChange?.(gs, row.settings || {}, row.status);
         }
-        syncHostFromServer().catch(() => {});
+        syncHostFromServer()
+          .then(() => fetchPlayers())
+          .then((players) => {
+            syncHostFromPlayers(players);
+            onPlayersChange?.(players);
+          })
+          .catch(() => {});
       })
       .subscribe();
 
@@ -408,6 +427,22 @@
     lastGameStateJson = '';
   }
 
+  async function hostLeaveRoom(action) {
+    if (!client || !roomId) return null;
+    const { data, error } = await client.rpc('host_leave_room', {
+      p_room_id: roomId,
+      p_action: action,
+    });
+    if (error) throw error;
+    await unsubscribe();
+    roomId = null;
+    roomCode = null;
+    roomHostPlayerId = null;
+    setHostFlag(false, false);
+    lastGameStateJson = '';
+    return data;
+  }
+
   async function fetchRoomHistory() {
     if (!client || !roomId) return [];
     const { data, error } = await client
@@ -469,6 +504,7 @@
     fetchRoomHistory,
     touchRoomActivity,
     leaveRoom,
+    hostLeaveRoom,
     setConnected,
     setCallbacks,
     updateNickname,

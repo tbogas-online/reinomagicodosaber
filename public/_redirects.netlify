@@ -2,5 +2,6 @@
 /api/ai-status  /.netlify/functions/ai-status  200
 /api/report  /.netlify/functions/report  200
 /api/reports-admin  /.netlify/functions/reports-admin  200
+/api/rooms-admin  /.netlify/functions/rooms-admin  200
 /api/report-status  /.netlify/functions/report-status  200
 /api/report-attachment  /.netlify/functions/report-attachment  200

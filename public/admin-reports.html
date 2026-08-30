@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — Reportes · Reino Mágico do Saber</title>
+  <title>Admin · Reino Mágico do Saber</title>
   <style>
     :root {
       color-scheme: light dark;
@@ -152,6 +152,48 @@
     .status.ok { color: var(--ok); }
     .pager { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
     .hidden { display: none !important; }
+    .admin-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .admin-tabs button {
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .admin-tabs button.active {
+      background: #1d4ed8;
+      border-color: #1d4ed8;
+      color: #fff;
+    }
+    .admin-tabs .spacer { flex: 1; }
+    .room-players-list {
+      margin: 4px 0 0;
+      padding-left: 16px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .room-players-list li { margin: 2px 0; }
+    .pill.status-playing { border-color: #10b981; color: #34d399; }
+    .pill.status-lobby { border-color: #3b82f6; color: #93c5fd; }
+    .rooms-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .rooms-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .rooms-legend i {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+    }
     .charts-title {
       margin: 0 0 14px;
       font-size: 1.05rem;
@@ -421,8 +463,8 @@
 </head>
 <body>
   <div class="wrap">
-    <h1>Reportes de perguntas</h1>
-    <p class="sub">Painel admin — reportes de todos os jogadores. Acesso com utilizador e palavra-passe.</p>
+    <h1>Painel admin</h1>
+    <p class="sub">Reportes de perguntas e salas multijogador. Acesso com utilizador e palavra-passe.</p>
 
     <section class="card" id="loginCard">
       <div class="row">
@@ -440,6 +482,14 @@
     </section>
 
     <section id="dashboard" class="hidden">
+      <div class="admin-tabs">
+        <button type="button" id="tabReports" class="active">Reportes</button>
+        <button type="button" id="tabRooms" class="secondary">Salas multijogador</button>
+        <span class="spacer"></span>
+        <button type="button" id="logoutBtn" class="secondary">Sair</button>
+      </div>
+
+      <div id="reportsPanel">
       <div class="card stats" id="statsRow"></div>
 
       <div class="card" id="chartsSection">
@@ -551,7 +601,6 @@
           </div>
           <button id="refreshBtn" type="button">Atualizar</button>
           <button id="exportBtn" type="button" class="secondary" title="Exporta os reportes visíveis na tabela (respeita filtros e página actual)">Exportar CSV</button>
-          <button id="logoutBtn" type="button" class="secondary">Sair</button>
         </div>
         <p class="status" id="listStatus"></p>
       </div>
@@ -587,6 +636,50 @@
           <button id="prevBtn" type="button" class="secondary">← Anterior</button>
           <span id="pagerInfo"></span>
           <button id="nextBtn" type="button" class="secondary">Seguinte →</button>
+        </div>
+      </div>
+      </div>
+
+      <div id="roomsPanel" class="hidden">
+        <div class="card stats" id="roomsStatsRow"></div>
+
+        <div class="card" id="roomsChartsSection">
+          <h2 class="charts-title">Salas e jogos no tempo</h2>
+          <div class="chart-head">
+            <h3 id="roomsChartTitle">Últimos 14 dias</h3>
+            <div class="timeline-filters" id="roomsTimelineFilters" role="group" aria-label="Período do gráfico">
+              <button type="button" class="secondary" data-rooms-range="24h">24 h</button>
+              <button type="button" class="secondary" data-rooms-range="3d">3 dias</button>
+              <button type="button" class="secondary" data-rooms-range="7d">7 dias</button>
+              <button type="button" class="secondary active" data-rooms-range="14d">14 dias</button>
+            </div>
+          </div>
+          <div id="roomsTimelineChart" class="chart"></div>
+          <div class="rooms-legend">
+            <span><i style="background:#3b82f6"></i> Salas criadas</span>
+            <span><i style="background:#10b981"></i> Jogos iniciados</span>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row" style="justify-content:space-between; margin-bottom:12px;">
+            <h2 class="charts-title" style="margin:0;">Salas em aberto</h2>
+            <button type="button" class="secondary" id="roomsRefreshBtn">↻ Actualizar</button>
+          </div>
+          <p class="status" id="roomsListStatus"></p>
+          <table>
+            <thead>
+              <tr>
+                <th>Código</th>
+                <th>Estado</th>
+                <th>Jogadores</th>
+                <th>Anfitrião</th>
+                <th>Última actividade</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="roomsBody"></tbody>
+          </table>
         </div>
       </div>
     </section>
@@ -1643,7 +1736,7 @@
       stopAutoRefresh();
       refreshTimer = setInterval(() => {
         if (document.hidden || dashboard.classList.contains('hidden')) return;
-        loadDashboard({ quiet: true, keepSelection: true });
+        refreshActiveTab({ quiet: true, keepSelection: true });
       }, AUTO_REFRESH_MS);
     }
 
@@ -1859,8 +1952,185 @@
     function showDashboard() {
       loginCard.classList.add('hidden');
       dashboard.classList.remove('hidden');
-      loadDashboard();
+      setAdminTab('reports');
       startAutoRefresh();
+    }
+
+    let activeAdminTab = 'reports';
+    let roomsTimelineRange = '14d';
+    let lastRoomsStats = null;
+    let lastOpenRooms = [];
+    let roomsLoading = false;
+
+    const ROOM_STATUS_LABELS = {
+      lobby: 'Sala de espera',
+      playing: 'A jogar',
+    };
+
+    function setAdminTab(tab) {
+      activeAdminTab = tab === 'rooms' ? 'rooms' : 'reports';
+      document.getElementById('tabReports')?.classList.toggle('active', activeAdminTab === 'reports');
+      document.getElementById('tabRooms')?.classList.toggle('active', activeAdminTab === 'rooms');
+      document.getElementById('reportsPanel')?.classList.toggle('hidden', activeAdminTab !== 'reports');
+      document.getElementById('roomsPanel')?.classList.toggle('hidden', activeAdminTab !== 'rooms');
+      if (activeAdminTab === 'reports') loadDashboard({ quiet: true });
+      else loadRoomsDashboard({ quiet: true });
+    }
+
+    function refreshActiveTab(options = { quiet: true, keepSelection: true }) {
+      if (activeAdminTab === 'rooms') loadRoomsDashboard(options);
+      else loadDashboard(options);
+    }
+
+    function renderRoomsStats(stats) {
+      const el = document.getElementById('roomsStatsRow');
+      if (!el || !stats) return;
+      el.innerHTML = `
+        <div class="stat stat-open"><strong>${stats.openRooms || 0}</strong><span>Salas em aberto</span></div>
+        <div class="stat stat-resolved"><strong>${stats.playingRooms || 0}</strong><span>A jogar</span></div>
+        <div class="stat stat-total"><strong>${stats.lobbyRooms || 0}</strong><span>Em espera</span></div>
+        <div class="stat stat-top-issue"><strong>${stats.totalRooms || 0}</strong><span>Salas criadas (total)</span></div>
+        <div class="stat stat-top-issue"><strong>${stats.totalGames || 0}</strong><span>Jogos iniciados (total)</span></div>
+      `;
+    }
+
+    function renderDualLineChart(el, seriesA, seriesB, colorA, colorB) {
+      const labels = [...new Set([
+        ...(seriesA || []).map((p) => p.t),
+        ...(seriesB || []).map((p) => p.t),
+      ])].sort();
+      if (!labels.length) {
+        el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
+        return;
+      }
+      const mapA = Object.fromEntries((seriesA || []).map((p) => [p.t, p.v]));
+      const mapB = Object.fromEntries((seriesB || []).map((p) => [p.t, p.v]));
+      const max = Math.max(1, ...labels.map((t) => mapA[t] || 0), ...labels.map((t) => mapB[t] || 0));
+      const w = Math.max(labels.length * 36, 360);
+      const h = 180;
+      const pad = 28;
+      const plotW = w - pad * 2;
+      const plotH = h - pad * 2;
+      const xAt = (i) => pad + (labels.length <= 1 ? plotW / 2 : (i / (labels.length - 1)) * plotW);
+      const yAt = (v) => pad + plotH - (v / max) * plotH;
+      const toPoints = (map) => labels.map((t, i) => `${xAt(i)},${yAt(map[t] || 0)}`).join(' ');
+      const step = Math.max(1, Math.ceil(labels.length / 8));
+      const xLabels = labels.map((t, i) => {
+        if (i % step !== 0 && i !== labels.length - 1) return '';
+        const short = t.includes('T') ? t.slice(11) + 'h' : t.slice(5);
+        return `<text x="${xAt(i)}" y="${h - 6}" text-anchor="middle" fill="#94a3b8" font-size="10">${esc(short)}</text>`;
+      }).join('');
+      el.innerHTML = `
+        <svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Gráfico de salas e jogos">
+          <polyline points="${toPoints(mapA)}" fill="none" stroke="${colorA}" stroke-width="2.5"/>
+          <polyline points="${toPoints(mapB)}" fill="none" stroke="${colorB}" stroke-width="2.5"/>
+          ${xLabels}
+        </svg>`;
+    }
+
+    function renderRoomsChart(stats) {
+      const meta = TIMELINE_RANGES[roomsTimelineRange] || TIMELINE_RANGES['14d'];
+      const titleEl = document.getElementById('roomsChartTitle');
+      if (titleEl) titleEl.textContent = `Salas e jogos — ${meta.label}`;
+      document.querySelectorAll('#roomsTimelineFilters [data-rooms-range]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.roomsRange === roomsTimelineRange);
+      });
+      const chartEl = document.getElementById('roomsTimelineChart');
+      if (!chartEl) return;
+      const bucket = stats?.timeline?.[roomsTimelineRange];
+      if (!bucket) {
+        chartEl.innerHTML = '<div class="chart-empty">Sem dados.</div>';
+        return;
+      }
+      renderDualLineChart(chartEl, bucket.rooms, bucket.games, '#3b82f6', '#10b981');
+    }
+
+    function renderRoomsTable(rooms) {
+      const body = document.getElementById('roomsBody');
+      if (!body) return;
+      if (!rooms?.length) {
+        body.innerHTML = '<tr><td colspan="6"><div class="chart-empty">Nenhuma sala em aberto.</div></td></tr>';
+        return;
+      }
+      body.innerHTML = rooms.map((room) => {
+        const playersHtml = (room.players || []).map((p) => {
+          const host = p.isHost ? '👑 ' : '';
+          const dot = p.isConnected ? '●' : '○';
+          return `<li>${host}${esc(p.nickname)} <span style="opacity:.7">${dot}</span></li>`;
+        }).join('');
+        const statusClass = room.status === 'playing' ? 'status-playing' : 'status-lobby';
+        return `<tr>
+          <td data-label="Código"><strong>${esc(room.code)}</strong></td>
+          <td data-label="Estado"><span class="pill ${statusClass}">${esc(ROOM_STATUS_LABELS[room.status] || room.status)}</span></td>
+          <td data-label="Jogadores">
+            ${room.connectedCount}/${room.playerCount} ligados
+            <ul class="room-players-list">${playersHtml}</ul>
+          </td>
+          <td data-label="Anfitrião">${esc(room.hostNickname || '—')}</td>
+          <td data-label="Última actividade">${esc(formatPortugalDateTime(room.lastActivityAt || room.updatedAt || room.createdAt))}</td>
+          <td data-label="Ações" class="actions-cell">
+            <button type="button" class="danger close-room-btn" data-room-id="${esc(room.id)}" data-room-code="${esc(room.code)}">Desligar</button>
+          </td>
+        </tr>`;
+      }).join('');
+    }
+
+    async function loadRoomsDashboard(options = {}) {
+      const { quiet = false } = options;
+      if (roomsLoading) return;
+      roomsLoading = true;
+      const statusEl = document.getElementById('roomsListStatus');
+      if (!quiet && statusEl) {
+        statusEl.textContent = 'A carregar…';
+        statusEl.className = 'status';
+      }
+      try {
+        const [statsData, listData] = await Promise.all([
+          api('/api/rooms-admin?stats=1'),
+          api('/api/rooms-admin'),
+        ]);
+        lastRoomsStats = statsData.stats;
+        lastOpenRooms = listData.rooms || [];
+        renderRoomsStats(lastRoomsStats);
+        renderRoomsChart(lastRoomsStats);
+        renderRoomsTable(lastOpenRooms);
+        if (!quiet && statusEl) statusEl.textContent = '';
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao carregar salas.';
+          statusEl.className = 'status err';
+        }
+        if (String(err.message || '').includes('incorretos')) logout();
+      } finally {
+        roomsLoading = false;
+      }
+    }
+
+    async function closeRoomAdmin(roomId, roomCode) {
+      if (!roomId) return;
+      if (!global.confirm(`Desligar a sala ${roomCode || ''}? Todos os jogadores serão desconectados.`)) return;
+      const statusEl = document.getElementById('roomsListStatus');
+      if (statusEl) {
+        statusEl.textContent = 'A desligar sala…';
+        statusEl.className = 'status';
+      }
+      try {
+        await api(`/api/rooms-admin?roomId=${encodeURIComponent(roomId)}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ action: 'close' }),
+        });
+        await loadRoomsDashboard({ quiet: true });
+        if (statusEl) {
+          statusEl.textContent = `Sala ${roomCode || ''} desligada.`;
+          statusEl.className = 'status';
+          setTimeout(() => { if (statusEl.textContent.includes('desligada')) statusEl.textContent = ''; }, 2500);
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao desligar sala.';
+          statusEl.className = 'status err';
+        }
+      }
     }
 
     function logout() {
@@ -1989,6 +2259,20 @@
     document.getElementById('adminPass').addEventListener('keydown', (e) => {
       if (e.key === 'Enter') login();
     });
+    document.getElementById('tabReports')?.addEventListener('click', () => setAdminTab('reports'));
+    document.getElementById('tabRooms')?.addEventListener('click', () => setAdminTab('rooms'));
+    document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
+    document.getElementById('roomsTimelineFilters')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-rooms-range]');
+      if (!btn || !TIMELINE_RANGES[btn.dataset.roomsRange]) return;
+      roomsTimelineRange = btn.dataset.roomsRange;
+      renderRoomsChart(lastRoomsStats);
+    });
+    document.getElementById('roomsBody')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('.close-room-btn');
+      if (!btn) return;
+      closeRoomAdmin(btn.dataset.roomId, btn.dataset.roomCode);
+    });
     document.getElementById('logoutBtn').onclick = logout;
     document.getElementById('refreshBtn').onclick = () => { offset = 0; loadDashboard(); };
     document.getElementById('exportBtn').onclick = exportCsv;
@@ -1996,7 +2280,7 @@
     document.getElementById('nextBtn').onclick = () => { offset += limit; loadDashboard(); };
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && !dashboard.classList.contains('hidden')) {
-        loadDashboard({ quiet: true, keepSelection: true });
+        refreshActiveTab({ quiet: true, keepSelection: true });
       }
     });
 

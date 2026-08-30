@@ -98,7 +98,11 @@ ANTHROPIC_API_KEY
 OPENAI_API_KEY
 REPORTS_ADMIN_USER
 REPORTS_ADMIN_PASS
+SUPABASE_URL
+SUPABASE_SERVICE_ROLE_KEY
 ```
+
+`SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` são necessários para o separador **Salas multijogador** no painel admin (`/admin-reports.html`). A service role **nunca** vai para o browser — só nas Netlify Functions.
 
 ### 4. Deploy
 
@@ -264,6 +268,7 @@ Guia completo em português (PT-PT) para:
 URL: **`/admin-reports.html`** — utilizador e palavra-passe (`REPORTS_ADMIN_USER` / `REPORTS_ADMIN_PASS`).
 
 - Dashboard: gráficos temporais (24 h / 3 / 7 / 14 dias), por tratar vs resolvidos, tipo, idade, dispositivo, top categorias (incl. **Site/app**).
+- Separador **Salas multijogador**: salas em aberto (código, estado, jogadores, anfitrião), botão **Desligar**, gráfico de salas criadas vs jogos iniciados.
 - Clicar num tipo ou estado filtra gráficos e tabela.
 - Tabela com estado, **Resolvido em** (hora Portugal), detalhe, copiar, imagem anexada.
 - Acções em lote: Resolver, Cancelar, Reabrir, Apagar (só cancelados).
@@ -299,7 +304,8 @@ Regra detalhada: `.cursor/rules/reportes-ia.mdc`.
 | `/api/report` | POST | Jogador envia reporte |
 | `/api/report-status` | GET | Sobre — estado dos reportes do jogador |
 | `/api/report-attachment` | POST/GET | Imagem anexada (reportes do site) |
-| `/api/reports-admin` | GET/PATCH/DELETE | Painel admin (Basic Auth) |
+| `/api/reports-admin` | GET/PATCH/DELETE | Painel admin — reportes (Basic Auth) |
+| `/api/rooms-admin` | GET/PATCH | Painel admin — salas MP (Basic Auth + Supabase service role) |
 
 Redirects em `netlify.toml` e `public/_redirects`.
 

@@ -2110,6 +2110,11 @@
     border: 1px solid rgba(var(--gold-rgb), 0.25);
   }
   .mp-player-row.offline{ opacity: 0.55; }
+  .mp-player-row.is-host{
+    border-color: rgba(var(--gold-rgb), 0.55);
+    background: rgba(var(--gold-rgb), 0.12);
+  }
+  .mp-player-row .mp-host-crown{ margin-right: 2px; }
   .mp-player-status{ color: var(--teal); font-size: 0.75rem; }
   .mp-error{
     color: var(--quota-err);
@@ -2755,7 +2760,7 @@
 <script src="game-history.js?v=20260829-174108"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-152500"></script>
+<script src="multiplayer-controller.js?v=20260830-153000"></script>
 <script src="question-engine.js?v=20260829-174108" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -5962,6 +5967,18 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     document.getElementById('game-clock').textContent = `⏱ ${text}`;
   }
 </script>
+
+<div class="q-report-overlay" id="mp-host-leave-overlay" role="dialog" aria-modal="true" aria-labelledby="mp-host-leave-title" hidden>
+  <div class="q-report-card">
+    <h2 id="mp-host-leave-title">👑 Sair como anfitrião</h2>
+    <p id="mp-host-leave-msg" style="margin:0 0 16px; line-height:1.45; opacity:0.92;"></p>
+    <div class="q-report-actions" style="flex-direction:column; align-items:stretch; gap:8px;">
+      <button type="button" class="btn" id="mp-host-leave-transfer">Passar anfitrião e sair</button>
+      <button type="button" class="btn secondary" id="mp-host-leave-finish">Terminar sala para todos</button>
+      <button type="button" class="btn ghost" id="mp-host-leave-cancel">Cancelar</button>
+    </div>
+  </div>
+</div>
 
 <div class="q-report-overlay" id="q-report-overlay" role="dialog" aria-modal="true" aria-labelledby="q-report-title" hidden>
   <div class="q-report-card">

@@ -392,17 +392,17 @@
     updateContinueButton();
   }
 
-  function showMpExpiredToast() {
-    showMpToast('A sala expirou por inatividade (24 horas).');
+  function showMpExpiredToast(message) {
+    showMpToast(message || 'A sala expirou por inatividade (24 horas).');
   }
 
-  function handleRoomExpired() {
+  function handleRoomExpired(message) {
     if (GH.getCurrentGame()?.mode === 'multiplayer') GH.finishGame();
     active = false;
     clearLastRoom();
     clearRoomPause();
     gameHooks?.showScreen?.('menu');
-    showMpExpiredToast();
+    showMpExpiredToast(message);
   }
 
   async function leaveRoomAndMenu() {
@@ -412,6 +412,73 @@
     clearLastRoom();
     clearRoomPause();
     gameHooks?.showScreen?.('menu');
+  }
+
+  function formatPlayerNickLabel(nick) {
+    const name = String(nick || '').trim();
+    if (!name) return isHost() ? '👑 Nome' : '✏️ Nome';
+    return `${isHost() ? '👑' : '✏️'} ${name}`;
+  }
+
+  function showHostLeaveDialog(otherCount) {
+    return new Promise((resolve) => {
+      const overlay = document.getElementById('mp-host-leave-overlay');
+      const msg = document.getElementById('mp-host-leave-msg');
+      if (!overlay) {
+        resolve(null);
+        return;
+      }
+      if (msg) {
+        const label = otherCount === 1 ? '1 jogador' : `${otherCount} jogadores`;
+        msg.textContent = `Há ${label} na sala. Queres terminar o jogo para todos ou passar o anfitrião e sair?`;
+      }
+      overlay.hidden = false;
+      overlay.classList.add('open');
+
+      const finishBtn = document.getElementById('mp-host-leave-finish');
+      const transferBtn = document.getElementById('mp-host-leave-transfer');
+      const cancelBtn = document.getElementById('mp-host-leave-cancel');
+
+      const cleanup = (result) => {
+        overlay.classList.remove('open');
+        overlay.hidden = true;
+        overlay.removeEventListener('click', onOverlayClick);
+        finishBtn?.removeEventListener('click', onFinish);
+        transferBtn?.removeEventListener('click', onTransfer);
+        cancelBtn?.removeEventListener('click', onCancel);
+        resolve(result);
+      };
+
+      const onCancel = () => cleanup(null);
+      const onFinish = () => cleanup('finish');
+      const onTransfer = () => cleanup('transfer');
+      const onOverlayClick = (e) => {
+        if (e.target === overlay) onCancel();
+      };
+
+      finishBtn?.addEventListener('click', onFinish);
+      transferBtn?.addEventListener('click', onTransfer);
+      cancelBtn?.addEventListener('click', onCancel);
+      overlay.addEventListener('click', onOverlayClick);
+    });
+  }
+
+  async function hostLeaveRoomAndMenu(action) {
+    try {
+      const result = await MP.hostLeaveRoom(action);
+      if (GH.getCurrentGame()?.mode === 'multiplayer') GH.finishGame();
+      active = false;
+      clearLastRoom();
+      clearRoomPause();
+      gameHooks?.showScreen?.('menu');
+      if (result?.action === 'transfer') {
+        showMpToast('Saíste da sala. Novo anfitrião atribuído.');
+      } else {
+        showMpToast('Sala terminada para todos.');
+      }
+    } catch (e) {
+      showMpToast(e.message || 'Erro ao sair da sala');
+    }
   }
 
   async function hostStartFromLobby(settings) {
@@ -505,7 +572,7 @@
     if (startBtn) startBtn.hidden = !isHost();
 
     const hostId = MP.getHostPlayerId?.() || null;
-    const isPlayerHost = (p) => (hostId ? p.player_id === hostId : !!p.is_host);
+    const isPlayerHost = (p) => !!(p.is_host || (hostId && String(p.player_id) === String(hostId)));
 
     const count = (players || []).length;
     const connected = (players || []).filter((p) => p.is_connected).length;
@@ -549,7 +616,7 @@
       global.PlayerNames?.saveNickname?.(trimmed);
       renderPlayersUI(await MP.fetchPlayers());
       const label = document.getElementById('mp-game-nick-label');
-      if (label) label.textContent = `✏️ ${trimmed}`;
+      if (label) label.textContent = formatPlayerNickLabel(trimmed);
       const lobbyInput = document.getElementById('mp-lobby-nick');
       if (lobbyInput) lobbyInput.value = trimmed;
       const gameInput = document.getElementById('mp-game-nick-input');
@@ -568,13 +635,30 @@
     try {
       const nick = await MP.getMyNickname();
       if (nick) {
-        label.textContent = `✏️ ${nick}`;
+        label.textContent = formatPlayerNickLabel(nick);
         if (input) input.value = nick;
       }
     } catch { /* ignore */ }
   }
 
   async function confirmLeaveRoomAndMenu() {
+    if (!isInRoom()) return;
+
+    let players = [];
+    try {
+      players = await MP.fetchPlayers();
+    } catch { /* ignore */ }
+
+    const myId = MP.getPlayerId?.();
+    const others = (players || []).filter((p) => String(p.player_id) !== String(myId));
+
+    if (isHost() && others.length > 0) {
+      const choice = await showHostLeaveDialog(others.length);
+      if (!choice) return;
+      await hostLeaveRoomAndMenu(choice);
+      return;
+    }
+
     if (!global.confirm('Queres terminar e sair da sala?')) return;
     await leaveRoomAndMenu();
   }
@@ -590,10 +674,16 @@
   function fillPlayerRows(container, players, isPlayerHost) {
     if (!container) return;
     container.innerHTML = '';
-    (players || []).forEach((p) => {
+    const sorted = [...(players || [])].sort((a, b) => {
+      const ah = isPlayerHost(a) ? 0 : 1;
+      const bh = isPlayerHost(b) ? 0 : 1;
+      return ah - bh;
+    });
+    sorted.forEach((p) => {
+      const host = isPlayerHost(p);
       const li = document.createElement('li');
-      li.className = 'mp-player-row' + (p.is_connected ? '' : ' offline');
-      li.innerHTML = `<span>${isPlayerHost(p) ? '👑 ' : ''}${escapeHtml(p.nickname)}</span>`
+      li.className = 'mp-player-row' + (p.is_connected ? '' : ' offline') + (host ? ' is-host' : '');
+      li.innerHTML = `<span>${host ? '<span class="mp-host-crown" aria-hidden="true">👑</span>' : ''}${escapeHtml(p.nickname)}</span>`
         + `<span class="mp-player-status">${p.is_connected ? '●' : '○'}</span>`;
       container.appendChild(li);
     });
@@ -954,6 +1044,11 @@
       onHostChange: (nowHost) => {
         if (hostBadge) hostBadge.hidden = !nowHost;
         if (startBtn) startBtn.hidden = !nowHost;
+        refreshGameNickLabel().catch(() => {});
+        MP.fetchPlayers()
+          .then((players) => renderPlayersUI(players))
+          .catch(() => {});
+        if (nowHost) showMpToast('👑 Agora és o anfitrião da sala.');
       },
       onRoomExpired: handleRoomExpired,
     });
