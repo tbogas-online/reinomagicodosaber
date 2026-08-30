@@ -264,6 +264,21 @@ $$;
 -- Row Level Security
 -- ---------------------------------------------------------------------------
 
+-- Função auxiliar SECURITY DEFINER evita recursão infinita nas políticas
+-- (SELECT em room_players que referencia room_players → erro 500)
+CREATE OR REPLACE FUNCTION public.is_room_member(p_room_id uuid)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.room_players
+    WHERE room_id = p_room_id AND player_id = auth.uid()
+  );
+$$;
+
 ALTER TABLE public.rooms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.room_players ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.game_history ENABLE ROW LEVEL SECURITY;
@@ -273,12 +288,7 @@ ALTER TABLE public.game_matches ENABLE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS rooms_select_member ON public.rooms;
 CREATE POLICY rooms_select_member ON public.rooms
   FOR SELECT TO authenticated, anon
-  USING (
-    EXISTS (
-      SELECT 1 FROM room_players rp
-      WHERE rp.room_id = rooms.id AND rp.player_id = auth.uid()
-    )
-  );
+  USING (public.is_room_member(id));
 
 DROP POLICY IF EXISTS rooms_update_host ON public.rooms;
 CREATE POLICY rooms_update_host ON public.rooms
@@ -290,12 +300,7 @@ CREATE POLICY rooms_update_host ON public.rooms
 DROP POLICY IF EXISTS players_select_room ON public.room_players;
 CREATE POLICY players_select_room ON public.room_players
   FOR SELECT TO authenticated, anon
-  USING (
-    EXISTS (
-      SELECT 1 FROM room_players me
-      WHERE me.room_id = room_players.room_id AND me.player_id = auth.uid()
-    )
-  );
+  USING (public.is_room_member(room_id));
 
 DROP POLICY IF EXISTS players_update_self ON public.room_players;
 CREATE POLICY players_update_self ON public.room_players
@@ -307,12 +312,7 @@ CREATE POLICY players_update_self ON public.room_players
 DROP POLICY IF EXISTS history_select_member ON public.game_history;
 CREATE POLICY history_select_member ON public.game_history
   FOR SELECT TO authenticated, anon
-  USING (
-    EXISTS (
-      SELECT 1 FROM room_players rp
-      WHERE rp.room_id = game_history.room_id AND rp.player_id = auth.uid()
-    )
-  );
+  USING (public.is_room_member(room_id));
 
 DROP POLICY IF EXISTS history_insert_host ON public.game_history;
 CREATE POLICY history_insert_host ON public.game_history
@@ -330,10 +330,7 @@ CREATE POLICY matches_select_member ON public.game_matches
   FOR SELECT TO authenticated, anon
   USING (
     room_id IS NULL
-    OR EXISTS (
-      SELECT 1 FROM room_players rp
-      WHERE rp.room_id = game_matches.room_id AND rp.player_id = auth.uid()
-    )
+    OR public.is_room_member(room_id)
   );
 
 DROP POLICY IF EXISTS matches_insert_host ON public.game_matches;
@@ -361,6 +358,7 @@ GRANT SELECT, UPDATE ON public.rooms TO anon, authenticated;
 GRANT SELECT, UPDATE ON public.room_players TO anon, authenticated;
 GRANT SELECT, INSERT ON public.game_history TO anon, authenticated;
 GRANT SELECT, INSERT ON public.game_matches TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.is_room_member(uuid) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.create_room(JSONB) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.join_room(TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.transfer_host(UUID, UUID) TO anon, authenticated;
