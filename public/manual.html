@@ -151,7 +151,7 @@
         <li><a href="#reportes">Reportar problemas</a></li>
         <li><a href="#teste-ia">Página de teste de IA</a></li>
         <li><a href="#teste-perguntas">Página de teste de perguntas</a></li>
-        <li><a href="#admin">Painel admin de reportes</a></li>
+        <li><a href="#admin">Painel admin</a></li>
         <li><a href="#atalhos">Dicas e resolução de problemas</a></li>
       </ol>
     </nav>
@@ -182,7 +182,7 @@
       <p>No rodapé do ecrã vês também:</p>
       <ul>
         <li><strong>⏱ Relógio</strong> — tempo desde que iniciaste o jogo actual.</li>
-        <li><strong>Selo IA Online / Offline</strong> — estado da ligação à IA. <em>Clica no selo</em> para verificar de novo o estado (não abre as Definições).</li>
+        <li><strong>Selo IA Online / Offline</strong> — estado da ligação à IA e fornecedor/modelo reais da última chamada com sucesso (cor conforme o fornecedor). <em>Clica no selo</em> para verificar de novo o estado (não abre as Definições).</li>
       </ul>
     </section>
 
@@ -307,7 +307,8 @@
       <p>Lista de modelos disponíveis conforme o fornecedor escolhido. «Automático» deixa o servidor escolher o modelo por defeito.</p>
 
       <h3>Selo no rodapé</h3>
-      <p><strong>IA Online</strong> (verde) ou <strong>IA Offline</strong> (vermelho). Clicar no selo <em>actualiza o estado</em> sem abrir as Definições. Passar o rato sobre «Offline» pode mostrar o motivo da última falha.</p>
+      <p><strong>IA Online</strong> ou <strong>IA Offline</strong>, com o <strong>fornecedor e modelo reais</strong> da última pergunta gerada com sucesso (cores distintas por Groq, OpenAI, Anthropic ou banco local). Clicar no selo <em>actualiza o estado</em> sem abrir as Definições. Passar o rato sobre «Offline» pode mostrar o motivo da última falha.</p>
+      <p>O jogo abre em modo <strong>Automática</strong> por defeito; podes forçar um fornecedor nas Definições.</p>
 
       <p><a href="/test-ai.html">🔌 Página de teste de IA</a> — ligação directa para diagnóstico (ver secção 9).</p>
     </section>
@@ -397,19 +398,21 @@
         <li><strong>Revalidar pergunta actual</strong> — edita pergunta/resposta/opções e testa sem chamar a IA.</li>
         <li><strong>Score (diagnóstico)</strong> — pontuação 0–100 por camada; a aprovação depende só de issues (gate binário).</li>
         <li><strong>Feedback ao motor</strong> — marca false-positive/false-negative e exporta JSON para análise.</li>
+        <li><strong>Fornecedor/modelo IA</strong> — cada pergunta gerada mostra qual fornecedor e modelo a API usou.</li>
+        <li><strong>Prioridade de lacunas</strong> — ao sortear categoria/faixa aleatória, favorece combinações com menos perguntas no banco Supabase.</li>
         <li><strong>Limpar sessão</strong> — reinicia histórico local (perguntas, knowledgeKeys, posições MC).</li>
       </ul>
       <p>Ligações no topo: voltar ao jogo, teste de IA.</p>
     </section>
 
     <section id="admin">
-      <h2>11. Painel admin de reportes</h2>
-      <p>URL: <a href="/admin-reports.html">/admin-reports.html</a> — acesso restrito com <strong>utilizador e palavra-passe</strong> configurados no alojamento (Netlify / Cloudflare).</p>
+      <h2>11. Painel admin</h2>
+      <p>URL: <a href="/admin-reports.html">/admin-reports.html</a> — acesso restrito com <strong>utilizador e palavra-passe</strong> configurados no alojamento (Netlify / Cloudflare). Três separadores: <strong>Reportes</strong>, <strong>Salas multijogador</strong> e <strong>Banco de perguntas</strong>.</p>
 
       <h3>Entrada</h3>
       <p>Introduz credenciais e <strong>Entrar</strong>. A sessão fica no browser até <strong>Sair</strong>.</p>
 
-      <h3>Dashboard (gráficos)</h3>
+      <h3>Separador Reportes — dashboard</h3>
       <ul>
         <li><strong>Reportes no tempo</strong> — 24 h, 3, 7 ou 14 dias; tipos de gráfico: linhas, colunas, empilhadas.</li>
         <li><strong>Por tratar vs Resolvidos</strong> — clica numa barra para filtrar a tabela.</li>
@@ -419,7 +422,7 @@
       </ul>
       <p>Cartões no topo: <strong>Por tratar</strong>, <strong>Resolvidos</strong>, <strong>Cancelados</strong>, <strong>Total</strong>, tipo mais comum.</p>
 
-      <h3>Tabela de reportes</h3>
+      <h3>Separador Reportes — tabela</h3>
       <p>Filtros: tipo, idade, categoria, dispositivo, estado (por tratar / resolvidos / cancelados), jogador (<code>reporterId</code>).</p>
       <p>Em cada linha:</p>
       <ul>
@@ -432,12 +435,29 @@
       <h3>Acções em lote</h3>
       <p>Selecciona linhas com as caixas de verificação → <strong>Resolver</strong>, <strong>Cancelar</strong>, <strong>Reabrir</strong> ou <strong>Apagar</strong> (só cancelados).</p>
 
-      <h3>Exportar e actualizar</h3>
+      <h3>Separador Reportes — exportar</h3>
       <ul>
         <li><strong>Exportar CSV</strong> — exporta os reportes <em>visíveis</em> (filtros + página actual); não altera estados.</li>
         <li><strong>Atualizar</strong> — recarrega dados.</li>
         <li>O painel actualiza automaticamente a cada 30 segundos.</li>
       </ul>
+
+      <h3>Separador Salas multijogador</h3>
+      <ul>
+        <li>Lista de <strong>salas em aberto</strong> (código, estado, jogadores, anfitrião) com <strong>Desligar</strong> individual ou em lote.</li>
+        <li>Gráfico temporal: <strong>salas criadas</strong>, <strong>jogos multijogador</strong> e <strong>jogos locais</strong> (partidas single-player sincronizadas ao terminar).</li>
+        <li>Totais no topo: salas em aberto, a jogar, em espera, salas criadas, jogos MP e jogos locais.</li>
+      </ul>
+
+      <h3>Separador Banco de perguntas</h3>
+      <ul>
+        <li>Gráfico de perguntas <strong>guardadas no tempo</strong> (1 h a total) — banco vs IA (jogo + teste).</li>
+        <li>Gráfico <strong>por categoria e faixa etária</strong> no período seleccionado (barras empilhadas 6–9 / 10–15 / 15+).</li>
+        <li><strong>Matriz</strong> categoria × faixa com cores por quantidade; linhas âmbar/vermelhas destacam categorias com poucas perguntas; células com contorno marcam faixas com ≤2 perguntas.</li>
+        <li>Caixa <strong>Lacunas no banco</strong> — resumo das combinações categoria/faixa mais fracas.</li>
+        <li>Alerta se existirem perguntas activas no Supabase sem opções válidas.</li>
+      </ul>
+      <p>Requer <code>SUPABASE_URL</code> e <code>SUPABASE_SERVICE_ROLE_KEY</code> no alojamento (só no servidor).</p>
 
       <h3>Estados dos reportes</h3>
       <table>
@@ -466,7 +486,7 @@
       <a href="/">← Voltar ao jogo</a> ·
       <a href="/test-ai.html">Teste de IA</a> ·
       <a href="/test-questions.html">Teste de perguntas</a> ·
-      <a href="/admin-reports.html">Admin reportes</a>
+      <a href="/admin-reports.html">Admin</a>
     </p>
   </div>
 </body>

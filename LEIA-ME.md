@@ -29,17 +29,18 @@ Em qualquer uma delas, o jogo chama sempre `/api/generate` e podes configurar **
 
 - **Não são feitas chamadas de IA em massa ao iniciar o jogo** — cada pergunta é gerada quando é necessária.
 - O **banco local** é usado apenas se a IA falhar após várias tentativas e validação.
-- O indicador no rodapé mostra **IA Online** ou **IA Offline**; **clicar no selo** verifica o estado (não abre as Definições).
+- O indicador no rodapé mostra **IA Online** ou **IA Offline** e o **fornecedor/modelo reais** da última chamada com sucesso (cor por fornecedor); **clicar no selo** verifica o estado (não abre as Definições).
+- O jogo abre em modo **Automática** por defeito; ao mudar fornecedor nas Definições, o selo reflecte a preferência até haver nova chamada à IA.
 - Ao passar o rato sobre **IA Offline**, pode aparecer o motivo da última falha.
-- Groq e OpenAI usam `response_format: { type: 'json_object' }` para respostas mais previsíveis.
+- Groq e OpenAI usam `response_format: { type: 'json_object' }` para respostas mais previsíveis; o cliente normaliza chaves em português (`pergunta`, `opções`, `resposta`) e prefixos `A)`/`B)` nas opções.
 - Validação em `public/question-engine.js` rejeita perguntas inadequadas (idade, factos errados, opções incoerentes, etc.).
 - Gate **binário**: qualquer issue reprova; score 0–100 é só diagnóstico (UI/testes).
 - **Novo Jogo** limpa histórico de sessão (perguntas, respostas, formatos, knowledgeKeys, posições MC).
 
 ### Multijogador e histórico de partidas
 
-- **Individual:** histórico de partidas em `localStorage` (`reino_magico_game_history_v1`) — menu **📚 Histórico de partidas**.
-- **Multijogador:** salas sincronizadas via **Supabase Realtime** (vários dispositivos, mesmo estado).
+- **Individual:** histórico de partidas em `localStorage` (`reino_magico_game_history_v1`) — menu **📚 Histórico de partidas**. Ao terminar uma partida local, um resumo é enviado ao Supabase (`game_matches`, `mode: single`) para estatísticas no admin.
+- **Multijogador:** salas sincronizadas via **Supabase Realtime** (vários dispositivos, mesmo estado); partidas MP também em `game_matches`.
 - **Configuração Supabase:**
   1. Criar projecto em [supabase.com](https://supabase.com)
   2. **Authentication → Providers** → activar **Anonymous sign-ins**
@@ -102,7 +103,7 @@ SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
 ```
 
-`SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` são necessários para o separador **Salas multijogador** no painel admin (`/admin-reports.html`). A service role **nunca** vai para o browser — só nas Netlify Functions.
+`SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` são necessários para os separadores **Salas multijogador** e **Banco de perguntas** no painel admin (`/admin-reports.html`). A service role **nunca** vai para o browser — só nas Netlify Functions.
 
 ### 4. Deploy
 
@@ -187,12 +188,14 @@ Ficheiros principais:
 |----------|--------|
 | `public/index.html` | Jogo, definições, Sobre, reportes |
 | `public/question-engine.js` | Formatos, prompts e validação de perguntas |
-| `public/test-questions.html` | Gerar, validar e dar feedback ao motor |
-| `scripts/test-question-engine.js` | 46 testes unitários do motor (`node scripts/test-question-engine.js`) |
+| `public/test-questions.html` | Gerar, validar e dar feedback ao motor (mostra fornecedor/modelo IA) |
+| `scripts/test-question-engine.js` | 57 testes unitários do motor (`node scripts/test-question-engine.js`) |
 | `scripts/list-open-reports.js` | Lista reportes por tratar no servidor (requer credenciais admin) |
 | `public/manual.html` | Manual do utilizador |
 | `public/test-ai.html` | Diagnóstico de IA |
-| `public/admin-reports.html` | Painel admin de reportes |
+| `public/admin-reports.html` | Painel admin (reportes, salas, banco de perguntas) |
+| `netlify/functions/lib/question-bank-store.js` | Estatísticas do banco Supabase para o admin |
+| `netlify/functions/lib/rooms-store.js` | Salas abertas e estatísticas de jogos (MP + locais) |
 | `netlify/functions/generate.js` | Geração IA (Netlify) |
 | `netlify/functions/lib/reports-store.js` | Armazenamento de reportes (Blobs) |
 
@@ -246,7 +249,7 @@ Guia completo em português (PT-PT) para:
 - Perguntas (MC, aberta, V/F), Saber Mais, temporizador
 - Definições (tempo, sons, tema, categorias, IA)
 - Ecrã Sobre e reportes (pergunta vs site)
-- Teste de IA e painel admin
+- Teste de IA, teste de perguntas e painel admin (reportes, salas, banco)
 - Teste de perguntas (`/test-questions.html`)
 
 **Acesso:** [manual.html](public/manual.html) ou **ⓘ Sobre → Manual completo do site** no jogo.
@@ -267,17 +270,31 @@ Guia completo em português (PT-PT) para:
 
 URL: **`/admin-reports.html`** — utilizador e palavra-passe (`REPORTS_ADMIN_USER` / `REPORTS_ADMIN_PASS`).
 
+**Separador Reportes**
+
 - Dashboard: gráficos temporais (24 h / 3 / 7 / 14 dias), por tratar vs resolvidos, tipo, idade, dispositivo, top categorias (incl. **Site/app**).
-- Separador **Salas multijogador**: salas em aberto (código, estado, jogadores, anfitrião), botão **Desligar**, gráfico de salas criadas vs jogos iniciados.
 - Clicar num tipo ou estado filtra gráficos e tabela.
 - Tabela com estado, **Resolvido em** (hora Portugal), detalhe, copiar, imagem anexada.
 - Acções em lote: Resolver, Cancelar, Reabrir, Apagar (só cancelados).
 - **Exportar CSV** — exporta visíveis; colunas `estado`, `resolvidoEm`; **não marca como resolvido**.
 - Actualização automática a cada 30 s.
 
-**Estados:** `open` (por tratar) → `resolved` (corrigido) ou `cancelled` (cancelado). Cancelados fora dos gráficos; apagáveis permanentemente.
+**Separador Salas multijogador**
 
-Documentação de utilização do admin: secção 10 do [manual](public/manual.html).
+- Salas em aberto (código, estado, jogadores, anfitrião), botão **Desligar** (individual ou em lote).
+- Gráfico temporal: salas criadas, jogos multijogador e **jogos locais** (partidas single sincronizadas com `game_matches`).
+- Totais: salas criadas, jogos MP e jogos locais.
+
+**Separador Banco de perguntas**
+
+- Gráfico de perguntas guardadas no tempo (1 h / 3 h / 6 h / 12 h / 24 h / 3 d / 7 d / total) — guardadas no banco vs geradas via IA.
+- Gráfico por categoria e faixa etária no período seleccionado.
+- Matriz categoria × faixa (6–9, 10–15, 15+) com cores por quantidade; destaque de **lacunas** (categorias/faixas com poucas perguntas).
+- Resumo «Lacunas no banco» e alerta para perguntas activas sem opções válidas.
+
+**Estados dos reportes:** `open` (por tratar) → `resolved` (corrigido) ou `cancelled` (cancelado). Cancelados fora dos gráficos; apagáveis permanentemente.
+
+Documentação de utilização do admin: secção 11 do [manual](public/manual.html).
 
 ### Fluxo de correção (equipa / Cursor)
 
@@ -305,7 +322,8 @@ Regra detalhada: `.cursor/rules/reportes-ia.mdc`.
 | `/api/report-status` | GET | Sobre — estado dos reportes do jogador |
 | `/api/report-attachment` | POST/GET | Imagem anexada (reportes do site) |
 | `/api/reports-admin` | GET/PATCH/DELETE | Painel admin — reportes (Basic Auth) |
-| `/api/rooms-admin` | GET/PATCH | Painel admin — salas MP (Basic Auth + Supabase service role) |
+| `/api/rooms-admin` | GET/PATCH | Painel admin — salas e estatísticas de jogos (Basic Auth + Supabase service role) |
+| `/api/question-bank-admin` | GET/PATCH | Painel admin — banco de perguntas Supabase (Basic Auth + service role) |
 
 Redirects em `netlify.toml` e `public/_redirects`.
 
@@ -339,7 +357,7 @@ Página interactiva: `/test-questions.html` (requer IA online para gerar; revali
 | `scripts/deploy-github.ps1` | Testes + push para GitHub (dispara Actions → Cloudflare Pages) |
 | `scripts/deploy-netlify.ps1` | Deploy produção Netlify (legado) |
 | `scripts/generate-version.js` | Versão, changelog, cache bust |
-| `scripts/test-question-engine.js` | Testes unitários do motor (43 casos) |
+| `scripts/test-question-engine.js` | Testes unitários do motor (57 casos) |
 | `scripts/resolve-reports-from-csv.js` | Marcar reportes como resolvidos na API |
 | `scripts/create-zip.js` | Zip estático (`npm run zip`) |
 
