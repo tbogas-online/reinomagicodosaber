@@ -3135,9 +3135,7 @@
         <div class="settings-ai-actions">
           <a class="btn secondary" id="btn-ai-test-page" href="/test-ai.html">🔌 🧪 Página de teste de IA</a>
           <a class="btn secondary" id="btn-questions-test-page" href="/test-questions.html">🧪 Teste de perguntas</a>
-          <button type="button" class="btn secondary" id="btn-import-local-bank">📥 Importar histórico local → banco</button>
         </div>
-        <p class="settings-ai-planned" id="settings-import-bank-status" hidden></p>
         <p class="settings-ai-error" id="settings-ai-last-error" hidden></p>
       </div>
     </div>
@@ -4431,11 +4429,36 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     return bits.join(' · ');
   }
 
+  function getEffectiveAiProviderChoice(){
+    if(typeof currentScreenId !== 'undefined' && currentScreenId === 'settings'){
+      return draftAiProviderChoice || aiProviderChoice || 'auto';
+    }
+    return aiProviderChoice || 'auto';
+  }
+
+  function getEffectiveAiModelChoice(){
+    if(typeof currentScreenId !== 'undefined' && currentScreenId === 'settings'){
+      return draftAiModelChoice || aiModelChoice || 'auto';
+    }
+    return aiModelChoice || 'auto';
+  }
+
+  function formatAiPreferenceLabel(){
+    const prov = getEffectiveAiProviderChoice();
+    const model = getEffectiveAiModelChoice();
+    if(prov === 'local') return 'Banco local · Supabase';
+    if(prov === 'auto') return 'Automática';
+    const provLabel = AI_PROVIDER_SHORT[prov] || AI_PROVIDER_LABELS[prov] || prov;
+    const modelLabel = model === 'auto' ? 'automático' : getAiModelLabel(prov, model);
+    return `${provLabel} · ${modelLabel}`;
+  }
+
   function formatStatusBadgeLine(){
-    if(aiProviderChoice === 'local') return 'Banco local · Supabase';
+    const prov = getEffectiveAiProviderChoice();
+    if(prov === 'local') return 'Banco local · Supabase';
     if(!aiStatusOnline) return summarizeAiOfflineBadge(lastAiStatusDetail, lastAiStatusApiData);
-    const inUse = formatAiInUseLabel();
-    return inUse ? `IA Online · ${inUse}` : 'IA Online';
+    const pref = formatAiPreferenceLabel();
+    return pref ? `IA Online · ${pref}` : 'IA Online';
   }
 
   function refreshStatusDetailText(){
@@ -4447,8 +4470,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function getStatusBadgeVariant(){
-    if(aiProviderChoice === 'local') return 'bank';
+    const prov = getEffectiveAiProviderChoice();
+    if(prov === 'local') return 'bank';
     if(!aiStatusOnline) return 'offline';
+    if(prov === 'openai') return 'openai';
+    if(prov === 'groq' || prov === 'anthropic') return 'groq';
     const provider = String(lastAiUsage.provider || inferProviderFromModel(lastAiUsage.model) || 'groq').toLowerCase();
     if(provider === 'openai') return 'openai';
     return 'groq';
@@ -4549,17 +4575,18 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       lastAiStatusApiData = null;
     }
     refreshStatusBadgeText();
-    const statusHint = aiProviderChoice === 'local'
+    const effectiveProv = getEffectiveAiProviderChoice();
+    const statusHint = effectiveProv === 'local'
       ? formatStatusBadgeLine()
       : (isOnline
         ? formatStatusBadgeLine()
         : summarizeAiOfflineBadge(lastAiStatusDetail, lastAiStatusApiData));
-    badge.title = aiProviderChoice === 'local'
+    badge.title = effectiveProv === 'local'
       ? `${statusHint} — modo banco local`
       : (isOnline
         ? `${statusHint} — clica para verificar estado`
         : buildAiOfflineTooltip(lastAiStatusDetail, lastAiStatusApiData));
-    badge.setAttribute('aria-label', aiProviderChoice === 'local'
+    badge.setAttribute('aria-label', effectiveProv === 'local'
       ? `${statusHint} — modo banco local activo`
       : (isOnline
         ? `${statusHint} — verificar estado da Inteligência Artificial`
@@ -4581,6 +4608,13 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   // Preferência de fornecedor e modelo de IA (definições)
   let aiProviderChoice = 'auto';
   let aiModelChoice = 'auto';
+
+  function resetAiProviderToAuto(){
+    aiProviderChoice = 'auto';
+    aiModelChoice = 'auto';
+    draftAiProviderChoice = 'auto';
+    draftAiModelChoice = 'auto';
+  }
 
   const AI_MODEL_OPTIONS = {
     auto: [{ id: 'auto', label: '✨ Automático (servidor)' }],
@@ -4872,6 +4906,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     } finally {
       aiProviderChoice = prevProvider;
       aiModelChoice = prevModel;
+      refreshStatusBadgeText();
     }
   }
 
@@ -5313,6 +5348,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   document.getElementById('btn-settings-cancel').onclick = () => {
     showScreen('menu');
+    refreshStatusBadgeText();
   };
 
   function refreshSettingsUI(){
@@ -5330,6 +5366,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     updateAiModelBar();
     updateAiPlannedUI();
     updateAiInUseUI();
+    refreshStatusBadgeText();
     loadAiServerQuotas();
     const errEl = document.getElementById('settings-ai-last-error');
     if(errEl){
@@ -5435,35 +5472,6 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
   }
 
-  document.getElementById('btn-import-local-bank')?.addEventListener('click', async () => {
-    const btn = document.getElementById('btn-import-local-bank');
-    const statusEl = document.getElementById('settings-import-bank-status');
-    if(!window.QuestionBank?.importFromLocalStorage){
-      if(statusEl){
-        statusEl.hidden = false;
-        statusEl.textContent = 'Módulo do banco de perguntas indisponível.';
-      }
-      return;
-    }
-    btn.disabled = true;
-    if(statusEl){
-      statusEl.hidden = false;
-      statusEl.textContent = 'A importar histórico deste dispositivo…';
-    }
-    try {
-      const res = await window.QuestionBank.importFromLocalStorage();
-      if(statusEl){
-        statusEl.textContent = res.ok
-          ? `Importação concluída: ${res.inserted} novas · ${res.exists} já existiam · ${res.skipped} ignoradas (${res.scanned} lidas do localStorage).`
-          : `Falha na importação: ${res.error || 'erro desconhecido'}`;
-      }
-    } catch(err){
-      if(statusEl) statusEl.textContent = `Falha: ${err?.message || err}`;
-    } finally {
-      btn.disabled = false;
-    }
-  });
-
   function updateAnswerModeBar(){
     /* modo fixo: escolha múltipla */
   }
@@ -5518,6 +5526,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       updateAiProviderBar();
       updateAiModelBar();
       updateAiPlannedUI();
+      refreshStatusBadgeText();
     };
   });
 
@@ -5545,6 +5554,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         draftAiModelChoice = model.id;
         updateAiModelBar();
         updateAiPlannedUI();
+        refreshStatusBadgeText();
       };
       bar.appendChild(btn);
     });
@@ -5684,13 +5694,24 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     };
   });
   updateSoundBar();
+  resetAiProviderToAuto();
   updateAnswerModeBar();
   updateAiProviderBar();
   updateAiModelBar();
   updateCatModeBar();
   updateCatPickerUI();
+  refreshStatusBadgeText();
 
   scheduleAiStatusProbe();
+
+  window.addEventListener('pageshow', (e) => {
+    if(!e.persisted) return;
+    resetAiProviderToAuto();
+    updateAiProviderBar();
+    updateAiModelBar();
+    updateAiPlannedUI();
+    refreshStatusBadgeText();
+  });
 
   function warnIfQuestionEngineMissing(){
     if(window.QuestionEngine) return;
