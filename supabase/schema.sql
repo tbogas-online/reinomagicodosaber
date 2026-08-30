@@ -99,7 +99,10 @@ CREATE TRIGGER rooms_updated_at
 -- Funções RPC (SECURITY DEFINER — validação centralizada)
 -- ---------------------------------------------------------------------------
 
-CREATE OR REPLACE FUNCTION public.create_room(p_settings JSONB DEFAULT '{}'::jsonb)
+CREATE OR REPLACE FUNCTION public.create_room(
+  p_settings JSONB DEFAULT '{}'::jsonb,
+  p_nickname TEXT DEFAULT NULL
+)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -111,10 +114,13 @@ DECLARE
   v_room public.rooms%ROWTYPE;
   v_tries INT := 0;
   v_chars TEXT := 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  v_name TEXT;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'Autenticação necessária (anonymous sign-in)';
   END IF;
+
+  v_name := COALESCE(NULLIF(trim(p_nickname), ''), 'Jogador 1');
 
   LOOP
     v_tries := v_tries + 1;
@@ -133,7 +139,7 @@ BEGIN
   RETURNING * INTO v_room;
 
   INSERT INTO room_players (room_id, player_id, nickname, is_host, is_connected)
-  VALUES (v_room.id, v_uid, 'Jogador 1', true, true);
+  VALUES (v_room.id, v_uid, v_name, true, true);
 
   RETURN jsonb_build_object(
     'room_id', v_room.id,
@@ -291,10 +297,11 @@ CREATE POLICY rooms_select_member ON public.rooms
   USING (public.is_room_member(id));
 
 DROP POLICY IF EXISTS rooms_update_host ON public.rooms;
-CREATE POLICY rooms_update_host ON public.rooms
+DROP POLICY IF EXISTS rooms_update_member ON public.rooms;
+CREATE POLICY rooms_update_member ON public.rooms
   FOR UPDATE TO authenticated, anon
-  USING (host_player_id = auth.uid())
-  WITH CHECK (host_player_id = auth.uid());
+  USING (public.is_room_member(id))
+  WITH CHECK (public.is_room_member(id));
 
 -- room_players
 DROP POLICY IF EXISTS players_select_room ON public.room_players;
@@ -315,14 +322,10 @@ CREATE POLICY history_select_member ON public.game_history
   USING (public.is_room_member(room_id));
 
 DROP POLICY IF EXISTS history_insert_host ON public.game_history;
-CREATE POLICY history_insert_host ON public.game_history
+DROP POLICY IF EXISTS history_insert_member ON public.game_history;
+CREATE POLICY history_insert_member ON public.game_history
   FOR INSERT TO authenticated, anon
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM rooms r
-      WHERE r.id = game_history.room_id AND r.host_player_id = auth.uid()
-    )
-  );
+  WITH CHECK (public.is_room_member(room_id));
 
 -- game_matches (multiplayer summaries on server)
 DROP POLICY IF EXISTS matches_select_member ON public.game_matches;
@@ -359,7 +362,7 @@ GRANT SELECT, UPDATE ON public.room_players TO anon, authenticated;
 GRANT SELECT, INSERT ON public.game_history TO anon, authenticated;
 GRANT SELECT, INSERT ON public.game_matches TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.is_room_member(uuid) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.create_room(JSONB) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.create_room(JSONB, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.join_room(TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.transfer_host(UUID, UUID) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.claim_host_if_disconnected(UUID) TO anon, authenticated;

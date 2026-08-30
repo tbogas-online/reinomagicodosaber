@@ -26,7 +26,7 @@
   }
 
   function canControl() {
-    return !isMultiplayer() || isHost();
+    return true;
   }
 
   function serializeCategory(cat) {
@@ -45,6 +45,8 @@
     return {
       version: 1,
       status: 'playing',
+      actorId: MP.getPlayerId(),
+      updatedAt: Date.now(),
       screen: extra?.screen || 'game',
       gameCategoryMap: h.getGameCategoryMap?.() || {},
       remainingCategories: (h.getRemainingCategories?.() || []).map(serializeCategory),
@@ -59,9 +61,11 @@
   }
 
   async function pushState(extra) {
-    if (!isHost()) return;
+    if (!isMultiplayer()) return;
     const state = buildGameState(extra);
-    lastGameStateJson = JSON.stringify(state);
+    const json = JSON.stringify(state);
+    lastGameStateJson = json;
+    MP.setLastGameStateJson(json);
     await MP.updateGameState(state);
   }
 
@@ -69,7 +73,7 @@
 
   async function applyRemoteState(state, settings) {
     if (!state || !gameHooks || applyingRemote) return;
-    if (isHost()) return;
+    if (state.actorId && state.actorId === MP.getPlayerId()) return;
     applyingRemote = true;
     try {
       const h = gameHooks;
@@ -123,7 +127,7 @@
       correctAnswer: (q.a || '').replace(/<[^>]*>/g, ''),
       options: q.options || null,
     });
-    if (isHost() && round) {
+    if (isMultiplayer() && round) {
       MP.insertHistoryRound(round, currentMatchId).catch(() => {});
     }
     return round;
@@ -294,7 +298,7 @@
 
     MP.setCallbacks({
       onStateChange: (state, settings, status) => {
-        if (status === 'playing' && !isHost()) {
+        if (status === 'playing') {
           applyRemoteState(state, settings);
         }
       },
@@ -313,9 +317,32 @@
     try {
       const players = await MP.fetchPlayers();
       renderLobbyPlayers(players);
+      const nickInput = document.getElementById('mp-lobby-nick');
+      if (nickInput) {
+        const myNick = await MP.getMyNickname();
+        nickInput.value = myNick || global.PlayerNames?.getNicknameOrRandom?.() || '';
+      }
     } catch (e) {
       showMpError(errEl, e.message);
     }
+
+    document.getElementById('mp-btn-save-nick')?.addEventListener('click', async () => {
+      const nickInput = document.getElementById('mp-lobby-nick');
+      const name = nickInput?.value?.trim();
+      if (!name) {
+        showMpError(errEl, 'Introduz um nome');
+        return;
+      }
+      showMpError(errEl, '');
+      try {
+        await MP.updateNickname(name);
+        global.PlayerNames?.saveNickname?.(name);
+        const players = await MP.fetchPlayers();
+        renderLobbyPlayers(players);
+      } catch (e) {
+        showMpError(errEl, e.message || 'Erro ao guardar nome');
+      }
+    }, { once: false });
 
     startBtn?.addEventListener('click', async () => {
       showMpError(errEl, '');
@@ -347,7 +374,9 @@
       try {
         await MP.ensureClient();
         const settings = gameHooks?.getSettingsSnapshot?.() || {};
-        await MP.createRoom(settings);
+        const nick = global.PlayerNames?.getNicknameOrRandom?.() || '';
+        await MP.createRoom(settings, nick);
+        global.PlayerNames?.saveNickname?.(nick);
         active = true;
         await initLobbyUI();
         gameHooks?.showScreen?.('mp-lobby');
@@ -358,6 +387,10 @@
     });
 
     document.getElementById('btn-mp-join')?.addEventListener('click', () => {
+      const nickInput = document.getElementById('mp-join-nick');
+      if (nickInput && !nickInput.value.trim()) {
+        nickInput.value = global.PlayerNames?.getNicknameOrRandom?.() || '';
+      }
       gameHooks?.showScreen?.('mp-join');
     });
 
@@ -381,7 +414,9 @@
       }
       try {
         await MP.ensureClient();
-        const result = await MP.joinRoom(code, nick);
+        const name = nick || global.PlayerNames?.getNicknameOrRandom?.() || '';
+        global.PlayerNames?.saveNickname?.(name);
+        const result = await MP.joinRoom(code, name);
         active = true;
         await initLobbyUI();
         if (result.status === 'playing') {

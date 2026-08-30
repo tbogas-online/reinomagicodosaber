@@ -1114,11 +1114,19 @@
     border-radius:50%;
     background: conic-gradient(var(--fill-color) calc(var(--pct) * 1%), rgba(var(--parchment-rgb),0.10) 0);
     display:flex; align-items:center; justify-content:center;
-    transition: background .35s linear, box-shadow .22s ease;
+    transition: background .35s linear, box-shadow .22s ease, opacity .2s ease;
     box-shadow:
       0 0 0 10px var(--night),
       0 10px 26px var(--shadow),
       inset 0 0 0 3px var(--ring-inset);
+    cursor: pointer;
+  }
+  .countdown-ring.is-paused{
+    opacity: 0.72;
+    box-shadow:
+      0 0 0 10px var(--night),
+      0 10px 26px var(--shadow),
+      inset 0 0 0 3px var(--gold-dim);
   }
   .countdown-ring.is-compact{
     --ring-size: clamp(52px, 14vw, 68px);
@@ -2114,6 +2122,24 @@
     font-size: 0.85rem;
     margin-bottom: 10px;
   }
+  .mp-nickname-row{
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    max-width: 20rem;
+    margin: 0 auto 16px;
+    align-items: stretch;
+  }
+  .mp-nickname-row .field-input{
+    flex: 1;
+    letter-spacing: 0;
+    text-transform: none;
+  }
+  .mp-nickname-row .btn{
+    flex-shrink: 0;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+  }
   .history-game-card{
     display: flex;
     flex-direction: column;
@@ -2229,7 +2255,7 @@
     <p class="subtitle">Introduz o código que o anfitrião partilhou</p>
     <div class="stack" style="gap:12px; align-items:center;">
       <input class="field-input" id="mp-join-code" type="text" maxlength="6" placeholder="AB12" autocomplete="off" inputmode="text">
-      <input class="field-input" id="mp-join-nick" type="text" maxlength="24" placeholder="Alcunha (opcional)" autocomplete="nickname" style="letter-spacing:0; text-transform:none;">
+      <input class="field-input" id="mp-join-nick" type="text" maxlength="24" placeholder="O teu nome (podes mudar depois)" autocomplete="nickname" style="letter-spacing:0; text-transform:none;">
       <p class="mp-error" id="mp-join-error" hidden></p>
       <button class="btn" id="mp-join-submit" type="button">Entrar</button>
       <button class="btn ghost" type="button" data-mp-back-mp>← Voltar</button>
@@ -2243,6 +2269,10 @@
     <p class="subtitle">Partilha este código com os outros dispositivos</p>
     <div class="mp-code-display" id="mp-room-code">----</div>
     <span class="mp-host-badge" id="mp-host-badge" hidden>👑 És o anfitrião</span>
+    <div class="mp-nickname-row">
+      <input class="field-input" id="mp-lobby-nick" type="text" maxlength="24" placeholder="O teu nome" autocomplete="nickname">
+      <button class="btn secondary" id="mp-btn-save-nick" type="button">Guardar</button>
+    </div>
     <ul class="mp-players-list" id="mp-players-list"></ul>
     <p class="mp-error" id="mp-lobby-error" hidden></p>
     <div class="stack" style="gap:10px;">
@@ -2373,7 +2403,7 @@
     <div class="q-source-debug" id="q-source-debug" aria-hidden="true"></div>
 
     <div class="countdown-slot" id="countdown-slot">
-      <div class="countdown-ring" id="countdown-ring">
+      <div class="countdown-ring" id="countdown-ring" title="Clica para pausar ou continuar o tempo" role="button" tabindex="0" aria-label="Tempo da pergunta — clica para pausar ou continuar">
         <span id="countdown-num">30</span>
       </div>
     </div>
@@ -2454,8 +2484,9 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script src="supabase-config.js?v=20260829-174108"></script>
 <script src="game-history.js?v=20260829-174108"></script>
-<script src="multiplayer-sync.js?v=20260829-174108"></script>
-<script src="multiplayer-controller.js?v=20260829-174108"></script>
+<script src="player-names.js?v=20260830-141800"></script>
+<script src="multiplayer-sync.js?v=20260830-141800"></script>
+<script src="multiplayer-controller.js?v=20260830-141800"></script>
 <script src="question-engine.js?v=20260829-174108" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -4488,27 +4519,13 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function syncMultiplayerControls(){
-    const mp = window.MultiplayerController;
-    const isMp = mp?.isMultiplayer?.();
-    const canCtrl = !isMp || mp.canControl?.();
     const rollBtn = document.getElementById('btn-roll');
-    if(rollBtn) rollBtn.disabled = isMp && !canCtrl;
+    if(rollBtn) rollBtn.disabled = false;
     document.querySelectorAll('.age-btn').forEach((btn) => {
-      btn.disabled = isMp && !canCtrl;
+      btn.disabled = false;
     });
-    let hint = document.getElementById('mp-client-hint');
-    if(isMp && !canCtrl){
-      if(!hint){
-        hint = document.createElement('p');
-        hint.id = 'mp-client-hint';
-        hint.className = 'mp-waiting-hint';
-        hint.textContent = '👀 A seguir o anfitrião — aguarda a sua acção…';
-        document.getElementById('screen-game')?.querySelector('footer')?.prepend(hint);
-      }
-      hint.hidden = false;
-    } else if(hint){
-      hint.hidden = true;
-    }
+    const hint = document.getElementById('mp-client-hint');
+    if(hint) hint.hidden = true;
   }
 
   async function displayQuestionFromState(cat, isSurprise, ageBand, question){
@@ -4680,7 +4697,6 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   document.querySelectorAll('.age-btn').forEach(btn => {
     btn.onclick = async () => {
-      if(window.MultiplayerController?.isMultiplayer?.() && !window.MultiplayerController.canControl?.()) return;
       SFX.select();
       selectedAgeBand = btn.dataset.age;
       if(window.MultiplayerController?.isMultiplayer?.()){
@@ -4773,14 +4789,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
     let question;
     const mp = window.MultiplayerController;
-    if(mp?.isMultiplayer?.() && !mp.isHost?.()){
-      question = currentQuestion;
-      if(!question) return;
-    } else {
-      question = await generateQuestion(cat, ageBand);
-      if(mp?.isMultiplayer?.() && mp.isHost?.()){
-        await mp.hostQuestionReady(cat, isSurprise, ageBand, question);
-      }
+    question = await generateQuestion(cat, ageBand);
+    if(mp?.isMultiplayer?.()){
+      await mp.hostQuestionReady(cat, isSurprise, ageBand, question);
     }
     if(requestId !== questionRequestSeq) return;
 
@@ -4897,9 +4908,10 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
   function startQuestionCountdown(fromSeconds){
     stopQuestionCountdown();
     countdownPaused = false;
+    const ring = document.getElementById('countdown-ring');
+    ring?.classList.remove('is-paused');
     const total = TIME_OPTIONS[countdownIndex];
     let secondsLeft = Number.isFinite(fromSeconds) ? fromSeconds : total;
-    const ring = document.getElementById('countdown-ring');
     const num = document.getElementById('countdown-num');
     const bandColor = AGE_BAND_COLORS[selectedAgeBand] || 'var(--teal)';
     ring.classList.remove('urgent');
@@ -4907,6 +4919,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     ring.style.setProperty('--fill-color', bandColor);
     num.textContent = secondsLeft;
     questionCountdown = setInterval(() => {
+      if(countdownPaused) return;
       secondsLeft--;
       num.textContent = secondsLeft;
       const pct = Math.max(0, (secondsLeft / total) * 100);
@@ -4932,21 +4945,37 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
   }
 
   function pauseQuestionCountdown(){
-    if(!questionCountdown) return;
+    if(!questionCountdown && !countdownPaused) return;
     const n = parseInt(document.getElementById('countdown-num')?.textContent, 10);
     countdownRemaining = Number.isFinite(n) ? n : null;
     countdownPaused = true;
     stopQuestionCountdown();
+    document.getElementById('countdown-ring')?.classList.add('is-paused');
   }
 
   function resumeQuestionCountdown(){
     if(!countdownPaused) return;
     countdownPaused = false;
+    document.getElementById('countdown-ring')?.classList.remove('is-paused');
     const answerVisible = document.getElementById('q-answer')?.style.display === 'block';
     const left = countdownRemaining;
     countdownRemaining = null;
     if(!answerVisible && left > 0) startQuestionCountdown(left);
   }
+
+  function toggleQuestionCountdown(){
+    if(document.getElementById('q-answer')?.style.display === 'block') return;
+    if(countdownPaused) resumeQuestionCountdown();
+    else if(questionCountdown) pauseQuestionCountdown();
+  }
+
+  document.getElementById('countdown-ring')?.addEventListener('click', toggleQuestionCountdown);
+  document.getElementById('countdown-ring')?.addEventListener('keydown', (e) => {
+    if(e.key === 'Enter' || e.key === ' '){
+      e.preventDefault();
+      toggleQuestionCountdown();
+    }
+  });
 
   function focusAnswerPanel(){
     const panel = document.getElementById('q-answer');
@@ -5414,7 +5443,6 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
   // Escolha manual: usada tanto para o dado virtual como para quando se
   // usa um dado físico e se toca na categoria correspondente à soma saída.
   function selectCategoryBySum(sum){
-    if(window.MultiplayerController?.isMultiplayer?.() && !window.MultiplayerController.canControl?.()) return;
     if(sum === 12){
       lastCategory = remainingCategories[Math.floor(Math.random()*remainingCategories.length)];
       lastIsSurprise = true;
@@ -5433,7 +5461,6 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
   }
 
   document.getElementById('btn-roll').onclick = () => {
-    if(window.MultiplayerController?.isMultiplayer?.() && !window.MultiplayerController.canControl?.()) return;
     const btn = document.getElementById('btn-roll');
     const sumLine = document.getElementById('sum-line');
     const card = document.getElementById('result-card');
@@ -5498,7 +5525,6 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
   document.getElementById('result-card').addEventListener('click', async () => {
     if(!lastCategory) return;
     if(window.MultiplayerController?.isMultiplayer?.()){
-      if(!window.MultiplayerController.canControl()) return;
       await window.MultiplayerController.pushState({
         screen: 'age',
         lastCategory: window.MultiplayerController.serializeCategory(lastCategory),

@@ -88,9 +88,13 @@
     return data || [];
   }
 
-  async function createRoom(settings) {
+  async function createRoom(settings, nickname) {
     await ensureClient();
-    const { data, error } = await client.rpc('create_room', { p_settings: settings || {} });
+    const name = String(nickname || '').trim().slice(0, 24) || null;
+    const { data, error } = await client.rpc('create_room', {
+      p_settings: settings || {},
+      p_nickname: name,
+    });
     if (error) throw error;
     roomId = data.room_id;
     roomCode = data.code;
@@ -121,13 +125,13 @@
   }
 
   async function updateRoom(patch) {
-    if (!client || !roomId || !isHost) return;
+    if (!client || !roomId) return;
     const { error } = await client.from('rooms').update(patch).eq('id', roomId);
     if (error) throw error;
   }
 
   async function updateGameState(gameState) {
-    if (!isHost) return;
+    if (!roomId) return;
     lastGameStateJson = JSON.stringify(gameState);
     await updateRoom({ game_state: gameState, status: gameState?.status || 'playing' });
   }
@@ -147,7 +151,7 @@
   }
 
   async function insertHistoryRound(round, matchId) {
-    if (!client || !roomId || !isHost) return;
+    if (!client || !roomId) return;
     const { error } = await client.from('game_history').insert({
       room_id: roomId,
       match_id: matchId || null,
@@ -296,6 +300,28 @@
     return data || [];
   }
 
+  async function updateNickname(nickname) {
+    if (!client || !roomId || !playerId) return;
+    const name = String(nickname || '').trim().slice(0, 24);
+    if (!name) throw new Error('Nome inválido');
+    const { error } = await client
+      .from('room_players')
+      .update({ nickname: name, last_seen_at: new Date().toISOString() })
+      .eq('room_id', roomId)
+      .eq('player_id', playerId);
+    if (error) throw error;
+  }
+
+  async function getMyNickname() {
+    const players = await fetchPlayers();
+    const me = players.find((p) => p.player_id === playerId);
+    return me?.nickname || '';
+  }
+
+  function setLastGameStateJson(json) {
+    lastGameStateJson = json;
+  }
+
   function setCallbacks(cbs) {
     onStateChange = cbs?.onStateChange || null;
     onPlayersChange = cbs?.onPlayersChange || null;
@@ -322,5 +348,8 @@
     leaveRoom,
     setConnected,
     setCallbacks,
+    updateNickname,
+    getMyNickname,
+    setLastGameStateJson,
   };
 })(typeof window !== 'undefined' ? window : global);
