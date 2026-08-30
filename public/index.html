@@ -2147,14 +2147,39 @@
     display: flex;
     gap: 8px;
     width: 100%;
-    max-width: 20rem;
+    max-width: 22rem;
     margin: 0 auto 16px;
     align-items: stretch;
   }
   .mp-nickname-row .field-input{
     flex: 1;
+    min-width: 0;
+    max-width: none;
     letter-spacing: 0;
     text-transform: none;
+    min-height: 2.85rem;
+    padding: 12px 14px;
+    font-size: 1.05rem;
+  }
+  #screen-mp-lobby .mp-nickname-row{
+    max-width: min(26rem, 100%);
+    margin-bottom: 18px;
+  }
+  #screen-mp-lobby .mp-nickname-row .field-input{
+    min-height: 3.25rem;
+    padding: 14px 16px;
+    font-size: 1.15rem;
+    border-radius: 12px;
+  }
+  #screen-mp-lobby .mp-nickname-row .btn{
+    min-height: 3.25rem;
+    padding: 12px 16px;
+  }
+  #screen-mp-lobby .mp-nickname-row .mp-nick-refresh{
+    width: 3rem;
+    min-width: 3rem;
+    border-radius: 12px;
+    font-size: 1.15rem;
   }
   .mp-nickname-row .btn{
     flex-shrink: 0;
@@ -2223,6 +2248,10 @@
     opacity: 0.85;
     margin: 8px 0 16px;
     text-align: center;
+  }
+  #screen-mp-lobby .mp-players-count,
+  #screen-mp-lobby .mp-players-list{
+    max-width: min(26rem, 100%);
   }
   .mp-players-count{
     width: 100%;
@@ -2786,7 +2815,7 @@
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
 <script src="multiplayer-controller.js?v=20260830-161500"></script>
-<script src="question-engine.js?v=20260829-174108" id="question-engine-script"></script>
+<script src="question-engine.js?v=20260830-161700" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
   const DEBUG_MODE = new URLSearchParams(location.search).has('debug');
@@ -3343,7 +3372,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const mcInstruction = isMC
       ? (isTrueFalse
         ? ` Inclui também um array "options" com EXATAMENTE 2 opções: ["Verdadeiro","Falso"] (nesta ordem), sendo "a" igual a "Verdadeiro" ou "Falso" consoante a resposta correta.`
-        : ` Inclui "a" com a resposta correcta e um array "distractors" com EXACTAMENTE 3 opções erradas plausíveis da mesma classe conceptual (nomes/termos curtos). O JavaScript baralhará as opções — NÃO envies "options" completo.${mcDifficultyExtra}`)
+        : ` Inclui "a" com a resposta correcta e um array "distractors" com EXACTAMENTE 3 opções erradas plausíveis da mesma classe conceptual (nomes/termos curtos). O JavaScript baralhará as opções — NÃO envies "options" completo. Campos OBRIGATÓRIOS: "q" (pergunta completa), "a" (resposta), "distractors" (3 strings) — nunca omitas "q".${mcDifficultyExtra}`)
       : '';
     const jsonFormat = isMC
       ? (isTrueFalse
@@ -3363,7 +3392,20 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     let aiApiReached = false;
     let lastAiError = '';
     let lastAiErrorStatus = 0;
-    for(let attempt = 1; attempt <= 5; attempt++){
+    let skipAi = !aiStatusOnline;
+    let incompleteStreak = 0;
+    if(!skipAi){
+      try {
+        const quota = lastAiQuotaSnapshot || await fetchAiQuotaSnapshot();
+        const availability = getAiAvailabilityFromQuota(quota, aiProviderChoice);
+        if(!availability.online){
+          skipAi = true;
+          lastAiError = availability.message;
+          setOnlineStatus(false, availability.message);
+        }
+      } catch { /* ignora — tenta na mesma */ }
+    }
+    for(let attempt = 1; attempt <= 5 && !skipAi; attempt++){
       try{
         aiWasAttempted = true;
         const prompt = engine.buildPrompt({
@@ -3414,10 +3456,18 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           continue;
         }
         if(!parsed.q || !parsed.a){
+          if(!parsed.q) lastValidationIssues = ['campo "q" em falta — inclui a pergunta completa no JSON'];
+          else lastValidationIssues = ['campo "a" em falta — inclui a resposta no JSON'];
           lastAiError = 'A IA devolveu uma pergunta incompleta.';
           console.warn(`Resposta incompleta da IA (tentativa ${attempt}):`, clean.slice(0, 240));
+          incompleteStreak++;
+          if(incompleteStreak >= 2){
+            console.warn('JSON incompleto repetido; a usar banco local.');
+            break;
+          }
           continue;
         }
+        incompleteStreak = 0;
 
         parsed.q = formatGameText(parsed.q);
         parsed.a = formatGameText(parsed.a);
@@ -3544,6 +3594,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         lastAiErrorStatus = Number(err?.aiStatus) || 0;
         if(err?.aiStatus === 429 || isAiRateLimitError(lastAiError)){
           console.warn('IA com limite atingido; a usar banco local:', err);
+          setOnlineStatus(false, lastAiError);
           break;
         }
         if(attempt === 5){

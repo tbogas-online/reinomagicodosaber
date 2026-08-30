@@ -1637,6 +1637,7 @@ Só JSON, sem markdown: ${jsonFormat}`;
     { re: /factual|facto incorreto|errada/i, hint: 'Confirma o facto antes de responder — evita inventar ou confundir conceitos.' },
     { re: /confus|circular|formulação estranha/i, hint: 'Reformula a pergunta de forma clara e directa, sem repetir a resposta nem usar construções ambíguas.' },
     { re: /asfalto|alcatrão|ambígu/i, hint: 'Evita perguntas com várias respostas igualmente correctas — escolhe um facto inequívoco.' },
+    { re: /campo "q"|pergunta incompleta|falta.*\bq\b|json incompleto/i, hint: 'Devolve JSON completo com "q" (pergunta inteira terminada em ?), "a" (resposta) e "distractors" (exactamente 3 opções erradas). Nunca omitas o campo "q".' },
   ];
 
   function buildRetryHint(issues, formatId, ageBandKey) {
