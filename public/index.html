@@ -894,6 +894,7 @@
   }
   .q-source-debug.source-ai{ border-color: rgba(var(--teal-rgb),0.55); color: var(--teal); }
   .q-source-debug.source-local{ border-color: rgba(var(--ember-rgb),0.55); color: var(--ember); }
+  .q-source-debug.source-bank{ border-color: rgba(var(--gold-rgb),0.55); color: var(--gold); }
   .q-age-tag{
     font-family:'Cinzel', serif; font-size:12px; font-weight:600;
     border-radius:999px;
@@ -3016,6 +3017,7 @@
           <button type="button" class="time-option ai-option" data-ai-provider="groq">Groq</button>
           <button type="button" class="time-option ai-option" data-ai-provider="anthropic">Anthropic · Claude</button>
           <button type="button" class="time-option ai-option" data-ai-provider="openai">OpenAI · GPT</button>
+          <button type="button" class="time-option ai-option" data-ai-provider="local">📦 Banco local / offline</button>
         </div>
         <span class="settings-label" style="margin-top:6px; font-size:13px;">Modelo</span>
         <div class="ai-model-bar" id="ai-model-bar"></div>
@@ -3174,6 +3176,7 @@
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
 <script src="multiplayer-controller.js?v=20260830-183400"></script>
 <script src="question-engine.js?v=20260830-161700" id="question-engine-script"></script>
+<script src="question-bank.js?v=20260830-190000"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
   const DEBUG_MODE = new URLSearchParams(location.search).has('debug');
@@ -3181,7 +3184,8 @@
 
   const QUESTION_SOURCE_LABELS = {
     ai: 'IA',
-    local: 'Banco local',
+    bank: 'Banco Supabase',
+    local: 'Banco local (código)',
     'local-repeat': 'Banco local (repetida)',
   };
 
@@ -3503,6 +3507,66 @@
     return pool[Math.floor(Math.random()*pool.length)];
   }
 
+  async function tryPickFromQuestionBank(categoryN, ageBandKey, usedSet, maxAttempts = 6){
+    const QB = window.QuestionBank;
+    if(!QB?.isConfigured?.()) return null;
+    const excludeHashes = [];
+    for(let attempt = 0; attempt < maxAttempts; attempt++){
+      try {
+        const row = await QB.pick(categoryN, ageBandKey, excludeHashes);
+        if(!row?.q) break;
+        if(usedSet.has(normalizeQ(row.q))){
+          if(row.question_hash) excludeHashes.push(row.question_hash);
+          continue;
+        }
+        return row;
+      } catch(err) {
+        console.warn('Banco Supabase indisponível:', err);
+        break;
+      }
+    }
+    return null;
+  }
+
+  async function finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine, isMC){
+    const bankRow = await tryPickFromQuestionBank(category.n, ageBandKey, usedSet);
+    if(bankRow){
+      rememberGlobalQuestion(ageBandKey, bankRow.q);
+      rememberGlobalAnswer(ageBandKey, bankRow.a);
+      if(bankRow.knowledge_key) rememberGlobalKnowledgeKey(ageBandKey, bankRow.knowledge_key);
+      const out = {
+        q: bankRow.q,
+        a: bankRow.a,
+        source: 'bank',
+        format: bankRow.format || engine.FORMAT_IDS.RESPOSTA_DIRETA,
+        formatLabel: engine.FORMAT_LABELS[bankRow.format] || 'Resposta direta',
+        knowledgeKey: bankRow.knowledge_key || undefined,
+      };
+      if(Array.isArray(bankRow.options) && bankRow.options.length){
+        out.options = bankRow.options;
+      } else if(isMC){
+        const options = buildFallbackOptions(bankRow.a, category.n, ageBandKey);
+        if(options) out.options = options;
+      }
+      return finalizeQuestion(out);
+    }
+    const fallback = pickQuestion(category.n, ageBandKey, usedSet);
+    const isRepeat = usedSet.has(normalizeQ(fallback.q));
+    rememberGlobalQuestion(ageBandKey, fallback.q);
+    rememberGlobalAnswer(ageBandKey, fallback.a);
+    const fallbackOut = {
+      ...fallback,
+      source: isRepeat ? 'local-repeat' : 'local',
+      format: engine.FORMAT_IDS.RESPOSTA_DIRETA,
+      formatLabel: 'Resposta direta',
+    };
+    if(isMC){
+      const options = buildFallbackOptions(fallback.a, category.n, ageBandKey);
+      if(options) fallbackOut.options = options;
+    }
+    return finalizeQuestion(fallbackOut);
+  }
+
   // Deixa passar apenas as tags <i>/</i> (itálico para termos não-PT); remove tudo o resto.
   function sanitizeItalics(str){
     if(!str) return '';
@@ -3705,9 +3769,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       throw new Error('Categoria em falta para gerar pergunta.');
     }
     const engine = QE();
-    if(!aiStatusOnline) await tryRestoreAiOnline();
+    const localOnly = aiProviderChoice === 'local';
+    if(!localOnly && !aiStatusOnline) await tryRestoreAiOnline();
     const wantsMC = answerMode === 'mc';
-    const isMC = wantsMC && aiStatusOnline;
+    const isMC = wantsMC && aiStatusOnline && !localOnly;
     const remember = (qText) => rememberGlobalQuestion(ageBandKey, qText);
     const questionFormat = chooseQuestionFormat(category.n, ageBandKey);
     const isTrueFalse = questionFormat === engine.FORMAT_IDS.VERDADEIRO_FALSO;
@@ -3751,6 +3816,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         .filter(norm => norm !== 'verdadeiro' && norm !== 'falso')
     );
     const persistentQSet = new Set((persistent.questions || []).map(normalizeQ));
+
+    if(localOnly){
+      return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine, isMC);
+    }
 
     let aiWasAttempted = false;
     let aiApiReached = false;
@@ -3944,6 +4013,20 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           difficulty,
           subtopic,
         });
+        const questionHash = hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a));
+        if(window.QuestionBank?.isConfigured?.()){
+          window.QuestionBank.save({
+            categoryN: category.n,
+            ageBand: ageBandKey,
+            question: parsed.q,
+            correctAnswer: parsed.a,
+            options: parsed.options || null,
+            format: questionFormat,
+            knowledgeKey,
+            questionHash,
+            source: 'ai',
+          }).catch(() => {});
+        }
         return finalizeQuestion({
           ...parsed,
           source: 'ai',
@@ -3977,21 +4060,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       }
     }
 
-    const fallback = pickQuestion(category.n, ageBandKey, usedSet);
-    const isRepeat = usedSet.has(normalizeQ(fallback.q));
-    remember(fallback.q);
-    rememberGlobalAnswer(ageBandKey, fallback.a);
-    const fallbackOut = {
-      ...fallback,
-      source: isRepeat ? 'local-repeat' : 'local',
-      format: engine.FORMAT_IDS.RESPOSTA_DIRETA,
-      formatLabel: 'Resposta direta',
-    };
-    if(isMC){
-      const options = buildFallbackOptions(fallback.a, category.n, ageBandKey);
-      if(options) fallbackOut.options = options;
-    }
-    return finalizeQuestion(fallbackOut);
+    return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine, isMC);
   }
 
   const AI_PROVIDER_LABELS = {
@@ -3999,6 +4068,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     groq: 'Groq',
     anthropic: 'Anthropic · Claude',
     openai: 'OpenAI · GPT',
+    local: 'Banco local / offline',
   };
   const AI_PROVIDER_SHORT = {
     groq: 'Groq',
@@ -4165,6 +4235,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function formatStatusBadgeLine(){
+    if(aiProviderChoice === 'local') return 'Modo offline · Banco local';
     if(!aiStatusOnline) return summarizeAiOfflineBadge(lastAiStatusDetail, lastAiStatusApiData);
     const inUse = formatAiInUseLabel();
     return inUse ? `IA Online · ${inUse}` : 'IA Online';
@@ -4193,6 +4264,16 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const el = document.getElementById('settings-ai-active');
     const modelIdEl = document.getElementById('settings-ai-model-id');
     if(!el) return;
+    if(aiProviderChoice === 'local'){
+      el.textContent = 'Modo offline — banco de perguntas (sem IA)';
+      el.classList.add('offline');
+      if(modelIdEl){
+        modelIdEl.textContent = '';
+        modelIdEl.hidden = true;
+      }
+      updateAiPlannedUI();
+      return;
+    }
     if(!aiStatusOnline){
       el.textContent = lastAiStatusDetail
         ? 'IA indisponível — última tentativa falhou'
@@ -4226,6 +4307,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(!el) return;
     const prov = draftAiProviderChoice || aiProviderChoice || 'auto';
     const model = draftAiModelChoice || aiModelChoice || 'auto';
+    if(prov === 'local'){
+      el.textContent = 'Preferência: banco local / offline (Supabase → código local)';
+      return;
+    }
     if(prov === 'auto'){
       el.textContent = 'Preferência: automática · ordem Groq → OpenAI → Anthropic';
     } else {
@@ -4431,6 +4516,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function getAiAvailabilityFromQuota(quota, preference){
+    if(preference === 'local'){
+      return { online: false, message: 'Modo offline — banco local activo.' };
+    }
     const usable = getUsableProvidersForPreference(quota, preference);
     if(usable.length) return { online: true, providers: usable };
     const order = getProviderOrderForPreference(preference);
@@ -4473,6 +4561,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   async function refreshAiStatusFromUser({ force = false } = {}){
+    if(aiProviderChoice === 'local'){
+      refreshStatusBadgeText();
+      updateAiInUseUI();
+      updateAnswerModeBar();
+      return false;
+    }
     if(!force && aiStatusOnline) return true;
     const badge = document.getElementById('status-badge');
     if(badge?.classList.contains('is-refreshing')) return aiStatusOnline;
@@ -4510,6 +4604,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   async function probeAiStatusQuick(){
+    if(aiProviderChoice === 'local'){
+      refreshStatusBadgeText();
+      updateAiInUseUI();
+      return false;
+    }
     const text = document.getElementById('status-text');
     const provEl = document.getElementById('status-provider');
     if(text) text.textContent = 'IA a verificar…';
@@ -4891,7 +4990,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   let draftAnswerMode = answerMode;
 
   function mcModeActive(){
-    return answerMode === 'mc' && aiStatusOnline;
+    return answerMode === 'mc' && aiStatusOnline && aiProviderChoice !== 'local';
   }
 
   function questionUsesMcOptions(question){
@@ -5117,22 +5216,24 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   function updateAnswerModeBar(){
     const mcBtn = document.getElementById('answer-mode-mc');
     const hint = document.getElementById('answer-mode-offline-hint');
-    if(mcBtn) mcBtn.disabled = !aiStatusOnline;
-    if(hint) hint.hidden = aiStatusOnline;
+    const mcAllowed = aiStatusOnline && (draftAiProviderChoice || aiProviderChoice) !== 'local';
+    if(mcBtn) mcBtn.disabled = !mcAllowed;
+    if(hint) hint.hidden = mcAllowed;
     document.querySelectorAll('#answer-mode-bar .time-option').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.answerMode === draftAnswerMode);
     });
   }
   document.querySelectorAll('#answer-mode-bar .time-option').forEach(btn => {
     btn.onclick = () => {
-      if(btn.dataset.answerMode === 'mc' && !aiStatusOnline) return;
+      const mcAllowed = aiStatusOnline && (draftAiProviderChoice || aiProviderChoice) !== 'local';
+      if(btn.dataset.answerMode === 'mc' && !mcAllowed) return;
       draftAnswerMode = btn.dataset.answerMode;
       updateAnswerModeBar();
     };
   });
 
   function isProviderAvailableForSelection(id, quota){
-    if(id === 'auto') return true;
+    if(id === 'auto' || id === 'local') return true;
     if(!quota) return true;
     if(!quota?.configured?.[id]) return false;
     const summary = quota?.providers?.[id]?.summary;
@@ -5176,6 +5277,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     btn.onclick = () => {
       if(btn.hidden || btn.disabled) return;
       draftAiProviderChoice = btn.dataset.aiProvider;
+      if(draftAiProviderChoice === 'local' && draftAnswerMode === 'mc'){
+        draftAnswerMode = 'open';
+        updateAnswerModeBar();
+      }
       const models = AI_MODEL_OPTIONS[draftAiProviderChoice] || AI_MODEL_OPTIONS.auto;
       if(!models.some(m => m.id === draftAiModelChoice)) draftAiModelChoice = 'auto';
       updateAiProviderBar();
@@ -5191,6 +5296,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   function updateAiModelBar(){
     const bar = document.getElementById('ai-model-bar');
     if(!bar) return;
+    if(draftAiProviderChoice === 'local'){
+      bar.innerHTML = '<p class="settings-ai-planned" style="margin:0;">Sem modelo de IA neste modo.</p>';
+      return;
+    }
     const models = getModelOptionsForProvider(draftAiProviderChoice);
     bar.innerHTML = '';
     models.forEach(model => {
@@ -5760,7 +5869,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const el = document.getElementById('q-source-debug');
     if(!el) return;
     if(!DEBUG_MODE || !question?.source){
-      el.classList.remove('visible', 'source-ai', 'source-local');
+      el.classList.remove('visible', 'source-ai', 'source-local', 'source-bank');
       el.textContent = '';
       el.setAttribute('aria-hidden', 'true');
       return;
@@ -5770,6 +5879,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     el.textContent = `Fonte: ${label}${formatNote}`;
     el.classList.add('visible');
     el.classList.toggle('source-ai', question.source === 'ai');
+    el.classList.toggle('source-bank', question.source === 'bank');
     el.classList.toggle('source-local', question.source === 'local' || question.source === 'local-repeat');
     el.setAttribute('aria-hidden', 'false');
     console.info('[Reino debug] Fonte da pergunta:', label, question);
@@ -6367,6 +6477,10 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
       if(!response.ok) throw new Error('HTTP ' + response.status);
     } catch(err) {
       console.warn('Reporte guardado neste dispositivo; envio ao servidor falhou:', err);
+    }
+    if(!isSuggestion && window.QuestionBank?.isConfigured?.() && currentQuestion?.q && currentQuestion?.a){
+      const qHash = hashQuestionKey(stripTags(currentQuestion.q) + '|' + stripTags(currentQuestion.a));
+      window.QuestionBank.markReported(qHash).catch(() => {});
     }
     setReportButtonVisible(true, true);
     status.textContent = isSuggestion
