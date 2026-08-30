@@ -956,13 +956,27 @@
     });
   }
 
+  function wireJoinCodeInput() {
+    const codeInput = document.getElementById('mp-join-code');
+    if (!codeInput || codeInput.dataset.mpJoinWired) return;
+    codeInput.dataset.mpJoinWired = '1';
+    codeInput.addEventListener('focus', () => {
+      if (codeInput.dataset.prefilled !== '1') return;
+      codeInput.value = '';
+      delete codeInput.dataset.prefilled;
+    });
+  }
+
   async function maybeJoinFromUrl() {
     const code = getRoomCodeFromUrl();
     if (!code || !MP.isConfigured() || !gameHooks) return;
 
     const codeInput = document.getElementById('mp-join-code');
     const nickInput = document.getElementById('mp-join-nick');
-    if (codeInput) codeInput.value = code;
+    if (codeInput) {
+      codeInput.value = code;
+      codeInput.dataset.prefilled = '1';
+    }
     if (nickInput && !nickInput.value.trim()) {
       nickInput.value = global.PlayerNames?.getNicknameOrRandom?.() || '';
     }
@@ -1128,6 +1142,11 @@
       }
       active = false;
       const nickInput = document.getElementById('mp-join-nick');
+      const codeInput = document.getElementById('mp-join-code');
+      if (codeInput) {
+        codeInput.value = '';
+        delete codeInput.dataset.prefilled;
+      }
       if (nickInput && !nickInput.value.trim()) {
         nickInput.value = global.PlayerNames?.getNicknameOrRandom?.() || '';
       }
@@ -1228,6 +1247,7 @@
     wireMenuButtons();
     wireShareButtons();
     wirePlayersToggle();
+    wireJoinCodeInput();
     updateContinueButton();
     maybeOpenJoinFromUrl();
   }
