@@ -211,6 +211,17 @@
     font-style: italic;
     font-weight: 600;
     letter-spacing: 0.14em;
+    white-space: nowrap;
+  }
+  #btn-continuar{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    gap: 0.2em;
+    font-size: clamp(0.72rem, 3.2vw, 0.88rem);
+    letter-spacing: 0.06em;
+    padding-left: 10px;
+    padding-right: 10px;
   }
   .continue-session-row{
     display: flex;
@@ -3161,7 +3172,7 @@
 <script src="game-history.js?v=20260830-171000"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-182500"></script>
+<script src="multiplayer-controller.js?v=20260830-183400"></script>
 <script src="question-engine.js?v=20260830-161700" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -4853,7 +4864,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     syncMpGameFooter();
     syncGameClockVisibility();
     if(id === 'menu'){
-      window.MultiplayerController?.updateContinueButton?.();
+      window.MultiplayerController?.refreshContinueScreen?.();
     }
     if(id === 'question'){
       requestAnimationFrame(setupCountdownCompactScroll);

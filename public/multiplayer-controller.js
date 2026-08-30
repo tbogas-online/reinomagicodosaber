@@ -293,7 +293,11 @@
   function canContinueLastRoom() {
     const saved = getLastRoom();
     if (!saved?.code) return false;
-    if (isInRoom()) return roomPaused;
+    if (isInRoom() && !roomPaused) {
+      const screen = gameHooks?.getCurrentScreenId?.();
+      const menuLike = ['menu', 'history', 'settings', 'continue', 'mp-menu'].includes(screen);
+      if (!menuLike) return false;
+    }
     return true;
   }
 
@@ -480,7 +484,10 @@
       codeEl.className = 'btn-room-code';
       codeEl.textContent = sessions[0].code || sessions[0].meta;
       btn.append(codeEl);
-      btn.title = 'Voltar à partida multijogador';
+      const meta = sessions[0].meta;
+      btn.title = meta
+        ? `Retomar sala ${sessions[0].code} (${meta})`
+        : `Retomar sala ${sessions[0].code}`;
       return;
     }
     if (sessions.length === 1 && sessions[0].type === 'local') {
@@ -606,12 +613,12 @@
     gameHooks?.saveLocalGamePause?.();
     if (!isInRoom()) {
       gameHooks?.showScreen?.('menu');
+      refreshContinueScreen();
       return;
     }
     roomPaused = true;
     active = true;
     saveLastRoom(MP.getRoomCode(), true);
-    updateContinueButton();
     gameHooks?.showScreen?.('menu');
   }
 
@@ -1723,6 +1730,7 @@
     shareNative,
     updateGameFooter,
     updateContinueButton,
+    refreshContinueScreen,
     handleContinue,
     goToMenuKeepRoom,
     resumeRoomSession,
