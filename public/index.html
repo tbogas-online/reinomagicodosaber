@@ -511,6 +511,44 @@
     gap: 10px;
     align-items: stretch;
   }
+  .menu-game-group{
+    width: 100%;
+    border: 1px solid rgba(var(--gold-rgb), 0.38);
+    border-radius: 14px;
+    padding: 12px 12px 10px;
+    background: rgba(var(--parchment-rgb), 0.04);
+    box-sizing: border-box;
+  }
+  .menu-game-group-head{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    font-family: 'Cinzel', serif;
+    font-size: 0.92rem;
+    letter-spacing: 0.07em;
+    color: var(--gold-bright);
+    text-transform: uppercase;
+  }
+  .menu-game-group-icons{
+    font-size: 1.05rem;
+    line-height: 1;
+    letter-spacing: 0.12em;
+  }
+  .menu-game-group-actions{
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+  }
+  .menu-game-group-actions .btn{
+    width: 100%;
+  }
+  .menu-game-group .mp-error{
+    margin: 8px 0 0;
+    text-align: center;
+  }
   #screen-menu .stack .btn,
   #screen-mp-menu .stack .btn{
     width: 100%;
@@ -1640,6 +1678,21 @@
       gap: 10px;
       align-items: stretch;
     }
+    .menu-game-group{
+      padding: 10px 10px 8px;
+    }
+    .menu-game-group-head{
+      font-size: 0.82rem;
+      margin-bottom: 8px;
+    }
+    .menu-game-group-actions{
+      gap: 7px;
+    }
+    .menu-game-group-actions .btn{
+      font-size: 0.84rem;
+      padding: 11px 12px;
+      min-height: 2.65rem;
+    }
     #screen-menu .stack .btn,
     #screen-mp-menu .stack .btn{
       font-size: 0.88rem;
@@ -2560,26 +2613,31 @@
     <p class="subtitle">Onde cada lançamento dos dados abre um novo capítulo do conhecimento</p>
     <div class="divider"></div>
     <div class="stack">
-      <button class="btn" id="btn-novo-jogo">✨ Novo Jogo</button>
-      <button class="btn secondary" id="btn-mp-menu">👥 Multijogador</button>
-      <button class="btn secondary" id="btn-history">📚 Histórico de partidas</button>
+      <div class="menu-game-group">
+        <div class="menu-game-group-head">
+          <span class="menu-game-group-icons" aria-hidden="true">✨ 👥</span>
+          <span class="menu-game-group-title">Novo Jogo</span>
+        </div>
+        <div class="menu-game-group-actions">
+          <button class="btn" id="btn-novo-jogo" type="button">✨ Local / Privado</button>
+          <button class="btn secondary" id="btn-mp-create" type="button">👥 Criar Sala</button>
+          <button class="btn secondary" id="btn-mp-join" type="button">🔗 Entrar Sala (Código)</button>
+        </div>
+        <p class="mp-error" id="mp-create-error" hidden></p>
+      </div>
       <button class="btn secondary" id="btn-continuar" disabled title="Ainda não há jogo em curso">📜 Continuar</button>
+      <button class="btn secondary" id="btn-history">📚 Histórico de partidas</button>
       <button class="btn secondary" id="btn-definicoes">⚙️ Definições</button>
     </div>
     <button class="game-about-btn" id="gameAboutButton" type="button" aria-label="Sobre o jogo">ⓘ Sobre</button>
   </section>
 
-  <!-- MULTIJOGADOR — MENU -->
+  <!-- MULTIJOGADOR — MENU (ecrã legado; opções estão no menu principal) -->
   <section class="screen" id="screen-mp-menu">
     <div class="emoji" style="font-size:44px;">👥</div>
     <h2>Multijogador</h2>
-    <p class="subtitle">Joga em vários dispositivos na mesma partida</p>
-    <div class="stack" style="width:100%; max-width:16rem; margin:0 auto; gap:10px; align-items:stretch;">
-      <button class="btn" id="btn-mp-create" type="button">✨ Criar sala</button>
-      <button class="btn secondary" id="btn-mp-join" type="button">🔗 Entrar com código</button>
-      <p class="mp-error" id="mp-create-error" hidden></p>
-      <button class="btn ghost" type="button" data-mp-back-menu>← Voltar ao menu</button>
-    </div>
+    <p class="subtitle">As opções de sala estão no menu principal, em Novo Jogo.</p>
+    <button class="btn ghost" type="button" data-mp-back-menu style="margin-top:20px;">← Voltar ao menu</button>
   </section>
 
   <!-- MULTIJOGADOR — ENTRAR -->
@@ -2858,7 +2916,7 @@
 <script src="game-history.js?v=20260829-174108"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-163000"></script>
+<script src="multiplayer-controller.js?v=20260830-164500"></script>
 <script src="question-engine.js?v=20260830-161700" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).

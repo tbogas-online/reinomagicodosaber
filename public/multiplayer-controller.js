@@ -1130,11 +1130,6 @@
   }
 
   function wireMenuButtons() {
-    document.getElementById('btn-mp-menu')?.addEventListener('click', () => {
-      showMpError(document.getElementById('mp-create-error'), '');
-      gameHooks?.showScreen?.('mp-menu');
-    });
-
     document.getElementById('btn-mp-create')?.addEventListener('click', async () => {
       const err = document.getElementById('mp-create-error');
       showMpError(err, '');
@@ -1159,7 +1154,7 @@
         gameHooks?.showScreen?.('mp-lobby');
       } catch (e) {
         showMpError(err, e.message);
-        gameHooks?.showScreen?.('mp-menu');
+        gameHooks?.showScreen?.('menu');
       }
     });
 
@@ -1234,7 +1229,7 @@
 
     document.querySelectorAll('[data-mp-back-mp]').forEach((btn) => {
       btn.addEventListener('click', () => {
-        gameHooks?.showScreen?.('mp-menu');
+        gameHooks?.showScreen?.('menu');
       });
     });
 
