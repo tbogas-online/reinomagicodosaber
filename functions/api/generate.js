@@ -551,6 +551,7 @@ function formatProviderFailure(errors, attempted = [], env = {}, opts = {}) {
     models_tried: opts.modelsAttempted || [],
     configured_providers: configured,
     provider_strict: opts.providerStrict === true,
+    provider_errors: localized,
   };
   if (!detail) {
     return json(502, {
@@ -582,12 +583,14 @@ function formatProviderFailure(errors, attempted = [], env = {}, opts = {}) {
       const left = Math.max(0, limit - used);
       quotaHint = ` Restam cerca de ${left} tokens hoje; este pedido precisa de ${need}.`;
     }
+    const openaiAlsoFailed = attempted.includes('openai') && localized.some((e) => /^openai:/i.test(String(e)));
     const fallbackHint = configured.openai || configured.anthropic
       ? ' O servidor tentou automaticamente os fornecedores configurados (Groq → OpenAI → Anthropic).'
       : ' Configura OPENAI_API_KEY no Netlify para ter reserva automática quando a Groq falhar.';
+    const providerNotes = localized.length ? ` Detalhes: ${localized.join(' · ')}.` : '';
     return json(429, {
-      error: 'Limite diário da Groq atingido (plano gratuito).',
-      detail: `Atingiste o limite de tokens por dia no plano gratuito da Groq.${quotaHint}${wait}${fallbackHint}`,
+      error: openaiAlsoFailed ? 'Groq e OpenAI sem quota disponível.' : 'Limite diário da Groq atingido (plano gratuito).',
+      detail: `${openaiAlsoFailed ? 'A Groq e a OpenAI falharam neste pedido.' : 'Atingiste o limite de tokens por dia no plano gratuito da Groq.'}${quotaHint}${wait}${fallbackHint}${providerNotes}`,
       ...meta,
     });
   }

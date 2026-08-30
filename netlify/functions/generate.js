@@ -557,6 +557,7 @@ function formatProviderFailure(errors, attempted = [], opts = {}) {
     models_tried: opts.modelsAttempted || [],
     configured_providers: configured,
     provider_strict: opts.providerStrict === true,
+    provider_errors: localized,
     api_features: API_FEATURES,
   };
   if (!detail) {
@@ -590,10 +591,13 @@ function formatProviderFailure(errors, attempted = [], opts = {}) {
       quotaHint = ` Restam cerca de ${left} tokens hoje; este pedido precisa de ${need}.`;
     }
     const onlyGroq = attempted.length === 1 && attempted[0] === 'groq';
+    const openaiAlsoFailed = attempted.includes('openai') && localized.some((e) => /^openai:/i.test(String(e)));
     const openaiFirstThenGroq = attempted[0] === 'openai' && attempted.includes('groq');
     let errorTitle = 'Limite diário da Groq atingido (plano gratuito).';
     let extra = '';
-    if (opts.providerStrict && attempted[0] === 'openai') {
+    if (openaiAlsoFailed) {
+      errorTitle = 'Groq e OpenAI sem quota disponível.';
+    } else if (opts.providerStrict && attempted[0] === 'openai') {
       errorTitle = 'OpenAI falhou neste teste (modo estrito — Groq não foi usada).';
       extra = ' Verifica OPENAI_API_KEY no Netlify e faz redeploy com Clear cache.';
     } else if (openaiFirstThenGroq) {
@@ -608,9 +612,10 @@ function formatProviderFailure(errors, attempted = [], opts = {}) {
         ? ''
         : ' O servidor tentou automaticamente os fornecedores configurados (Groq → OpenAI → Anthropic).')
       : ' Configura OPENAI_API_KEY no Netlify e faz redeploy com Clear cache.';
+    const providerNotes = localized.length ? ` Detalhes: ${localized.join(' · ')}.` : '';
     return json(429, {
       error: errorTitle,
-      detail: `${openaiFirstThenGroq ? 'A OpenAI falhou antes do fallback para a Groq.' : 'Atingiste o limite de tokens por dia no plano gratuito da Groq.'}${quotaHint}${wait}${extra}${fallbackHint}`,
+      detail: `${openaiFirstThenGroq ? 'A OpenAI falhou antes do fallback para a Groq.' : (openaiAlsoFailed ? 'A Groq e a OpenAI falharam neste pedido.' : 'Atingiste o limite de tokens por dia no plano gratuito da Groq.')}${quotaHint}${wait}${extra}${fallbackHint}${providerNotes}`,
       ...meta,
     });
   }

@@ -131,19 +131,32 @@
 
       if (state.screen === 'game') {
         h.fillCategoryList?.();
-        h.resetGameScreenPartial?.();
-        if (state.dice) {
-          h.showDiceResult?.(state.dice.d1, state.dice.d2, lastCat, state.lastIsSurprise);
+        const backToCategories = !state.dice && !state.currentQuestion;
+        if (backToCategories) {
+          h.abortQuestionFlow?.();
+          h.resetGameScreen?.();
+          h.setCurrentQuestion?.(null);
+        } else {
+          h.resetGameScreenPartial?.();
+          if (state.dice) {
+            h.showDiceResult?.(state.dice.d1, state.dice.d2, lastCat, state.lastIsSurprise);
+          }
+          h.setCurrentQuestion?.(state.currentQuestion || null);
         }
         syncGameClockForSession();
         h.showScreen?.('game');
       } else if (state.screen === 'age') {
-        h.fillCategoryList?.();
-        if (state.dice) {
-          h.showDiceResult?.(state.dice.d1, state.dice.d2, lastCat, state.lastIsSurprise);
+        if (!lastCat?.n) {
+          h.showScreen?.('game');
+          syncGameClockForSession();
+        } else {
+          h.fillCategoryList?.();
+          if (state.dice) {
+            h.showDiceResult?.(state.dice.d1, state.dice.d2, lastCat, state.lastIsSurprise);
+          }
+          syncGameClockForSession();
+          h.showScreen?.('age');
         }
-        syncGameClockForSession();
-        h.showScreen?.('age');
       } else if (state.screen === 'question' && state.currentQuestion) {
         const sameQ = h.isSameQuestion?.(state.currentQuestion);
         if (!sameQ) {
@@ -861,11 +874,59 @@
 
   async function hostBackToCategories() {
     if (!canControl()) return;
+    gameHooks.abortQuestionFlow?.();
     gameHooks.resetGameScreen?.();
-    if (isMultiplayer()) {
-      await pushState({ screen: 'game', dice: null, currentQuestion: null });
+    gameHooks.setCurrentQuestion?.(null);
+    try {
+      if (isMultiplayer()) {
+        await pushState({
+          screen: 'game',
+          dice: null,
+          currentQuestion: null,
+          lastCategory: null,
+          lastIsSurprise: false,
+          selectedAgeBand: null,
+          answerRevealed: false,
+          selectedAnswer: null,
+          countdownPaused: false,
+          countdownRemaining: null,
+        });
+      }
+    } catch (e) {
+      showMpToast('Aviso: não foi possível sincronizar com a sala.');
     }
     gameHooks.showScreen?.('game');
+  }
+
+  async function hostBackToDiceResult() {
+    if (!canControl()) return;
+    gameHooks.abortQuestionFlow?.();
+    const h = gameHooks;
+    const cat = h.getLastCategory?.();
+    if (!cat?.n) {
+      h.showScreen?.('game');
+      return;
+    }
+    h.setSelectedAgeBand?.(null);
+    try {
+      if (isMultiplayer()) {
+        await pushState({
+          screen: 'game',
+          currentQuestion: null,
+          selectedAgeBand: null,
+          lastCategory: serializeCategory(cat),
+          lastIsSurprise: !!h.getLastIsSurprise?.(),
+          dice: h.getLastDiceRoll?.() || null,
+          answerRevealed: false,
+          selectedAnswer: null,
+          countdownPaused: false,
+          countdownRemaining: null,
+        });
+      }
+    } catch (e) {
+      showMpToast('Aviso: não foi possível sincronizar com a sala.');
+    }
+    h.showScreen?.('game');
   }
 
   function renderPlayersUI(players) {
@@ -1646,6 +1707,7 @@
     hostSelectAge,
     hostQuestionReady,
     hostBackToCategories,
+    hostBackToDiceResult,
     recordRoundFromQuestion,
     applyRemoteState,
     pushState,

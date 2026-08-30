@@ -1468,6 +1468,15 @@
     border-color: rgba(var(--ember-rgb),0.55);
     background: rgba(var(--ember-rgb),0.12);
   }
+  .status-badge.offline .status-badge-main{
+    flex-wrap: nowrap;
+  }
+  .status-badge.offline #status-text{
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: min(72vw, 320px);
+  }
   .status-badge.offline{
     cursor: pointer;
   }
@@ -3152,7 +3161,7 @@
 <script src="game-history.js?v=20260830-171000"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-178000"></script>
+<script src="multiplayer-controller.js?v=20260830-182500"></script>
 <script src="question-engine.js?v=20260830-161700" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -3678,6 +3687,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   async function generateQuestion(category, ageBandKey){
+    if(!category?.n){
+      category = Object.values(gameCategoryMap).find((c) => c?.n) || CATEGORIES[0];
+    }
+    if(!category?.n){
+      throw new Error('Categoria em falta para gerar pergunta.');
+    }
     const engine = QE();
     if(!aiStatusOnline) await tryRestoreAiOnline();
     const wantsMC = answerMode === 'mc';
@@ -3932,7 +3947,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         lastAiErrorStatus = Number(err?.aiStatus) || 0;
         if(err?.aiStatus === 429 || isAiRateLimitError(lastAiError)){
           console.warn('IA com limite atingido; a usar banco local:', err);
-          setOnlineStatus(false, lastAiError);
+          setOnlineStatus(false, lastAiError, err?.aiData || null);
           break;
         }
         if(attempt === 5){
@@ -3944,7 +3959,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(aiWasAttempted && !aiApiReached){
       const offlineMsg = lastAiError || 'A IA não respondeu. A usar banco local.';
       if(shouldMarkAiOfflineAfterGenerate(lastAiErrorStatus, lastAiError)){
-        setOnlineStatus(false, offlineMsg);
+        setOnlineStatus(false, offlineMsg, null);
       } else {
         showAiTransientWarning(offlineMsg);
         if(!aiStatusOnline) tryRestoreAiOnline();
@@ -4013,6 +4028,40 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   let lastAiStatusDetail = '';
+  let lastAiStatusApiData = null;
+
+  function summarizeAiOfflineBadge(detail, apiData){
+    const title = apiData?.error ? localizeAiErrorMessage(String(apiData.error)) : '';
+    const attempted = apiData?.attempted_providers || [];
+    const triedOpenai = attempted.includes('openai');
+    if(title && title.length <= 40) return title;
+    if(/groq e openai/i.test(title)) return 'IA Offline · Groq e OpenAI';
+    if(/limite diário da groq|plano gratuito da groq/i.test(title) || /limite diário da groq/i.test(String(detail || ''))){
+      return triedOpenai ? 'IA Offline · Groq e OpenAI' : 'IA Offline · Limite Groq';
+    }
+    if(/chave de api|autenticação|não autorizado/i.test(String(detail || title))) return 'IA Offline · Chave API';
+    if(/limite|quota|rate limit|too many requests/i.test(String(detail || title))) return 'IA Offline · Limite atingido';
+    return 'IA Offline';
+  }
+
+  function buildAiOfflineTooltip(detail, apiData){
+    const lines = [];
+    if(apiData?.error) lines.push(localizeAiErrorMessage(String(apiData.error)));
+    if(apiData?.detail) lines.push(localizeAiErrorMessage(String(apiData.detail)));
+    if(apiData?.provider_errors?.length){
+      lines.push(`Erros por fornecedor: ${apiData.provider_errors.map((e) => localizeAiErrorMessage(String(e))).join(' · ')}`);
+    }
+    if(apiData?.attempted_providers?.length){
+      lines.push(`Fornecedores tentados: ${apiData.attempted_providers.join(' → ')}.`);
+    }
+    const cfg = apiData?.configured_providers;
+    if(cfg){
+      const active = Object.entries(cfg).filter(([, on]) => on).map(([name]) => AI_PROVIDER_SHORT[name] || name);
+      if(active.length) lines.push(`Configurados no servidor: ${active.join(', ')}.`);
+    }
+    if(lines.length) return lines.join('\n\n');
+    return detail || 'IA Offline — passa o rato para mais detalhes';
+  }
   let aiStatusRecoveryTimer = null;
   let aiTransientWarningTimer = null;
 
@@ -4105,7 +4154,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function formatStatusBadgeLine(){
-    if(!aiStatusOnline) return 'IA Offline';
+    if(!aiStatusOnline) return summarizeAiOfflineBadge(lastAiStatusDetail, lastAiStatusApiData);
     const inUse = formatAiInUseLabel();
     return inUse ? `IA Online · ${inUse}` : 'IA Online';
   }
@@ -4114,15 +4163,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const detailEl = document.getElementById('status-detail');
     if(!detailEl) return;
     detailEl.classList.remove('is-online', 'is-offline');
-    if(aiStatusOnline){
-      detailEl.textContent = '';
-      detailEl.hidden = true;
-      return;
-    }
-    const offlineDetail = lastAiStatusDetail;
-    detailEl.textContent = offlineDetail || '';
-    detailEl.hidden = !offlineDetail;
-    if(offlineDetail) detailEl.classList.add('is-offline');
+    detailEl.textContent = '';
+    detailEl.hidden = true;
   }
 
   function refreshStatusBadgeText(){
@@ -4182,27 +4224,29 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
   }
 
-  function setOnlineStatus(isOnline, detail=''){
+  function setOnlineStatus(isOnline, detail='', apiData=null){
     const badge = document.getElementById('status-badge');
     const detailEl = document.getElementById('status-detail');
     aiStatusOnline = isOnline;
     if(!isOnline){
       if(detail) lastAiStatusDetail = detail;
+      lastAiStatusApiData = apiData || null;
       clearAiUsage();
     } else {
       lastAiStatusDetail = '';
+      lastAiStatusApiData = null;
     }
     badge.classList.toggle('offline', !isOnline);
     refreshStatusBadgeText();
     const statusHint = isOnline
       ? formatStatusBadgeLine()
-      : (detail || lastAiStatusDetail || 'IA Offline');
+      : summarizeAiOfflineBadge(lastAiStatusDetail, lastAiStatusApiData);
     badge.title = isOnline
       ? `${statusHint} — clica para verificar estado`
-      : `${statusHint} — clica para verificar de novo`;
+      : buildAiOfflineTooltip(lastAiStatusDetail, lastAiStatusApiData);
     badge.setAttribute('aria-label', isOnline
       ? `${statusHint} — verificar estado da Inteligência Artificial`
-      : `${statusHint} — verificar ligação da IA`);
+      : `${statusHint} — ${buildAiOfflineTooltip(lastAiStatusDetail, lastAiStatusApiData)}`);
     if(isOnline){
       stopAiStatusRecovery();
     } else {
@@ -4320,16 +4364,18 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const title = localizeAiErrorMessage(data?.error?.message || data?.error || `Erro da API (${status})`);
     if(title) parts.push(title);
     if(data?.detail) parts.push(localizeAiErrorMessage(String(data.detail)));
-    if(data?.attempted_providers?.length){
+    if(data?.provider_errors?.length){
+      parts.push(`Erros: ${data.provider_errors.map((e) => localizeAiErrorMessage(String(e))).join(' · ')}.`);
+    } else if(data?.attempted_providers?.length){
       parts.push(`Fornecedores tentados: ${data.attempted_providers.join(' → ')}.`);
     }
     const cfg = data?.configured_providers;
     if(cfg){
       const active = Object.entries(cfg).filter(([, on]) => on).map(([name]) => AI_PROVIDER_SHORT[name] || name);
       if(active.length) parts.push(`Configurados no servidor: ${active.join(', ')}.`);
-      if(!cfg.openai) parts.push('Falta OPENAI_API_KEY no Netlify — sem reserva automática quando a Groq falha.');
-    } else if(cfg === undefined && data?.attempted_providers?.length === 1 && data.attempted_providers[0] === 'groq'){
-      parts.push('Só a Groq foi tentada. Adiciona OPENAI_API_KEY no Netlify para ativar o fallback.');
+      if(!cfg.openai && data?.attempted_providers?.length === 1 && data.attempted_providers[0] === 'groq'){
+        parts.push('Falta OPENAI_API_KEY no Netlify — sem reserva automática quando a Groq falha.');
+      }
     }
     return parts.join(' ');
   }
@@ -4441,7 +4487,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       setOnlineStatus(true);
       return true;
     } catch (err) {
-      setOnlineStatus(false, err?.message || lastAiStatusDetail || 'IA indisponível');
+      setOnlineStatus(false, err?.message || lastAiStatusDetail || 'IA indisponível', err?.aiData || null);
       return false;
     } finally {
       badge?.classList.remove('is-refreshing');
@@ -4471,7 +4517,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       setOnlineStatus(true);
       return true;
     } catch(err) {
-      setOnlineStatus(false, err?.message || 'IA indisponível');
+      setOnlineStatus(false, err?.message || 'IA indisponível', err?.aiData || null);
       return false;
     }
   }
@@ -4491,7 +4537,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       recordAiUsage(data);
       setOnlineStatus(true);
     } catch(err) {
-      setOnlineStatus(false, err?.message || 'IA indisponível');
+      setOnlineStatus(false, err?.message || 'IA indisponível', err?.aiData || null);
     } finally {
       aiProviderChoice = prevProvider;
       aiModelChoice = prevModel;
@@ -4753,6 +4799,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function showScreen(id){
+    if(id === 'age' && !lastCategory?.n){
+      id = 'game';
+    }
     if(id !== 'question'){
       const overlay = document.getElementById('q-report-overlay');
       if(overlay?.classList.contains('open')){
@@ -5328,6 +5377,17 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(hint) hint.hidden = true;
   }
 
+  function abortQuestionFlow(){
+    questionRequestSeq++;
+    stopQuestionCountdown();
+    currentQuestion = null;
+    lastSelectedAnswer = null;
+    countdownPaused = false;
+    countdownRemaining = null;
+    applyingAnswerRemote = false;
+    applyingCountdownRemote = false;
+  }
+
   async function displayQuestionFromState(cat, isSurprise, ageBand, question){
     if(!question) return;
     const requestId = ++questionRequestSeq;
@@ -5396,6 +5456,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         stopGameClock,
         fillCategoryList,
         resetGameScreen,
+        abortQuestionFlow,
         resetGameScreenPartial(){
           document.getElementById('sum-line').innerHTML = '';
           const card = document.getElementById('result-card');
@@ -5518,8 +5579,13 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       showScreen('game');
     }, 1900);
   }
-  document.getElementById('btn-age-back').onclick = () => {
-    resetGameScreen();
+  document.getElementById('btn-age-back').onclick = async () => {
+    selectedAgeBand = null;
+    abortQuestionFlow();
+    if(window.MultiplayerController?.isMultiplayer?.()){
+      await window.MultiplayerController.hostBackToDiceResult?.();
+      return;
+    }
     showScreen('game');
   };
   document.getElementById('btn-game-back').onclick = async () => {
@@ -5535,6 +5601,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   document.querySelectorAll('.age-btn').forEach(btn => {
     btn.onclick = async () => {
+      if(!lastCategory?.n){
+        showScreen('game');
+        return;
+      }
       SFX.select();
       selectedAgeBand = btn.dataset.age;
       await showQuestion(lastCategory, lastIsSurprise, selectedAgeBand);
@@ -5695,6 +5765,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   async function showQuestion(cat, isSurprise, ageBand){
+    if(!cat?.n){
+      console.warn('Categoria em falta — a regressar ao tabuleiro.');
+      showScreen('game');
+      return;
+    }
     const requestId = ++questionRequestSeq;
     updateQuestionCategoryHeader(cat, isSurprise, ageBand);
     updateQuestionSourceDebug(null);
@@ -5720,7 +5795,14 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
     let question;
     const mp = window.MultiplayerController;
-    question = await generateQuestion(cat, ageBand);
+    try {
+      question = await generateQuestion(cat, ageBand);
+    } catch (err) {
+      console.error('[showQuestion]', err);
+      showScreen('game');
+      return;
+    }
+    if(requestId !== questionRequestSeq) return;
     if(mp?.isMultiplayer?.()){
       await mp.hostQuestionReady(cat, isSurprise, ageBand, question);
     }
@@ -6334,11 +6416,11 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
   }
 
   document.getElementById('btn-voltar-categorias').onclick = () => {
-    stopQuestionCountdown();
     if(window.MultiplayerController?.isMultiplayer?.()){
       window.MultiplayerController.hostBackToCategories();
       return;
     }
+    abortQuestionFlow();
     resetGameScreen();
     showScreen('game');
   };
@@ -6356,6 +6438,8 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     lastIsSurprise = false;
     selectedAgeBand = null;
     lastDiceRoll = null;
+    currentQuestion = null;
+    lastSelectedAnswer = null;
   }
 
   function clearCategoryRollHighlight(){
