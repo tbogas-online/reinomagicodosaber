@@ -212,6 +212,16 @@
     font-weight: 600;
     letter-spacing: 0.14em;
   }
+  .continue-session-row{
+    display: flex;
+    align-items: stretch;
+    gap: 8px;
+    width: 100%;
+  }
+  .continue-session-row .continue-session-btn{
+    flex: 1;
+    min-width: 0;
+  }
   .continue-session-btn{
     display: flex;
     align-items: center;
@@ -240,6 +250,35 @@
     font-style: italic;
     color: var(--gold-bright);
     letter-spacing: 0.08em;
+  }
+  .continue-session-btn .continue-session-when{
+    font-size: 0.72em;
+    opacity: 0.82;
+    color: var(--parchment-dim);
+    letter-spacing: 0.04em;
+  }
+  .continue-session-end{
+    flex-shrink: 0;
+    width: 42px;
+    min-height: 44px;
+    padding: 0;
+    border-radius: 10px;
+    border: 1px solid rgba(229, 72, 77, 0.55);
+    background: rgba(229, 72, 77, 0.12);
+    color: #fecaca;
+    font-size: 1.35rem;
+    line-height: 1;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease, color .15s ease;
+  }
+  .continue-session-end:hover{
+    background: rgba(229, 72, 77, 0.22);
+    border-color: #e5484d;
+    color: #fff;
+  }
+  .continue-session-end:focus-visible{
+    outline: 2px solid #e5484d;
+    outline-offset: 2px;
   }
 
   /* buttons */
@@ -496,12 +535,27 @@
   }
   body.settings-screen-active #screen-settings .stack{
     width: 100%;
-    max-width: 360px;
+    max-width: min(640px, 94vw);
     margin: 0 auto;
     align-items: center;
   }
+  body.settings-screen-active .settings-row:not(.settings-row-wide){
+    max-width: 360px;
+    width: 100%;
+  }
   body.settings-screen-active .settings-row,
   body.settings-screen-active .settings-row-wide{
+    max-width: 100%;
+    width: 100%;
+  }
+  #settings-ai-block{
+    padding: 16px 20px 14px;
+    align-items: stretch;
+  }
+  #settings-ai-block .time-bar.wrap,
+  #settings-ai-block .ai-model-bar,
+  #settings-ai-block .settings-ai-quotas,
+  #settings-ai-block .settings-ai-actions{
     max-width: 100%;
     width: 100%;
   }
@@ -581,6 +635,8 @@
     border-radius: 14px;
     padding: 14px 12px 12px;
     margin-top: 10px;
+    width: 100%;
+    box-sizing: border-box;
   }
   .settings-scroll-hint{
     font-size: 12px;
@@ -610,19 +666,23 @@
     display:flex;
     flex-wrap:wrap;
     gap:6px;
-    justify-content:center;
+    justify-content:flex-start;
     width:100%;
-    max-width: 640px;
+    max-width: 100%;
   }
   .ai-model-bar .time-option{
     font-size: 11px;
     padding: 6px 9px;
   }
+  #ai-provider-bar{
+    justify-content: flex-start;
+  }
   .time-bar.wrap{
     flex-wrap: wrap;
-    justify-content: center;
+    justify-content: flex-start;
     border-radius: 14px;
     max-width: 100%;
+    width: 100%;
   }
   .time-option.ai-option{
     font-size: 11.5px;
@@ -1498,6 +1558,18 @@
     margin:10px 0 0;
     color:#f4a6a8;
     text-align:center;
+  }
+  #settings-ai-block .settings-ai-active,
+  #settings-ai-block .settings-ai-planned,
+  #settings-ai-block .settings-ai-model-id,
+  #settings-ai-block .settings-ai-server-keys{
+    width: 100%;
+    text-align: left;
+  }
+  #settings-ai-block > .settings-label{
+    align-self: flex-start;
+    width: 100%;
+    text-align: left;
   }
   .settings-ai-active{
     font-size:13px;
@@ -2815,6 +2887,7 @@
     <p class="mp-error" id="mp-lobby-error" hidden></p>
     <div class="stack" style="gap:10px;">
       <button class="btn" id="mp-btn-start" type="button" hidden>▶ Iniciar jogo</button>
+      <button class="btn" id="mp-btn-join-game" type="button" hidden>▶ Entrar no jogo</button>
       <button class="btn secondary" id="mp-btn-leave" type="button">Terminar sala</button>
       <button class="btn ghost" type="button" data-mp-back>← Voltar ao menu</button>
     </div>
@@ -2833,7 +2906,7 @@
     <div class="emoji" style="font-size:44px;">📜</div>
     <h2>Continuar jogo</h2>
     <p class="subtitle">Escolhe a partida a retomar nesta sessão</p>
-    <div class="stack" id="continue-session-list" style="width:100%; max-width:16rem; margin:0 auto; gap:10px; align-items:stretch;"></div>
+    <div class="stack" id="continue-session-list" style="width:100%; max-width:20rem; margin:0 auto; gap:10px; align-items:stretch;"></div>
     <button class="btn ghost" type="button" id="btn-continue-back" style="margin-top:16px;">← Voltar ao menu</button>
   </section>
 
@@ -3070,7 +3143,7 @@
 <script src="game-history.js?v=20260830-171000"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-145200"></script>
-<script src="multiplayer-controller.js?v=20260830-173000"></script>
+<script src="multiplayer-controller.js?v=20260830-178000"></script>
 <script src="question-engine.js?v=20260830-161700" id="question-engine-script"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -4441,6 +4514,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   let gameCategoryMap = {};
   let remainingCategories = [];
   const LOCAL_PAUSE_KEY = 'reino_local_pause_v1';
+  let localGameStartedAt = null;
 
   function serializeCategoryForPause(cat){
     if(!cat) return null;
@@ -4459,7 +4533,19 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       Object.keys(gameCategoryMap).forEach((k) => {
         map[k] = serializeCategoryForPause(gameCategoryMap[k]);
       });
+      let startedAt = localGameStartedAt;
+      if(!startedAt){
+        try {
+          const raw = localStorage.getItem(LOCAL_PAUSE_KEY);
+          if(raw) startedAt = JSON.parse(raw).startedAt;
+        } catch { /* ignore */ }
+      }
+      if(!startedAt){
+        startedAt = Date.now();
+        localGameStartedAt = startedAt;
+      }
       localStorage.setItem(LOCAL_PAUSE_KEY, JSON.stringify({
+        startedAt,
         pausedAt: Date.now(),
         gameCategoryMap: map,
         remainingCategories: remainingCategories.map(serializeCategoryForPause).filter(Boolean),
@@ -4469,6 +4555,26 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   function clearLocalGamePause(){
     try { localStorage.removeItem(LOCAL_PAUSE_KEY); } catch { /* ignore */ }
+  }
+
+  function endLocalGamePause(){
+    gameCategoryMap = {};
+    remainingCategories = [];
+    localGameStartedAt = null;
+    clearLocalGamePause();
+    stopGameClock();
+  }
+
+  function getLocalGameStartedAt(){
+    if(localGameStartedAt) return localGameStartedAt;
+    try {
+      const raw = localStorage.getItem(LOCAL_PAUSE_KEY);
+      if(!raw) return null;
+      const data = JSON.parse(raw);
+      return data.startedAt || data.pausedAt || null;
+    } catch {
+      return null;
+    }
   }
 
   function loadLocalGamePauseFromStorage(){
@@ -4508,12 +4614,13 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
     fillCategoryList();
     resetGameScreen();
-    if(!gameStartTime) startGameClock();
+    resumeGameClock(getLocalGameStartedAt());
     showScreen('game');
     return true;
   }
 
   function assignCategoriesForNewGame(){
+    localGameStartedAt = Date.now();
     gameCategoryMap = {};
     Object.keys(usedQuestions).forEach((key) => { delete usedQuestions[key]; });
     Object.keys(usedQuestionFormats).forEach((key) => { delete usedQuestionFormats[key]; });
@@ -4686,6 +4793,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       syncMultiplayerControls();
     }
     syncMpGameFooter();
+    syncGameClockVisibility();
     if(id === 'menu'){
       window.MultiplayerController?.updateContinueButton?.();
     }
@@ -5275,6 +5383,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         getSettingsSnapshot,
         assignCategoriesForNewGame,
         startGameClock,
+        resumeGameClock,
+        stopGameClock,
         fillCategoryList,
         resetGameScreen,
         resetGameScreenPartial(){
@@ -5318,6 +5428,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         hasLocalGamePause,
         saveLocalGamePause,
         clearLocalGamePause,
+        endLocalGamePause,
+        getLocalGameStartedAt,
         resumeLocalGame,
       });
       window.MultiplayerController.init();
@@ -5358,7 +5470,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     clearLocalGamePause();
     window.MultiplayerController?.onSinglePlayerStart?.();
     assignCategoriesForNewGame();
-    startGameClock();
+    startGameClock(Date.now(), true);
     runCategoryChoosingAnimation();
   };
 
@@ -6388,24 +6500,61 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
   });
 
   // ---------- relógio de jogo ----------
+  const GAME_CLOCK_SCREENS = new Set(['game', 'age', 'question', 'loading', 'mp-lobby']);
   let gameStartTime = null;
   let clockInterval = null;
-  function startGameClock(){
-    gameStartTime = Date.now();
+
+  function showGameClockElement(show){
     const clockEl = document.getElementById('game-clock');
-    clockEl.style.display = 'flex';
-    if(clockInterval) clearInterval(clockInterval);
-    updateGameClock();
-    clockInterval = setInterval(updateGameClock, 1000);
+    if(clockEl) clockEl.style.display = show ? 'flex' : 'none';
   }
+
+  function syncGameClockVisibility(){
+    const show = !!gameStartTime && GAME_CLOCK_SCREENS.has(currentScreenId);
+    showGameClockElement(show);
+  }
+
   function updateGameClock(){
+    if(!gameStartTime) return;
     const elapsed = Math.floor((Date.now() - gameStartTime) / 1000);
     const h = Math.floor(elapsed / 3600);
     const m = Math.floor((elapsed % 3600) / 60);
     const s = elapsed % 60;
     const pad = n => String(n).padStart(2, '0');
     const text = h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
-    document.getElementById('game-clock').textContent = `⏱ ${text}`;
+    const clockEl = document.getElementById('game-clock');
+    if(clockEl) clockEl.textContent = `⏱ ${text}`;
+  }
+
+  function startGameClock(startedAt, forceReset = false){
+    if(forceReset || !startedAt){
+      gameStartTime = forceReset ? (startedAt || Date.now()) : Date.now();
+    } else {
+      gameStartTime = startedAt;
+    }
+    syncGameClockVisibility();
+    if(clockInterval) clearInterval(clockInterval);
+    updateGameClock();
+    clockInterval = setInterval(updateGameClock, 1000);
+  }
+
+  function resumeGameClock(startedAt){
+    if(!startedAt){
+      startGameClock();
+      return;
+    }
+    startGameClock(startedAt, false);
+  }
+
+  function stopGameClock(){
+    gameStartTime = null;
+    if(clockInterval){
+      clearInterval(clockInterval);
+      clockInterval = null;
+    }
+    const clockEl = document.getElementById('game-clock');
+    if(clockEl) clockEl.textContent = '⏱ 00:00';
+    showGameClockElement(false);
   }
 </script>
 

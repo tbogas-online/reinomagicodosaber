@@ -11,6 +11,8 @@
   let active = false;
   let roomPaused = false;
   let lobbyUiReady = false;
+  let pendingLobbyJoin = null;
+  let lobbyReadyForGame = false;
   const LAST_ROOM_KEY = 'reino_mp_last_room_v1';
   let applyingRemote = false;
   let gameHooks = null;
@@ -133,12 +135,14 @@
         if (state.dice) {
           h.showDiceResult?.(state.dice.d1, state.dice.d2, lastCat, state.lastIsSurprise);
         }
+        syncGameClockForSession();
         h.showScreen?.('game');
       } else if (state.screen === 'age') {
         h.fillCategoryList?.();
         if (state.dice) {
           h.showDiceResult?.(state.dice.d1, state.dice.d2, lastCat, state.lastIsSurprise);
         }
+        syncGameClockForSession();
         h.showScreen?.('age');
       } else if (state.screen === 'question' && state.currentQuestion) {
         const sameQ = h.isSameQuestion?.(state.currentQuestion);
@@ -155,6 +159,7 @@
         if (state.answerRevealed) {
           h.applyAnswerFromRemote?.(state.selectedAnswer || null);
         }
+        syncGameClockForSession();
       }
     } finally {
       applyingRemote = false;
@@ -219,12 +224,41 @@
   function saveLastRoom(code, paused = false) {
     if (!code) return;
     try {
+      const prev = getLastRoom();
+      const upper = String(code).toUpperCase();
+      const sameRoom = prev?.code === upper;
       mpStorage()?.setItem(LAST_ROOM_KEY, JSON.stringify({
-        code: String(code).toUpperCase(),
+        code: upper,
         paused: !!paused,
+        at: Date.now(),
+        startedAt: sameRoom && prev.startedAt ? prev.startedAt : Date.now(),
+        playerCount: sameRoom ? (prev.playerCount ?? 0) : 0,
+        connectedCount: sameRoom ? (prev.connectedCount ?? 0) : 0,
+      }));
+    } catch { /* ignore */ }
+  }
+
+  function persistLastRoomPlayers(players) {
+    const saved = getLastRoom();
+    if (!saved?.code) return;
+    const count = (players || []).length;
+    const connected = (players || []).filter((p) => p.is_connected).length;
+    try {
+      mpStorage()?.setItem(LAST_ROOM_KEY, JSON.stringify({
+        ...saved,
+        playerCount: count,
+        connectedCount: connected,
         at: Date.now(),
       }));
     } catch { /* ignore */ }
+  }
+
+  function formatMpContinueMeta(code, playerCount, connectedCount) {
+    const parts = [code];
+    if (playerCount > 0) {
+      parts.push(buildPlayerCountLabel(playerCount, connectedCount ?? playerCount));
+    }
+    return parts.join(' · ');
   }
 
   function getLastRoom() {
@@ -250,6 +284,46 @@
     return true;
   }
 
+  function markLastRoomGameStarted() {
+    const saved = getLastRoom();
+    if (!saved?.code) return;
+    const now = Date.now();
+    try {
+      mpStorage()?.setItem(LAST_ROOM_KEY, JSON.stringify({
+        ...saved,
+        startedAt: now,
+        at: now,
+      }));
+    } catch { /* ignore */ }
+  }
+
+  function syncGameClockForSession() {
+    const saved = getLastRoom();
+    const startedAt = saved?.startedAt || saved?.at;
+    if (startedAt) gameHooks?.resumeGameClock?.(startedAt);
+    else gameHooks?.startGameClock?.();
+  }
+
+  function formatSessionStartedAt(ts) {
+    if (!ts) return '';
+    const date = new Date(ts);
+    if (Number.isNaN(date.getTime())) return '';
+    const d = date.toLocaleDateString('pt-PT');
+    const t = date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+    return `${d} ${t}`;
+  }
+
+  function formatSessionElapsed(ts) {
+    if (!ts) return '';
+    const elapsed = Math.max(0, Math.floor((Date.now() - ts) / 1000));
+    const h = Math.floor(elapsed / 3600);
+    const m = Math.floor((elapsed % 3600) / 60);
+    const s = elapsed % 60;
+    const pad = (n) => String(n).padStart(2, '0');
+    const text = h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+    return `⏱ ${text}`;
+  }
+
   function getResumableSessions() {
     const sessions = [];
     if (canContinueLastRoom()) {
@@ -259,27 +333,79 @@
         id: 'mp-' + code,
         type: 'multiplayer',
         title: 'Sala multijogador',
-        meta: code,
+        code,
+        meta: formatMpContinueMeta(code, saved?.playerCount || 0, saved?.connectedCount),
+        when: formatSessionStartedAt(saved?.startedAt || saved?.at),
+        elapsed: formatSessionElapsed(saved?.startedAt || saved?.at),
+        playerCount: saved?.playerCount || 0,
+        connectedCount: saved?.connectedCount,
         icon: '👥',
       });
     }
     if (gameHooks?.hasLocalGamePause?.()) {
+      const localStartedAt = gameHooks?.getLocalGameStartedAt?.();
       sessions.push({
         id: 'local',
         type: 'local',
         title: 'Jogo local / privado',
         meta: 'Neste dispositivo',
+        when: formatSessionStartedAt(localStartedAt),
+        elapsed: formatSessionElapsed(localStartedAt),
         icon: '✨',
       });
     }
     return sessions;
   }
 
-  function renderContinuePicker(sessions) {
+  function refreshContinueScreen() {
+    const sessions = getResumableSessions();
+    updateContinueButton();
+    const onContinueScreen = document.getElementById('screen-continue')?.classList.contains('active');
+    if (!sessions.length) {
+      if (onContinueScreen) gameHooks?.showScreen?.('menu');
+      return;
+    }
+    if (onContinueScreen) renderContinuePicker(sessions);
+  }
+
+  async function endMultiplayerSession(session) {
+    const code = session?.code || session?.meta || 'esta sala';
+    if (!global.confirm(`Terminar a sala multijogador (${code})?\n\nDeixarás de a poder retomar.`)) return;
+    try {
+      if (isInRoom()) {
+        if (GH.getCurrentGame()?.mode === 'multiplayer') GH.finishGame();
+        await MP.leaveRoom();
+      }
+    } catch (e) {
+      console.warn('[MP] end session', e?.message || e);
+    }
+    active = false;
+    clearLastRoom();
+    clearRoomPause();
+    gameHooks?.stopGameClock?.();
+    refreshContinueScreen();
+  }
+
+  function endLocalSession() {
+    if (!global.confirm('Terminar o jogo local?\n\nO progresso guardado será apagado.')) return;
+    gameHooks?.endLocalGamePause?.();
+    refreshContinueScreen();
+  }
+
+  async function renderContinuePicker(sessions) {
     const list = document.getElementById('continue-session-list');
     if (!list) return;
     list.innerHTML = '';
+    if (!sessions.length) {
+      list.innerHTML = '<p class="subtitle">Não há partidas para retomar.</p>';
+      gameHooks?.showScreen?.('continue');
+      return;
+    }
     sessions.forEach((session) => {
+      const row = document.createElement('div');
+      row.className = 'continue-session-row';
+      if (session.type === 'multiplayer') row.dataset.sessionCode = session.code || '';
+
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.className = 'btn secondary continue-session-btn';
@@ -287,7 +413,8 @@
         <span class="continue-session-icon" aria-hidden="true">${session.icon}</span>
         <span class="continue-session-body">
           <span class="continue-session-title">${session.title}</span>
-          <span class="continue-session-meta">${session.meta}</span>
+          <span class="continue-session-meta">${escapeHtml(session.meta)}</span>
+          ${session.when ? `<span class="continue-session-when">${escapeHtml(session.when)}${session.elapsed ? ` · ${escapeHtml(session.elapsed)}` : ''}</span>` : (session.elapsed ? `<span class="continue-session-when">${escapeHtml(session.elapsed)}</span>` : '')}
         </span>`;
       btn.addEventListener('click', async () => {
         if (session.type === 'multiplayer') {
@@ -296,9 +423,40 @@
           gameHooks?.resumeLocalGame?.();
         }
       });
-      list.appendChild(btn);
+
+      const endBtn = document.createElement('button');
+      endBtn.type = 'button';
+      endBtn.className = 'continue-session-end';
+      endBtn.setAttribute('aria-label', `Terminar ${session.title}`);
+      endBtn.title = 'Terminar esta partida';
+      endBtn.textContent = '×';
+      endBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (session.type === 'multiplayer') endMultiplayerSession(session);
+        else endLocalSession();
+      });
+
+      row.appendChild(btn);
+      row.appendChild(endBtn);
+      list.appendChild(row);
     });
     gameHooks?.showScreen?.('continue');
+
+    const mpSession = sessions.find((s) => s.type === 'multiplayer');
+    if (!mpSession || !isInRoom() || !MP.isConfigured()) return;
+    try {
+      await MP.ensureClient();
+      const players = await MP.fetchPlayers();
+      persistLastRoomPlayers(players);
+      const count = players.length;
+      const connected = players.filter((p) => p.is_connected).length;
+      mpSession.playerCount = count;
+      mpSession.connectedCount = connected;
+      mpSession.meta = formatMpContinueMeta(mpSession.code, count, connected);
+      const row = list.querySelector(`[data-session-code="${mpSession.code}"]`);
+      const metaEl = row?.querySelector('.continue-session-meta');
+      if (metaEl) metaEl.textContent = mpSession.meta;
+    } catch { /* usar contagem guardada */ }
   }
 
   function setContinueButtonLabel(btn, sessions) {
@@ -307,7 +465,7 @@
       btn.append('📜 Continuar sala ');
       const codeEl = document.createElement('span');
       codeEl.className = 'btn-room-code';
-      codeEl.textContent = sessions[0].meta;
+      codeEl.textContent = sessions[0].code || sessions[0].meta;
       btn.append(codeEl);
       btn.title = 'Voltar à partida multijogador';
       return;
@@ -330,22 +488,73 @@
     showMpToast._timer = setTimeout(() => { toast.hidden = true; }, ms);
   }
 
-  async function enterRoomFromJoinResult(result) {
+  function updateLobbyActionButtons(status) {
+    const startBtn = document.getElementById('mp-btn-start');
+    const joinBtn = document.getElementById('mp-btn-join-game');
+    const isPlaying = status === 'playing';
+    if (startBtn) startBtn.hidden = !isHost() || isPlaying;
+    if (joinBtn) joinBtn.hidden = !isPlaying;
+  }
+
+  async function enterGameFromLobby() {
+    const errEl = document.getElementById('mp-lobby-error');
+    showMpError(errEl, '');
+    lobbyReadyForGame = true;
+    let payload = pendingLobbyJoin;
+    if (!payload?.gameState) {
+      try {
+        const room = await MP.fetchRoom();
+        if (room?.status === 'playing' && room.game_state) {
+          payload = { gameState: room.game_state, settings: room.settings || {} };
+        }
+      } catch (e) {
+        showMpError(errEl, e.message || 'Não foi possível entrar no jogo');
+        return;
+      }
+    }
+    if (!payload?.gameState) {
+      showMpError(errEl, 'O jogo ainda não começou');
+      return;
+    }
+    pendingLobbyJoin = null;
+    try {
+      await applyRemoteState(payload.gameState, payload.settings, { resume: true });
+      syncGameClockForSession();
+      const screen = payload.gameState.screen;
+      gameHooks?.showScreen?.(
+        screen === 'question' ? 'question' : screen === 'age' ? 'age' : 'game'
+      );
+      updateGameFooter();
+    } catch (e) {
+      showMpError(errEl, e.message || 'Erro ao entrar no jogo');
+    }
+  }
+
+  async function enterRoomFromJoinResult(result, options = {}) {
     if (!result) return;
+    const resumeSession = !!options.resumeSession;
     saveLastRoom(result.code || MP.getRoomCode(), false);
     active = true;
     clearRoomPause();
 
-    if (result.status === 'playing' && result.gameState) {
+    if (resumeSession && result.status === 'playing' && result.gameState) {
+      lobbyReadyForGame = true;
+      pendingLobbyJoin = null;
       await applyRemoteState(result.gameState, result.settings || {}, { resume: true });
+      syncGameClockForSession();
       const screen = result.gameState.screen;
       gameHooks?.showScreen?.(
         screen === 'question' ? 'question' : screen === 'age' ? 'age' : 'game'
       );
     } else {
+      lobbyReadyForGame = result.status !== 'playing';
+      pendingLobbyJoin = (result.status === 'playing' && result.gameState)
+        ? { gameState: result.gameState, settings: result.settings || {} }
+        : null;
       try {
         renderPlayersUI(await MP.fetchPlayers());
       } catch { /* ignore */ }
+      updateLobbyActionButtons(result.status || 'lobby');
       gameHooks?.showScreen?.('mp-lobby');
     }
     updateGameFooter();
@@ -377,11 +586,6 @@
   function handleContinue() {
     const sessions = getResumableSessions();
     if (!sessions.length) return;
-    if (sessions.length === 1) {
-      if (sessions[0].type === 'multiplayer') resumeRoomSession();
-      else gameHooks?.resumeLocalGame?.();
-      return;
-    }
     renderContinuePicker(sessions);
   }
 
@@ -418,7 +622,7 @@
           await initLobbyUI();
           lobbyUiReady = true;
         }
-        await enterRoomFromJoinResult(result);
+        await enterRoomFromJoinResult(result, { resumeSession: true });
         return;
       }
 
@@ -434,6 +638,7 @@
         gameHooks?.showScreen?.('mp-lobby');
       } else if (room.status === 'playing' && room.game_state) {
         await applyRemoteState(room.game_state, room.settings || {}, { resume: true });
+        syncGameClockForSession();
         const screen = room.game_state.screen;
         if (screen === 'question' || screen === 'age') {
           gameHooks?.showScreen?.(screen);
@@ -479,8 +684,11 @@
     if (GH.getCurrentGame()?.mode === 'multiplayer') GH.finishGame();
     await MP.leaveRoom();
     active = false;
+    pendingLobbyJoin = null;
+    lobbyReadyForGame = false;
     clearLastRoom();
     clearRoomPause();
+    gameHooks?.stopGameClock?.();
     gameHooks?.showScreen?.('menu');
   }
 
@@ -554,7 +762,8 @@
   async function hostStartFromLobby(settings) {
     if (!isHost() || !gameHooks) return;
     gameHooks.assignCategoriesForNewGame?.();
-    gameHooks.startGameClock?.();
+    markLastRoomGameStarted();
+    gameHooks.startGameClock?.(Date.now(), true);
     currentMatchId = global.crypto?.randomUUID?.() || 'mp-' + Date.now();
     GH.startGame('multiplayer', { roomCode: MP.getRoomCode(), roomId: MP.getRoomId() });
     const state = buildGameState({ screen: 'game', status: 'playing' });
@@ -661,6 +870,7 @@
 
   function renderPlayersUI(players) {
     MP.syncHostFromPlayers?.(players);
+    persistLastRoomPlayers(players);
     const hostBadge = document.getElementById('mp-host-badge');
     const startBtn = document.getElementById('mp-btn-start');
     if (hostBadge) hostBadge.hidden = !isHost();
@@ -1134,6 +1344,15 @@
       if (MP.isActive() && currentCode === code) {
         const players = await MP.fetchPlayers();
         renderPlayersUI(players);
+        try {
+          const room = await MP.fetchRoom();
+          updateLobbyActionButtons(room?.status || 'lobby');
+          if (room?.status === 'playing' && room.game_state) {
+            lobbyReadyForGame = false;
+            pendingLobbyJoin = { gameState: room.game_state, settings: room.settings || {} };
+          }
+        } catch { /* ignore */ }
+        gameHooks?.showScreen?.('mp-lobby');
         return;
       }
       if (MP.isActive()) {
@@ -1190,13 +1409,20 @@
     MP.setCallbacks({
       onStateChange: (state, settings, status) => {
         if (status === 'playing') {
+          if (gameHooks?.getCurrentScreenId?.() === 'mp-lobby' && !lobbyReadyForGame) {
+            pendingLobbyJoin = { gameState: state, settings: settings || {} };
+            updateLobbyActionButtons('playing');
+            return;
+          }
           applyRemoteState(state, settings);
         }
       },
       onPlayersChange: renderPlayersUI,
       onHostChange: (nowHost) => {
         if (hostBadge) hostBadge.hidden = !nowHost;
-        if (startBtn) startBtn.hidden = !nowHost;
+        MP.fetchRoom()
+          .then((room) => updateLobbyActionButtons(room?.status || 'lobby'))
+          .catch(() => updateLobbyActionButtons('lobby'));
         refreshGameNickLabel().catch(() => {});
         MP.fetchPlayers()
           .then((players) => renderPlayersUI(players))
@@ -1207,7 +1433,7 @@
     });
 
     if (hostBadge) hostBadge.hidden = !isHost();
-    if (startBtn) startBtn.hidden = !isHost();
+    updateLobbyActionButtons('lobby');
     showMpError(errEl, '');
 
     try {
@@ -1237,11 +1463,17 @@
           const settings = gameHooks?.getSettingsSnapshot?.() || {};
           await hostStartFromLobby(settings);
           active = true;
+          lobbyReadyForGame = true;
+          pendingLobbyJoin = null;
           saveLastRoom(MP.getRoomCode(), false);
           gameHooks?.showScreen?.('game');
         } catch (e) {
           showMpError(errEl, e.message || 'Erro ao iniciar');
         }
+      });
+
+      document.getElementById('mp-btn-join-game')?.addEventListener('click', () => {
+        enterGameFromLobby();
       });
 
       lobbyUiReady = true;
