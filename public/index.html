@@ -1122,11 +1122,19 @@
     cursor: pointer;
   }
   .countdown-ring.is-paused{
-    opacity: 0.72;
+    --fill-color: var(--gold-bright);
+    opacity: 0.95;
+    animation: none !important;
     box-shadow:
       0 0 0 10px var(--night),
       0 10px 26px var(--shadow),
-      inset 0 0 0 3px var(--gold-dim);
+      inset 0 0 0 3px rgba(var(--gold-rgb), 0.55);
+  }
+  .countdown-ring.is-paused.is-compact{
+    box-shadow:
+      0 0 0 4px var(--night),
+      0 4px 14px var(--shadow),
+      inset 0 0 0 2px rgba(var(--gold-rgb), 0.55);
   }
   .countdown-ring.is-compact{
     --ring-size: clamp(52px, 14vw, 68px);
@@ -5300,6 +5308,12 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     ring.style.setProperty('--pct', 100);
     ring.style.setProperty('--fill-color', bandColor);
     num.textContent = secondsLeft;
+    const pctStart = Math.max(0, (secondsLeft / total) * 100);
+    ring.style.setProperty('--pct', pctStart);
+    if(secondsLeft <= 10 && secondsLeft > 0){
+      ring.classList.add('urgent');
+      ring.style.setProperty('--fill-color', '#e5484d');
+    }
     questionCountdown = setInterval(() => {
       if(countdownPaused) return;
       secondsLeft--;
@@ -5336,6 +5350,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     countdownPaused = true;
     stopQuestionCountdown();
     const ring = document.getElementById('countdown-ring');
+    ring?.classList.remove('urgent');
     ring?.classList.add('is-paused');
     if(numEl){
       numEl.textContent = '⏸';
