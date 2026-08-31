@@ -16,6 +16,34 @@
   const LAST_ROOM_KEY = 'reino_mp_last_room_v1';
   let gameHooks = null;
   let currentMatchId = null;
+  let mpSessionStartedAt = null;
+
+  function getSessionStartedAt() {
+    return mpSessionStartedAt || getLastRoom()?.startedAt || null;
+  }
+
+  function applySessionStartedAt(ts, options = {}) {
+    const n = Number(ts);
+    if (!Number.isFinite(n) || n <= 0) return;
+    mpSessionStartedAt = n;
+    const saved = getLastRoom();
+    if (saved?.code) {
+      try {
+        mpStorage()?.setItem(LAST_ROOM_KEY, JSON.stringify({
+          ...saved,
+          startedAt: n,
+          at: Date.now(),
+        }));
+      } catch { /* ignore */ }
+    }
+    if (options.resumeClock !== false) {
+      gameHooks?.resumeGameClock?.(n);
+    }
+  }
+
+  function clearSessionStartedAt() {
+    mpSessionStartedAt = null;
+  }
 
   function bindGame(hooks) {
     gameHooks = hooks;
@@ -112,6 +140,7 @@
       dice: extra && 'dice' in extra ? extra.dice : (h.getLastDiceRoll?.() ?? null),
       round: extra?.round ?? (GH.getCurrentGame()?.rounds?.length || 0),
       ...extra,
+      sessionStartedAt: extra?.sessionStartedAt ?? getSessionStartedAt() ?? null,
     };
   }
 
@@ -174,6 +203,7 @@
     const remoteTs = Number(state.updatedAt) || 0;
     if (!options.resume && remoteTs && remoteTs < lastAppliedStateAt) return;
     if (remoteTs) lastAppliedStateAt = remoteTs;
+    if (state.sessionStartedAt) applySessionStartedAt(state.sessionStartedAt, { resumeClock: false });
     const h = gameHooks;
     if (settings && Object.keys(settings).length) {
       h.applySettings?.(settings);
@@ -293,14 +323,16 @@
       const prev = getLastRoom();
       const upper = String(code).toUpperCase();
       const sameRoom = prev?.code === upper;
-      mpStorage()?.setItem(LAST_ROOM_KEY, JSON.stringify({
+      const startedAt = mpSessionStartedAt || (sameRoom && prev?.startedAt) || undefined;
+      const payload = {
         code: upper,
         paused: !!paused,
         at: Date.now(),
-        startedAt: sameRoom && prev.startedAt ? prev.startedAt : Date.now(),
         playerCount: sameRoom ? (prev.playerCount ?? 0) : 0,
         connectedCount: sameRoom ? (prev.connectedCount ?? 0) : 0,
-      }));
+      };
+      if (startedAt) payload.startedAt = startedAt;
+      mpStorage()?.setItem(LAST_ROOM_KEY, JSON.stringify(payload));
     } catch { /* ignore */ }
   }
 
@@ -340,6 +372,7 @@
 
   function clearLastRoom() {
     try { mpStorage()?.removeItem(LAST_ROOM_KEY); } catch { /* ignore */ }
+    clearSessionStartedAt();
     updateContinueButton();
   }
 
@@ -355,21 +388,11 @@
   }
 
   function markLastRoomGameStarted() {
-    const saved = getLastRoom();
-    if (!saved?.code) return;
-    const now = Date.now();
-    try {
-      mpStorage()?.setItem(LAST_ROOM_KEY, JSON.stringify({
-        ...saved,
-        startedAt: now,
-        at: now,
-      }));
-    } catch { /* ignore */ }
+    applySessionStartedAt(Date.now(), { resumeClock: false });
   }
 
   function syncGameClockForSession() {
-    const saved = getLastRoom();
-    const startedAt = saved?.startedAt || saved?.at;
+    const startedAt = getSessionStartedAt();
     if (startedAt) gameHooks?.resumeGameClock?.(startedAt);
     else gameHooks?.startGameClock?.();
   }
@@ -605,6 +628,9 @@
     saveLastRoom(result.code || MP.getRoomCode(), false);
     active = true;
     clearRoomPause();
+    if (result.gameState?.sessionStartedAt) {
+      applySessionStartedAt(result.gameState.sessionStartedAt, { resumeClock: false });
+    }
 
     if (resumeSession && result.status === 'playing' && result.gameState) {
       lobbyReadyForGame = true;
@@ -836,11 +862,12 @@
     if (!isHost() || !gameHooks) return;
     await finishMultiplayerGame();
     gameHooks.assignCategoriesForNewGame?.();
-    markLastRoomGameStarted();
-    gameHooks.startGameClock?.(Date.now(), true);
+    const now = Date.now();
+    applySessionStartedAt(now, { resumeClock: false });
+    gameHooks.startGameClock?.(now, true);
     currentMatchId = global.crypto?.randomUUID?.() || 'mp-' + Date.now();
     GH.startGame('multiplayer', { roomCode: MP.getRoomCode(), roomId: MP.getRoomId() });
-    const state = buildGameState({ screen: 'game', status: 'playing' });
+    const state = buildGameState({ screen: 'game', status: 'playing', sessionStartedAt: now });
     await MP.startGame(state, settings || {});
     gameHooks.fillCategoryList?.();
     gameHooks.showScreen?.('game');
@@ -1594,6 +1621,9 @@
     wireRealtimeCallbacks._ready = true;
     MP.setCallbacks({
       onStateChange: (state, settings, status) => {
+        if (state?.sessionStartedAt) {
+          applySessionStartedAt(state.sessionStartedAt, { resumeClock: false });
+        }
         if (status === 'playing') {
           if (gameHooks?.getCurrentScreenId?.() === 'mp-lobby' && !lobbyReadyForGame) {
             pendingLobbyJoin = { gameState: state, settings: settings || {} };
