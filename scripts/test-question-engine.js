@@ -698,6 +698,30 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const cat7 = QE.getCategoryDef(7);
   assert('78. CATEGORIES unificado', cat7.formats.includes('CAUSA_CONSEQUENCIA') && cat7.subtopics.length > 0 && cat7.rules.includes('Matemática'));
   assert('78b. CATEGORY_RULES derivado', QE.CATEGORY_RULES[7] === cat7.rules);
+  assert('78c. CATEGORIES_RAW 20 entradas', Object.keys(QE.CATEGORIES).length === 20);
+}
+
+// 79–81. regex PT-PT / brasileirismo
+{
+  const equipa = { q: 'O time de actores do filme ganhou um prémio. Verdadeiro ou Falso?', a: 'Verdadeiro' };
+  const r1 = QE.validateQuestion(equipa, baseCtx({ formatId: QE.FORMAT_IDS.VERDADEIRO_FALSO, categoryNumber: 11, ageBandKey: '15+' }));
+  assert('79. time de (não BR) aceite', r1.ok, r1.issues?.join(', '));
+}
+{
+  const brTime = { q: 'O time ganhou o campeonato brasileiro.', a: 'Verdadeiro', options: ['Verdadeiro', 'Falso'] };
+  const r2 = QE.validateQuestion(brTime, baseCtx({ formatId: QE.FORMAT_IDS.VERDADEIRO_FALSO, isMC: true, categoryNumber: 15 }));
+  assert('80. time como equipa BR rejeitado', !r2.ok, r2.issues?.join(', '));
+}
+{
+  const en = { q: 'Qual é a estação do ano com mais sol?', a: 'Summer', options: ['Summer', 'Primavera', 'Outono', 'Inverno'] };
+  const r3 = QE.validateQuestion(en, baseCtx({ isMC: true, categoryNumber: 1, ageBandKey: '10-15' }));
+  assert('81. resposta só em inglês rejeitada', !r3.ok, r3.issues?.join(', '));
+}
+
+// 82. AGE_LIMITS
+{
+  const lim = QE.getAgeLimits('6-9');
+  assert('82. AGE_LIMITS 6-9', lim.shortQ.includes('110') && lim.maxCausaConsequenciaChars === 120);
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

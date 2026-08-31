@@ -70,68 +70,10 @@
     CURIOSIDADE: 'CURIOSIDADE',
   };
 
-  /** ADIVINHA e CURIOSIDADE apenas na categoria 20 */
-  const CATEGORY_FORMAT_MATRIX = {
-    1: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'QUEM_E', 'O_QUE_E', 'COMPLETA', 'QUANDO', 'ONDE_FICA'],
-    2: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'ONDE_FICA', 'COMPLETA', 'QUANDO'],
-    3: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'QUEM_E', 'COMPLETA', 'QUANDO', 'CAUSA_CONSEQUENCIA'],
-    4: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'O_QUE_E', 'COMPLETA', 'CAUSA_CONSEQUENCIA', 'SITUACAO_PRATICA'],
-    5: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'O_QUE_E', 'COMPLETA', 'CAUSA_CONSEQUENCIA', 'SITUACAO_PRATICA'],
-    6: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'O_QUE_E', 'COMPLETA', 'CAUSA_CONSEQUENCIA'],
-    7: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'COMPLETA', 'CAUSA_CONSEQUENCIA', 'SITUACAO_PRATICA'],
-    8: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'QUEM_E', 'O_QUE_E', 'COMPLETA', 'QUANDO'],
-    9: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'O_QUE_E', 'COMPLETA', 'SITUACAO_PRATICA'],
-    10: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'QUEM_E', 'O_QUE_E', 'COMPLETA', 'QUANDO'],
-    11: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'QUEM_E', 'O_QUE_E', 'COMPLETA', 'QUANDO'],
-    12: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'QUEM_E', 'O_QUE_E', 'COMPLETA', 'QUANDO'],
-    13: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'QUEM_E', 'O_QUE_E', 'QUANDO'],
-    14: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'O_QUE_E', 'COMPLETA', 'ONDE_FICA', 'SITUACAO_PRATICA'],
-    15: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'QUEM_E', 'COMPLETA', 'QUANDO'],
-    16: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'QUEM_E', 'O_QUE_E', 'COMPLETA', 'QUANDO'],
-    17: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'QUEM_E', 'O_QUE_E', 'COMPLETA', 'QUANDO', 'CAUSA_CONSEQUENCIA', 'SITUACAO_PRATICA'],
-    18: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'O_QUE_E', 'ONDE_FICA', 'QUANDO'],
-    19: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'QUEM_E', 'O_QUE_E', 'COMPLETA', 'QUANDO', 'CAUSA_CONSEQUENCIA', 'SITUACAO_PRATICA'],
-    20: ['ADIVINHA', 'CURIOSIDADE'],
-  };
-
   const FORMAT_AGE_EXCLUDED = {
     '6-9': ['CAUSA_CONSEQUENCIA', 'SITUACAO_PRATICA'],
     '10-15': [],
     '15+': [],
-  };
-
-  const CATEGORY_WEIGHT_BOOST = {
-    7: { SITUACAO_PRATICA: 2, CAUSA_CONSEQUENCIA: 2 },
-    20: { ADIVINHA: 1.6, CURIOSIDADE: 1.4 },
-    17: { SITUACAO_PRATICA: 1.8 },
-    14: { SITUACAO_PRATICA: 1.5 },
-  };
-
-  const CATEGORY_RULES = {
-    1: 'Cultura geral variada. Equilíbrio entre Portugal e mundo — não assumes cultura dos EUA como padrão.',
-    2: 'Geografia: países, capitais, rios, montanhas, continentes, monumentos. Sem imagens, mapas ou bandeiras visíveis.',
-    3: 'História: Portugal e mundo. Datas e personagens com precisão. Evita controvérsias sem data de referência.',
-    4: 'Ciência: física, química, biologia. Qualifica o contexto (ex.: "animal terrestre mais rápido").',
-    5: 'Natureza: animais, plantas, ecossistemas. Respostas objetivas e verificáveis.',
-    6: 'Espaço: planetas, estrelas, missões. Sem imagens nem mapas celestes.',
-    7: 'Matemática e Lógica: raciocínio e aplicação prática. Calcula internamente a resposta numérica antes de devolver.',
-    8: 'Literatura: autores, obras, personagens. Foco literário, não biografia geográfica.',
-    9: 'Português: vocabulário, gramática, ortografia, provérbios, sinónimos, antónimos, expressões portuguesas. Revisa concordância e regência (ex.: «na estante», não «no estante»).',
-    10: 'Arte: artistas, obras, estilos, técnicas. SEM imagens — nunca "que quadro é este?".',
-    11: 'Cinema e Séries: realizadores, atores, filmes, personagens. Sem imagens ou clips.',
-    12: 'Música: VARIA o foco — bandas/grupos, canções (título), álbuns, artistas, compositores, instrumentos, géneros, festivais (Eurovisão, Rock in Rio). Evita repetir sempre "que instrumento é". Inclui artistas portugueses quando adequado. SEM áudio — nunca "que música é esta?".',
-    13: 'Moda: peças, estilos, designers, tendências, tradições vestuárias.',
-    14: 'Gastronomia: ingredientes, pratos, tradições culinárias — privilegia gastronomia portuguesa. Confirma origens geográficas (ex.: pastel de nata → Belém/Lisboa, francesinha → Porto).',
-    15: 'Desporto: atletas, modalidades, regras, recordes com data ou contexto. Sem imagens. Natação em PT-PT: estilo mariposa (nunca "estilo borboleta"), costas, peito, crawl/estilo livre. Futebol em PT-PT: guarda-redes (nunca "goleiro"), defesa (nunca "zagueiro"), avançado (nunca "atacante"), remate (nunca "chute"), canto (nunca "escanteio"), relva (nunca "gramado"), equipa (nunca "time"), adeptos (nunca "torcida"), treinador (nunca "técnico"), golo (nunca "gol").',
-    16: 'Jogos: videojogos, tabuleiro, cartas, clássicos portugueses (Sueca, Damas, Dominó, etc.).',
-    17: `Tecnologia: ABRANGENTE — invenções, energia, comunicações, medicina aplicada, robótica, electrodomésticos, materiais e o digital. Computadores/software são SÓ UM dos temas (no máximo ~1 em 4 perguntas).
-VARIA: electricidade e energias (solar, eólica, hidroeléctrica, nuclear), telefone/rádio/TV/satélite, fotografia, lâmpada, frigorífico, impressão 3D, raio-X, GPS, baterias, robôs, IA, internet.
-NÃO repetir sempre PC, RAM, HTML, Windows, teclado, rato, SSD ou empresas de software.
-Evita sobrepor Transportes (carros/aviões) e Espaço (foguetões) — isso são outras categorias.
-SITUACAO_PRATICA é bem-vinda (ex.: "para que serve um fusível?").`,
-    18: 'Culturas do Mundo: tradições, festividades, línguas. EVITA generalizações sobre povos. Prefere factos específicos.',
-    19: 'Transportes: veículos, energia, história, regras de circulação, situações práticas.',
-    20: 'Categoria ESPECIAL — experiência diferente do resto do jogo. ADIVINHA: charadas/adivinhas tradicionais portuguesas, tom lúdico. CURIOSIDADE: factos surpreendentes ("Não sabia disso!"). NÃO uses perguntas normais de cultura geral aqui.',
   };
 
   const FORMAT_LABELS = {
@@ -167,56 +109,166 @@ SITUACAO_PRATICA é bem-vinda (ex.: "para que serve um fusível?").`,
     5: 'muito difícil (especialista)',
   };
 
-  const CATEGORY_SUBTOPICS = {
-    1: ['facto geral', 'comparação', 'sequência', 'cultura portuguesa', 'mundo'],
-    2: ['localização', 'capital', 'rio', 'montanha', 'clima', 'comparação geográfica'],
-    3: ['personagem', 'data', 'acontecimento', 'causa', 'consequência', 'sequência temporal'],
-    4: ['facto científico', 'causa', 'aplicação', 'experiência', 'previsão', 'situação prática'],
-    5: ['animal', 'planta', 'ecossistema', 'comportamento', 'adaptação'],
-    6: ['planeta', 'estrela', 'missão espacial', 'fenómeno celeste', 'astronauta'],
-    7: ['contagem', 'sequência', 'padrão', 'situação prática', 'problema'],
-    8: ['autor', 'obra', 'personagem literário', 'género', 'expressão idiomática'],
-    9: ['vocabulário', 'gramática', 'ortografia', 'sinónimo', 'provérbio'],
-    10: ['artista', 'obra', 'estilo', 'técnica', 'movimento artístico'],
-    11: ['filme', 'série', 'realizador', 'ator', 'personagem'],
-    12: ['banda', 'canção', 'álbum', 'artista', 'instrumento', 'género', 'festival'],
-    13: ['peça de roupa', 'estilo', 'designer', 'tendência', 'tradição'],
-    14: ['ingrediente', 'prato', 'tradição culinária', 'origem geográfica'],
-    15: ['modalidade', 'atleta', 'regra', 'recorde com data', 'equipa'],
-    16: ['videojogo', 'jogo de tabuleiro', 'personagem de jogo', 'consola'],
-    17: ['invenção', 'energia', 'comunicações', 'medicina aplicada', 'robótica', 'digital'],
-    18: ['tradição', 'festividade', 'língua', 'costume cultural'],
-    19: ['veículo', 'infraestrutura', 'regra de circulação', 'história dos transportes'],
-    20: ['adivinha tradicional', 'curiosidade surpreendente'],
+  const AGE_LIMITS = Object.freeze({
+    '6-9': Object.freeze({
+      shortQ: ' Frase MUITO curta (máx. 110 caracteres).',
+      completaYoung: ' BOM 6–9: "Completa: A água da chuva vem das ___." (nuvens) / "Completa: As plantas precisam de ___." (água). UMA frase, máx. 12 palavras antes da lacuna, resposta de 1 palavra.',
+      completaOral: ' Máx. 105 caracteres no total. Máx. 12 palavras antes de ___. Resposta: 1 palavra.',
+      mcYoung: ' 6–9: 4 opções CLARAMENTE diferentes — sem duplicados nem variantes da mesma personagem (Woody/Wooody/Sheriff Woody), sem erros ortográficos nas opções.',
+      mcConcise: ' Opções DIRECTAS: máx. 4 palavras cada — nome, lugar ou termo curto; sem frases explicativas nem parágrafos.',
+      quemEExtra: ' PARA 6–9: pergunta pelo PERSONAGEM, não pelo autor — BOM: "Quem é o menino bruxo de Harry Potter?" (Harry Potter). MAU: "Quem escreveu Harry Potter?" (J.K. Rowling). Só nomes que uma criança reconheça de imediato. Opções MC: 4 personagens DIFERENTES, sem repetir a mesma (Woody/Wooody).',
+      oQueEExtra: ' PARA 6–9: pergunta curta, resposta de 1–4 palavras simples (ex.: "O que é o Natal?" → "uma festa"). Opções MC também curtas e distintas — não repitas a mesma palavra em todas (ex.: evita quatro opções que comecem por "festa de…").',
+      maxCausaConsequenciaChars: 120,
+    }),
+    '10-15': Object.freeze({
+      shortQ: '',
+      completaYoung: '',
+      completaOral: ' Máx. 120 caracteres antes da lacuna. Máx. 14 palavras antes de ___.',
+      mcYoung: '',
+      mcConcise: ' Opções DIRECTAS: máx. 6 palavras cada — evita frases completas; preferir nome, data ou termo curto.',
+      quemEExtra: '',
+      oQueEExtra: '',
+      maxCausaConsequenciaChars: 180,
+    }),
+    '15+': Object.freeze({
+      shortQ: '',
+      completaYoung: '',
+      completaOral: ' Máx. 140 caracteres antes da lacuna. Máx. 16 palavras antes de ___.',
+      mcYoung: '',
+      mcConcise: ' Opções de escolha múltipla curtas e directas — evita frases longas quando um nome ou termo basta.',
+      quemEExtra: '',
+      oQueEExtra: '',
+      maxCausaConsequenciaChars: 200,
+    }),
+  });
+
+  function getAgeLimits(ageBandKey) {
+    return AGE_LIMITS[ageBandKey] || AGE_LIMITS['15+'];
+  }
+
+  /** Registo único por categoria — editar aqui ao adicionar/alterar categorias. */
+  const CATEGORIES_RAW = {
+    1: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO","ONDE_FICA"],
+      rules: "Cultura geral variada. Equilíbrio entre Portugal e mundo — não assumes cultura dos EUA como padrão.",
+      subtopics: ["facto geral","comparação","sequência","cultura portuguesa","mundo"],
+    },
+    2: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","ONDE_FICA","COMPLETA","QUANDO"],
+      rules: "Geografia: países, capitais, rios, montanhas, continentes, monumentos. Sem imagens, mapas ou bandeiras visíveis.",
+      subtopics: ["localização","capital","rio","montanha","clima","comparação geográfica"],
+    },
+    3: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","COMPLETA","QUANDO","CAUSA_CONSEQUENCIA"],
+      rules: "História: Portugal e mundo. Datas e personagens com precisão. Evita controvérsias sem data de referência.",
+      subtopics: ["personagem","data","acontecimento","causa","consequência","sequência temporal"],
+    },
+    4: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","COMPLETA","CAUSA_CONSEQUENCIA","SITUACAO_PRATICA"],
+      rules: "Ciência: física, química, biologia. Qualifica o contexto (ex.: \"animal terrestre mais rápido\").",
+      subtopics: ["facto científico","causa","aplicação","experiência","previsão","situação prática"],
+    },
+    5: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","COMPLETA","CAUSA_CONSEQUENCIA","SITUACAO_PRATICA"],
+      rules: "Natureza: animais, plantas, ecossistemas. Respostas objetivas e verificáveis.",
+      subtopics: ["animal","planta","ecossistema","comportamento","adaptação"],
+    },
+    6: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","COMPLETA","CAUSA_CONSEQUENCIA"],
+      rules: "Espaço: planetas, estrelas, missões. Sem imagens nem mapas celestes.",
+      subtopics: ["planeta","estrela","missão espacial","fenómeno celeste","astronauta"],
+    },
+    7: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","COMPLETA","CAUSA_CONSEQUENCIA","SITUACAO_PRATICA"],
+      rules: "Matemática e Lógica: raciocínio e aplicação prática. Calcula internamente a resposta numérica antes de devolver.",
+      subtopics: ["contagem","sequência","padrão","situação prática","problema"],
+      weightBoost: {"SITUACAO_PRATICA":2,"CAUSA_CONSEQUENCIA":2},
+    },
+    8: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO"],
+      rules: "Literatura: autores, obras, personagens. Foco literário, não biografia geográfica.",
+      subtopics: ["autor","obra","personagem literário","género","expressão idiomática"],
+    },
+    9: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","COMPLETA","SITUACAO_PRATICA"],
+      rules: "Português: vocabulário, gramática, ortografia, provérbios, sinónimos, antónimos, expressões portuguesas. Revisa concordância e regência (ex.: «na estante», não «no estante»).",
+      subtopics: ["vocabulário","gramática","ortografia","sinónimo","provérbio"],
+    },
+    10: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO"],
+      rules: "Arte: artistas, obras, estilos, técnicas. SEM imagens — nunca \"que quadro é este?\".",
+      subtopics: ["artista","obra","estilo","técnica","movimento artístico"],
+    },
+    11: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO"],
+      rules: "Cinema e Séries: realizadores, atores, filmes, personagens. Sem imagens ou clips.",
+      subtopics: ["filme","série","realizador","ator","personagem"],
+    },
+    12: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO"],
+      rules: "Música: VARIA o foco — bandas/grupos, canções (título), álbuns, artistas, compositores, instrumentos, géneros, festivais (Eurovisão, Rock in Rio). Evita repetir sempre \"que instrumento é\". Inclui artistas portugueses quando adequado. SEM áudio — nunca \"que música é esta?\".",
+      subtopics: ["banda","canção","álbum","artista","instrumento","género","festival"],
+    },
+    13: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","QUANDO"],
+      rules: "Moda: peças, estilos, designers, tendências, tradições vestuárias.",
+      subtopics: ["peça de roupa","estilo","designer","tendência","tradição"],
+    },
+    14: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","COMPLETA","ONDE_FICA","SITUACAO_PRATICA"],
+      rules: "Gastronomia: ingredientes, pratos, tradições culinárias — privilegia gastronomia portuguesa. Confirma origens geográficas (ex.: pastel de nata → Belém/Lisboa, francesinha → Porto).",
+      subtopics: ["ingrediente","prato","tradição culinária","origem geográfica"],
+      weightBoost: {"SITUACAO_PRATICA":1.5},
+    },
+    15: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","COMPLETA","QUANDO"],
+      rules: "Desporto: atletas, modalidades, regras, recordes com data ou contexto. Sem imagens. Natação em PT-PT: estilo mariposa (nunca \"estilo borboleta\"), costas, peito, crawl/estilo livre. Futebol em PT-PT: guarda-redes (nunca \"goleiro\"), defesa (nunca \"zagueiro\"), avançado (nunca \"atacante\"), remate (nunca \"chute\"), canto (nunca \"escanteio\"), relva (nunca \"gramado\"), equipa (nunca \"time\"), adeptos (nunca \"torcida\"), treinador (nunca \"técnico\"), golo (nunca \"gol\").",
+      subtopics: ["modalidade","atleta","regra","recorde com data","equipa"],
+    },
+    16: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO"],
+      rules: "Jogos: videojogos, tabuleiro, cartas, clássicos portugueses (Sueca, Damas, Dominó, etc.).",
+      subtopics: ["videojogo","jogo de tabuleiro","personagem de jogo","consola"],
+    },
+    17: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO","CAUSA_CONSEQUENCIA","SITUACAO_PRATICA"],
+      rules: "Tecnologia: ABRANGENTE — invenções, energia, comunicações, medicina aplicada, robótica, electrodomésticos, materiais e o digital. Computadores/software são SÓ UM dos temas (no máximo ~1 em 4 perguntas).\nVARIA: electricidade e energias (solar, eólica, hidroeléctrica, nuclear), telefone/rádio/TV/satélite, fotografia, lâmpada, frigorífico, impressão 3D, raio-X, GPS, baterias, robôs, IA, internet.\nNÃO repetir sempre PC, RAM, HTML, Windows, teclado, rato, SSD ou empresas de software.\nEvita sobrepor Transportes (carros/aviões) e Espaço (foguetões) — isso são outras categorias.\nSITUACAO_PRATICA é bem-vinda (ex.: \"para que serve um fusível?\").",
+      subtopics: ["invenção","energia","comunicações","medicina aplicada","robótica","digital"],
+      weightBoost: {"SITUACAO_PRATICA":1.8},
+    },
+    18: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","ONDE_FICA","QUANDO"],
+      rules: "Culturas do Mundo: tradições, festividades, línguas. EVITA generalizações sobre povos. Prefere factos específicos.",
+      subtopics: ["tradição","festividade","língua","costume cultural"],
+    },
+    19: {
+      formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO","CAUSA_CONSEQUENCIA","SITUACAO_PRATICA"],
+      rules: "Transportes: veículos, energia, história, regras de circulação, situações práticas.",
+      subtopics: ["veículo","infraestrutura","regra de circulação","história dos transportes"],
+    },
+    20: {
+      formats: ["ADIVINHA","CURIOSIDADE"],
+      rules: "Categoria ESPECIAL — experiência diferente do resto do jogo. ADIVINHA: charadas/adivinhas tradicionais portuguesas, tom lúdico. CURIOSIDADE: factos surpreendentes (\"Não sabia disso!\"). NÃO uses perguntas normais de cultura geral aqui.",
+      subtopics: ["adivinha tradicional","curiosidade surpreendente"],
+      weightBoost: {"ADIVINHA":1.6,"CURIOSIDADE":1.4},
+    },
   };
 
-  /** Registo unificado por categoria — fonte única para formatos, regras, subtópicos e boosts. */
-  function buildCategoriesRegistry(formatMatrix, rules, subtopics, weightBoost) {
-    const nums = new Set([
-      ...Object.keys(formatMatrix),
-      ...Object.keys(rules),
-      ...Object.keys(subtopics),
-      ...Object.keys(weightBoost),
-    ].map((k) => Number(k)));
+  function freezeCategories(raw) {
     const registry = {};
-    for (const n of nums) {
-      const def = {
-        formats: Object.freeze((formatMatrix[n] || formatMatrix[1]).slice()),
-        rules: rules[n] || rules[1] || '',
-        subtopics: Object.freeze((subtopics[n] || subtopics[1]).slice()),
+    for (const [n, def] of Object.entries(raw)) {
+      const entry = {
+        formats: Object.freeze(def.formats.slice()),
+        rules: def.rules,
+        subtopics: Object.freeze(def.subtopics.slice()),
       };
-      if (weightBoost[n]) def.weightBoost = Object.freeze({ ...weightBoost[n] });
-      registry[n] = Object.freeze(def);
+      if (def.weightBoost) entry.weightBoost = Object.freeze({ ...def.weightBoost });
+      registry[Number(n)] = Object.freeze(entry);
     }
     return Object.freeze(registry);
   }
 
-  const CATEGORIES = buildCategoriesRegistry(
-    CATEGORY_FORMAT_MATRIX,
-    CATEGORY_RULES,
-    CATEGORY_SUBTOPICS,
-    CATEGORY_WEIGHT_BOOST,
-  );
+  const CATEGORIES = freezeCategories(CATEGORIES_RAW);
 
   function getCategoryDef(categoryNumber) {
     return CATEGORIES[categoryNumber] || CATEGORIES[1];
@@ -283,39 +335,21 @@ SITUACAO_PRATICA é bem-vinda (ex.: "para que serve um fusível?").`,
 
   function buildFormatRules(formatId, ctx) {
     const { ageBandKey, isMC, isTrueFalse } = ctx;
-    const shortQ = ageBandKey === '6-9' ? ' Frase MUITO curta (máx. 110 caracteres).' : '';
+    const age = getAgeLimits(ageBandKey);
     const mcNote = isMC
       ? ' O jogador vê 4 opções — TODAS do MESMO TIPO (ex.: 4 pessoas, 4 anos, 4 materiais, 4 conceitos do tema). NUNCA mistures títulos de filmes, anos soltos, países, marcas genéricas (SpaceX, NASA) ou provérbios com nomes ou termos pedidos.'
       : ' Modo resposta aberta — resposta muito curta no campo "a".';
     const notRiddle = ' NÃO é adivinha — pergunta factual directa.';
-
-    const completaYoung = ageBandKey === '6-9'
-      ? ' BOM 6–9: "Completa: A água da chuva vem das ___." (nuvens) / "Completa: As plantas precisam de ___." (água). UMA frase, máx. 12 palavras antes da lacuna, resposta de 1 palavra.'
-      : '';
-    const completaOral = ageBandKey === '6-9'
-      ? ' Máx. 105 caracteres no total. Máx. 12 palavras antes de ___. Resposta: 1 palavra.'
-      : (ageBandKey === '10-15'
-        ? ' Máx. 120 caracteres antes da lacuna. Máx. 14 palavras antes de ___.'
-        : ' Máx. 140 caracteres antes da lacuna. Máx. 16 palavras antes de ___.');
-
-    const mcYoung = ageBandKey === '6-9'
-      ? ' 6–9: 4 opções CLARAMENTE diferentes — sem duplicados nem variantes da mesma personagem (Woody/Wooody/Sheriff Woody), sem erros ortográficos nas opções.'
-      : '';
-    const mcConcise = ageBandKey === '6-9'
-      ? ' Opções DIRECTAS: máx. 4 palavras cada — nome, lugar ou termo curto; sem frases explicativas nem parágrafos.'
-      : (ageBandKey === '10-15'
-        ? ' Opções DIRECTAS: máx. 6 palavras cada — evita frases completas; preferir nome, data ou termo curto.'
-        : ' Opções de escolha múltipla curtas e directas — evita frases longas quando um nome ou termo basta.');
     const rules = {
       RESPOSTA_DIRETA: `FORMATO: RESPOSTA_DIRETA — pergunta factual directa, uma frase interrogativa completa terminada em "?".${notRiddle}${mcNote}`,
-      ESCOLHA_MULTIPLA: `FORMATO: ESCOLHA_MULTIPLA — pergunta para 4 opções plausíveis (1 certa + 3 erradas credíveis, nunca absurdas). Distribui a resposta correcta aleatoriamente.${notRiddle}${mcYoung}${mcConcise}${mcNote}`,
+      ESCOLHA_MULTIPLA: `FORMATO: ESCOLHA_MULTIPLA — pergunta para 4 opções plausíveis (1 certa + 3 erradas credíveis, nunca absurdas). Distribui a resposta correcta aleatoriamente.${notRiddle}${age.mcYoung}${age.mcConcise}${mcNote}`,
       VERDADEIRO_FALSO: `FORMATO: VERDADEIRO_FALSO — afirmação inequívoca, terminando com "Verdadeiro ou Falso?". Campo "a" = exactamente "Verdadeiro" ou "Falso".${isMC ? ' Opções: ["Verdadeiro","Falso"].' : ''}`,
-      QUEM_E: `FORMATO OBRIGATÓRIO: QUEM_E — pergunta sobre uma PESSOA associada a uma obra, descoberta, acontecimento, invenção ou feito (ex.: "Quem escreveu Os Lusíadas?", "Quem pintou a Mona Lisa?"). Começa por "Quem" (nunca "Quem é quem"). Resposta = nome de pessoa (pode ser monónimo, nome artístico ou com título). NÃO perguntes por conceitos, objectos nem lugares. NÃO é adivinha.${ageBandKey === '6-9' ? ' PARA 6–9: pergunta pelo PERSONAGEM, não pelo autor — BOM: "Quem é o menino bruxo de Harry Potter?" (Harry Potter). MAU: "Quem escreveu Harry Potter?" (J.K. Rowling). Só nomes que uma criança reconheça de imediato. Opções MC: 4 personagens DIFERENTES, sem repetir a mesma (Woody/Wooody).' : ''}${shortQ}${mcYoung}${mcNote}`,
-      O_QUE_E: `FORMATO OBRIGATÓRIO: O_QUE_E — pergunta sobre um CONCEITO, fenómeno, processo, objecto ou termo a definir/explicar (ex.: "O que é a fotossíntese?", "O que significa 'metáfora'?"). NÃO perguntes por pessoas — isso é QUEM_E. NÃO é adivinha.${ageBandKey === '6-9' ? ' PARA 6–9: pergunta curta, resposta de 1–4 palavras simples (ex.: "O que é o Natal?" → "uma festa"). Opções MC também curtas e distintas — não repitas a mesma palavra em todas (ex.: evita quatro opções que comecem por "festa de…").' : ''}${shortQ}${mcNote}`,
+      QUEM_E: `FORMATO OBRIGATÓRIO: QUEM_E — pergunta sobre uma PESSOA associada a uma obra, descoberta, acontecimento, invenção ou feito (ex.: "Quem escreveu Os Lusíadas?", "Quem pintou a Mona Lisa?"). Começa por "Quem" (nunca "Quem é quem"). Resposta = nome de pessoa (pode ser monónimo, nome artístico ou com título). NÃO perguntes por conceitos, objectos nem lugares. NÃO é adivinha.${age.quemEExtra}${age.shortQ}${age.mcYoung}${mcNote}`,
+      O_QUE_E: `FORMATO OBRIGATÓRIO: O_QUE_E — pergunta sobre um CONCEITO, fenómeno, processo, objecto ou termo a definir/explicar (ex.: "O que é a fotossíntese?", "O que significa 'metáfora'?"). NÃO perguntes por pessoas — isso é QUEM_E. NÃO é adivinha.${age.oQueEExtra}${age.shortQ}${mcNote}`,
       COMPLETA: `FORMATO OBRIGATÓRIO: COMPLETA — frase curta que termina com a lacuna "___" (só no FINAL da frase). Um jogador lê a frase e o outro completa a última palavra.
 Estrutura: [contexto curto] ___. — NUNCA ponhas texto depois da lacuna.
 BOM: "Completa: A capital de Portugal é ___." / "Completa: A Voyager 1 atravessou a fronteira da heliosfera em 2012, chamada ___."
-MAU: "Completa: A Voyager 1 atravessou a ___ em 2012." (lacuna no meio — proibido).${completaYoung}${completaOral}${mcNote}`,
+MAU: "Completa: A Voyager 1 atravessou a ___ em 2012." (lacuna no meio — proibido).${age.completaYoung}${age.completaOral}${mcNote}`,
       ONDE_FICA: `FORMATO: ONDE_FICA — localização com UMA resposta inequívoca, sem mapa nem imagem.
 BOM: "Em que país nasce o rio Tejo?" → "Espanha" / "Em que país desagua o Tejo?" → "Portugal" / "Qual é a capital de França?" → "Paris" / "Em que continente fica o Brasil?" → "América do Sul".
 MAU: "Onde fica o rio Tejo?" com opções de países (o Tejo está em Espanha e Portugal — ambíguo). MAU: "Onde fica a cordilheira dos Alpes?" sem especificar país, capital ou continente.${notRiddle}${mcNote}`,
@@ -1632,7 +1666,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     }
 
     if (formatId === FORMAT_IDS.CAUSA_CONSEQUENCIA) {
-      const maxQ = ageBandKey === '6-9' ? 120 : (ageBandKey === '10-15' ? 180 : 200);
+      const maxQ = getAgeLimits(ageBandKey).maxCausaConsequenciaChars;
       if (q.length > maxQ) issues.push('pergunta CAUSA_CONSEQUENCIA demasiado longa para ler em voz alta');
     }
 
@@ -2085,6 +2119,8 @@ Só json válido, sem markdown: ${jsonFormat}`;
     FORMAT_LABELS: Object.freeze({ ...FORMAT_LABELS }),
     CATEGORIES,
     getCategoryDef,
+    AGE_LIMITS,
+    getAgeLimits,
     CATEGORY_FORMAT_MATRIX: Object.freeze(Object.fromEntries(
       Object.entries(CATEGORIES).map(([n, def]) => [n, def.formats]),
     )),
