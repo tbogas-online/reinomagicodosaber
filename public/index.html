@@ -594,12 +594,12 @@
   body.center-stage-active.category-bar-active{
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     min-height: 100dvh;
     box-sizing: border-box;
     overflow-y: auto;
-    padding-top: calc(var(--category-bar-offset) + 8px);
+    padding-top: 0;
     padding-bottom: env(safe-area-inset-bottom);
   }
   body.menu-screen-active .stage,
@@ -640,11 +640,11 @@
     line-height: 1.25;
   }
   body.center-stage-active.category-bar-active .stage{
-    flex: 0 0 auto;
+    flex: 1 0 auto;
     display: block;
     width: min(var(--stage-max), var(--stage-vw));
     margin: 0 auto;
-    padding-top: clamp(16px, 4vw, 28px);
+    padding-top: calc(var(--category-bar-offset) + 12px);
     padding-bottom: clamp(12px, 3vw, 20px);
   }
   body:has(.app-update-banner.visible) .page-footer-chrome{
@@ -793,10 +793,15 @@
   /* barra fixa da categoria — fora do .stage para ficar sempre no topo do ecrã */
   :root{ --category-bar-offset: 96px; }
   body.category-bar-active .stage{
-    padding-top: calc(var(--category-bar-offset) + 10px);
+    padding-top: calc(var(--category-bar-offset) + 12px);
   }
   body.category-bar-active.question-screen-active .stage{
-    padding-top: calc(var(--category-bar-offset) + 20px);
+    padding-top: calc(var(--category-bar-offset) + 16px);
+  }
+  body.category-bar-active #screen-age.active,
+  body.category-bar-active #screen-question.active{
+    width: 100%;
+    min-height: min(52vh, 440px);
   }
   body.question-screen-active{
     justify-content: flex-start;
@@ -2525,6 +2530,7 @@
     font-size: 0.85rem;
     margin-bottom: 10px;
   }
+  .mp-host-badge[hidden]{ display: none !important; }
   .mp-nickname-row{
     display: flex;
     gap: 8px;
@@ -3362,8 +3368,8 @@
 <script src="supabase-client.js?v=20260830-201600"></script>
 <script src="game-history.js?v=20260830-201600"></script>
 <script src="player-names.js?v=20260830-143600"></script>
-<script src="multiplayer-sync.js?v=20260831-095400"></script>
-<script src="multiplayer-controller.js?v=20260831-095400"></script>
+<script src="multiplayer-sync.js?v=20260831-103000"></script>
+<script src="multiplayer-controller.js?v=20260831-103000"></script>
 <script src="question-engine.js?v=20260830-192950" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>
@@ -5338,6 +5344,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(id === 'question' || id === 'age' || id === 'game' || id === 'settings' || id === 'history' || id === 'mp-menu' || id === 'mp-join' || id === 'mp-lobby' || id === 'continue'){
       window.scrollTo(0, 0);
     }
+    if(id === 'age'){
+      focusAgeScreen();
+    }
     if(id === 'game'){
       syncMultiplayerControls();
     }
@@ -5948,6 +5957,57 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     startQuestionCountdown();
   }
 
+  function showCategorySumResult(sum, cat, surprise){
+    lastCategory = cat;
+    lastIsSurprise = !!surprise;
+    selectedAgeBand = null;
+    lastDiceRoll = { d1: null, d2: null, sum };
+    highlightCategoryRollRow(sum);
+    document.getElementById('sum-line').innerHTML = `Soma: <b>${sum}</b>`;
+    document.getElementById('result-card').style.display = 'flex';
+    renderResultCard();
+    syncMultiplayerControls();
+  }
+
+  function pickCategoryBySum(sum){
+    let cat;
+    let surprise = false;
+    if(sum === 12){
+      cat = remainingCategories[Math.floor(Math.random()*remainingCategories.length)];
+      surprise = true;
+    } else {
+      cat = getCategoryForSum(sum);
+      if(!cat) return null;
+    }
+    selectedAgeBand = null;
+    lastDiceRoll = { d1: null, d2: null, sum };
+    lastCategory = cat;
+    lastIsSurprise = surprise;
+    highlightCategoryRollRow(sum);
+    document.getElementById('sum-line').innerHTML = `Soma: <b>${sum}</b>`;
+    document.getElementById('result-card').style.display = 'flex';
+    renderResultCard();
+    const btn = document.getElementById('btn-roll');
+    btn.disabled = false;
+    btn.textContent = '🎲 Lançar os Dados';
+    return { cat, surprise, dice: lastDiceRoll };
+  }
+
+  function resetRollUi(){
+    const btn = document.getElementById('btn-roll');
+    const card = document.getElementById('result-card');
+    if(btn){
+      btn.disabled = false;
+      btn.textContent = '🎲 Lançar os Dados';
+    }
+    if(card){
+      card.style.display = 'none';
+      card.className = 'card card-compact';
+      card.innerHTML = '<span class="placeholder">A categoria aparecerá aqui ✦</span>';
+    }
+    document.getElementById('sum-line').innerHTML = '';
+  }
+
   function showDiceResultOnScreen(d1, d2, cat, surprise){
     SFX.diceLand();
     const sum = d1 + d2;
@@ -6006,6 +6066,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         applyCountdownSync,
         applyAnswerFromRemote,
         showDiceResult: showDiceResultOnScreen,
+        showCategorySumResult,
+        pickCategoryBySum,
+        focusAgeScreen,
+        updateQuestionCategoryHeader,
         displayQuestion: displayQuestionFromState,
         applySettings(settings){
           if(!settings) return;
@@ -7008,6 +7072,15 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     if(index >= 0 && index < rows.length) rows[index].classList.add('is-rolled');
   }
 
+  function focusAgeScreen(){
+    const screen = document.getElementById('screen-age');
+    if(!screen) return;
+    requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      screen.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
   function focusDiceRollResult(sum){
     highlightCategoryRollRow(sum);
     const card = document.getElementById('result-card');
@@ -7041,22 +7114,14 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
 
   // Escolha manual: usada tanto para o dado virtual como para quando se
   // usa um dado físico e se toca na categoria correspondente à soma saída.
-  function selectCategoryBySum(sum){
-    if(sum === 12){
-      lastCategory = remainingCategories[Math.floor(Math.random()*remainingCategories.length)];
-      lastIsSurprise = true;
-    } else {
-      lastCategory = getCategoryForSum(sum);
-      lastIsSurprise = false;
+  async function selectCategoryBySum(sum){
+    const mp = window.MultiplayerController;
+    if(mp?.isMultiplayer?.()){
+      await mp.syncCategoryPick(sum);
+      return;
     }
-    selectedAgeBand = null;
-    lastDiceRoll = { d1: null, d2: null, sum };
-    document.getElementById('sum-line').innerHTML = `Soma: <b>${sum}</b>`;
-    document.getElementById('result-card').style.display = 'flex';
-    renderResultCard();
-    const btn = document.getElementById('btn-roll');
-    btn.disabled = false;
-    btn.textContent = '🎲 Lançar os Dados';
+    const picked = pickCategoryBySum(sum);
+    if(!picked?.cat) return;
     goToAgeSelection();
   }
 
@@ -7081,7 +7146,9 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
 
   function finishRoll(d1, d2){
     if(window.MultiplayerController?.isMultiplayer?.()){
-      window.MultiplayerController.hostRollDice(d1, d2);
+      window.MultiplayerController.hostRollDice(d1, d2).then((ok) => {
+        if(!ok) resetRollUi();
+      });
       return;
     }
     SFX.diceLand();

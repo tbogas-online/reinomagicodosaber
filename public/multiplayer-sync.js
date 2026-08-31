@@ -53,42 +53,35 @@
   }
 
   function getIsHost() {
-    return isHost;
+    if (!roomHostPlayerId || !playerId) return false;
+    return String(roomHostPlayerId) === String(playerId);
   }
 
   function isActive() {
     return !!roomId && !!client;
   }
 
-  function setHostFlag(nextHost, notify = true) {
-    const becameHost = !!nextHost;
-    if (isHost === becameHost) return;
-    isHost = becameHost;
-    if (notify) onHostChange?.(becameHost);
+  function refreshHostFlag(notify = true) {
+    const next = getIsHost();
+    if (isHost === next) return next;
+    isHost = next;
+    if (notify) onHostChange?.(next);
+    return next;
   }
 
   function applyHostPlayerId(hostId) {
     if (!hostId) return;
     roomHostPlayerId = hostId;
-    if (playerId) setHostFlag(String(roomHostPlayerId) === String(playerId));
+    refreshHostFlag(true);
   }
 
   function getHostPlayerId() {
     return roomHostPlayerId;
   }
 
-  function syncHostFromPlayers(players) {
-    if (!playerId) return isHost;
-    if (roomHostPlayerId) {
-      setHostFlag(String(roomHostPlayerId) === String(playerId));
-      return isHost;
-    }
-    const hostPlayer = (players || []).find((p) => p.is_host);
-    if (hostPlayer?.player_id) {
-      roomHostPlayerId = hostPlayer.player_id;
-    }
-    setHostFlag(roomHostPlayerId ? String(roomHostPlayerId) === String(playerId) : false);
-    return isHost;
+  function syncHostFromPlayers() {
+    refreshHostFlag(false);
+    return getIsHost();
   }
 
   function normalizePlayerHostFlags(players) {
@@ -129,15 +122,13 @@
 
   async function fetchPlayers() {
     if (!client || !roomId) return [];
-    if (!roomHostPlayerId) {
-      try { await syncHostFromServer(); } catch { /* fallback abaixo */ }
-    }
+    try { await syncHostFromServer(); } catch { /* ignore */ }
     const { data: rpcData, error: rpcError } = await client.rpc('get_room_players', {
       p_room_id: roomId,
     });
     if (!rpcError && Array.isArray(rpcData)) {
       const players = normalizePlayerHostFlags(rpcData);
-      syncHostFromPlayers(players);
+      syncHostFromPlayers();
       return players;
     }
     const { data, error } = await client
@@ -147,12 +138,12 @@
       .order('joined_at', { ascending: true });
     if (error) throw error;
     const players = normalizePlayerHostFlags(data || []);
-    syncHostFromPlayers(players);
+    syncHostFromPlayers();
     return players;
   }
 
   async function syncHostFromServer() {
-    if (!client || !roomId) return isHost;
+    if (!client || !roomId) return false;
     try {
       const { data: room, error } = await client
         .from('rooms')
@@ -161,11 +152,10 @@
         .single();
       if (!error && room?.host_player_id) {
         applyHostPlayerId(room.host_player_id);
-        return isHost;
+        return true;
       }
-    } catch { /* fallback abaixo */ }
-    const players = await fetchPlayers();
-    return syncHostFromPlayers(players);
+    } catch { /* ignore */ }
+    return false;
   }
 
   async function createRoom(settings, nickname) {
@@ -178,11 +168,10 @@
     if (error) throw error;
     roomId = data.room_id;
     roomCode = data.code;
-    roomHostPlayerId = playerId;
-    setHostFlag(true, false);
+    applyHostPlayerId(data.host_player_id || playerId);
     await subscribe();
     await syncHostFromServer();
-    return { roomId, code: roomCode, isHost: true };
+    return { roomId, code: roomCode, isHost: getIsHost() };
   }
 
   async function joinRoom(code, nickname) {
@@ -194,17 +183,13 @@
     if (error) throw error;
     roomId = data.room_id;
     roomCode = data.code;
-    if (data.host_player_id) {
-      applyHostPlayerId(data.host_player_id);
-    } else {
-      setHostFlag(!!data.is_host, false);
-    }
+    if (data.host_player_id) applyHostPlayerId(data.host_player_id);
     await subscribe();
     await syncHostFromServer();
     return {
       roomId,
       code: roomCode,
-      isHost,
+      isHost: getIsHost(),
       status: data.status,
       settings: data.settings,
       gameState: data.game_state,
@@ -434,7 +419,7 @@
     roomId = null;
     roomCode = null;
     roomHostPlayerId = null;
-    setHostFlag(false, false);
+    isHost = false;
     lastGameStateJson = '';
   }
 
@@ -449,7 +434,7 @@
     roomId = null;
     roomCode = null;
     roomHostPlayerId = null;
-    setHostFlag(false, false);
+    isHost = false;
     lastGameStateJson = '';
     return data;
   }

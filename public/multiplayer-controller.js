@@ -14,7 +14,6 @@
   let pendingLobbyJoin = null;
   let lobbyReadyForGame = false;
   const LAST_ROOM_KEY = 'reino_mp_last_room_v1';
-  let applyingRemote = false;
   let gameHooks = null;
   let currentMatchId = null;
 
@@ -26,12 +25,24 @@
     return !!MP?.isActive();
   }
 
+  function amRoomHost() {
+    const hostId = MP?.getHostPlayerId?.();
+    const myId = MP?.getPlayerId?.();
+    if (!hostId || !myId) return false;
+    return String(hostId) === String(myId);
+  }
+
   function isMultiplayer() {
     return active && MP?.isActive() && !roomPaused;
   }
 
   function isHost() {
-    return isMultiplayer() && MP.getIsHost();
+    return isMultiplayer() && amRoomHost();
+  }
+
+  function updateHostBadgeUI() {
+    const hostBadge = document.getElementById('mp-host-badge');
+    if (hostBadge) hostBadge.hidden = !amRoomHost();
   }
 
   async function finishMultiplayerGame() {
@@ -56,7 +67,17 @@
   }
 
   function canControl() {
-    return isHost();
+    return isMultiplayer();
+  }
+
+  function applyDiceVisual(state, lastCat, h) {
+    const dice = state?.dice;
+    if (!dice) return;
+    if (dice.d1 != null && dice.d2 != null) {
+      h.showDiceResult?.(dice.d1, dice.d2, lastCat, state.lastIsSurprise);
+    } else if (dice.sum != null) {
+      h.showCategorySumResult?.(dice.sum, lastCat, state.lastIsSurprise);
+    }
   }
 
   function serializeCategory(cat) {
@@ -96,6 +117,29 @@
 
   let lastGameStateJson = '';
   let lastAppliedStateAt = 0;
+  let remoteApplyChain = Promise.resolve();
+
+  function scheduleRemoteState(state, settings, options = {}) {
+    remoteApplyChain = remoteApplyChain
+      .then(() => applyRemoteState(state, settings, options))
+      .catch((e) => console.warn('[MP] applyRemoteState', e));
+    return remoteApplyChain;
+  }
+
+  function applyAgeScreenState(state, lastCat, h) {
+    if (!lastCat?.n) {
+      h.showScreen?.('game');
+      return;
+    }
+    if (state?.dice) applyDiceVisual(state, lastCat, h);
+    h.updateQuestionCategoryHeader?.(
+      lastCat,
+      !!state.lastIsSurprise,
+      state.selectedAgeBand || null
+    );
+    h.showScreen?.('age');
+    h.focusAgeScreen?.();
+  }
 
   async function pushState(extra) {
     if (!isMultiplayer()) return;
@@ -125,76 +169,66 @@
   }
 
   async function applyRemoteState(state, settings, options = {}) {
-    if (!state || !gameHooks || applyingRemote) return;
+    if (!state || !gameHooks) return;
     if (!options.resume && state.actorId && state.actorId === MP.getPlayerId()) return;
     const remoteTs = Number(state.updatedAt) || 0;
     if (!options.resume && remoteTs && remoteTs < lastAppliedStateAt) return;
     if (remoteTs) lastAppliedStateAt = remoteTs;
-    applyingRemote = true;
-    try {
-      const h = gameHooks;
-      if (settings && Object.keys(settings).length) {
-        h.applySettings?.(settings);
-      }
-      if (state.gameCategoryMap && Object.keys(state.gameCategoryMap).length > 0) {
-        const map = {};
-        Object.keys(state.gameCategoryMap).forEach((k) => {
-          map[k] = deserializeCategory(state.gameCategoryMap[k]);
-        });
-        h.setGameCategoryMap?.(map);
-      }
-      if (state.remainingCategories) {
-        h.setRemainingCategories?.(state.remainingCategories.map(deserializeCategory));
-      }
-      const lastCat = resolveCategoryFromState(state);
-      h.setLastCategory?.(lastCat, !!state.lastIsSurprise);
-      h.setSelectedAgeBand?.(state.selectedAgeBand || null);
+    const h = gameHooks;
+    if (settings && Object.keys(settings).length) {
+      h.applySettings?.(settings);
+    }
+    if (state.gameCategoryMap && Object.keys(state.gameCategoryMap).length > 0) {
+      const map = {};
+      Object.keys(state.gameCategoryMap).forEach((k) => {
+        map[k] = deserializeCategory(state.gameCategoryMap[k]);
+      });
+      h.setGameCategoryMap?.(map);
+    }
+    if (state.remainingCategories) {
+      h.setRemainingCategories?.(state.remainingCategories.map(deserializeCategory));
+    }
+    const lastCat = resolveCategoryFromState(state);
+    h.setLastCategory?.(lastCat, !!state.lastIsSurprise);
+    h.setSelectedAgeBand?.(state.selectedAgeBand || null);
 
-      if (state.screen === 'game') {
-        const backToCategories = !state.dice && !state.currentQuestion;
-        if (backToCategories) {
-          h.returnToCategoryBoard?.();
-        } else {
-          h.fillCategoryList?.();
-          h.resetGameScreenPartial?.();
-          if (state.dice) {
-            h.showDiceResult?.(state.dice.d1, state.dice.d2, lastCat, state.lastIsSurprise);
-          }
-          h.setCurrentQuestion?.(state.currentQuestion || null);
-          h.showScreen?.('game');
-        }
-        syncGameClockForSession();
-      } else if (state.screen === 'age') {
-        if (!lastCat?.n) {
-          h.showScreen?.('game');
-          syncGameClockForSession();
-        } else {
-          h.fillCategoryList?.();
-          if (state.dice) {
-            h.showDiceResult?.(state.dice.d1, state.dice.d2, lastCat, state.lastIsSurprise);
-          }
-          syncGameClockForSession();
-          h.showScreen?.('age');
-        }
-      } else if (state.screen === 'question' && state.currentQuestion) {
-        const sameQ = h.isSameQuestion?.(state.currentQuestion);
-        if (!sameQ) {
-          h.setCurrentQuestion?.(state.currentQuestion);
-          await h.displayQuestion?.(lastCat, state.lastIsSurprise, state.selectedAgeBand, state.currentQuestion);
-        } else if (h.getCurrentScreenId?.() !== 'question') {
-          h.setCurrentQuestion?.(state.currentQuestion);
-          await h.displayQuestion?.(lastCat, state.lastIsSurprise, state.selectedAgeBand, state.currentQuestion);
-        }
-        if (typeof state.countdownPaused === 'boolean') {
-          h.applyCountdownSync?.(state.countdownPaused, state.countdownRemaining);
-        }
-        if (state.answerRevealed) {
-          h.applyAnswerFromRemote?.(state.selectedAnswer || null);
-        }
-        syncGameClockForSession();
+    if (state.screen === 'game') {
+      const backToCategories = !state.dice && !state.currentQuestion;
+      if (backToCategories) {
+        h.returnToCategoryBoard?.();
+      } else {
+        h.fillCategoryList?.();
+        h.resetGameScreenPartial?.();
+        applyDiceVisual(state, lastCat, h);
+        h.setCurrentQuestion?.(state.currentQuestion || null);
+        h.showScreen?.('game');
       }
-    } finally {
-      applyingRemote = false;
+      syncGameClockForSession();
+      return;
+    }
+
+    if (state.screen === 'age') {
+      applyAgeScreenState(state, lastCat, h);
+      syncGameClockForSession();
+      return;
+    }
+
+    if (state.screen === 'question' && state.currentQuestion) {
+      const sameQ = h.isSameQuestion?.(state.currentQuestion);
+      if (!sameQ) {
+        h.setCurrentQuestion?.(state.currentQuestion);
+        await h.displayQuestion?.(lastCat, state.lastIsSurprise, state.selectedAgeBand, state.currentQuestion);
+      } else if (h.getCurrentScreenId?.() !== 'question') {
+        h.setCurrentQuestion?.(state.currentQuestion);
+        await h.displayQuestion?.(lastCat, state.lastIsSurprise, state.selectedAgeBand, state.currentQuestion);
+      }
+      if (typeof state.countdownPaused === 'boolean') {
+        h.applyCountdownSync?.(state.countdownPaused, state.countdownRemaining);
+      }
+      if (state.answerRevealed) {
+        h.applyAnswerFromRemote?.(state.selectedAnswer || null);
+      }
+      syncGameClockForSession();
     }
   }
 
@@ -532,7 +566,7 @@
     const startBtn = document.getElementById('mp-btn-start');
     const joinBtn = document.getElementById('mp-btn-join-game');
     const isPlaying = status === 'playing';
-    if (startBtn) startBtn.hidden = !isHost() || isPlaying;
+    if (startBtn) startBtn.hidden = !amRoomHost() || isPlaying;
     if (joinBtn) joinBtn.hidden = !isPlaying;
   }
 
@@ -541,17 +575,12 @@
     showMpError(errEl, '');
     lobbyReadyForGame = true;
     let payload = pendingLobbyJoin;
-    if (!payload?.gameState) {
-      try {
-        const room = await MP.fetchRoom();
-        if (room?.status === 'playing' && room.game_state) {
-          payload = { gameState: room.game_state, settings: room.settings || {} };
-        }
-      } catch (e) {
-        showMpError(errEl, e.message || 'Não foi possível entrar no jogo');
-        return;
+    try {
+      const room = await MP.fetchRoom();
+      if (room?.status === 'playing' && room.game_state) {
+        payload = { gameState: room.game_state, settings: room.settings || {} };
       }
-    }
+    } catch { /* fallback ao estado em cache */ }
     if (!payload?.gameState) {
       showMpError(errEl, 'O jogo ainda não começou');
       return;
@@ -820,7 +849,7 @@
   }
 
   async function hostRollDice(d1, d2) {
-    if (!canControl()) return false;
+    if (!isMultiplayer() || !gameHooks) return false;
     const h = gameHooks;
     const sum = d1 + d2;
     let lastCat;
@@ -847,22 +876,52 @@
     return true;
   }
 
+  async function syncCategoryPick(sum) {
+    if (!isMultiplayer() || !gameHooks) return false;
+    const h = gameHooks;
+    const picked = h.pickCategoryBySum?.(sum);
+    if (!picked?.cat) return false;
+    try {
+      const state = {
+        screen: 'age',
+        dice: picked.dice || { d1: null, d2: null, sum },
+        lastCategory: serializeCategory(picked.cat),
+        lastIsSurprise: !!picked.surprise,
+        selectedAgeBand: null,
+        currentQuestion: null,
+      };
+      await pushState(state);
+      applyAgeScreenState(state, picked.cat, h);
+      return true;
+    } catch (e) {
+      showMpToast('Aviso: não foi possível sincronizar com a sala.');
+      return false;
+    }
+  }
+
   async function hostGoToAgeSelection() {
     if (!gameHooks) return false;
     const h = gameHooks;
     const cat = h.getLastCategory?.();
     if (!cat) return false;
-    h.showScreen?.('age');
-    if (!isMultiplayer()) return true;
+    if (!isMultiplayer()) {
+      h.showScreen?.('age');
+      return true;
+    }
     try {
-      await pushState({
+      const state = {
         screen: 'age',
         lastCategory: serializeCategory(cat),
         lastIsSurprise: !!h.getLastIsSurprise?.(),
         dice: h.getLastDiceRoll?.() || null,
-      });
+        selectedAgeBand: null,
+        currentQuestion: null,
+      };
+      await pushState(state);
+      applyAgeScreenState(state, cat, h);
     } catch (e) {
       showMpToast('Aviso: não foi possível sincronizar com a sala.');
+      h.showScreen?.('age');
     }
     return true;
   }
@@ -959,17 +1018,16 @@
   }
 
   function renderPlayersUI(players) {
+    updateHostBadgeUI();
+
     const snapshot = playersSnapshot(players);
     if (snapshot === lastPlayersSnapshot) return;
     lastPlayersSnapshot = snapshot;
 
     persistLastRoomPlayers(players);
-    const hostBadge = document.getElementById('mp-host-badge');
     const startBtn = document.getElementById('mp-btn-start');
     const hostId = MP.getHostPlayerId?.() || null;
-    const amHost = isHost() && hostId && String(MP.getPlayerId()) === String(hostId);
-    if (hostBadge) hostBadge.hidden = !amHost;
-    if (startBtn) startBtn.hidden = !amHost;
+    if (startBtn) startBtn.hidden = !amRoomHost();
 
     const isPlayerHost = (p) => !!(hostId && String(p.player_id) === String(hostId));
 
@@ -1536,15 +1594,13 @@
             updateLobbyActionButtons('playing');
             return;
           }
-          applyRemoteState(state, settings);
+          scheduleRemoteState(state, settings);
         }
       },
       onPlayersChange: renderPlayersUI,
       onHostChange: (nowHost) => {
         lastPlayersSnapshot = '';
-        const hostBadge = document.getElementById('mp-host-badge');
-        const amHost = nowHost && MP.getHostPlayerId() && String(MP.getPlayerId()) === String(MP.getHostPlayerId());
-        if (hostBadge) hostBadge.hidden = !amHost;
+        updateHostBadgeUI();
         MP.fetchRoom()
           .then((room) => updateLobbyActionButtons(room?.status || 'lobby'))
           .catch(() => updateLobbyActionButtons('lobby'));
@@ -1565,18 +1621,18 @@
   }
 
   async function initLobbyUI() {
-    const hostBadge = document.getElementById('mp-host-badge');
     const startBtn = document.getElementById('mp-btn-start');
     const errEl = document.getElementById('mp-lobby-error');
 
     wireRealtimeCallbacks();
 
-    if (hostBadge) hostBadge.hidden = !(isHost() && MP.getHostPlayerId() && String(MP.getPlayerId()) === String(MP.getHostPlayerId()));
+    updateHostBadgeUI();
     updateLobbyActionButtons('lobby');
     showMpError(errEl, '');
 
     try {
       await MP.syncHostFromServer?.();
+      updateHostBadgeUI();
       lastPlayersSnapshot = '';
       const players = await MP.fetchPlayers();
       renderPlayersUI(players);
@@ -1794,6 +1850,7 @@
     onSinglePlayerStart,
     onAnswerRevealed,
     hostRollDice,
+    syncCategoryPick,
     hostGoToAgeSelection,
     hostSelectAge,
     hostQuestionReady,
