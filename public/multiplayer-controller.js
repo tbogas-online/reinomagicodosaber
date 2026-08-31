@@ -56,7 +56,7 @@
   }
 
   function canControl() {
-    return true;
+    return isHost();
   }
 
   function serializeCategory(cat) {
@@ -959,15 +959,19 @@
   }
 
   function renderPlayersUI(players) {
-    MP.syncHostFromPlayers?.(players);
+    const snapshot = playersSnapshot(players);
+    if (snapshot === lastPlayersSnapshot) return;
+    lastPlayersSnapshot = snapshot;
+
     persistLastRoomPlayers(players);
     const hostBadge = document.getElementById('mp-host-badge');
     const startBtn = document.getElementById('mp-btn-start');
-    if (hostBadge) hostBadge.hidden = !isHost();
-    if (startBtn) startBtn.hidden = !isHost();
-
     const hostId = MP.getHostPlayerId?.() || null;
-    const isPlayerHost = (p) => !!(p.is_host || (hostId && String(p.player_id) === String(hostId)));
+    const amHost = isHost() && hostId && String(MP.getPlayerId()) === String(hostId);
+    if (hostBadge) hostBadge.hidden = !amHost;
+    if (startBtn) startBtn.hidden = !amHost;
+
+    const isPlayerHost = (p) => !!(hostId && String(p.player_id) === String(hostId));
 
     const count = (players || []).length;
     const connected = (players || []).filter((p) => p.is_connected).length;
@@ -988,6 +992,12 @@
     const list = document.getElementById('mp-players-list');
     fillPlayerRows(list, players, isPlayerHost);
     if (list) list.hidden = count === 0;
+
+    if (gameHooks?.getCurrentScreenId?.() === 'mp-lobby') {
+      MP.fetchRoom()
+        .then((room) => updateLobbyActionButtons(room?.status || 'lobby'))
+        .catch(() => {});
+    }
   }
 
   const renderLobbyPlayers = renderPlayersUI;
@@ -998,6 +1008,17 @@
 
   let gamePlayersOpen = false;
   let gameNickOpen = false;
+  let lastPlayersSnapshot = '';
+
+  function playersSnapshot(players) {
+    const hostId = MP.getHostPlayerId?.() || '';
+    const rows = (players || []).map((p) => ({
+      id: String(p.player_id || ''),
+      n: String(p.nickname || ''),
+      c: !!p.is_connected,
+    }));
+    return JSON.stringify({ hostId, rows });
+  }
 
   async function savePlayerNickname(name) {
     const trimmed = String(name || '').trim().slice(0, 24);
@@ -1008,7 +1029,8 @@
     try {
       await MP.updateNickname(trimmed);
       global.PlayerNames?.saveNickname?.(trimmed);
-      renderPlayersUI(await MP.fetchPlayers());
+      lastPlayersSnapshot = '';
+      await MP.refreshPlayers?.();
       const label = document.getElementById('mp-game-nick-label');
       if (label) label.textContent = formatPlayerNickLabel(trimmed);
       const lobbyInput = document.getElementById('mp-lobby-nick');
@@ -1498,18 +1520,14 @@
     }
     updateLobbyRoomChrome();
     if (show) {
-      MP.fetchPlayers()
-        .then((players) => renderPlayersUI(players))
-        .catch(() => {});
+      refreshPlayersUI().catch(() => {});
       refreshGameNickLabel().catch(() => {});
     }
   }
 
-  async function initLobbyUI() {
-    const hostBadge = document.getElementById('mp-host-badge');
-    const startBtn = document.getElementById('mp-btn-start');
-    const errEl = document.getElementById('mp-lobby-error');
-
+  function wireRealtimeCallbacks() {
+    if (wireRealtimeCallbacks._ready) return;
+    wireRealtimeCallbacks._ready = true;
     MP.setCallbacks({
       onStateChange: (state, settings, status) => {
         if (status === 'playing') {
@@ -1523,25 +1541,43 @@
       },
       onPlayersChange: renderPlayersUI,
       onHostChange: (nowHost) => {
-        if (hostBadge) hostBadge.hidden = !nowHost;
+        lastPlayersSnapshot = '';
+        const hostBadge = document.getElementById('mp-host-badge');
+        const amHost = nowHost && MP.getHostPlayerId() && String(MP.getPlayerId()) === String(MP.getHostPlayerId());
+        if (hostBadge) hostBadge.hidden = !amHost;
         MP.fetchRoom()
           .then((room) => updateLobbyActionButtons(room?.status || 'lobby'))
           .catch(() => updateLobbyActionButtons('lobby'));
         refreshGameNickLabel().catch(() => {});
-        MP.fetchPlayers()
-          .then((players) => renderPlayersUI(players))
-          .catch(() => {});
+        MP.refreshPlayers?.().catch(() => {});
         if (nowHost) showMpToast('👑 Agora és o anfitrião da sala.');
       },
       onRoomExpired: handleRoomExpired,
     });
+  }
 
-    if (hostBadge) hostBadge.hidden = !isHost();
+  async function refreshPlayersUI() {
+    if (!isInRoom()) return;
+    lastPlayersSnapshot = '';
+    try {
+      await MP.refreshPlayers?.();
+    } catch { /* ignore */ }
+  }
+
+  async function initLobbyUI() {
+    const hostBadge = document.getElementById('mp-host-badge');
+    const startBtn = document.getElementById('mp-btn-start');
+    const errEl = document.getElementById('mp-lobby-error');
+
+    wireRealtimeCallbacks();
+
+    if (hostBadge) hostBadge.hidden = !(isHost() && MP.getHostPlayerId() && String(MP.getPlayerId()) === String(MP.getHostPlayerId()));
     updateLobbyActionButtons('lobby');
     showMpError(errEl, '');
 
     try {
       await MP.syncHostFromServer?.();
+      lastPlayersSnapshot = '';
       const players = await MP.fetchPlayers();
       renderPlayersUI(players);
       const nickInput = document.getElementById('mp-lobby-nick');
@@ -1738,8 +1774,14 @@
     wirePlayersToggle();
     wireJoinCodeInput();
     wireNickRefreshButtons();
+    wireRealtimeCallbacks();
     updateContinueButton();
     maybeOpenJoinFromUrl();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && isInRoom()) {
+        refreshPlayersUI().catch(() => {});
+      }
+    });
   }
 
   global.MultiplayerController = {
@@ -1771,6 +1813,7 @@
     shareViaSms,
     shareNative,
     updateGameFooter,
+    refreshPlayersUI,
     updateContinueButton,
     refreshContinueScreen,
     handleContinue,

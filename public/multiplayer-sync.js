@@ -15,6 +15,8 @@
   let playersChannel = null;
   let heartbeatTimer = null;
   let playersPollTimer = null;
+  let playersRefreshTimer = null;
+  let playersRefreshInFlight = false;
   let onStateChange = null;
   let onPlayersChange = null;
   let onHostChange = null;
@@ -77,32 +79,76 @@
 
   function syncHostFromPlayers(players) {
     if (!playerId) return isHost;
+    if (roomHostPlayerId) {
+      setHostFlag(String(roomHostPlayerId) === String(playerId));
+      return isHost;
+    }
     const hostPlayer = (players || []).find((p) => p.is_host);
     if (hostPlayer?.player_id) {
       roomHostPlayerId = hostPlayer.player_id;
     }
-    if (roomHostPlayerId) {
-      setHostFlag(String(roomHostPlayerId) === String(playerId));
-    } else {
-      const me = (players || []).find((p) => String(p.player_id) === String(playerId));
-      setHostFlag(!!me?.is_host);
-    }
+    setHostFlag(roomHostPlayerId ? String(roomHostPlayerId) === String(playerId) : false);
     return isHost;
+  }
+
+  function normalizePlayerHostFlags(players) {
+    if (!roomHostPlayerId) return players || [];
+    return (players || []).map((p) => ({
+      ...p,
+      is_host: String(p.player_id) === String(roomHostPlayerId),
+    }));
+  }
+
+  function notifyPlayersChange(players) {
+    onPlayersChange?.(players);
+  }
+
+  async function refreshPlayers() {
+    if (!roomId || playersRefreshInFlight) return [];
+    playersRefreshInFlight = true;
+    try {
+      await syncHostFromServer();
+      const players = await fetchPlayers();
+      notifyPlayersChange(players);
+      return players;
+    } catch {
+      return [];
+    } finally {
+      playersRefreshInFlight = false;
+    }
+  }
+
+  function schedulePlayersRefresh(delayMs = 250) {
+    if (!roomId) return;
+    if (playersRefreshTimer) clearTimeout(playersRefreshTimer);
+    playersRefreshTimer = setTimeout(() => {
+      playersRefreshTimer = null;
+      refreshPlayers().catch(() => {});
+    }, delayMs);
   }
 
   async function fetchPlayers() {
     if (!client || !roomId) return [];
+    if (!roomHostPlayerId) {
+      try { await syncHostFromServer(); } catch { /* fallback abaixo */ }
+    }
     const { data: rpcData, error: rpcError } = await client.rpc('get_room_players', {
       p_room_id: roomId,
     });
-    if (!rpcError && Array.isArray(rpcData)) return rpcData;
+    if (!rpcError && Array.isArray(rpcData)) {
+      const players = normalizePlayerHostFlags(rpcData);
+      syncHostFromPlayers(players);
+      return players;
+    }
     const { data, error } = await client
       .from('room_players')
       .select('id, player_id, nickname, score, is_host, is_connected, last_seen_at')
       .eq('room_id', roomId)
       .order('joined_at', { ascending: true });
     if (error) throw error;
-    return data || [];
+    const players = normalizePlayerHostFlags(data || []);
+    syncHostFromPlayers(players);
+    return players;
   }
 
   async function syncHostFromServer() {
@@ -266,6 +312,7 @@
         return;
       }
       await syncHostFromServer();
+      schedulePlayersRefresh(0);
     } catch { /* ignore */ }
   }
 
@@ -286,19 +333,18 @@
     stopPlayersPoll();
     playersPollTimer = setInterval(() => {
       if (!roomId) return;
-      fetchPlayers()
-        .then((players) => {
-          syncHostFromPlayers(players);
-          onPlayersChange?.(players);
-        })
-        .catch(() => {});
-    }, 12000);
+      refreshPlayers().catch(() => {});
+    }, 5000);
   }
 
   function stopPlayersPoll() {
     if (playersPollTimer) {
       clearInterval(playersPollTimer);
       playersPollTimer = null;
+    }
+    if (playersRefreshTimer) {
+      clearTimeout(playersRefreshTimer);
+      playersRefreshTimer = null;
     }
   }
 
@@ -325,13 +371,7 @@
           lastGameStateJson = json;
           onStateChange?.(gs, row.settings || {}, row.status);
         }
-        syncHostFromServer()
-          .then(() => fetchPlayers())
-          .then((players) => {
-            syncHostFromPlayers(players);
-            onPlayersChange?.(players);
-          })
-          .catch(() => {});
+        schedulePlayersRefresh();
       })
       .subscribe();
 
@@ -342,20 +382,14 @@
         schema: 'public',
         table: 'room_players',
         filter: 'room_id=eq.' + roomId,
-      }, async () => {
-        try {
-          const players = await fetchPlayers();
-          syncHostFromPlayers(players);
-          onPlayersChange?.(players);
-        } catch { /* ignore */ }
+      }, () => {
+        schedulePlayersRefresh(120);
       })
       .subscribe();
 
     startHeartbeat();
     startPlayersPoll();
-    const players = await fetchPlayers();
-    syncHostFromPlayers(players);
-    onPlayersChange?.(players);
+    await refreshPlayers();
   }
 
   async function unsubscribe() {
@@ -477,6 +511,8 @@
     insertHistoryRound,
     insertMatch,
     fetchPlayers,
+    refreshPlayers,
+    schedulePlayersRefresh,
     fetchRoom,
     fetchRoomHistory,
     touchRoomActivity,

@@ -3362,8 +3362,8 @@
 <script src="supabase-client.js?v=20260830-201600"></script>
 <script src="game-history.js?v=20260830-201600"></script>
 <script src="player-names.js?v=20260830-143600"></script>
-<script src="multiplayer-sync.js?v=20260830-201600"></script>
-<script src="multiplayer-controller.js?v=20260831-093600"></script>
+<script src="multiplayer-sync.js?v=20260831-095400"></script>
+<script src="multiplayer-controller.js?v=20260831-095400"></script>
 <script src="question-engine.js?v=20260830-192950" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>
@@ -5343,6 +5343,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
     syncMpGameFooter();
     syncGameClockVisibility();
+    if(window.MultiplayerController?.isInRoom?.() && ['mp-lobby', 'game', 'age', 'question'].includes(id)){
+      window.MultiplayerController?.refreshPlayersUI?.();
+    }
     if(id === 'menu'){
       window.MultiplayerController?.refreshContinueScreen?.();
     }
@@ -7914,6 +7917,199 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     const optionsEl = document.getElementById('site-report-options');
     if(!optionsEl) return;
     optionsEl.innerHTML = SITE_REPORT_ISSUES.map((issue) => `
+      <label class="q-report-option${issue.id === 'site_suggestion' ? ' is-suggestion' : ''}">
+        <input type="radio" name="site-report-issue" value="${issue.id}">
+        <span>${issue.label}</span>
+      </label>
+    `).join('');
+    optionsEl.addEventListener('change', () => updateSiteReportFormFields(selectedSiteReportIssue()));
+    document.getElementById('site-report-comment')?.addEventListener('input', () => {
+      updateSiteReportFormFields(selectedSiteReportIssue());
+    });
+    document.getElementById('site-report-suggestion')?.addEventListener('input', () => {
+      updateSiteReportFormFields(selectedSiteReportIssue());
+    });
+    document.getElementById('site-report-image-gallery')?.addEventListener('click', () => {
+      document.getElementById('site-report-image')?.click();
+    });
+    document.getElementById('site-report-image-camera-btn')?.addEventListener('click', () => {
+      document.getElementById('site-report-image-camera')?.click();
+    });
+    document.getElementById('site-report-image-clear')?.addEventListener('click', clearSiteReportImage);
+    document.getElementById('site-report-image')?.addEventListener('change', handleSiteReportImageSelect);
+    document.getElementById('site-report-image-camera')?.addEventListener('change', handleSiteReportImageSelect);
+    siteReportOpenBtn?.addEventListener('click', openSiteReport);
+    document.getElementById('site-report-close')?.addEventListener('click', closeSiteReport);
+    document.getElementById('site-report-cancel')?.addEventListener('click', closeSiteReport);
+    document.getElementById('site-report-submit')?.addEventListener('click', submitSiteReport);
+    siteReportOverlay?.addEventListener('click', (e) => {
+      if(e.target.id === 'site-report-overlay') closeSiteReport();
+    });
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape' && siteReportOverlay?.classList.contains('open')) closeSiteReport();
+    });
+  }
+  initSiteReportUi();
+
+  function normalizeChangelogSection(section, fallbackTitle){
+    if(Array.isArray(section)) return { title: fallbackTitle, items: section };
+    if(section && Array.isArray(section.items)) {
+      return { title: section.title || fallbackTitle, items: section.items };
+    }
+    return { title: fallbackTitle, items: [] };
+  }
+
+  function renderChangelogSection(section, fallbackTitle){
+    const normalized = normalizeChangelogSection(section, fallbackTitle);
+    if(!normalized.items.length) return '';
+    const list = normalized.items.map(item => `<li>${item}</li>`).join('');
+    return `<div class="changelog-entry"><div class="changelog-version">${normalized.title}</div><ul>${list}</ul></div>`;
+  }
+
+  function renderHistorySections(history){
+    if(!history) return '';
+    if(Array.isArray(history)){
+      if(!history.length) return '';
+      if(typeof history[0] === 'string'){
+        return renderChangelogSection(history, 'Histórico');
+      }
+      return history.map(entry => renderChangelogSection(entry, entry.title || entry.date || 'Histórico')).join('');
+    }
+    return renderChangelogSection(history, 'Histórico');
+  }
+
+  function loadChangelog(){
+    fetch('/changelog.json' + cacheBust, { cache: 'no-store' })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error('changelog.json não encontrado')))
+      .then(data => {
+        if(changelogLoadingEl) changelogLoadingEl.remove();
+        if(!changelogEl) return;
+        const versionLabel = data.version ? `Versão atual (${data.version})` : 'Versão atual';
+        changelogEl.innerHTML = [
+          '<h3>Histórico de alterações</h3>',
+          renderChangelogSection(data.current, versionLabel),
+          renderHistorySections(data.history),
+        ].join('');
+      })
+      .catch((err) => {
+        console.warn('Falha ao carregar changelog.json:', err);
+        if(changelogLoadingEl) {
+          changelogLoadingEl.textContent = 'Não foi possível carregar o histórico. Confirma que changelog.json foi publicado no deploy.';
+        }
+      });
+  }
+
+  function loadAboutVersionInfo(){
+    const metaBuild = document.querySelector('meta[name="app-build"]')?.getAttribute('content');
+    if(versionEl && metaBuild && metaBuild !== 'dev') versionEl.textContent = metaBuild;
+    return fetch('/version.json' + cacheBust, { cache: 'no-store' })
+      .then((response) => {
+        if (!response.ok) throw new Error('Não foi possível carregar a versão.');
+        return response.json();
+      })
+      .then((versionInfo) => {
+        if (versionEl) versionEl.textContent = versionInfo.version || '—';
+        if (updatedAtEl) {
+          updatedAtEl.textContent =
+            versionInfo.updatedAtPortugal ||
+            (versionInfo.updatedAt ? new Date(versionInfo.updatedAt).toLocaleString('pt-PT', {
+              timeZone: 'Europe/Lisbon'
+            }) : '—');
+        }
+      })
+      .catch((error) => {
+        console.warn('Falha ao carregar a versão do jogo:', error);
+        if (versionEl && !versionEl.textContent) versionEl.textContent = '—';
+        if (updatedAtEl) updatedAtEl.textContent = '—';
+      });
+  }
+
+  function ensureAboutDataLoaded(){
+    if(aboutDataLoaded) return;
+    aboutDataLoaded = true;
+    renderAboutReports();
+    loadAboutVersionInfo();
+    loadChangelog();
+    refreshAboutReportsList();
+  }
+
+  reportsCopyBtn?.addEventListener('click', async () => {
+    const text = formatAboutReportsText(loadAboutReports().slice().reverse());
+    try {
+      await navigator.clipboard.writeText(text);
+      reportsCopyBtn.textContent = 'Copiado';
+      setTimeout(() => { reportsCopyBtn.textContent = 'Copiar lista'; }, 1400);
+    } catch {
+      window.prompt('Copia a lista de reportes:', text);
+    }
+  });
+  reportsClearBtn?.addEventListener('click', () => {
+    const hasQuestion = loadAboutReports().length > 0;
+    const hasSite = loadSiteReports().length > 0;
+    if(!hasQuestion && !hasSite) return;
+    if(!window.confirm('Limpar todos os reportes (site e perguntas) neste dispositivo?')) return;
+    if(window.ReinoMagicoReports?.clear) window.ReinoMagicoReports.clear();
+    else localStorage.removeItem(REPORTS_KEY);
+    localStorage.removeItem(SITE_REPORTS_KEY);
+    renderAboutReports();
+    renderSiteReports();
+  });
+
+  window.addEventListener('resize', syncCategoryBarOffset, { passive: true });
+  if(typeof ResizeObserver !== 'undefined'){
+    const categoryBar = document.getElementById('question-category-bar');
+    if(categoryBar){
+      new ResizeObserver(syncCategoryBarOffset).observe(categoryBar);
+    }
+  }
+
+  function openAbout() {
+    ensureAboutDataLoaded();
+    overlay.classList.add('open');
+  }
+  function closeAbout() {
+    overlay.classList.remove('open');
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    syncAboutReportsWithServer().then(() => syncSiteReportsWithServer()).then(() => {
+      pruneResolvedReportsAfterTtl();
+      if (overlay.classList.contains('open')) {
+        renderAboutReports();
+        renderSiteReports();
+      }
+    });
+  });
+
+  syncAboutReportsWithServer().then(() => {
+    syncSiteReportsWithServer().then(() => {
+      pruneResolvedReportsAfterTtl();
+    });
+  });
+
+  button?.addEventListener('click', openAbout);
+  close?.addEventListener('click', closeAbout);
+  overlay?.addEventListener('click', (event) => {
+    if (event.target === overlay) closeAbout();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') closeAbout();
+  });
+})();
+</script>
+
+<div id="app-update-banner" class="app-update-banner" aria-hidden="true" role="status" aria-live="polite">
+  <p id="app-update-text">A actualizar…</p>
+  <div class="app-update-actions" hidden>
+    <button type="button" id="app-update-btn" hidden>Tentar</button>
+  </div>
+</div>
+<script src="app-update.js?v=20260830-192950" defer></script>
+
+</body>
+</html>
+e) => `
       <label class="q-report-option${issue.id === 'site_suggestion' ? ' is-suggestion' : ''}">
         <input type="radio" name="site-report-issue" value="${issue.id}">
         <span>${issue.label}</span>
