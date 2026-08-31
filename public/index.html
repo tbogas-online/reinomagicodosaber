@@ -3379,7 +3379,7 @@
 <script src="game-history.js?v=20260830-201600"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260831-103000"></script>
-<script src="multiplayer-controller.js?v=20260831-104500"></script>
+<script src="multiplayer-controller.js?v=20260831-110500"></script>
 <script src="question-engine.js?v=20260830-192950" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>
@@ -5073,6 +5073,30 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   let remainingCategories = [];
   const LOCAL_PAUSE_KEY = 'reino_local_pause_v1';
   let localGameStartedAt = null;
+  let localGameActive = false;
+
+  function setLocalGameActive(active){
+    localGameActive = !!active;
+  }
+
+  function clearEphemeralBoardState(){
+    if(localGameActive) return;
+    gameCategoryMap = {};
+    remainingCategories = [];
+    localGameStartedAt = null;
+  }
+
+  function hasLocalPauseInStorage(){
+    try {
+      const raw = localStorage.getItem(LOCAL_PAUSE_KEY);
+      if(!raw) return false;
+      const data = JSON.parse(raw);
+      if(data?.mode === 'multiplayer') return false;
+      return !!(data?.gameCategoryMap && Object.keys(data.gameCategoryMap).length);
+    } catch {
+      return false;
+    }
+  }
 
   function serializeCategoryForPause(cat){
     if(!cat) return null;
@@ -5085,6 +5109,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function saveLocalGamePause(){
+    if(!localGameActive) return;
+    if(window.MultiplayerController?.isInRoom?.()) return;
     if(Object.keys(gameCategoryMap).length === 0) return;
     try {
       const map = {};
@@ -5103,6 +5129,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         localGameStartedAt = startedAt;
       }
       localStorage.setItem(LOCAL_PAUSE_KEY, JSON.stringify({
+        mode: 'local',
         startedAt,
         pausedAt: Date.now(),
         gameCategoryMap: map,
@@ -5116,6 +5143,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function endLocalGamePause(){
+    localGameActive = false;
     gameCategoryMap = {};
     remainingCategories = [];
     localGameStartedAt = null;
@@ -5149,6 +5177,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       remainingCategories = (data.remainingCategories || [])
         .map(restoreCategoryFromPause)
         .filter(Boolean);
+      localGameActive = true;
       return true;
     } catch {
       return false;
@@ -5156,21 +5185,16 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function hasLocalGamePause(){
-    if(Object.keys(gameCategoryMap).length > 0) return true;
-    try {
-      const raw = localStorage.getItem(LOCAL_PAUSE_KEY);
-      if(!raw) return false;
-      const data = JSON.parse(raw);
-      return !!(data?.gameCategoryMap && Object.keys(data.gameCategoryMap).length);
-    } catch {
-      return false;
-    }
+    if(window.MultiplayerController?.isMultiplayer?.()) return false;
+    if(localGameActive && Object.keys(gameCategoryMap).length > 0) return true;
+    return hasLocalPauseInStorage();
   }
 
   function resumeLocalGame(){
     if(Object.keys(gameCategoryMap).length === 0){
       if(!loadLocalGamePauseFromStorage()) return false;
     }
+    localGameActive = true;
     fillCategoryList();
     resetGameScreen();
     resumeGameClock(getLocalGameStartedAt());
@@ -5178,8 +5202,14 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     return true;
   }
 
-  function assignCategoriesForNewGame(){
-    localGameStartedAt = Date.now();
+  function assignCategoriesForNewGame(options = {}){
+    const forLocal = options.forLocal === true;
+    if(forLocal){
+      localGameActive = true;
+      localGameStartedAt = Date.now();
+    } else {
+      localGameActive = false;
+    }
     gameCategoryMap = {};
     Object.keys(usedQuestions).forEach((key) => { delete usedQuestions[key]; });
     Object.keys(usedQuestionFormats).forEach((key) => { delete usedQuestionFormats[key]; });
@@ -6099,6 +6129,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         endLocalGamePause,
         getLocalGameStartedAt,
         resumeLocalGame,
+        setLocalGameActive,
+        clearEphemeralBoardState,
         clearJoinQueryFromUrl,
       });
       window.MultiplayerController.init();
@@ -6138,7 +6170,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(currentScreenId !== 'menu') showScreen('menu');
     clearLocalGamePause();
     window.MultiplayerController?.onSinglePlayerStart?.();
-    assignCategoriesForNewGame();
+    assignCategoriesForNewGame({ forLocal: true });
     startGameClock(Date.now(), true);
     runCategoryChoosingAnimation();
   };
@@ -6189,7 +6221,6 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   };
   document.getElementById('btn-game-back').onclick = async () => {
     if(window.MultiplayerController?.isInRoom?.()){
-      saveLocalGamePause();
       window.MultiplayerController.goToMenuKeepRoom?.();
       return;
     }

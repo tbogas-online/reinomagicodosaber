@@ -205,6 +205,9 @@
     if (remoteTs) lastAppliedStateAt = remoteTs;
     if (state.sessionStartedAt) applySessionStartedAt(state.sessionStartedAt, { resumeClock: false });
     const h = gameHooks;
+    if (state.gameCategoryMap && Object.keys(state.gameCategoryMap).length > 0) {
+      h.setLocalGameActive?.(false);
+    }
     if (settings && Object.keys(settings).length) {
       h.applySettings?.(settings);
     }
@@ -475,6 +478,7 @@
     active = false;
     clearLastRoom();
     clearRoomPause();
+    gameHooks?.clearEphemeralBoardState?.();
     gameHooks?.stopGameClock?.();
     gameHooks?.clearJoinQueryFromUrl?.();
     refreshContinueScreen();
@@ -686,8 +690,8 @@
   }
 
   function goToMenuKeepRoom() {
-    gameHooks?.saveLocalGamePause?.();
     if (!isInRoom()) {
+      gameHooks?.saveLocalGamePause?.();
       gameHooks?.showScreen?.('menu');
       refreshContinueScreen();
       return;
@@ -696,6 +700,7 @@
     active = true;
     saveLastRoom(MP.getRoomCode(), true);
     gameHooks?.showScreen?.('menu');
+    refreshContinueScreen();
   }
 
   async function resumeRoomSession() {
@@ -773,7 +778,9 @@
     active = false;
     clearLastRoom();
     clearRoomPause();
+    gameHooks?.clearEphemeralBoardState?.();
     gameHooks?.showScreen?.('menu');
+    refreshContinueScreen();
     showMpExpiredToast(message);
   }
 
@@ -786,8 +793,10 @@
     lobbyReadyForGame = false;
     clearLastRoom();
     clearRoomPause();
+    gameHooks?.clearEphemeralBoardState?.();
     gameHooks?.stopGameClock?.();
     gameHooks?.showScreen?.('menu');
+    refreshContinueScreen();
   }
 
   function formatPlayerNickLabel(nick) {
@@ -847,6 +856,7 @@
       active = false;
       clearLastRoom();
       clearRoomPause();
+      gameHooks?.clearEphemeralBoardState?.();
       gameHooks?.showScreen?.('menu');
       if (result?.action === 'transfer') {
         showMpToast('Saíste da sala. Novo anfitrião atribuído.');
@@ -861,7 +871,7 @@
   async function hostStartFromLobby(settings) {
     if (!isHost() || !gameHooks) return;
     await finishMultiplayerGame();
-    gameHooks.assignCategoriesForNewGame?.();
+    gameHooks.assignCategoriesForNewGame?.({ forLocal: false });
     const now = Date.now();
     applySessionStartedAt(now, { resumeClock: false });
     gameHooks.startGameClock?.(now, true);
