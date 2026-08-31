@@ -2033,6 +2033,42 @@
     }
     #screen-game .row{ width: 100%; }
     #screen-game .row .btn{ width: 100%; max-width: 17rem; }
+    #screen-mp-lobby > .emoji{
+      font-size: 36px;
+      margin-bottom: 4px;
+    }
+    #screen-mp-lobby > h2{
+      font-size: 1.15rem;
+      margin-bottom: 6px;
+    }
+    #screen-mp-lobby > .subtitle{
+      margin-bottom: 14px;
+      font-size: 16px;
+      line-height: 1.4;
+      max-width: 18rem;
+    }
+    #screen-mp-lobby .mp-host-badge{
+      margin-bottom: 8px;
+    }
+    #screen-mp-lobby .mp-nickname-row{
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    #screen-mp-lobby .mp-nickname-row .field-input{
+      flex: 1 1 100%;
+      width: 100%;
+      min-width: 100%;
+    }
+    #screen-mp-lobby .mp-nickname-row .mp-nick-refresh{
+      flex: 0 0 2.85rem;
+    }
+    #screen-mp-lobby .mp-nickname-row .btn{
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    #screen-mp-lobby .mp-lobby-room{
+      margin-bottom: 12px;
+    }
     #screen-loading > h2{
       font-size: 1.25rem !important;
       margin-bottom: 8px;
@@ -2713,6 +2749,36 @@
   #screen-mp-lobby .mp-players-list{
     max-width: min(26rem, 100%);
   }
+  .mp-lobby-room{
+    width: 100%;
+    max-width: min(26rem, 100%);
+    margin: 0 auto 14px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--surface-glass);
+    border: 1px solid rgba(var(--gold-rgb), 0.45);
+    box-sizing: border-box;
+  }
+  .mp-lobby-room-code{
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+  .mp-lobby-room-value{
+    font-family: 'Cinzel', serif;
+    font-size: 1.15rem;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+    color: var(--gold-bright);
+  }
+  .mp-lobby-share-actions{
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
   .mp-players-count{
     width: 100%;
     max-width: 20rem;
@@ -3022,6 +3088,17 @@
     <h2>Sala multijogador</h2>
     <p class="subtitle">Aguarda outros jogadores ou inicia quando estiveres pronto</p>
     <span class="mp-host-badge" id="mp-host-badge" hidden>👑 És o anfitrião</span>
+    <div class="mp-lobby-room" id="mp-lobby-room" hidden>
+      <div class="mp-lobby-room-code">
+        <span class="mp-game-bar-label">Sala</span>
+        <span class="mp-lobby-room-value" id="mp-lobby-room-code">----</span>
+      </div>
+      <div class="mp-lobby-share-actions">
+        <button type="button" class="mp-share-btn" id="mp-lobby-copy-link">📋 Copiar</button>
+        <button type="button" class="mp-share-btn" id="mp-lobby-share-wa">💬 WhatsApp</button>
+        <button type="button" class="mp-share-btn" id="mp-lobby-share-native">🔗 Partilhar</button>
+      </div>
+    </div>
     <div class="mp-nickname-row">
       <input class="field-input" id="mp-lobby-nick" type="text" maxlength="24" placeholder="O teu nome" autocomplete="nickname">
       <button type="button" class="mp-nick-refresh" id="mp-lobby-nick-refresh" title="Gerar outro nome" aria-label="Gerar outro nome">↻</button>
@@ -3286,7 +3363,7 @@
 <script src="game-history.js?v=20260830-201600"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260830-201600"></script>
-<script src="multiplayer-controller.js?v=20260830-194000"></script>
+<script src="multiplayer-controller.js?v=20260831-093600"></script>
 <script src="question-engine.js?v=20260830-192950" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>

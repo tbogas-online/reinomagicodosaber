@@ -1376,6 +1376,9 @@
       ['mp-game-copy-link', copyJoinLink],
       ['mp-game-share-wa', shareViaWhatsApp],
       ['mp-game-share-native', shareNative],
+      ['mp-lobby-copy-link', copyJoinLink],
+      ['mp-lobby-share-wa', shareViaWhatsApp],
+      ['mp-lobby-share-native', shareNative],
     ];
     pairs.forEach(([id, handler]) => {
       document.getElementById(id)?.addEventListener('click', (e) => {
@@ -1471,6 +1474,15 @@
     maybeJoinFromUrl();
   }
 
+  function updateLobbyRoomChrome() {
+    const wrap = document.getElementById('mp-lobby-room');
+    const codeEl = document.getElementById('mp-lobby-room-code');
+    const code = MP.getRoomCode();
+    const onLobby = gameHooks?.getCurrentScreenId?.() === 'mp-lobby' && isInRoom();
+    if (wrap) wrap.hidden = !onLobby || !code;
+    if (codeEl && code) codeEl.textContent = code;
+  }
+
   function updateGameFooter() {
     const bar = document.getElementById('mp-game-bar');
     const codeEl = document.getElementById('mp-game-room-code');
@@ -1480,10 +1492,11 @@
     if (codeEl && code) codeEl.textContent = code;
     if (show && gameHooks?.getCurrentScreenId) {
       const screen = gameHooks.getCurrentScreenId();
-      bar.hidden = !['game', 'age', 'question', 'mp-lobby'].includes(screen);
+      bar.hidden = !['game', 'age', 'question'].includes(screen);
     } else {
       bar.hidden = !show;
     }
+    updateLobbyRoomChrome();
     if (show) {
       MP.fetchPlayers()
         .then((players) => renderPlayersUI(players))
@@ -1539,6 +1552,8 @@
     } catch (e) {
       showMpError(errEl, e.message);
     }
+
+    updateLobbyRoomChrome();
 
     if (!lobbyUiReady) {
       document.getElementById('mp-btn-save-nick')?.addEventListener('click', async () => {
