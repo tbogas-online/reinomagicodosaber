@@ -894,6 +894,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
     if (/\btrem\b/i.test(blob) && /\b(carris|propulsão|propulsao|magnétic|magnetic|levita|veículo|veiculo|transporte)\b/i.test(blob)) {
       issues.push('brasileirismo — em PT-PT usa "comboio" (não "trem")');
     }
+    if (/\bcomboio\b/i.test(blob) && /\btrilhos?\b/i.test(blob)) {
+      issues.push('em PT-PT diz "carris" (não "trilhos") para o comboio');
+    }
     if (/\bviés\b/i.test(blob)) {
       issues.push('brasileirismo — em PT-PT usa "enviesamento" ou "tendência de negatividade" (não "viés")');
     }
@@ -1308,6 +1311,19 @@ Só json válido, sem markdown: ${jsonFormat}`;
     { when: (q, a) => /\basfato\b/i.test(a) && !/\basfalto\b/i.test(a), issue: 'erro ortográfico — escreve "asfalto" (não "asfato")' },
     { when: (q) => /\bestrada\s+para\s+os\s+carros\b/i.test(q), issue: 'formulação estranha — diz "estrada" ou "piso da estrada", não "estrada para os carros"' },
     { when: (q, a) => /\b(estrad|autoestrada)\b/i.test(q) && /\bfeit[ao]\s+de\b/i.test(q) && /\b(asfalto|alcatrão|alcatrao|betume)\b/i.test(a), issue: 'resposta ambígua — asfalto e alcatrão são ambos aceitáveis em PT-PT; reformula ou escolhe outro tema' },
+    { when: (q, a, opts) => {
+      if (!(/\b(rato|ratos)\b/i.test(q) && /\bqueijo\b/i.test(q) && /\b(disney|pixar|filme)\b/i.test(q))) return false;
+      const all = [a, ...(opts || [])].map((x) => String(x || '').toLowerCase());
+      if (all.some((x) => /\b(remy|rémy|ratatouille)\b/i.test(x))) return false;
+      return true;
+    }, issue: 'pergunta confusa — "rato que faz queijo" é o Remy (Ratatouille), não o Mickey nem outros personagens clássicos' },
+    { when: (q, a) => /\b(rato|ratos)\b/i.test(q) && /\bqueijo\b/i.test(q) && /\b(disney|pixar|filme)\b/i.test(q) && /\bmickey\b/i.test(a), issue: 'facto incorreto — o rato que cozinha/faz queijo é o Remy (Ratatouille), não o Mickey' },
+    { when: (q, a) => /\b(sapatilha|sapato)\b/i.test(q) && /\b(salto|madeira)\b/i.test(q) && /\b(designer|criou|criador|famoso)\b/i.test(q) && /\bmanuel\s+branco\b/i.test(a), issue: 'facto duvidoso — designer/obras de moda portuguesa obscuras; prefere temas verificáveis (ex.: Nuno Gama)' },
+    { when: (q, a) => /\b(asas|asa)\b/i.test(q) && /\b(penas|pena)\b/i.test(q) && /\bn[aã]o\s+voa\b/i.test(q) && /\bpato\s+de\s+borracha\b/i.test(a), issue: 'pergunta confusa — pato de borracha não tem penas reais; reformula a adivinha' },
+    { when: (q) => /\bnilo\b/i.test(q) && /\b(mais\s+longo|maior\s+rio)\b/i.test(q) && /verdadeiro\s+ou\s+falso/i.test(q), issue: 'facto disputado — comprimento do Nilo vs Amazónia varia conforme a medição; evita V/F absoluto' },
+    { when: (q) => /\b(copa\s+do\s+mundo|mundial)\b/i.test(q) && /\b2026\b/.test(q) && /\b(golo|golos|marcou|jogador|sele[cç][ãa]o)\b/i.test(q), issue: 'facto desportivo específico do Mundial 2026 não verificável — evita golos/jogadores desse torneio' },
+    { when: (q) => /\bcopa\s+do\s+mundo\b/i.test(q), issue: 'termo brasileiro — em PT-PT usa "Mundial" ou "Campeonato do Mundo"' },
+    { when: (q) => /\b(chapéu|chapeu)\b/i.test(q) && /\b(óculos|oculos)\b/i.test(q) && /\b(canta|cantor|cantora|festival)\b/i.test(q), issue: 'pergunta vaga — chapéu e óculos não identificam um cantor de forma única' },
     { when: (q, _a, _o, _ql, _al, formatId) => formatId === FORMAT_IDS.O_QUE_E && /^o\s+que\s+é\s+(?:a|o|um|uma)\s+(flor|folha|raiz|tronco|casca|semente|fruto|galho)\s+(?:d[aeo]s?\s+)(?:planta|árvore|arvore|flor)\b/i.test(q), issue: 'pergunta confusa — evita "O que é a [parte] da planta/árvore?"; reformula (ex.: "Para que serve a flor?")' },
     { when: (q, a, _o, _ql, _al, formatId) => {
       if (formatId !== FORMAT_IDS.O_QUE_E) return false;
@@ -1492,6 +1508,12 @@ Só json válido, sem markdown: ${jsonFormat}`;
       if (answerWords.length >= 3) {
         issues.push('nome de pessoa demasiado longo para 6–9 (máx. 2 palavras)');
       }
+    }
+    if (formatId === FORMAT_IDS.QUANDO && /\b(playstation|ps\s*one|ps1|xbox|mega\s*drive|super\s*nintendo|nintendo\s*64)\b/i.test(blob)) {
+      issues.push('data de lançamento de consola demasiado difícil para 6–9');
+    }
+    if (/\b(bob\s+marley|reggae)\b/i.test(blob)) {
+      issues.push('artista ou género musical demasiado avançado para 6–9');
     }
     if (formatId === FORMAT_IDS.O_QUE_E && q.length > 95) {
       issues.push('pergunta O que é demasiado longa para 6–9');

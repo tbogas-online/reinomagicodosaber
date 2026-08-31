@@ -799,6 +799,24 @@
     refreshContinueScreen();
   }
 
+  function resolvePlayerNickname(player) {
+    const name = String(player?.nickname || '').trim();
+    if (name) return name;
+    const id = String(player?.player_id || '').trim();
+    if (id.length >= 4) return `Jogador ${id.slice(-4).toUpperCase()}`;
+    return 'Jogador';
+  }
+
+  async function resolveMyNickname() {
+    try {
+      const fromRoom = String(await MP.getMyNickname() || '').trim();
+      if (fromRoom) return fromRoom;
+    } catch { /* ignore */ }
+    const saved = String(global.PlayerNames?.getSavedNickname?.() || '').trim();
+    if (saved) return saved;
+    return String(global.PlayerNames?.generateRandomPlayerName?.() || '').trim();
+  }
+
   function formatPlayerNickLabel(nick) {
     const name = String(nick || '').trim();
     if (!name) return isHost() ? '👑 Nome' : '✏️ Nome';
@@ -1144,10 +1162,10 @@
     const input = document.getElementById('mp-game-nick-input');
     if (!label || !isInRoom()) return;
     try {
-      const nick = await MP.getMyNickname();
+      const nick = await resolveMyNickname();
       if (nick) {
         label.textContent = formatPlayerNickLabel(nick);
-        if (input) input.value = nick;
+        if (input && !input.value.trim()) input.value = nick;
       }
     } catch { /* ignore */ }
   }
@@ -1200,7 +1218,7 @@
         + (host ? ' is-host' : '')
         + (isMe ? ' is-me' : '');
       if (isMe) li.setAttribute('aria-current', 'true');
-      li.innerHTML = `<span>${host ? '<span class="mp-host-crown" aria-hidden="true">👑</span>' : ''}${escapeHtml(p.nickname)}</span>`
+      li.innerHTML = `<span>${host ? '<span class="mp-host-crown" aria-hidden="true">👑</span>' : ''}${escapeHtml(resolvePlayerNickname(p))}</span>`
         + `<span class="mp-player-status">${p.is_connected ? '●' : '○'}</span>`;
       container.appendChild(li);
     });
@@ -1684,8 +1702,11 @@
       renderPlayersUI(players);
       const nickInput = document.getElementById('mp-lobby-nick');
       if (nickInput) {
-        const myNick = await MP.getMyNickname();
-        nickInput.value = myNick || global.PlayerNames?.generateRandomPlayerName?.() || '';
+        let myNick = await resolveMyNickname();
+        if (!String(await MP.getMyNickname() || '').trim() && myNick) {
+          await savePlayerNickname(myNick);
+        }
+        nickInput.value = myNick || '';
       }
     } catch (e) {
       showMpError(errEl, e.message);

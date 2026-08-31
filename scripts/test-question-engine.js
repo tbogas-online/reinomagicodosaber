@@ -575,6 +575,85 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('66. neurónios distractores coerentes', !r.ok, r.issues?.join(', '));
 }
 
+// 67–73. reportes Aug 2026 — lote 2
+{
+  const ps1 = {
+    q: 'Quando foi lançada a consola PlayStation 1?',
+    a: '1994',
+    options: ['1994', '1999', '1985', '2000'],
+  };
+  const r = QE.validateQuestion(ps1, baseCtx({ formatId: QE.FORMAT_IDS.QUANDO, categoryNumber: 16, ageBandKey: '6-9', isMC: true }));
+  assert('67. PlayStation 6-9 demasiado difícil', !r.ok, r.issues?.join(', '));
+}
+{
+  const mickey = {
+    q: 'Qual é o nome do rato que faz queijo no filme da Disney?',
+    a: 'Mickey',
+    options: ['Donald', 'Goofy', 'Pato', 'Mickey'],
+  };
+  const r = QE.validateQuestion(mickey, baseCtx({ isMC: true, categoryNumber: 11, ageBandKey: '6-9' }));
+  assert('68. rato+queijo Disney confuso', !r.ok, r.issues?.join(', '));
+}
+{
+  const sapatilha = {
+    q: 'Quem é o designer português famoso por criar o sapato de saltos em madeira, conhecido como sapatilha?',
+    a: 'Manuel Branco',
+    options: ['Pedro Marques', 'José António da Silva', 'Nuno Gama', 'Manuel Branco'],
+  };
+  const r = QE.validateQuestion(sapatilha, baseCtx({ formatId: QE.FORMAT_IDS.QUEM_E, categoryNumber: 13, ageBandKey: '10-15' }));
+  assert('69. Manuel Branco sapatilha duvidoso', !r.ok, r.issues?.join(', '));
+}
+{
+  const pato = {
+    q: 'O que é que tem asas e não voa, tem penas e não canta?',
+    a: 'Pato de borracha',
+    options: ['Gato', 'Cão', 'Pato de borracha', 'Peixe'],
+  };
+  const r = QE.validateQuestion(pato, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '6-9' }));
+  assert('70. adivinha pato de borracha', !r.ok, r.issues?.join(', '));
+}
+{
+  const nilo = {
+    q: 'O rio Nilo é o mais longo do mundo. Verdadeiro ou Falso?',
+    a: 'Falso',
+    options: ['Verdadeiro', 'Falso'],
+  };
+  const r = QE.validateQuestion(nilo, baseCtx({ formatId: QE.FORMAT_IDS.VERDADEIRO_FALSO, categoryNumber: 2, ageBandKey: '10-15', isTrueFalse: true }));
+  assert('71. Nilo vs Amazónia disputado', !r.ok, r.issues?.join(', '));
+}
+{
+  const wc2026 = {
+    q: 'Quem é o jogador português que marcou o primeiro golo da seleção na fase de grupos da Copa do Mundo 2026?',
+    a: 'Pedro Gonçalves',
+    options: ['Nuno Santos', 'Rui Costa', 'Diogo Pereira', 'Pedro Gonçalves'],
+  };
+  const r = QE.validateQuestion(wc2026, baseCtx({ formatId: QE.FORMAT_IDS.QUEM_E, categoryNumber: 15, ageBandKey: '10-15' }));
+  assert('72. Mundial 2026 golos específicos', !r.ok, r.issues?.join(', '));
+}
+{
+  const remyOk = {
+    q: 'Qual é o nome do rato que cozinha no filme Ratatouille?',
+    a: 'Remy',
+    options: ['Remy', 'Gusteau', 'Linguini', 'Colette'],
+  };
+  const r = QE.validateQuestion(remyOk, baseCtx({ isMC: true, categoryNumber: 11, ageBandKey: '6-9' }));
+  assert('73. Remy Ratatouille aceite', r.ok, r.issues?.join(', '));
+}
+{
+  const trilhos = { q: 'O comboio precisa de trilhos para andar. Verdadeiro ou Falso?', a: 'Verdadeiro' };
+  const r = QE.validateQuestion(trilhos, baseCtx({ formatId: QE.FORMAT_IDS.VERDADEIRO_FALSO, categoryNumber: 19, ageBandKey: '6-9', isTrueFalse: true }));
+  assert('74. trilhos vs carris', !r.ok, r.issues?.join(', '));
+}
+{
+  const marley = {
+    q: 'Quem canta no festival de verão com um chapéu de palha e óculos escuros?',
+    a: 'Bob Marley',
+    options: ['Bob Marley', 'Elton John', 'Elvis Presley', 'Michael Jackson'],
+  };
+  const r = QE.validateQuestion(marley, baseCtx({ formatId: QE.FORMAT_IDS.QUEM_E, categoryNumber: 12, ageBandKey: '6-9' }));
+  assert('75. Bob Marley festival vago', !r.ok, r.issues?.join(', '));
+}
+
 // 20. persistência histórico (em memória via API)
 {
   const testKey = 'reino_magico_q_history_v3_test_' + Date.now();
