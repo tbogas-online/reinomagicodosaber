@@ -190,6 +190,51 @@ SITUACAO_PRATICA é bem-vinda (ex.: "para que serve um fusível?").`,
     20: ['adivinha tradicional', 'curiosidade surpreendente'],
   };
 
+  /** Registo unificado por categoria — fonte única para formatos, regras, subtópicos e boosts. */
+  function buildCategoriesRegistry(formatMatrix, rules, subtopics, weightBoost) {
+    const nums = new Set([
+      ...Object.keys(formatMatrix),
+      ...Object.keys(rules),
+      ...Object.keys(subtopics),
+      ...Object.keys(weightBoost),
+    ].map((k) => Number(k)));
+    const registry = {};
+    for (const n of nums) {
+      const def = {
+        formats: Object.freeze((formatMatrix[n] || formatMatrix[1]).slice()),
+        rules: rules[n] || rules[1] || '',
+        subtopics: Object.freeze((subtopics[n] || subtopics[1]).slice()),
+      };
+      if (weightBoost[n]) def.weightBoost = Object.freeze({ ...weightBoost[n] });
+      registry[n] = Object.freeze(def);
+    }
+    return Object.freeze(registry);
+  }
+
+  const CATEGORIES = buildCategoriesRegistry(
+    CATEGORY_FORMAT_MATRIX,
+    CATEGORY_RULES,
+    CATEGORY_SUBTOPICS,
+    CATEGORY_WEIGHT_BOOST,
+  );
+
+  function getCategoryDef(categoryNumber) {
+    return CATEGORIES[categoryNumber] || CATEGORIES[1];
+  }
+
+  function filterFormatsForContext(formats, ageBandKey, answerMode) {
+    const excluded = FORMAT_AGE_EXCLUDED[ageBandKey] || [];
+    let out = formats.filter((f) => !excluded.includes(f));
+    if (answerMode === 'open') out = out.filter((f) => !ANSWER_MODE_MC_ONLY.has(f));
+    else if (answerMode === 'mc') out = out.filter((f) => !ANSWER_MODE_OPEN_ONLY.has(f));
+    return out;
+  }
+
+  function defaultFormatForAnswerMode(answerMode) {
+    if (answerMode === 'open') return FORMAT_IDS.RESPOSTA_DIRETA;
+    return FORMAT_IDS.ESCOLHA_MULTIPLA;
+  }
+
   const KNOWLEDGE_STOPWORDS = new Set([
     'qual', 'quais', 'que', 'quem', 'como', 'onde', 'quando', 'porque', 'porquê',
     'o', 'a', 'os', 'as', 'um', 'uma', 'uns', 'umas', 'de', 'do', 'da', 'dos', 'das',
@@ -313,7 +358,7 @@ ${limits[ageBandKey] || limits['15+']}`;
     const parts = [];
     const {
       usedQuestions, usedFormats, usedAnswers, persistentQuestions, persistentAnswers,
-      usedKnowledgeKeys, persistentKnowledgeKeys,
+      usedKnowledgeKeys, persistentKnowledgeKeys, normalizeFn,
     } = ctx;
 
     if (usedFormats?.length) {
@@ -324,7 +369,7 @@ ${limits[ageBandKey] || limits['15+']}`;
     if (usedQuestions?.length) {
       parts.push(`NÃO repitas estas perguntas: ${usedQuestions.slice(-10).join(' | ')}.`);
     }
-    const knowledgeAnswers = filterKnowledgeAnswers(usedAnswers);
+    const knowledgeAnswers = filterKnowledgeAnswers(usedAnswers, normalizeFn);
     if (knowledgeAnswers.length) {
       parts.push(`Evita testar o mesmo conhecimento destas respostas: ${knowledgeAnswers.slice(-8).join(', ')}.`);
     }
@@ -337,7 +382,7 @@ ${limits[ageBandKey] || limits['15+']}`;
     if (persistentQuestions?.length) {
       parts.push('Evita reformular perguntas de sessões anteriores.');
     }
-    const persistentKnowledgeAnswers = filterKnowledgeAnswers(persistentAnswers);
+    const persistentKnowledgeAnswers = filterKnowledgeAnswers(persistentAnswers, normalizeFn);
     if (persistentKnowledgeAnswers.length) {
       parts.push(`Respostas recentes de sessões anteriores a evitar: ${persistentKnowledgeAnswers.slice(-8).join(', ')}.`);
     }
@@ -374,7 +419,7 @@ ${limits[ageBandKey] || limits['15+']}`;
   }
 
   function chooseSubtopic(categoryNumber, recentSubtopics) {
-    const pool = CATEGORY_SUBTOPICS[categoryNumber] || CATEGORY_SUBTOPICS[1];
+    const pool = getCategoryDef(categoryNumber).subtopics;
     const recent = new Set(recentSubtopics || []);
     const fresh = pool.filter((t) => !recent.has(t));
     const pickFrom = fresh.length ? fresh : pool;
@@ -476,19 +521,9 @@ ${limits[ageBandKey] || limits['15+']}`;
   }
 
   function getAllowedFormats(categoryNumber, ageBandKey, answerMode) {
-    let formats = (CATEGORY_FORMAT_MATRIX[categoryNumber] || CATEGORY_FORMAT_MATRIX[1]).slice();
-    const excluded = FORMAT_AGE_EXCLUDED[ageBandKey] || [];
-    formats = formats.filter((f) => !excluded.includes(f));
-    if (answerMode === 'open') {
-      formats = formats.filter((f) => !ANSWER_MODE_MC_ONLY.has(f));
-    } else if (answerMode === 'mc') {
-      formats = formats.filter((f) => !ANSWER_MODE_OPEN_ONLY.has(f));
-    }
-    return formats.length ? formats : (CATEGORY_FORMAT_MATRIX[categoryNumber] || CATEGORY_FORMAT_MATRIX[1]).slice().filter((f) => {
-      if (answerMode === 'open') return !ANSWER_MODE_MC_ONLY.has(f);
-      if (answerMode === 'mc') return !ANSWER_MODE_OPEN_ONLY.has(f);
-      return true;
-    });
+    const primary = filterFormatsForContext(getCategoryDef(categoryNumber).formats.slice(), ageBandKey, answerMode);
+    if (primary.length) return primary;
+    return filterFormatsForContext(getCategoryDef(1).formats.slice(), ageBandKey, answerMode);
   }
 
   function weightedPick(items, weights) {
@@ -503,7 +538,7 @@ ${limits[ageBandKey] || limits['15+']}`;
 
   function chooseFormat(categoryNumber, ageBandKey, answerMode, recentFormats) {
     const allowed = getAllowedFormats(categoryNumber, ageBandKey, answerMode);
-    if (!allowed.length) return FORMAT_IDS.ESCOLHA_MULTIPLA;
+    if (!allowed.length) return defaultFormatForAnswerMode(answerMode);
 
     const recent = recentFormats || [];
     const vfRecentlyUsed = recent.slice(-TRUE_FALSE_MIN_GAP).includes(FORMAT_IDS.VERDADEIRO_FALSO);
@@ -533,7 +568,7 @@ ${limits[ageBandKey] || limits['15+']}`;
       if (withoutPrev2.length) pool = withoutPrev2;
     }
 
-    const boost = CATEGORY_WEIGHT_BOOST[categoryNumber] || {};
+    const boost = getCategoryDef(categoryNumber).weightBoost || {};
     const weights = pool.map((f) => {
       const recentCount = (recent || []).filter((r) => r === f).length;
       return (boost[f] || 1) / (1 + recentCount * 0.4);
@@ -578,7 +613,7 @@ ${retryBlock}${musicFocusBlock}${techFocusBlock}${diffExtra}
 ${buildGlobalRules()}
 
 REGRAS DA CATEGORIA:
-${CATEGORY_RULES[category.n] || ''}
+${getCategoryDef(category.n).rules}
 
 ${buildFormatRules(formatId, { ageBandKey, isMC, isTrueFalse })}
 
@@ -590,7 +625,7 @@ ${ptPtRules}
 
 ${buildHistoryRules({
   usedQuestions, usedFormats, usedAnswers, persistentQuestions, persistentAnswers,
-  usedKnowledgeKeys, persistentKnowledgeKeys,
+  usedKnowledgeKeys, persistentKnowledgeKeys, normalizeFn: ctx.normalizeFn,
 })}
 
 ${openModeExtra || ''}
@@ -2046,16 +2081,30 @@ Só json válido, sem markdown: ${jsonFormat}`;
   global.QuestionEngine = {
     ENGINE_CONFIG,
     LAYER_WEIGHTS,
-    FORMAT_IDS,
-    FORMAT_LABELS,
-    CATEGORY_FORMAT_MATRIX,
-    CATEGORY_SUBTOPICS,
-    DIFFICULTY_RANGE,
-    DIFFICULTY_LABELS,
+    FORMAT_IDS: Object.freeze({ ...FORMAT_IDS }),
+    FORMAT_LABELS: Object.freeze({ ...FORMAT_LABELS }),
+    CATEGORIES,
+    getCategoryDef,
+    CATEGORY_FORMAT_MATRIX: Object.freeze(Object.fromEntries(
+      Object.entries(CATEGORIES).map(([n, def]) => [n, def.formats]),
+    )),
+    CATEGORY_SUBTOPICS: Object.freeze(Object.fromEntries(
+      Object.entries(CATEGORIES).map(([n, def]) => [n, def.subtopics]),
+    )),
+    CATEGORY_RULES: Object.freeze(Object.fromEntries(
+      Object.entries(CATEGORIES).map(([n, def]) => [n, def.rules]),
+    )),
+    CATEGORY_WEIGHT_BOOST: Object.freeze(Object.fromEntries(
+      Object.entries(CATEGORIES).filter(([, def]) => def.weightBoost).map(([n, def]) => [n, def.weightBoost]),
+    )),
+    DIFFICULTY_RANGE: Object.freeze({ ...DIFFICULTY_RANGE }),
+    DIFFICULTY_LABELS: Object.freeze({ ...DIFFICULTY_LABELS }),
     TRUE_FALSE_CHANCE,
     TRUE_FALSE_MIN_GAP,
     FORMAT_MAX_CONSECUTIVE,
     getAllowedFormats,
+    filterFormatsForContext,
+    defaultFormatForAnswerMode,
     chooseFormat,
     chooseDifficulty,
     chooseSubtopic,
@@ -2079,6 +2128,5 @@ Só json válido, sem markdown: ${jsonFormat}`;
     isGenericTrueFalseAnswer,
     buildGlobalRules,
     buildFormatRules,
-    CATEGORY_RULES,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

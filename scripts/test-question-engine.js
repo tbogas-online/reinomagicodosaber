@@ -685,5 +685,20 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('dificuldade 15+ no intervalo', d15 >= 1 && d15 <= 5, String(d15));
 }
 
+// 76–78. code review question-engine — formatos e categorias
+{
+  const fallback = QE.getAllowedFormats(999, '6-9', 'open');
+  assert('76. fallback idade no getAllowedFormats', !fallback.includes(QE.FORMAT_IDS.CAUSA_CONSEQUENCIA));
+}
+{
+  assert('77. defaultFormat open', QE.defaultFormatForAnswerMode('open') === QE.FORMAT_IDS.RESPOSTA_DIRETA);
+  assert('77b. defaultFormat mc', QE.defaultFormatForAnswerMode('mc') === QE.FORMAT_IDS.ESCOLHA_MULTIPLA);
+}
+{
+  const cat7 = QE.getCategoryDef(7);
+  assert('78. CATEGORIES unificado', cat7.formats.includes('CAUSA_CONSEQUENCIA') && cat7.subtopics.length > 0 && cat7.rules.includes('Matemática'));
+  assert('78b. CATEGORY_RULES derivado', QE.CATEGORY_RULES[7] === cat7.rules);
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);
