@@ -2509,9 +2509,19 @@
     border: 1px solid rgba(var(--gold-rgb), 0.25);
   }
   .mp-player-row.offline{ opacity: 0.55; }
+  .mp-player-row.is-me{
+    border-color: rgba(var(--teal-rgb), 0.7);
+    background: rgba(var(--teal-rgb), 0.16);
+    box-shadow: 0 0 0 1px rgba(var(--teal-rgb), 0.22);
+  }
   .mp-player-row.is-host{
     border-color: rgba(var(--gold-rgb), 0.55);
     background: rgba(var(--gold-rgb), 0.12);
+  }
+  .mp-player-row.is-me.is-host{
+    border-color: rgba(var(--gold-rgb), 0.65);
+    background: linear-gradient(90deg, rgba(var(--gold-rgb), 0.14), rgba(var(--teal-rgb), 0.12));
+    box-shadow: 0 0 0 1px rgba(var(--teal-rgb), 0.18);
   }
   .mp-player-row .mp-host-crown{ margin-right: 2px; }
   .mp-player-status{ color: var(--teal); font-size: 0.75rem; }
@@ -3369,7 +3379,7 @@
 <script src="game-history.js?v=20260830-201600"></script>
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260831-103000"></script>
-<script src="multiplayer-controller.js?v=20260831-103000"></script>
+<script src="multiplayer-controller.js?v=20260831-104000"></script>
 <script src="question-engine.js?v=20260830-192950" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>

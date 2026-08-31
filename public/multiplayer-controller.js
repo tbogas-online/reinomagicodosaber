@@ -1148,6 +1148,7 @@
   function fillPlayerRows(container, players, isPlayerHost) {
     if (!container) return;
     container.innerHTML = '';
+    const myId = MP.getPlayerId?.() || null;
     const sorted = [...(players || [])].sort((a, b) => {
       const ah = isPlayerHost(a) ? 0 : 1;
       const bh = isPlayerHost(b) ? 0 : 1;
@@ -1155,8 +1156,13 @@
     });
     sorted.forEach((p) => {
       const host = isPlayerHost(p);
+      const isMe = !!(myId && String(p.player_id) === String(myId));
       const li = document.createElement('li');
-      li.className = 'mp-player-row' + (p.is_connected ? '' : ' offline') + (host ? ' is-host' : '');
+      li.className = 'mp-player-row'
+        + (p.is_connected ? '' : ' offline')
+        + (host ? ' is-host' : '')
+        + (isMe ? ' is-me' : '');
+      if (isMe) li.setAttribute('aria-current', 'true');
       li.innerHTML = `<span>${host ? '<span class="mp-host-crown" aria-hidden="true">👑</span>' : ''}${escapeHtml(p.nickname)}</span>`
         + `<span class="mp-player-status">${p.is_connected ? '●' : '○'}</span>`;
       container.appendChild(li);
