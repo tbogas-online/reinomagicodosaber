@@ -11,6 +11,7 @@ const vm = require('vm');
 
 const publicDir = path.join(__dirname, '..', 'public');
 const engineScripts = [
+  'question-engine/engine-config.js',
   'question-engine/issue-codes.js',
   'question-engine/knowledge-key.js',
   'question-engine/retry-strategy.js',
@@ -1066,6 +1067,12 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 {
   const hint = QE.buildRetryHint([{ code: 'DIFFICULTY_EASIER_THAN_REQUESTED', message: 'test' }], QE.FORMAT_IDS.RESPOSTA_DIRETA, '15+');
   assert('130. retry hint DIFFICULTY_EASIER_THAN_REQUESTED', hint.includes('exigência'));
+}
+
+// 131. Fase 7 — engine-config modular
+{
+  assert('131. engine-config partilhado', QE.DIFFICULTY_RANGE['15+'].max === 5
+    && QE.estimateDifficulty('Qual é o planeta onde vivemos?', 'Terra', { ageBandKey: '15+' }).estimatedDifficulty <= 2);
 }
 {
   QE.clearGenerationTelemetry();

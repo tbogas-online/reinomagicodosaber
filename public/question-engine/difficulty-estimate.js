@@ -4,7 +4,8 @@
 (function (global) {
   'use strict';
 
-  const DIFFICULTY_RANGE = Object.freeze({
+  const Config = global.QuestionEngineConfig;
+  const DIFFICULTY_RANGE = Config?.DIFFICULTY_RANGE || Object.freeze({
     '6-9': { min: 1, max: 3 },
     '10-15': { min: 1, max: 4 },
     '15+': { min: 1, max: 5 },
