@@ -23,6 +23,7 @@ const engineScripts = [
   'question-engine/pt-pt-validators.js',
   'question-engine/format-validators.js',
   'question-engine/mc-validators.js',
+  'question-engine/age-validators.js',
   'question-engine.js',
 ];
 const memStore = {};
@@ -1107,6 +1108,14 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     (s) => String(s || ''),
   );
   assert('134. mc-validators validateMcTrivialMath', issues.some((i) => i.code === 'MC_TRIVIAL_MATH'),
+    issues.map((i) => i.message).join(', '));
+}
+
+// 135. Fase 7e — age-validators modular
+{
+  const Age = sandbox.globalThis.QuestionEngineAgeValidators;
+  const issues = Age.validateObscureCharacter('Quem é o rato da Cinderela?', 'Jaquim', '6-9');
+  assert('135. age-validators obscure character', issues.some((i) => i.code === 'AGE_TOO_HARD'),
     issues.map((i) => i.message).join(', '));
 }
 {
