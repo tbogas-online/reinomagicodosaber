@@ -250,6 +250,9 @@
       p_format: meta.format || null,
       p_knowledge_key: meta.knowledgeKey || null,
       p_source: meta.source || 'ai',
+      p_knowledge_id: meta.knowledgeId || null,
+      p_source_id: meta.sourceId || null,
+      p_confidence: meta.confidence ?? null,
     });
     if (error) {
       console.warn('[QuestionBank] save falhou:', error.message);
