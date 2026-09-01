@@ -1,7 +1,7 @@
 /* Service Worker — Reino Mágico do Saber
  * APP_BUILD é substituído em cada deploy por scripts/generate-version.js
  */
-const APP_BUILD = '20260830-192950';
+const APP_BUILD = '20260901-160409';
 const STATIC_CACHE = `reino-static-${APP_BUILD}`;
 const PRECACHE_URLS = [
   '/manifest.webmanifest',
