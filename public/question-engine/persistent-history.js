@@ -10,17 +10,15 @@
   }
   const { ENGINE_CONFIG, FORMAT_IDS } = Config;
 
+  const KnowledgeKeyCompute = global.QuestionEngineKnowledgeKeyCompute;
+  if (!KnowledgeKeyCompute) {
+    throw new Error('persistent-history: carrega knowledge-key-compute.js antes deste módulo');
+  }
+  const { computeKnowledgeKey, knowledgeKeysMatch } = KnowledgeKeyCompute;
+
   const PERSISTENT_HISTORY_KEY = 'reino_magico_q_history_v3';
   const PERSISTENT_HISTORY_KEY_V2 = 'reino_magico_q_history_v2';
   const PERSISTENT_HISTORY_MAX = ENGINE_CONFIG.PERSISTENT_HISTORY_MAX;
-
-  let computeKnowledgeKeyFn = null;
-  let knowledgeKeysMatchFn = null;
-
-  function configure(deps) {
-    computeKnowledgeKeyFn = deps?.computeKnowledgeKey || null;
-    knowledgeKeysMatchFn = deps?.knowledgeKeysMatch || null;
-  }
 
   function getLocalStorage() {
     try {
@@ -41,7 +39,7 @@
 
   function migrateHistoryV2() {
     const storage = getLocalStorage();
-    if (!storage || !computeKnowledgeKeyFn) return;
+    if (!storage || !computeKnowledgeKey) return;
     try {
       const raw = storage.getItem(PERSISTENT_HISTORY_KEY_V2);
       if (!raw || storage.getItem(PERSISTENT_HISTORY_KEY)) return;
@@ -57,7 +55,7 @@
             a: as[i] || '',
             category: 0,
             format: '',
-            knowledgeKey: computeKnowledgeKeyFn(qs[i] || '', as[i] || '', FORMAT_IDS.RESPOSTA_DIRETA),
+            knowledgeKey: computeKnowledgeKey(qs[i] || '', as[i] || '', FORMAT_IDS.RESPOSTA_DIRETA),
             difficulty: 2,
             subtopic: '',
             ts: Date.now() - (Math.max(qs.length, as.length) - i) * 1000,
@@ -104,7 +102,7 @@
 
   function persistQuestion(ageBandKey, question, answer, normalizeFn, meta) {
     const storage = getLocalStorage();
-    if (!storage || !computeKnowledgeKeyFn || !knowledgeKeysMatchFn) return;
+    if (!storage || !computeKnowledgeKey || !knowledgeKeysMatch) return;
     try {
       const store = loadPersistentHistory();
       if (!store[ageBandKey]) store[ageBandKey] = { entries: [] };
@@ -115,7 +113,7 @@
         a: answer,
         category: meta?.category || 0,
         format: formatId,
-        knowledgeKey: meta?.knowledgeKey || computeKnowledgeKeyFn(question, answer, formatId, normalizeFn, {
+        knowledgeKey: meta?.knowledgeKey || computeKnowledgeKey(question, answer, formatId, normalizeFn, {
           knowledgeMeta: meta?.knowledge,
           categoryNumber: meta?.category,
         }),
@@ -124,12 +122,12 @@
         ts: Date.now(),
       };
       const entries = store[ageBandKey].entries || [];
-      const kKey = meta?.knowledgeKey || computeKnowledgeKeyFn(question, answer, formatId, normalizeFn, {
+      const kKey = meta?.knowledgeKey || computeKnowledgeKey(question, answer, formatId, normalizeFn, {
         knowledgeMeta: meta?.knowledge,
         categoryNumber: meta?.category,
       });
       const dup = entries.some((e) => normalizeFn(e.q) === normQ)
-        || entries.some((e) => e.knowledgeKey && knowledgeKeysMatchFn(e.knowledgeKey, kKey, normalizeFn));
+        || entries.some((e) => e.knowledgeKey && knowledgeKeysMatch(e.knowledgeKey, kKey, normalizeFn));
       if (!dup) entries.push(entry);
       store[ageBandKey].entries = trimHistoryEntries(entries);
       storage.setItem(PERSISTENT_HISTORY_KEY, JSON.stringify(store));
@@ -139,7 +137,6 @@
   }
 
   global.QuestionEnginePersistentHistory = Object.freeze({
-    configure,
     getPersistentSlice,
     persistQuestion,
     PERSISTENT_HISTORY_KEY,

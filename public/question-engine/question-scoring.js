@@ -16,16 +16,18 @@
   const SemanticValidators = global.QuestionEngineSemanticValidators;
   const McValidators = global.QuestionEngineMcValidators;
   const RepetitionValidators = global.QuestionEngineRepetitionValidators;
+  const KnowledgeKeyCompute = global.QuestionEngineKnowledgeKeyCompute;
   if (!Issues || !Config || !KnowledgeKey || !KnownFacts || !DifficultyEstimate
     || !FormatValidators || !AgeValidators || !CategoryValidators || !PtPt
-    || !SemanticValidators || !McValidators || !RepetitionValidators) {
-    throw new Error('question-scoring: carrega issue-codes, engine-config, knowledge-key, known-facts, difficulty-estimate e validadores antes deste módulo');
+    || !SemanticValidators || !McValidators || !RepetitionValidators || !KnowledgeKeyCompute) {
+    throw new Error('question-scoring: carrega issue-codes, engine-config, knowledge-key, knowledge-key-compute, known-facts, difficulty-estimate e validadores antes deste módulo');
   }
 
   const {
     mkIssue, issueMessage, normalizeIssues, issueMessages, ISSUE_LAYER,
   } = Issues;
   const { LAYER_WEIGHTS, DIFFICULTY_RANGE, getAgeLimits } = Config;
+  const { computeKnowledgeKey, knowledgeKeysMatch } = KnowledgeKeyCompute;
   const { validateByFormat } = FormatValidators;
   const { validateAgeAppropriate, validateObscureCharacter } = AgeValidators;
   const { validateCategoryTopicFit } = CategoryValidators;
@@ -36,14 +38,6 @@
   } = SemanticValidators;
   const { collectMcIssues: collectMcIssuesCore } = McValidators;
   const { collectRepetitionIssues: collectRepetitionIssuesCore } = RepetitionValidators;
-
-  let computeKnowledgeKeyFn = null;
-  let knowledgeKeysMatchFn = null;
-
-  function configure(deps) {
-    computeKnowledgeKeyFn = deps?.computeKnowledgeKey || null;
-    knowledgeKeysMatchFn = deps?.knowledgeKeysMatch || null;
-  }
 
   function pushIssue(issues, code, layer, message) {
     issues.push(mkIssue(code, layer, message));
@@ -68,8 +62,8 @@
   function collectRepetitionIssues(q, a, formatId, ctx, normalizeFn) {
     return collectRepetitionIssuesCore(q, a, formatId, {
       ...ctx,
-      computeKnowledgeKey: computeKnowledgeKeyFn,
-      knowledgeKeysMatch: knowledgeKeysMatchFn,
+      computeKnowledgeKey,
+      knowledgeKeysMatch,
     }, normalizeFn);
   }
 
@@ -233,7 +227,6 @@
   }
 
   global.QuestionEngineQuestionScoring = {
-    configure,
     layerScore,
     scoreQuestion,
     validateSemanticQuality,

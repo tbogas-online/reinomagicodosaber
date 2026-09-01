@@ -27,8 +27,10 @@ const engineScripts = [
   'question-engine/category-validators.js',
   'question-engine/semantic-validators.js',
   'question-engine/repetition-validators.js',
+  'question-engine/knowledge-key-compute.js',
   'question-engine/persistent-history.js',
   'question-engine/prompt-builder.js',
+  'question-engine/mc-assembly.js',
   'question-engine/question-scoring.js',
   'question-engine.js',
 ];
@@ -1192,6 +1194,18 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     persistentKnowledgeKeys: [],
   });
   assert('143. scoreQuestion válida', scored.score === 100 && scored.issues.length === 0);
+}
+
+// 144–147. Fases 11–14 — mc-assembly, knowledge-key-compute, fachada limpa
+{
+  const MC = sandbox.globalThis.QuestionEngineMcAssembly;
+  const opts = MC.assembleMcOptions('Lisboa', ['Porto', 'Faro', 'Coimbra']);
+  assert('144. mc-assembly assemble', Array.isArray(opts) && opts.length === 4 && opts.includes('Lisboa'));
+  const KC = sandbox.globalThis.QuestionEngineKnowledgeKeyCompute;
+  const key = KC.computeKnowledgeKey('Qual é a capital de Portugal?', 'Lisboa', QE.FORMAT_IDS.RESPOSTA_DIRETA, (s) => String(s).toLowerCase());
+  assert('145. knowledge-key-compute', key.includes('lisboa') || key.includes('capital'));
+  assert('146. fachada question-engine linhas', typeof QE.validateQuestion === 'function' && typeof QE.assembleMcOptions === 'function');
+  assert('147. scoring sem configure', !sandbox.globalThis.QuestionEngineQuestionScoring.configure);
 }
 {
   QE.clearGenerationTelemetry();
