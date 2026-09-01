@@ -1,0 +1,5931 @@
+{
+  "description": "Fila gerada a partir do Adivinhário MemóriaMedia (Fundo Michel Giacometti).",
+  "items": [
+    {
+      "queueId": "q-mm-107",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0107",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Ferreira do Zêzere",
+        "fact": "A serra. Sou tísica de nascença, Só pão de rolão me dão, Por falta de cozimenta Deito o que roio no chão. Vivo muito oprimida P’r’assim poder trabalhare,",
+        "answer": "Serra",
+        "clues": [
+          "Sou tísica de nascença,",
+          "Só pão de rolão me dão,",
+          "Por falta de cozimenta",
+          "Deito o que roio no chão.",
+          "Vivo muito oprimida",
+          "P’r’assim poder trabalhare,"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:107",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/107",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 107,
+          "numero_ficha": "31/488",
+          "title": "A serra",
+          "classification_id": "5",
+          "localidade": "Paio Mendes",
+          "concelho": "Ferreira do Zêzere",
+          "distrito": "Sem informação",
+          "data_recolha": "1975-07"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-135",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0135",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Alta árvore, baixa rama, Já fui filha e agora sou ama, Estou criando filhos E sogra de meu marido.",
+        "answer": "Foi um homem que prenderam.",
+        "clues": [
+          "Alta árvore, baixa rama,",
+          "Já fui filha e agora sou ama,",
+          "Estou criando filhos",
+          "E sogra de meu marido."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:135",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/135",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 135,
+          "numero_ficha": "42/236",
+          "title": "Alta árvore, baixa rama",
+          "classification_id": "7",
+          "localidade": "Vascoveiro",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-09-08"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-1",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0001",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Alto cum’a pinho, verde cum’a linho. É doce cum’a mele, e amarga cum’a fele.",
+        "answer": "Noz",
+        "clues": [
+          "Alto cum’a pinho, verde cum’a linho.",
+          "É doce cum’a mele, e amarga cum’a fele."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:1",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/1",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 1,
+          "numero_ficha": "42/128",
+          "title": "Alto cum'a pinho",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-68",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0068",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Almeida",
+        "fact": "Alto está, Alto mora, Todos o vêem E ninguém o adora.",
+        "answer": "Sino",
+        "clues": [
+          "Alto está,",
+          "Alto mora,",
+          "Todos o vêem",
+          "E ninguém o adora."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:68",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/68",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 68,
+          "numero_ficha": "42/100",
+          "title": "Alto está",
+          "classification_id": "1",
+          "localidade": "Poço Velho",
+          "concelho": "Almeida",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-136",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0136",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "Alto me miras Comer me querias Não me comes nem me comerás Mas de ti sairá Quem a mim me comerá.",
+        "answer": "Cabra",
+        "clues": [
+          "Alto me miras",
+          "Comer me querias",
+          "Não me comes nem me comerás",
+          "Mas de ti sairá",
+          "Quem a mim me comerá."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:136",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/136",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 136,
+          "numero_ficha": "42/173",
+          "title": "Alto me miras",
+          "classification_id": "7",
+          "localidade": "Vilela Seca",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-07-13"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-2",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0002",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Altos palácios, Lindas jenelas , Abram e fecham, Ninguém mora nelas.",
+        "answer": "Olhos",
+        "clues": [
+          "Altos palácios,",
+          "Lindas jenelas ,",
+          "Abram e fecham,",
+          "Ninguém mora nelas."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:2",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/2",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 2,
+          "numero_ficha": "42/223",
+          "title": "Altos palácios",
+          "classification_id": "1",
+          "localidade": "Manigoto",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-69",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0069",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Altos palácios, lindas janelas Aibro o fecho Sem bulir co elas.",
+        "answer": "Olhos",
+        "clues": [
+          "Altos palácios, lindas janelas",
+          "Aibro o fecho",
+          "Sem bulir co elas."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:69",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/69",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 69,
+          "numero_ficha": "42/71",
+          "title": "Altos palácios lindas janelas",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-4",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0004",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Crato",
+        "fact": "Altos picaretos e lindas janelas Abrem-se e fecham-se E ninguém mora neles.",
+        "answer": "Olhos",
+        "clues": [
+          "Altos picaretos e lindas janelas",
+          "Abrem-se e fecham-se",
+          "E ninguém mora neles."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:4",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/4",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 4,
+          "numero_ficha": "42/159",
+          "title": "Altos picaretos e lindas janelas",
+          "classification_id": "1",
+          "localidade": "Monte da Pedra",
+          "concelho": "Crato",
+          "distrito": "Portalegre",
+          "data_recolha": "1975-07-29"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-5",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0005",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "Ando eu em mão calosa e dura, Aos humanos devo a figura. Mas, sem ser nenhum ente divino, A muitos tenho salvado.",
+        "answer": "Remo",
+        "clues": [
+          "Ando eu em mão calosa e dura,",
+          "Aos humanos devo a figura.",
+          "Mas, sem ser nenhum ente divino,",
+          "A muitos tenho salvado."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:5",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/5",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 5,
+          "numero_ficha": "42/178",
+          "title": "Ando eu em mão calosa",
+          "classification_id": "1",
+          "localidade": "Vilela Seca",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-07-13"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-137",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0137",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Santarém",
+        "fact": "Aqui tem, menina, Este copo de vinho, Nascido e criado Dentro de um ninho De passarinho. Vem a cavalo na mãe.",
+        "answer": "Havia um rei que tinha uma filha, e só a deixava casar com um príncipe que lhe fizesse uma adivinha que ela não fosse capaz de responder, pois ela adivinhava todas. Depois, ele tinha uma vinha que tinha um ninho onde nasceu uma cepa. Tinha-lhe morrido um poldro. E ele mandou fazer um copo com o osso do poldro. (Pois ele levava o cavalo na égua com um copo na mão). Ela não foi capaz de adivinhar e, portanto, o rei teve de ceder e casar com o principe a sua filha.",
+        "clues": [
+          "Aqui tem, menina,",
+          "Este copo de vinho,",
+          "Nascido e criado",
+          "Dentro de um ninho",
+          "De passarinho.",
+          "Vem a cavalo na mãe."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:137",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/137",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 137,
+          "numero_ficha": "42/104",
+          "title": "Aqui tem, menina",
+          "classification_id": "7",
+          "localidade": "Vilgateira",
+          "concelho": "Santarém",
+          "distrito": "Santarém",
+          "data_recolha": "1975-09-12"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-70",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0070",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Almeida",
+        "fact": "Arquinha de Santa Maria Abre e fecha não chirria.",
+        "answer": "Olhos",
+        "clues": [
+          "Arquinha de Santa Maria",
+          "Abre e fecha não chirria."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:70",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/70",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 70,
+          "numero_ficha": "42/248",
+          "title": "Arquinha de Santa Maria",
+          "classification_id": "1",
+          "localidade": "Poço Velho",
+          "concelho": "Almeida",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-20"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-71",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0071",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Almeida",
+        "fact": "Arquinho de Santa Maria Abre e fecha não chilria.",
+        "answer": "Olhos",
+        "clues": [
+          "Arquinho de Santa Maria",
+          "Abre e fecha não chilria."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:71",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/71",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 71,
+          "numero_ficha": "42/98",
+          "title": "Arquinho de Santa Maria",
+          "classification_id": "1",
+          "localidade": "Poço Velho",
+          "concelho": "Almeida",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-6",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0006",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Sesimbra",
+        "fact": "(Que é aquilo) Atrás do valado Está o calado, Barrete encarnado, Espeto no cu, E adivinha lá tu.",
+        "answer": "Ginja",
+        "clues": [
+          "(Que é aquilo)",
+          "Atrás do valado",
+          "Está o calado,",
+          "Barrete encarnado,",
+          "Espeto no cu,",
+          "E adivinha lá tu."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:6",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/6",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 6,
+          "numero_ficha": "42/148",
+          "title": "Atrás do valado",
+          "classification_id": "1",
+          "localidade": "Aldeia do Meco",
+          "concelho": "Sesimbra",
+          "distrito": "Setúbal",
+          "data_recolha": "1975-07-26"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-9",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0009",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Bem alta me veio, por uma risada, Que disse por tudo quanto tenho.",
+        "answer": "Castanhas a cair de um castanheiro",
+        "clues": [
+          "Bem alta me veio, por uma risada,",
+          "Que disse por tudo quanto tenho."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:9",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/9",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 9,
+          "numero_ficha": "42/232",
+          "title": "Bem alta me veio",
+          "classification_id": "1",
+          "localidade": "Vascoveiro",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-09-08"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-10",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0010",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Cal é coisa, cal é ela, Branca com’a neve, Preta com’o pez , Que fale muito e num tem boca, Anda e num tem pés?",
+        "answer": "Carta",
+        "clues": [
+          "Cal é coisa, cal é ela,",
+          "Branca com’a neve,",
+          "Preta com’o pez ,",
+          "Que fale muito e num tem boca,",
+          "Anda e num tem pés?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:10",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/10",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 10,
+          "numero_ficha": "42/224",
+          "title": "Branca com'a neve",
+          "classification_id": "1",
+          "localidade": "Manigoto",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-11",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0011",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Sesimbra",
+        "fact": "Branca foi meu nascimento. Branco foi meu nascimento, Para amarelo mudei a cor. Vou roubar, sem lecença, Ao campo do lavrador.",
+        "answer": "Abelha",
+        "clues": [
+          "Branco foi meu nascimento,",
+          "Para amarelo mudei a cor.",
+          "Vou roubar, sem lecença,",
+          "Ao campo do lavrador."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:11",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/11",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 11,
+          "numero_ficha": "42/207",
+          "title": "Branca foi meu nascimento",
+          "classification_id": "1",
+          "localidade": "Aldeia do Meco",
+          "concelho": "Sesimbra",
+          "distrito": "Setúbal",
+          "data_recolha": "1975-07-26"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-12",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0012",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Cal é coisa. Cal é a coisa, Que quanto mais alta se’stá, Melhor se lhe chega?",
+        "answer": "Água do poço",
+        "clues": [
+          "Cal é a coisa,",
+          "Que quanto mais alta se’stá,",
+          "Melhor se lhe chega?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:12",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/12",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 12,
+          "numero_ficha": "42/226",
+          "title": "Cal é coisa",
+          "classification_id": "1",
+          "localidade": "Manigoto",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-108",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0108",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Cal é coisa, Que Deus nunca viu, nem espera ver?",
+        "answer": "Um homem igual a ele",
+        "clues": [
+          "Cal é coisa,",
+          "Que Deus nunca viu, nem espera ver?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:108",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/108",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 108,
+          "numero_ficha": "42/220",
+          "title": "Cal é coisa que Deus nunca viu",
+          "classification_id": "5",
+          "localidade": "Manigoto",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-119",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0119",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Cal é coisa, cal é ela, Que se parece com a pessoa, Mas não é ela?",
+        "answer": "Fotografia",
+        "clues": [
+          "Cal é coisa, cal é ela,",
+          "Que se parece com a pessoa,",
+          "Mas não é ela?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:119",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/119",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 119,
+          "numero_ficha": "42/227",
+          "title": "Cal é coisa, cal é ela",
+          "classification_id": "3",
+          "localidade": "Manigoto",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-72",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0072",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Capote sobre capote, Capote do mesmo pano. Se to num disser, Num a’vinhas esti ano.",
+        "answer": "Cebola",
+        "clues": [
+          "Capote sobre capote,",
+          "Capote do mesmo pano.",
+          "Se to num disser,",
+          "Num a’vinhas esti ano."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:72",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/72",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 72,
+          "numero_ficha": "42/65",
+          "title": "Capote sobre capote",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-14",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0014",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Crato",
+        "fact": "Coisa, coisa ela, Quanto mais baixinha ‘tá, Menos se lhe chega!",
+        "answer": "Água do poço",
+        "clues": [
+          "Coisa, coisa ela,",
+          "Quanto mais baixinha ‘tá,",
+          "Menos se lhe chega!"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:14",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/14",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 14,
+          "numero_ficha": "42/168",
+          "title": "Coisa, coisa ela",
+          "classification_id": "1",
+          "localidade": "Monte da Pedra",
+          "concelho": "Crato",
+          "distrito": "Portalegre",
+          "data_recolha": "1975-07-28"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-15",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0015",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Crato",
+        "fact": "Coisa, coisa ela, Que é lavrada e não dá pão?",
+        "answer": "Telhado",
+        "clues": [
+          "Coisa, coisa ela,",
+          "Que é lavrada e não dá pão?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:15",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/15",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 15,
+          "numero_ficha": "42/166",
+          "title": "Coisa, coisa ela, que é lavrada",
+          "classification_id": "1",
+          "localidade": "Monte da Pedra",
+          "concelho": "Crato",
+          "distrito": "Portalegre",
+          "data_recolha": "1975-07-28"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-16",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0016",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Crato",
+        "fact": "Coisa, coisa ela, Que é tão grande Como uma abelha, Enche a casa até à telha?",
+        "answer": "Luz da candeia",
+        "clues": [
+          "Coisa, coisa ela,",
+          "Que é tão grande",
+          "Como uma abelha,",
+          "Enche a casa até à telha?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:16",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/16",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 16,
+          "numero_ficha": "42/167",
+          "title": "Coisa, coisa ela, que é tão grande",
+          "classification_id": "1",
+          "localidade": "Monte da Pedra",
+          "concelho": "Crato",
+          "distrito": "Portalegre",
+          "data_recolha": "1975-07-28"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-138",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0138",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "D’alto me miras. Comer-me querias. Eu hei-de morrer, tu hás-de viver. E, dentro de ti, me hei-de meter.",
+        "answer": "Centeio a falar com a cabra",
+        "clues": [
+          "D’alto me miras. Comer-me querias.",
+          "Eu hei-de morrer, tu hás-de viver.",
+          "E, dentro de ti, me hei-de meter."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:138",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/138",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 138,
+          "numero_ficha": "42/118",
+          "title": "Comer-me",
+          "classification_id": "7",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-139",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0139",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Vieira do Minho",
+        "fact": "D’alto me miras. Comer me qu’rias. Mas, tu morrerás E eu ficarei E dentro de ti me terei",
+        "answer": "Uma cabra a olhar para um campo de milho ou de centeio",
+        "clues": [
+          "D’alto me miras.",
+          "Comer me qu’rias.",
+          "Mas, tu morrerás",
+          "E eu ficarei",
+          "E dentro de ti me terei"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:139",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/139",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 139,
+          "numero_ficha": "42/203",
+          "title": "D'alto me miras",
+          "classification_id": "7",
+          "localidade": "Soutelo",
+          "concelho": "Vieira do Minho",
+          "distrito": "Braga",
+          "data_recolha": "1975-09-12"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-17",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0017",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "De manhã ouro, De tarde prata, À noite mata.",
+        "answer": "Laranja",
+        "clues": [
+          "De manhã ouro,",
+          "De tarde prata,",
+          "À noite mata."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:17",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/17",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 17,
+          "numero_ficha": "42/180",
+          "title": "De manhã ouro",
+          "classification_id": "1",
+          "localidade": "Couto de ervedo",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-18",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0018",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "De mim sai uma donzela: Ela vai com quem a leva E eu fico com quem ma deu.",
+        "answer": "Castanha",
+        "clues": [
+          "De mim sai uma donzela:",
+          "Ela vai com quem a leva",
+          "E eu fico com quem ma deu."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:18",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/18",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 18,
+          "numero_ficha": "42/171",
+          "title": "De mim sai uma donzela",
+          "classification_id": "1",
+          "localidade": "Vilela Seca",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-07-15"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-19",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0019",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "De verde foi meu nascimento, De luto me vesti. Para dar luz ao mundo Mil tormentos padeci.",
+        "answer": "Azeitona (azeite)",
+        "clues": [
+          "De verde foi meu nascimento,",
+          "De luto me vesti.",
+          "Para dar luz ao mundo",
+          "Mil tormentos padeci."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:19",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/19",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 19,
+          "numero_ficha": "42/169",
+          "title": "De verde foi meu nascimento",
+          "classification_id": "1",
+          "localidade": "Couto de ervedo",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-74",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0074",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Duas damas estão mirando Á sombra das castanhetas As tripas lhe estão tirando.",
+        "answer": "Roca",
+        "clues": [
+          "Duas damas estão mirando",
+          "Á sombra das castanhetas",
+          "As tripas lhe estão tirando."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:74",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/74",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 74,
+          "numero_ficha": "42/68",
+          "title": "Duas damas",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-140",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0140",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Santarém",
+        "fact": "É branca mas não é papel, É encarnada mas não é sangue, É preta e não é peixe. E adivinha lá, português. Nem sequer mesmo neste mês. E só p’ró próximo se eu disser.",
+        "answer": "Amoras",
+        "clues": [
+          "É branca mas não é papel,",
+          "É encarnada mas não é sangue,",
+          "É preta e não é peixe.",
+          "E adivinha lá, português.",
+          "Nem sequer mesmo neste mês.",
+          "E só p’ró próximo se eu disser."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:140",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/140",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 140,
+          "numero_ficha": "42/108",
+          "title": "É branca mas não é papel",
+          "classification_id": "7",
+          "localidade": "Moçarria",
+          "concelho": "Santarém",
+          "distrito": "Santarém",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-75",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0075",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "É branca, esclarecida E logo muda de cor. É tamanho o seu zunido Qu’a todos mete pavor. Recolhe sem semear Qu’enrica o seu senhor.",
+        "answer": "Abelha",
+        "clues": [
+          "É branca, esclarecida",
+          "E logo muda de cor.",
+          "É tamanho o seu zunido",
+          "Qu’a todos mete pavor.",
+          "Recolhe sem semear",
+          "Qu’enrica o seu senhor."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:75",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/75",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 75,
+          "numero_ficha": "42/ 59",
+          "title": "É branca, esclarecida",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-76",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0076",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Covilhã",
+        "fact": "Que é, que é? É branco por fora, Preto por dentro, Vermelho na ponta.",
+        "answer": "Cigarro acesso",
+        "clues": [
+          "Que é, que é?",
+          "É branco por fora,",
+          "Preto por dentro,",
+          "Vermelho na ponta."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:76",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/76",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 76,
+          "numero_ficha": "42/72",
+          "title": "É branco por fora",
+          "classification_id": "1",
+          "localidade": "Casegas",
+          "concelho": "Covilhã",
+          "distrito": "Castelo Branco",
+          "data_recolha": "1975-07-20"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-20",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0020",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Almeida",
+        "fact": "É uma senhora Muito assenhorada, Nunca sai à rua, Está sempre molhada.",
+        "answer": "Língua",
+        "clues": [
+          "É uma senhora",
+          "Muito assenhorada,",
+          "Nunca sai à rua,",
+          "Está sempre molhada."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:20",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/20",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 20,
+          "numero_ficha": "42/99",
+          "title": "É uma senhora",
+          "classification_id": "1",
+          "localidade": "Poço Velho",
+          "concelho": "Almeida",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-77",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0077",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Porto de Mós",
+        "fact": "Este rei, rei cavaleiro, Dá ordens sempr’a cantar, Governa no seu poleiro, Mas na testa faz chorar.",
+        "answer": "Galo",
+        "clues": [
+          "Este rei, rei cavaleiro,",
+          "Dá ordens sempr’a cantar,",
+          "Governa no seu poleiro,",
+          "Mas na testa faz chorar."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:77",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/77",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 77,
+          "numero_ficha": "42/92",
+          "title": "Este rei",
+          "classification_id": "1",
+          "localidade": "Juncal",
+          "concelho": "Porto de Mós",
+          "distrito": "Leiria",
+          "data_recolha": "1975-07-30"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-120",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0120",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Eu fui a Lisboa, co Mendo. Co Mendo, fui e vi. Co Mendo, sempre co Mendo, Co Mendo nunca comi. O que é?",
+        "answer": "Um homem que se chamava Mendo, e outro que foi com ele e veio, e não chegou a comer pelo caminho.",
+        "clues": [
+          "Eu fui a Lisboa, co Mendo.",
+          "Co Mendo, fui e vi.",
+          "Co Mendo, sempre co Mendo,",
+          "Co Mendo nunca comi.",
+          "O que é?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:120",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/120",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 120,
+          "numero_ficha": "42/112",
+          "title": "Eu fui a Lisboa",
+          "classification_id": "3",
+          "localidade": "Vascoveiro",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-21",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0021",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Eu no campo me criei, Metida entre verdes laços, E quem mais chora por mim É quem me faz em pedaços.",
+        "answer": "Cebola",
+        "clues": [
+          "Eu no campo me criei,",
+          "Metida entre verdes laços,",
+          "E quem mais chora por mim",
+          "É quem me faz em pedaços."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:21",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/21",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 21,
+          "numero_ficha": "42/195",
+          "title": "Eu no campo me criei",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-20"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-121",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0121",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Torres Novas",
+        "fact": "Eu pormaneço no rio, Pelo mar nunca vim, Não tenho entrada na água E não há navio sem mim. A resposta a esta adivinha é o i.",
+        "answer": "Letra \"i\"",
+        "clues": [
+          "Eu pormaneço no rio,",
+          "Pelo mar nunca vim,",
+          "Não tenho entrada na água",
+          "E não há navio sem mim.",
+          "A resposta a esta adivinha é o i."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:121",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/121",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 121,
+          "numero_ficha": "42/238",
+          "title": "Eu pormaneço no rio",
+          "classification_id": "3",
+          "localidade": "Riachos",
+          "concelho": "Torres Novas",
+          "distrito": "Sem informação",
+          "data_recolha": "1974-12"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-22",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0022",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Crato",
+        "fact": "Eu sou fêmea de nascença, Macho me querem fazer, Mas hão-de-me deitar à água P’ra que eu fêmea torne a ser.",
+        "answer": "Água salgada",
+        "clues": [
+          "Eu sou fêmea de nascença,",
+          "Macho me querem fazer,",
+          "Mas hão-de-me deitar à água",
+          "P’ra que eu fêmea torne a ser."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:22",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/22",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 22,
+          "numero_ficha": "42/164",
+          "title": "Eu sou fêmea de nascença",
+          "classification_id": "1",
+          "localidade": "Monte da Pedra",
+          "concelho": "Crato",
+          "distrito": "Portalegre",
+          "data_recolha": "1975-07-29"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-23",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0023",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Sesimbra",
+        "fact": "Eu tenho à minha porta Uma árvore com doze ramos, Mas nem todos são iguais. Cada ramo tem quatro linhos [ninhos], E cada linho tem sete pardais.",
+        "answer": "Ano",
+        "clues": [
+          "Eu tenho à minha porta",
+          "Uma árvore com doze ramos,",
+          "Mas nem todos são iguais.",
+          "Cada ramo tem quatro linhos [ninhos],",
+          "E cada linho tem sete pardais."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:23",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/23",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 23,
+          "numero_ficha": "42/213",
+          "title": "Eu tenho à minha porta",
+          "classification_id": "1",
+          "localidade": "Aldeia do Meco",
+          "concelho": "Sesimbra",
+          "distrito": "Setúbal",
+          "data_recolha": "1975-07-26"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-78",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0078",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Porto de Mós",
+        "fact": "Fêmea foi meu nascimento Macho me quiseram fazer Agora deito-me a afogar E fêmea volto a ser!",
+        "answer": "Trigo",
+        "clues": [
+          "Fêmea foi meu nascimento",
+          "Macho me quiseram fazer",
+          "Agora deito-me a afogar",
+          "E fêmea volto a ser!"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:78",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/78",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 78,
+          "numero_ficha": "S/info",
+          "title": "Fêmea foi meu nascimento",
+          "classification_id": "1",
+          "localidade": "Mendiga",
+          "concelho": "Porto de Mós",
+          "distrito": "Leiria",
+          "data_recolha": "1978-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-142",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0142",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Porto de Mós",
+        "fact": "Fui branca e vejo-me preta, Só medrei em comprimento, Tenho bom pano e estou nua, Sofro chuva, sol e vento. Umas vezes estou mui farta, Outras vezes de lazeira ,",
+        "answer": "Chaminé",
+        "clues": [
+          "Fui branca e vejo-me preta,",
+          "Só medrei em comprimento,",
+          "Tenho bom pano e estou nua,",
+          "Sofro chuva, sol e vento.",
+          "Umas vezes estou mui farta,",
+          "Outras vezes de lazeira ,"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:142",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/142",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 142,
+          "numero_ficha": "42/96",
+          "title": "Fui branca e vejo-me preta",
+          "classification_id": "7",
+          "localidade": "Juncal",
+          "concelho": "Porto de Mós",
+          "distrito": "Leiria",
+          "data_recolha": "1975-07-30"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-24",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0024",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Fumo, ruído, Cortando a aragem. Só faz barulho, No fim da sua viagem.",
+        "answer": "Foguete",
+        "clues": [
+          "Fumo, ruído,",
+          "Cortando a aragem.",
+          "Só faz barulho,",
+          "No fim da sua viagem."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:24",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/24",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 24,
+          "numero_ficha": "42/186",
+          "title": "Fumo, ruído",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-143",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0143",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Azambuja",
+        "fact": "Gado miúdo, Terra mimosa, Onde se poisa Deixa uma rosa.",
+        "answer": "Uma pulga a morder uma pessoa",
+        "clues": [
+          "Gado miúdo,",
+          "Terra mimosa,",
+          "Onde se poisa",
+          "Deixa uma rosa."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:143",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/143",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 143,
+          "numero_ficha": "42/85",
+          "title": "Gado miúdo",
+          "classification_id": "7",
+          "localidade": "Manique do Intendente",
+          "concelho": "Azambuja",
+          "distrito": "Lisboa",
+          "data_recolha": "1975-07-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-25",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0025",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Sesimbra",
+        "fact": "Há uma árvore Que não dá fruto Nem flor, E dá muito produto Ao lavrador.",
+        "answer": "Vimeiro",
+        "clues": [
+          "Há uma árvore",
+          "Que não dá fruto",
+          "Nem flor,",
+          "E dá muito produto",
+          "Ao lavrador."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:25",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/25",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 25,
+          "numero_ficha": "42/210",
+          "title": "Há uma árvore",
+          "classification_id": "1",
+          "localidade": "Aldeia do Meco",
+          "concelho": "Sesimbra",
+          "distrito": "Setúbal",
+          "data_recolha": "1975-07-26"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-123",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0123",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Porto de Mós",
+        "fact": "Ia um comboio p’a Lisboa e outro no mesmo caminho p’ro Porto! O que é qu’houve (couve)?",
+        "answer": "Hortaliça",
+        "clues": [
+          "Ia um comboio p’a Lisboa e outro no mesmo caminho p’ro Porto!",
+          "O que é qu’houve (couve)?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:123",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/123",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 123,
+          "numero_ficha": "S/info",
+          "title": "Ia um comboio",
+          "classification_id": "3",
+          "localidade": "Pé de Pedreira/Barreirinhas",
+          "concelho": "Porto de Mós",
+          "distrito": "Leiria",
+          "data_recolha": "1975-08"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-26",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0026",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Já foi vivo e agora é morto, E traz carne viva dentro do corpo.",
+        "answer": "Bota",
+        "clues": [
+          "Já foi vivo e agora é morto,",
+          "E traz carne viva dentro do corpo."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:26",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/26",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 26,
+          "numero_ficha": "42/113",
+          "title": "Já foi vivo e agora é morto",
+          "classification_id": "1",
+          "localidade": "Vascoveiro",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-09-15"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-79",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0079",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Maria Campina está no campo. Chega-lhe a notícia do seu filho branco. Alça a perna, mete a correr, Ainda chega a tempo de o ver nascer.",
+        "answer": "Galinha a pôr o ovo",
+        "clues": [
+          "Maria Campina está no campo.",
+          "Chega-lhe a notícia do seu filho branco.",
+          "Alça a perna, mete a correr,",
+          "Ainda chega a tempo de o ver nascer."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:79",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/79",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 79,
+          "numero_ficha": "42/50",
+          "title": "Maria Campina",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-27",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0027",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Meu pipinho, Meu pipote, Nem tem por onde se lhe tire, Nem por onde se lhe bote.",
+        "answer": "Ovo",
+        "clues": [
+          "Meu pipinho,",
+          "Meu pipote,",
+          "Nem tem por onde se lhe tire,",
+          "Nem por onde se lhe bote."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:27",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/27",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 27,
+          "numero_ficha": "42/122",
+          "title": "Meu pipinho",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-21"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-146",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0146",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "Mil maranhinhas (pelos grandes), mil maranhões ( pelos pequenos) duas parafitas (cornos) quatro chantões (patas)",
+        "answer": "Boi",
+        "clues": [
+          "Mil maranhinhas (pelos grandes),",
+          "mil maranhões ( pelos pequenos)",
+          "duas parafitas (cornos)",
+          "quatro chantões (patas)"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:146",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/146",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 146,
+          "numero_ficha": "42/174",
+          "title": "Mil maranhinhas",
+          "classification_id": "7",
+          "localidade": "Vilela Seca",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-07-13"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-148",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0148",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Nasceu sem sombra de culpa E sem ser culpado morreu. Viveu com seu pai e mãe Que nenhum deles naceu E a avó conservou-se virge Até que seu neto morreu.",
+        "answer": "Abel e Caim",
+        "clues": [
+          "Nasceu sem sombra de culpa",
+          "E sem ser culpado morreu.",
+          "Viveu com seu pai e mãe",
+          "Que nenhum deles naceu",
+          "E a avó conservou-se virge",
+          "Até que seu neto morreu."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:148",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/148",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 148,
+          "numero_ficha": "42/70",
+          "title": "Nasceu sem sombra de culpa",
+          "classification_id": "7",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-28",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0028",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "Neste alto me vejo Com o meu nome capelejo, Moiros vejo vir, Não posso fugir.",
+        "answer": "Sino",
+        "clues": [
+          "Neste alto me vejo",
+          "Com o meu nome capelejo,",
+          "Moiros vejo vir,",
+          "Não posso fugir."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:28",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/28",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 28,
+          "numero_ficha": "42/179",
+          "title": "Neste alto me vejo",
+          "classification_id": "1",
+          "localidade": "Vilela Seca",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-07-13"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-29",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0029",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Miranda do Douro",
+        "fact": "No alto está E no alto mora Todos o vejam E ninguém o adora.",
+        "answer": "Sino",
+        "clues": [
+          "No alto está",
+          "E no alto mora",
+          "Todos o vejam",
+          "E ninguém o adora."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:29",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/29",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 29,
+          "numero_ficha": "42/157",
+          "title": "No alto está",
+          "classification_id": "1",
+          "localidade": "Póvoa",
+          "concelho": "Miranda do Douro",
+          "distrito": "Bragança",
+          "data_recolha": "1975-07-13"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-80",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0080",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Almeida",
+        "fact": "No monte se corta, No monte se cria E à noite vai falar Com as raparigas.",
+        "answer": "Fuso",
+        "clues": [
+          "No monte se corta,",
+          "No monte se cria",
+          "E à noite vai falar",
+          "Com as raparigas."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:80",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/80",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 80,
+          "numero_ficha": "42/97",
+          "title": "No monte se corta",
+          "classification_id": "1",
+          "localidade": "Poço Velho",
+          "concelho": "Almeida",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-20"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-30",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0030",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Crato",
+        "fact": "O Anicó não tem dentes, Come e bebe e anda de pé, Faz dos mortos viventes Quando canta com a fé.",
+        "answer": "Galo",
+        "clues": [
+          "O Anicó não tem dentes,",
+          "Come e bebe e anda de pé,",
+          "Faz dos mortos viventes",
+          "Quando canta com a fé."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:30",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/30",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 30,
+          "numero_ficha": "42/161",
+          "title": "O Anicó não tem dentes",
+          "classification_id": "1",
+          "localidade": "Monte da Pedra",
+          "concelho": "Crato",
+          "distrito": "Portalegre",
+          "data_recolha": "1975-07-29"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-81",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0081",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Almeida",
+        "fact": "Ó cantador, tu estudas, No livro da vedoria. Diz-me tu: qual é a i-ave Que não tem tetas e cria? Que aos vivos dá sabor E, aos mortos, alegria?",
+        "answer": "Abelha",
+        "clues": [
+          "Ó cantador, tu estudas,",
+          "No livro da vedoria.",
+          "Diz-me tu: qual é a i-ave",
+          "Que não tem tetas e cria?",
+          "Que aos vivos dá sabor",
+          "E, aos mortos, alegria?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:81",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/81",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 81,
+          "numero_ficha": "42/247",
+          "title": "O cantador, tu estudas",
+          "classification_id": "1",
+          "localidade": "Nave de Haver",
+          "concelho": "Almeida",
+          "distrito": "Guarda",
+          "data_recolha": "1975-07-26"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-124",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0124",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "O mar, quando bate nas rochas, diz: MAR O cordeiro, quando bale, diz: ME O músico, quando toca, faz: LA O pobre, quando mendiga, diz: DA",
+        "answer": "Marmelada",
+        "clues": [
+          "O mar, quando bate nas rochas, diz: MAR",
+          "O cordeiro, quando bale, diz: ME",
+          "O músico, quando toca, faz: LA",
+          "O pobre, quando mendiga, diz: DA"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:124",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/124",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 124,
+          "numero_ficha": "42/177",
+          "title": "O mar, quando bate nas rochas",
+          "classification_id": "3",
+          "localidade": "Vilela Seca",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-07-13"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-126",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0126",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Crato",
+        "fact": "O que é a coisa mais cara. Qual é a coisa mais cara, Mais cara do miundo ?",
+        "answer": "A cara",
+        "clues": [
+          "Qual é a coisa mais cara,",
+          "Mais cara do miundo ?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:126",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/126",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 126,
+          "numero_ficha": "42/162",
+          "title": "O que é a coisa mais cara",
+          "classification_id": "3",
+          "localidade": "Monte da Pedra",
+          "concelho": "Crato",
+          "distrito": "Portalegre",
+          "data_recolha": "1975-07-29"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-31",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0031",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Sesimbra",
+        "fact": "O que é aquilo que: Em França foi feita, Em Portugal foi vendida. A vida dela está presa; Assim que se solta está perdida?",
+        "answer": "Agulha",
+        "clues": [
+          "O que é aquilo que:",
+          "Em França foi feita,",
+          "Em Portugal foi vendida.",
+          "A vida dela está presa;",
+          "Assim que se solta está perdida?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:31",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/31",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 31,
+          "numero_ficha": "42/206",
+          "title": "O que é aquilo que",
+          "classification_id": "1",
+          "localidade": "Aldeia do Meco",
+          "concelho": "Sesimbra",
+          "distrito": "Setúbal",
+          "data_recolha": "1975-07-26"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-82",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0082",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Azambuja",
+        "fact": "O que é aquilo, Que anda, anda E chega à estrada, e pára?",
+        "answer": "Fogo",
+        "clues": [
+          "O que é aquilo,",
+          "Que anda, anda",
+          "E chega à estrada, e pára?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:82",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/82",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 82,
+          "numero_ficha": "42/86",
+          "title": "O que é aquilo que anda",
+          "classification_id": "1",
+          "localidade": "Manique do Intendente",
+          "concelho": "Azambuja",
+          "distrito": "Lisboa",
+          "data_recolha": "1975-07-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-32",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0032",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "O que é que é que vai pelo mar abaixo Sem molhar o pé?",
+        "answer": "Uma vaquinha dentro de outra",
+        "clues": [
+          "O que é que é que vai pelo mar abaixo",
+          "Sem molhar o pé?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:32",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/32",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 32,
+          "numero_ficha": "42/181",
+          "title": "O que é que vai pelo mar",
+          "classification_id": "1",
+          "localidade": "Couto d'Ervededo",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-83",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0083",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Aguiar da Beira",
+        "fact": "Ó que lindo pucarinho, Ó que lindo ramalhete, Nem é cozido, nem é assado, Nem comido com colher, Nem dinheiro há sequer para a colher.",
+        "answer": "Romã",
+        "clues": [
+          "Ó que lindo pucarinho,",
+          "Ó que lindo ramalhete,",
+          "Nem é cozido, nem é assado,",
+          "Nem comido com colher,",
+          "Nem dinheiro há sequer para a colher."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:83",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/83",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 83,
+          "numero_ficha": "42/81",
+          "title": "O que lindo pucarinho",
+          "classification_id": "1",
+          "localidade": "Forninhos",
+          "concelho": "Aguiar da Beira",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-21"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-149",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0149",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "O ser velha nom se nega. Foi-se a minha mocidade. E mesmo desta idade, Deus de filhos me carrega. O Inverno, me faz cega. Os olhos dá-mos o v’rão.",
+        "answer": "Vide",
+        "clues": [
+          "O ser velha nom se nega.",
+          "Foi-se a minha mocidade.",
+          "E mesmo desta idade,",
+          "Deus de filhos me carrega.",
+          "O Inverno, me faz cega.",
+          "Os olhos dá-mos o v’rão."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:149",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/149",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 149,
+          "numero_ficha": "42/127",
+          "title": "O ser velha nom se nega",
+          "classification_id": "7",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-34",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0034",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Sesimbra",
+        "fact": "Ontem fui ramo verde Raminho de andar na mão. Hoje sou uma velha vassoura Para quem quer varrer o chão (Nota: o informante não disse a solução.)",
+        "answer": "Sem resposta",
+        "clues": [
+          "Ontem fui ramo verde",
+          "Raminho de andar na mão.",
+          "Hoje sou uma velha vassoura",
+          "Para quem quer varrer o chão",
+          "(Nota: o informante não disse a solução.)"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:34",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/34",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 34,
+          "numero_ficha": "42/215",
+          "title": "Ontem fui ramo verde",
+          "classification_id": "1",
+          "localidade": "Aldeia do Meco",
+          "concelho": "Sesimbra",
+          "distrito": "Setúbal",
+          "data_recolha": "1975-07-19"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-35",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0035",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "Pais altos, Mães baixas, Filhos pretos, Netos brancos.",
+        "answer": "Pinheiro",
+        "clues": [
+          "Pais altos,",
+          "Mães baixas,",
+          "Filhos pretos,",
+          "Netos brancos."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:35",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/35",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 35,
+          "numero_ficha": "42/170",
+          "title": "Pais altos",
+          "classification_id": "1",
+          "localidade": "Vilela Seca",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-07-15"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-84",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0084",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Pais altos, Mães baixas, Filhos negros, Netos brancos.",
+        "answer": "Pinhões",
+        "clues": [
+          "Pais altos,",
+          "Mães baixas,",
+          "Filhos negros,",
+          "Netos brancos."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:84",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/84",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 84,
+          "numero_ficha": "42/62",
+          "title": "Pais altos",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-36",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0036",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Preta por dentro. Preta pro dentro, Branca pro fora, Aí vai ela, agarra-la bem?",
+        "answer": "Cigarro",
+        "clues": [
+          "Preta pro dentro,",
+          "Branca pro fora,",
+          "Aí vai ela, agarra-la bem?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:36",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/36",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 36,
+          "numero_ficha": "42/217",
+          "title": "Preta por dentro",
+          "classification_id": "1",
+          "localidade": "Manigoto",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-37",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0037",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Pucarinhos, pucaretas, Mas que lindo ramalhetes , Nem cozidos, nem assados, Nem mexidos com colher, Num mo dirás est’ano , Nem p’r’ó ano que vier,",
+        "answer": "Romã",
+        "clues": [
+          "Pucarinhos, pucaretas,",
+          "Mas que lindo ramalhetes ,",
+          "Nem cozidos, nem assados,",
+          "Nem mexidos com colher,",
+          "Num mo dirás est’ano ,",
+          "Nem p’r’ó ano que vier,"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:37",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/37",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 37,
+          "numero_ficha": "42/229",
+          "title": "Pucarinhos, pucaretes",
+          "classification_id": "1",
+          "localidade": "Vascoveiro",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-09-08"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-38",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0038",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chancelaria",
+        "fact": "Qual é a coisa, qual é ela? são trinta e nove irmãs, todas parecendo iguais, umas de menos, outras de mais, todas brincam comigo. Mesmo que eu não saiba ler,",
+        "answer": "Baralho de cartas",
+        "clues": [
+          "Qual é a coisa, qual é ela?",
+          "são trinta e nove irmãs,",
+          "todas parecendo iguais,",
+          "umas de menos, outras de mais,",
+          "todas brincam comigo.",
+          "Mesmo que eu não saiba ler,"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:38",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/38",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 38,
+          "numero_ficha": "42/241",
+          "title": "Qual é a coisa",
+          "classification_id": "1",
+          "localidade": "Rexaldia",
+          "concelho": "Chancelaria",
+          "distrito": "Torres Novas",
+          "data_recolha": "1974-12"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-85",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0085",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Porto de Mós",
+        "fact": "Qual é a coisa vermelha, Que alto mora, alto está, Que é de cá e de Marselha E em muitas cabeças há?",
+        "answer": "Telha",
+        "clues": [
+          "Qual é a coisa vermelha,",
+          "Que alto mora, alto está,",
+          "Que é de cá e de Marselha",
+          "E em muitas cabeças há?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:85",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/85",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 85,
+          "numero_ficha": "42/90",
+          "title": "Qual é a coisa vermelha",
+          "classification_id": "1",
+          "localidade": "Juncal",
+          "concelho": "Porto de Mós",
+          "distrito": "Leiria",
+          "data_recolha": "1975-07-30"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-127",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0127",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Qual é coisa, q’al é ela, Que, ainda agora, falei nela?",
+        "answer": "Cal",
+        "clues": [
+          "Qual é coisa, q’al é ela,",
+          "Que, ainda agora, falei nela?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:127",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/127",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 127,
+          "numero_ficha": "42/116",
+          "title": "Qual é coisa",
+          "classification_id": "3",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-20"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-40",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0040",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Qual é coisa, qual é ela, que vai deitada. Qual é a coisa, qual é ela Que vai deitada E vem de pé.",
+        "answer": "Cântaro de água",
+        "clues": [
+          "Qual é a coisa, qual é ela",
+          "Que vai deitada",
+          "E vem de pé."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:40",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/40",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 40,
+          "numero_ficha": "42/117",
+          "title": "Qual é coisa, qual é ela, que vai deitada",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-21"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-86",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0086",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Porto de Mós",
+        "fact": "Qual é o mesmo ser com dez homens, Ele é marcolino , tem filhos, E ela feminina, nenhuns tem?",
+        "answer": "Pinhoca e o pinhoco",
+        "clues": [
+          "Qual é o mesmo ser com dez homens,",
+          "Ele é marcolino , tem filhos,",
+          "E ela feminina, nenhuns tem?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:86",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/86",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 86,
+          "numero_ficha": "42/95",
+          "title": "Qual é o mesmo ser",
+          "classification_id": "1",
+          "localidade": "Juncal",
+          "concelho": "Porto de Mós",
+          "distrito": "Leiria",
+          "data_recolha": "1975-07-29"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-87",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0087",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Quando vai para o monte, Vai enrodilhada, Quando vem para baixo, Vem estendida.",
+        "answer": "Corda de carro",
+        "clues": [
+          "Quando vai para o monte,",
+          "Vai enrodilhada,",
+          "Quando vem para baixo,",
+          "Vem estendida."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:87",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/87",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 87,
+          "numero_ficha": "42/56",
+          "title": "Quando vai para o monte",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-88",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0088",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Quando vai para o monte, vai com a boca virada para casa. Quando vai para casa, vai com a boca virada para o monte.",
+        "answer": "Soco aberto",
+        "clues": [
+          "Quando vai para o monte, vai com a boca virada para casa.",
+          "Quando vai para casa, vai com a boca virada para o monte."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:88",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/88",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 88,
+          "numero_ficha": "42/47",
+          "title": "Quando vai para o monte, vai",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-41",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0041",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Crato",
+        "fact": "Qual é a coisa, qual é ela Quanto maior é, menos se vê?",
+        "answer": "Escuro",
+        "clues": [
+          "Qual é a coisa, qual é ela",
+          "Quanto maior é, menos se vê?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:41",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/41",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 41,
+          "numero_ficha": "42/165",
+          "title": "Quanto maior é, menos se vê",
+          "classification_id": "1",
+          "localidade": "Monte da Pedra",
+          "concelho": "Crato",
+          "distrito": "Portalegre",
+          "data_recolha": "1975-07-29"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-42",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0042",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Qual é a coisa, qual é ela, que, Quanto mais alta está, Melhor se lhe chega?",
+        "answer": "Água do poço",
+        "clues": [
+          "Qual é a coisa, qual é ela, que,",
+          "Quanto mais alta está,",
+          "Melhor se lhe chega?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:42",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/42",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 42,
+          "numero_ficha": "42/187",
+          "title": "Quanto mais alta está",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-21"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-89",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0089",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Qual é coisa, qual é ela, Que anda de buraco em buraco, Com as tripas de rastos?",
+        "answer": "Agulha, a coser",
+        "clues": [
+          "Qual é coisa, qual é ela,",
+          "Que anda de buraco em buraco,",
+          "Com as tripas de rastos?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:89",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/89",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 89,
+          "numero_ficha": "42/57",
+          "title": "Que anda de buraco em buraco",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-90",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0090",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Qual é cousa, qual é ela, Que caminha melhor no mato que na estrada?",
+        "answer": "Fogo",
+        "clues": [
+          "Qual é cousa, qual é ela,",
+          "Que caminha melhor no mato que na estrada?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:90",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/90",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 90,
+          "numero_ficha": "42/70",
+          "title": "Que caminha melhor no mato",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-43",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0043",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Qual é a coisa, qual é ela, Que caminha no mato E não caminha na estrada?",
+        "answer": "Fogo",
+        "clues": [
+          "Qual é a coisa, qual é ela,",
+          "Que caminha no mato",
+          "E não caminha na estrada?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:43",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/43",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 43,
+          "numero_ficha": "42/221",
+          "title": "Que caminha no mato",
+          "classification_id": "1",
+          "localidade": "Manigoto",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-92",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0092",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Porto de Mós",
+        "fact": "Que é que uma árvore dá. Qual é coisa, qual é ela, Que é uma árvore que dá Três frutos num ano, É boleta e bogalho, E maça de cú queimado?",
+        "answer": "Carvalho",
+        "clues": [
+          "Qual é coisa, qual é ela,",
+          "Que é uma árvore que dá",
+          "Três frutos num ano,",
+          "É boleta e bogalho,",
+          "E maça de cú queimado?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:92",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/92",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 92,
+          "numero_ficha": "42/93",
+          "title": "Que é que uma árvore dá",
+          "classification_id": "1",
+          "localidade": "Juncal",
+          "concelho": "Porto de Mós",
+          "distrito": "Leiria",
+          "data_recolha": "1975-07-28"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-46",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0046",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Qual é coisa, qual é ela, Que está sempre molhada?",
+        "answer": "Língua",
+        "clues": [
+          "Qual é coisa, qual é ela,",
+          "Que está sempre molhada?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:46",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/46",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 46,
+          "numero_ficha": "42/190",
+          "title": "Que está sempre molhada",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-20"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-47",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0047",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Qual é coisa, qual é ela, Que , mal entra em casa, Se põe logo à janela?",
+        "answer": "Botão",
+        "clues": [
+          "Qual é coisa, qual é ela,",
+          "Que , mal entra em casa,",
+          "Se põe logo à janela?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:47",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/47",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 47,
+          "numero_ficha": "42/130",
+          "title": "Que mal entra em cas",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-21"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-48",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0048",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Santarém",
+        "fact": "Qual é coisa, qual é ela, Que quanto maior é menos pesa?",
+        "answer": "Buraco",
+        "clues": [
+          "Qual é coisa, qual é ela,",
+          "Que quanto maior é menos pesa?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:48",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/48",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 48,
+          "numero_ficha": "42/131",
+          "title": "Que quanto maior é menos pesa",
+          "classification_id": "1",
+          "localidade": "Moçarria",
+          "concelho": "Santarém",
+          "distrito": "Santarém",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-52",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0052",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Que são todos capazes de abrir. Qual é coisa, qual é ela, Que todos são capazes de abrir, E ninguém é capaz de a fechar?",
+        "answer": "Ovo",
+        "clues": [
+          "Qual é coisa, qual é ela,",
+          "Que todos são capazes de abrir,",
+          "E ninguém é capaz de a fechar?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:52",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/52",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 52,
+          "numero_ficha": "42/189",
+          "title": "Que são todos capazes de abrir",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-21"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-50",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0050",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Qual é coisa, qual é ela, Que se deixa queimar Para guardar segredos?",
+        "answer": "Lacre",
+        "clues": [
+          "Qual é coisa, qual é ela,",
+          "Que se deixa queimar",
+          "Para guardar segredos?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:50",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/50",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 50,
+          "numero_ficha": "42/191",
+          "title": "Que se deixa queimar",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-20"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-51",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0051",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Santarém",
+        "fact": "Qual é coisa, qual é ela, Que sobe montes e desce sempre Com um bocado de carne na boca?",
+        "answer": "Sapato",
+        "clues": [
+          "Qual é coisa, qual é ela,",
+          "Que sobe montes e desce sempre",
+          "Com um bocado de carne na boca?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:51",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/51",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 51,
+          "numero_ficha": "42/106",
+          "title": "Que sobe montes e desce sempre",
+          "classification_id": "1",
+          "localidade": "Moçarria",
+          "concelho": "Santarém",
+          "distrito": "Santarém",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-93",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0093",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Qual é coisa, qual é ela, Que tanto anda, que tanto anda, Que nunca chega a casa do seu dono?",
+        "answer": "Moinho",
+        "clues": [
+          "Qual é coisa, qual é ela,",
+          "Que tanto anda, que tanto anda,",
+          "Que nunca chega a casa do seu dono?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:93",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/93",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 93,
+          "numero_ficha": "42/69",
+          "title": "Que tanto anda",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-53",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0053",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Qual é coisa, qual é ela, Que do tamanho de uma abelha, Enche a casa até à telha?",
+        "answer": "Luz",
+        "clues": [
+          "Qual é coisa, qual é ela,",
+          "Que do tamanho de uma abelha,",
+          "Enche a casa até à telha?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:53",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/53",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 53,
+          "numero_ficha": "42/194",
+          "title": "Que, do tamanho de uma abelha",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-20"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-54",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0054",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Vieira do Minho",
+        "fact": "Ramalhinhos, ramalhetes! Oh! Que lindos pucaretes! Nem cozidos, nem assados, Nem mexidos c’ua colheri! Num adivinhas, este ano, Nem p´ró ano que vier.",
+        "answer": "Ramo de cravos",
+        "clues": [
+          "Ramalhinhos, ramalhetes!",
+          "Oh! Que lindos pucaretes!",
+          "Nem cozidos, nem assados,",
+          "Nem mexidos c’ua colheri!",
+          "Num adivinhas, este ano,",
+          "Nem p´ró ano que vier."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:54",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/54",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 54,
+          "numero_ficha": "42/202",
+          "title": "Ramalhinhos ramalhetes",
+          "classification_id": "1",
+          "localidade": "Soutelo",
+          "concelho": "Vieira do Minho",
+          "distrito": "Braga",
+          "data_recolha": "1975-09-12"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-55",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0055",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Redonda como a testão , Abre e fecha sem o cordão.",
+        "answer": "Cú",
+        "clues": [
+          "Redonda como a testão ,",
+          "Abre e fecha sem o cordão."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:55",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/55",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 55,
+          "numero_ficha": "42/225",
+          "title": "Redonda como a testão",
+          "classification_id": "1",
+          "localidade": "Manigoto",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-94",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0094",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Azambuja",
+        "fact": "Redondinho, redondinho, Cu’m’à pedra do moinho.",
+        "answer": "Queijo",
+        "clues": [
+          "Redondinho, redondinho,",
+          "Cu’m’à pedra do moinho."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:94",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/94",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 94,
+          "numero_ficha": "42/84",
+          "title": "Redondinho",
+          "classification_id": "1",
+          "localidade": "Manique do Intendente",
+          "concelho": "Azambuja",
+          "distrito": "Lisboa",
+          "data_recolha": "1975-07-23"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-56",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0056",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "São duas irmãzinhas. Andam, andam, e nunca chegam uma à beira da outra.",
+        "answer": "Roda dos carros dos bois",
+        "clues": [
+          "São duas irmãzinhas. Andam, andam, e",
+          "nunca chegam uma à beira da outra."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:56",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/56",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 56,
+          "numero_ficha": "42/185",
+          "title": "São duas irmãzinhas",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-21"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-128",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0128",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "Sem mim não pode haver Deus. Papa, sim; Cardeal, não. A Virgem pode ser Virgem, A donzela não.",
+        "answer": "Letra \"d\"",
+        "clues": [
+          "Sem mim não pode haver Deus.",
+          "Papa, sim;",
+          "Cardeal, não.",
+          "A Virgem pode ser Virgem,",
+          "A donzela não."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:128",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/128",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 128,
+          "numero_ficha": "42/175",
+          "title": "Sem mim não pode haver Deus",
+          "classification_id": "3",
+          "localidade": "Vilela Seca",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-07-13"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-152",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0152",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Vieira do Minho",
+        "fact": "Somos dois irmãos unidos. Da mesma mãe nascidos, Da mesma farda vestidos. Meu irmão vai à missa, Mas eu, não! P’ra bodas e banquetes,",
+        "answer": "Vinho e vinagre",
+        "clues": [
+          "Somos dois irmãos unidos.",
+          "Da mesma mãe nascidos,",
+          "Da mesma farda vestidos.",
+          "Meu irmão vai à missa,",
+          "Mas eu, não!",
+          "P’ra bodas e banquetes,"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:152",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/152",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 152,
+          "numero_ficha": "42/201",
+          "title": "Somos dois irmãos unidos",
+          "classification_id": "7",
+          "localidade": "Soutelo",
+          "concelho": "Vieira do Minho",
+          "distrito": "Braga",
+          "data_recolha": "1975-09-12"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-95",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0095",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Porto de Mós",
+        "fact": "Somos irmãos na cor, Parecidos no parecer, Meu irmão não vai à missa E eu não o posso perder. Para bailes e batuques, A mim me convidaram,",
+        "answer": "Vinho e vinagre",
+        "clues": [
+          "Somos irmãos na cor,",
+          "Parecidos no parecer,",
+          "Meu irmão não vai à missa",
+          "E eu não o posso perder.",
+          "Para bailes e batuques,",
+          "A mim me convidaram,"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:95",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/95",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 95,
+          "numero_ficha": "42/91",
+          "title": "Somos irmãos na cor",
+          "classification_id": "1",
+          "localidade": "Juncal",
+          "concelho": "Porto de Mós",
+          "distrito": "Leiria",
+          "data_recolha": "1975-07-30"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-96",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0096",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Aguiar da Beira",
+        "fact": "Sou fêmea de nação, Macho me querem fazer, Hei-de-me deitar a afogar Para fêmea tornar a ser.",
+        "answer": "Sal",
+        "clues": [
+          "Sou fêmea de nação,",
+          "Macho me querem fazer,",
+          "Hei-de-me deitar a afogar",
+          "Para fêmea tornar a ser."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:96",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/96",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 96,
+          "numero_ficha": "42/80",
+          "title": "Sou fêmea de nação",
+          "classification_id": "1",
+          "localidade": "Cortiçada",
+          "concelho": "Aguiar da Beira",
+          "distrito": "Guarda",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-97",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0097",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Sou fêmea de natureza Macho me fizero sere. Hei-de deitar-m’àfogar, P’ra fémea tornar a sere.",
+        "answer": "Sal",
+        "clues": [
+          "Sou fêmea de natureza",
+          "Macho me fizero sere.",
+          "Hei-de deitar-m’àfogar,",
+          "P’ra fémea tornar a sere."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:97",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/97",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 97,
+          "numero_ficha": "42/64",
+          "title": "Sou fêmea de natureza",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-98",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0098",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Sou filha de pais cantantes. Minha mãe não tinha dentes, Nem nenhum dos meus parentes. Eu de mim todo sou calvo, Meu coração é amarelo, Meu rosto é calvo e belo.",
+        "answer": "Ovo",
+        "clues": [
+          "Sou filha de pais cantantes.",
+          "Minha mãe não tinha dentes,",
+          "Nem nenhum dos meus parentes.",
+          "Eu de mim todo sou calvo,",
+          "Meu coração é amarelo,",
+          "Meu rosto é calvo e belo."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:98",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/98",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 98,
+          "numero_ficha": "42/55",
+          "title": "Sou filha de pais cantantes",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-99",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0099",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Porto de Mós",
+        "fact": "Sou muito antigo no mundo E muito de todos estimado, Passar sem mim não pode, Quem quer ser asseado; Nesses altos dias, Brilho com brancas e pretas,",
+        "answer": "Sabão",
+        "clues": [
+          "Sou muito antigo no mundo",
+          "E muito de todos estimado,",
+          "Passar sem mim não pode,",
+          "Quem quer ser asseado;",
+          "Nesses altos dias,",
+          "Brilho com brancas e pretas,"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:99",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/99",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 99,
+          "numero_ficha": "42/89",
+          "title": "Sou muito antigo no mundo",
+          "classification_id": "1",
+          "localidade": "Juncal",
+          "concelho": "Porto de Mós",
+          "distrito": "Leiria",
+          "data_recolha": "1975-07-30"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-153",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0153",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Torres Novas",
+        "fact": "Sou negro como a um carvão, Tem o meu nome, um ilhéu, Carne de gente morta É para mim um pitéu. Amigo de S. Vicente E da luz a tradição:",
+        "answer": "Corvo",
+        "clues": [
+          "Sou negro como a um carvão,",
+          "Tem o meu nome, um ilhéu,",
+          "Carne de gente morta",
+          "É para mim um pitéu.",
+          "Amigo de S. Vicente",
+          "E da luz a tradição:"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:153",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/153",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 153,
+          "numero_ficha": "42/237",
+          "title": "Sou negro como a um carvão",
+          "classification_id": "7",
+          "localidade": "Riachos",
+          "concelho": "Torres Novas",
+          "distrito": "Sem informação",
+          "data_recolha": "1974-12"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-57",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0057",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Sou neto da mesma velha, Degenero geração Sirvo p’ra oitros temperos Que não serve meu irmão.",
+        "answer": "Vinagre",
+        "clues": [
+          "Sou neto da mesma velha,",
+          "Degenero geração",
+          "Sirvo p’ra oitros temperos",
+          "Que não serve meu irmão."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:57",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/57",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 57,
+          "numero_ficha": "42/66",
+          "title": "Sou neto da mesma velha",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-154",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0154",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "Tando eu no meu capelejo E os outros vejo vir; Estando eu no meu capelejo, Não vos posso fugir. O que é? - Também não sei…",
+        "answer": "Castanha no ouriço",
+        "clues": [
+          "Tando eu no meu capelejo",
+          "E os outros vejo vir;",
+          "Estando eu no meu capelejo,",
+          "Não vos posso fugir.",
+          "O que é?",
+          "- Também não sei…"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:154",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/154",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 154,
+          "numero_ficha": "42/176",
+          "title": "Tando eu no meu capelejo",
+          "classification_id": "7",
+          "localidade": "Vilela Seca",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-07-14"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-58",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0058",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Tem asas e não voa, Pernas e não anda, Tem boca e não fala, Tem cu e não caga.",
+        "answer": "Pote",
+        "clues": [
+          "Tem asas e não voa,",
+          "Pernas e não anda,",
+          "Tem boca e não fala,",
+          "Tem cu e não caga."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:58",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/58",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 58,
+          "numero_ficha": "42/114",
+          "title": "Tem asas e não voa",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-20"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-100",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0100",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Tenho os dentes na cabeça. Tenho as barbas compridas E por elas me sustento. Uns gostam muito de mim, Oitros nem p’lo pensamento.",
+        "answer": "Alho",
+        "clues": [
+          "Tenho os dentes na cabeça.",
+          "Tenho as barbas compridas",
+          "E por elas me sustento.",
+          "Uns gostam muito de mim,",
+          "Oitros nem p’lo pensamento."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:100",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/100",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 100,
+          "numero_ficha": "42/67",
+          "title": "Tenho os dentes na cabeça",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-101",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0101",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Azambuja",
+        "fact": "Terra branca, Semente preta, Cinco bois A uma carreta.",
+        "answer": "Papel branco, caneta e os cinco dedos",
+        "clues": [
+          "Terra branca,",
+          "Semente preta,",
+          "Cinco bois",
+          "A uma carreta."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:101",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/101",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 101,
+          "numero_ficha": "42/87",
+          "title": "Terra branca",
+          "classification_id": "1",
+          "localidade": "Manique do Intendente",
+          "concelho": "Azambuja",
+          "distrito": "Lisboa",
+          "data_recolha": "1975-07-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-129",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0129",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Santarém",
+        "fact": "Adivinha oral Um homem comprou três sardinhas. Comeu uma ao almoço, Outra ao jantar Outra à ceia* E ainda ficou outra p’ró dia seguinte (como é?)",
+        "answer": "Sem resposta",
+        "clues": [
+          "Adivinha oral",
+          "Um homem comprou três sardinhas.",
+          "Comeu uma ao almoço,",
+          "Outra ao jantar",
+          "Outra à ceia*",
+          "E ainda ficou outra p’ró dia seguinte (como é?)"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:129",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/129",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 129,
+          "numero_ficha": "42/109",
+          "title": "Um homem comprou três sardinhas",
+          "classification_id": "3",
+          "localidade": "Moçarria",
+          "concelho": "Santarém",
+          "distrito": "Santarém",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-102",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0102",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Porto de Mós",
+        "fact": "Um pai com muitos filhos Comprou um carpuço pra cada um, E em lugar de lhe enfiar na cabeça, Enfiou- le no cú.",
+        "answer": "Cravalho",
+        "clues": [
+          "Um pai com muitos filhos",
+          "Comprou um carpuço pra cada um,",
+          "E em lugar de lhe enfiar na cabeça,",
+          "Enfiou- le no cú."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:102",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/102",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 102,
+          "numero_ficha": "42/94",
+          "title": "Um pai com muitos filhos",
+          "classification_id": "1",
+          "localidade": "Juncal",
+          "concelho": "Porto de Mós",
+          "distrito": "Leiria",
+          "data_recolha": "1975-07-28"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-155",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0155",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Sesimbra",
+        "fact": "Um tipo estava a medir trigo na êra (dantes debulhava-se na eira o pão para os animais) e tinha uma filha a ajudá-lo. Veio um senhor e perguntou-lhe assim: Ó menina, sabe ler? Mestra de quem conta bem? Faz favor de me dizer: Um moio de trigo limpo Quantas meias quartas tem?",
+        "answer": "480 meias-quartas",
+        "clues": [
+          "Um tipo estava a medir trigo na êra (dantes debulhava-se na eira o pão para os animais) e tinha uma filha a ajudá-lo. Veio um senhor e perguntou-lhe assim:",
+          "Ó menina, sabe ler?",
+          "Mestra de quem conta bem?",
+          "Faz favor de me dizer:",
+          "Um moio de trigo limpo",
+          "Quantas meias quartas tem?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:155",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/155",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 155,
+          "numero_ficha": "42/209",
+          "title": "Um tipo estava a medir",
+          "classification_id": "7",
+          "localidade": "Aldeia do Meco",
+          "concelho": "Sesimbra",
+          "distrito": "Setúbal",
+          "data_recolha": "1975-07-26"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-59",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0059",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Uma árvore tem doze ramos. Cada ramo tem trinta ninhos. Cada ninho tem trinta passarinhos.",
+        "answer": "Ano, mês e dias",
+        "clues": [
+          "Uma árvore tem doze ramos. Cada ramo tem trinta ninhos.",
+          "Cada ninho tem trinta passarinhos."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:59",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/59",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 59,
+          "numero_ficha": "42/52",
+          "title": "Uma árvore tem doze ramos",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-60",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0060",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Pinhel",
+        "fact": "Uma caixa piquenina, Todos a sabem abrir, Ninguém a sabe fechar?",
+        "answer": "Ovo",
+        "clues": [
+          "Uma caixa piquenina,",
+          "Todos a sabem abrir,",
+          "Ninguém a sabe fechar?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:60",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/60",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 60,
+          "numero_ficha": "42/218",
+          "title": "Uma caixa piquena",
+          "classification_id": "1",
+          "localidade": "Manigoto",
+          "concelho": "Pinhel",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-09"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-103",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0103",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Uma caixa redondinha, Mas que pode rebolar, Todos o sabem abrir, Ninguém o sabe fechar.",
+        "answer": "Ovo",
+        "clues": [
+          "Uma caixa redondinha,",
+          "Mas que pode rebolar,",
+          "Todos o sabem abrir,",
+          "Ninguém o sabe fechar."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:103",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/103",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 103,
+          "numero_ficha": "42/54",
+          "title": "Uma caixa redondinha",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-61",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0061",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Chaves",
+        "fact": "O que é, o que é? Uma coisa que anda de buraco em buraco com as tripas d’arrasto? - Então não sabe o que é?",
+        "answer": "Agulha",
+        "clues": [
+          "O que é, o que é?",
+          "Uma coisa que anda de buraco em buraco com as tripas d’arrasto?",
+          "- Então não sabe o que é?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:61",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/61",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 61,
+          "numero_ficha": "42/172",
+          "title": "Uma coisa que anda de buraco",
+          "classification_id": "1",
+          "localidade": "Vilela Seca",
+          "concelho": "Chaves",
+          "distrito": "Vila Real",
+          "data_recolha": "1975-07-14"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-156",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0156",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Uma corte de bois vermelhos. Vai lá um preto, deita-os Todos cá fora.",
+        "answer": "Ferrelha, a entrar no forno em brasa",
+        "clues": [
+          "Uma corte de bois vermelhos.",
+          "Vai lá um preto, deita-os",
+          "Todos cá fora."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:156",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/156",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 156,
+          "numero_ficha": "42/192",
+          "title": "Uma corte de bois vermelhos",
+          "classification_id": "7",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-20"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-104",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0104",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Uma dama bem composta, Dois galões a estão mirando. À sombra das castanhetas, As tripas le stão tirando.",
+        "answer": "Roca",
+        "clues": [
+          "Uma dama bem composta,",
+          "Dois galões a estão mirando.",
+          "À sombra das castanhetas,",
+          "As tripas le stão tirando."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:104",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/104",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 104,
+          "numero_ficha": "42/58",
+          "title": "Uma dama bem composta",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-16"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-62",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0062",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Qual é coisa, qual é ela? Uma mãe, um bando de filhos, Todos do mesmo momento, Que dá a carapuça A todos, ao mesmo tempo.",
+        "answer": "Carvalha",
+        "clues": [
+          "Qual é coisa, qual é ela?",
+          "Uma mãe, um bando de filhos,",
+          "Todos do mesmo momento,",
+          "Que dá a carapuça",
+          "A todos, ao mesmo tempo."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:62",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/62",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 62,
+          "numero_ficha": "42/188",
+          "title": "Uma mãe, um bando de filhos",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-22"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-105",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0105",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Almeida",
+        "fact": "Uma senhora, Muito assenhada, Nunca sai à rua, Sempre setá molhada.",
+        "answer": "Língua",
+        "clues": [
+          "Uma senhora,",
+          "Muito assenhada,",
+          "Nunca sai à rua,",
+          "Sempre setá molhada."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:105",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/105",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 105,
+          "numero_ficha": "42/249",
+          "title": "Uma senhora",
+          "classification_id": "1",
+          "localidade": "Poço Velho",
+          "concelho": "Almeida",
+          "distrito": "Guarda",
+          "data_recolha": "1975-08-20"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-63",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0063",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Crato",
+        "fact": "Uma senhora, muito assenhorada , Está sempre em casa E está sempre molhada.",
+        "answer": "Língua",
+        "clues": [
+          "Uma senhora, muito assenhorada ,",
+          "Está sempre em casa",
+          "E está sempre molhada."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:63",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/63",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 63,
+          "numero_ficha": "42/160",
+          "title": "Uma senhora muito assenhorada",
+          "classification_id": "1",
+          "localidade": "Monte da Pedra",
+          "concelho": "Crato",
+          "distrito": "Portalegre",
+          "data_recolha": "1975-07-29"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-64",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0064",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Crato",
+        "fact": "Uma senhora muito delicada Dá seus passos todos iguais E namora um macebo Todo cheio de sinais!",
+        "answer": "Agulha e dedal",
+        "clues": [
+          "Uma senhora muito delicada",
+          "Dá seus passos todos iguais",
+          "E namora um macebo",
+          "Todo cheio de sinais!"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:64",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/64",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 64,
+          "numero_ficha": "S/info",
+          "title": "Uma senhora muito delicada",
+          "classification_id": "1",
+          "localidade": "Monte da Pedra",
+          "concelho": "Crato",
+          "distrito": "Portalegre",
+          "data_recolha": "1975-08-01"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-65",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0065",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Uma senhora, Toda senhorada, Mal sai à rua, Está toda molhada.",
+        "answer": "Língua",
+        "clues": [
+          "Uma senhora,",
+          "Toda senhorada,",
+          "Mal sai à rua,",
+          "Está toda molhada."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:65",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/65",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 65,
+          "numero_ficha": "42/126",
+          "title": "Uma senhora toda senhorada",
+          "classification_id": "1",
+          "localidade": "Abadim",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-08-21"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-66",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0066",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Miranda do Douro",
+        "fact": "Uma senhorita, Muito assenhorada, Está sempre em casa E está sempre molhada.",
+        "answer": "Língua",
+        "clues": [
+          "Uma senhorita,",
+          "Muito assenhorada,",
+          "Está sempre em casa",
+          "E está sempre molhada."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:66",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/66",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 66,
+          "numero_ficha": "42/158",
+          "title": "Uma senhorita",
+          "classification_id": "1",
+          "localidade": "Póvoa",
+          "concelho": "Miranda do Douro",
+          "distrito": "Bragança",
+          "data_recolha": "1975-07-13"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-157",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0157",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Sesimbra",
+        "fact": "Uma sujeita, uma miúda vinha da escola (é quase como uma história mas é moderna) e apareceu-lhe um rapazote e meteu-se com a miúda e disse-lhe para ela, assim: ó menina: você tem que me explicar ou responder a esta pergunta que lhe vou fazer. E se a menina não me explicar, eu vou, e você vem a passar mal comigo por qualquer meio. Você quando cá passar, amanhã vem da escola, tem que me dizer. A moça foi dali para casa (já não estou a contar bem, que isto é uma espécie de uma história) e tinha lá um velhote que ela tinha visto, na borda do caminho, um dia que vinha da escola, todo molhadinho. O velhinho, levou-o para casa e vestiu-o, e tinha-o lá, e não disse ao pai e á mãe o que o tipo lhe perguntou mas disse ao velhote: quando eu vinha da escola um sujeito saiu-me ao caminho e disse-me assim: Ó menina: você tem que me responder a esta pergunta. E o velhote disse: Então como era a pergunta? A pergunta é esta: O que é aquilo que de manhã é anjo, ao almoço é pavão, à tarde é burro e à noite é cão?",
+        "answer": "É o homem: meninice, adolescência, idade adulta , velhice",
+        "clues": [
+          "Uma sujeita, uma miúda vinha da escola (é quase como uma história mas é moderna) e apareceu-lhe um rapazote e meteu-se com a miúda e disse-lhe para ela, assim: ó menina: você tem que me explicar ou responder a esta pergunta que lhe vou fazer. E se a menina não me explicar, eu vou, e você vem a passar mal comigo por qualquer meio. Você quando cá passar, amanhã vem da escola, tem que me dizer.",
+          "A moça foi dali para casa (já não estou a contar bem, que isto é uma espécie de uma história) e tinha lá um velhote que ela tinha visto, na borda do caminho, um dia que vinha da escola, todo molhadinho. O velhinho, levou-o para casa e vestiu-o, e tinha-o lá, e não disse ao pai e á mãe o que o tipo lhe perguntou mas disse ao velhote: quando eu vinha da escola um sujeito saiu-me ao caminho e disse-me assim: Ó menina: você tem que me responder a esta pergunta.",
+          "E o velhote disse: Então como era a pergunta? A pergunta é esta: O que é aquilo que de manhã é anjo, ao almoço é pavão, à tarde é burro e à noite é cão?"
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:157",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/157",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 157,
+          "numero_ficha": "42/211",
+          "title": "Uma sujeita, uma miúda",
+          "classification_id": "7",
+          "localidade": "Aldeia do Meco",
+          "concelho": "Sesimbra",
+          "distrito": "Setúbal",
+          "data_recolha": "1975-07-26"
+        }
+      }
+    },
+    {
+      "queueId": "q-mm-67",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-mm-0067",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "Cabeceiras de Basto",
+        "fact": "Verde foi meu nascimento E de luto me vesti. Para dar a luz ao mundo Mil tormentos padeci.",
+        "answer": "Azeitona",
+        "clues": [
+          "Verde foi meu nascimento",
+          "E de luto me vesti.",
+          "Para dar a luz ao mundo",
+          "Mil tormentos padeci."
+        ],
+        "source": "MemóriaMedia",
+        "source_id": "mm:adivinha:67",
+        "source_url": "https://www.memoriamedia.net/index.php/adivinhario-base-de-dados/details/5/67",
+        "license": "CC-BY-NC-ND (ver memoriamedia.net)",
+        "confidence": 0.94,
+        "priority_pt": 98,
+        "age_bands": [
+          "6-9",
+          "10-15",
+          "15+"
+        ],
+        "allowed_formats": [
+          "ADIVINHA"
+        ],
+        "tags": [
+          "folclore",
+          "portugal",
+          "memoriamedia",
+          "giacometti"
+        ],
+        "verified_by": "import-knowledge-adivinhas",
+        "metadata": {
+          "mm_id": 67,
+          "numero_ficha": "42/193",
+          "title": "Verde foi meu nascimento",
+          "classification_id": "1",
+          "localidade": "Vila Boa de Bucos",
+          "concelho": "Cabeceiras de Basto",
+          "distrito": "Braga",
+          "data_recolha": "1975-07-20"
+        }
+      }
+    }
+  ]
+}

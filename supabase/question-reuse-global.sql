@@ -148,7 +148,8 @@ BEGIN
     'bank_origin', v_row.source,
     'source_id', v_row.source_id,
     'fact_source', v_fact_source,
-    'source_url', v_source_url
+    'source_url', v_source_url,
+    'dbCreatedAt', v_row.created_at
   );
 END;
 $$;
@@ -224,7 +225,8 @@ BEGIN
     'allowedFormats', to_jsonb(v_row.allowed_formats),
     'tags', to_jsonb(v_row.tags),
     'verifiedAt', v_row.verified_at,
-    'verifiedBy', v_row.verified_by
+    'verifiedBy', v_row.verified_by,
+    'dbCreatedAt', v_row.created_at
   );
 END;
 $$;

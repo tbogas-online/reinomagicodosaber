@@ -22,7 +22,7 @@ const {
 } = require('./lib/memoriamedia-adivinhas');
 const { normalizeRecord, validateRecord, importBatch } = require('./lib/knowledge-import-core');
 
-require('./load-env');
+require('./load-env').loadEnvLocal();
 
 const ROOT = path.join(__dirname, '..');
 const EXPORT_DIR = path.join(ROOT, 'data', 'exports');

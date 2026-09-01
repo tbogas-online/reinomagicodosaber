@@ -2383,6 +2383,7 @@
         `ID pergunta: ${r.questionId || '—'}`,
         r.knowledgeId ? `Knowledge ID: ${r.knowledgeId}` : null,
         r.sourceId ? `Source ID: ${r.sourceId}` : null,
+        r.questionDbAddedAtPortugal ? `Na base de dados desde: ${r.questionDbAddedAtPortugal}` : null,
         `Jogador: ${r.reporterId || '—'}`,
       ];
       if (d && Object.keys(d).length) {
@@ -3111,6 +3112,7 @@
               <div><strong>Opções:</strong> ${esc(opts)}</div>`}
               <div><strong>Formato:</strong> ${esc(r.format || '—')} · <strong>Fonte:</strong> ${esc(r.source || '—')}${r.sourceId ? ` · <strong>Source ID:</strong> <code>${esc(r.sourceId)}</code>` : ''}</div>
               ${r.knowledgeId ? `<div><strong>Knowledge ID:</strong> <code>${esc(r.knowledgeId)}</code></div>` : ''}
+              ${r.questionDbAddedAtPortugal ? `<div><strong>Na base de dados desde:</strong> ${esc(r.questionDbAddedAtPortugal)}</div>` : ''}
               ${r.comment ? `<div><strong>Comentário:</strong> ${esc(r.comment)}</div>` : ''}
               ${r.suggestion ? `<div><strong>Sugestão:</strong> ${esc(r.suggestion)}</div>` : ''}
               ${Array.isArray(r.attachments) && r.attachments.length ? `
@@ -4961,7 +4963,7 @@
     async function exportCsv() {
       if (!lastReports.length) return;
       const rows = [
-        ['data', 'estado', 'resolvidoEm', 'problema', 'pergunta', 'categoria', 'idade', 'dispositivo', 'sistema', 'browser', 'ecra', 'viewport', 'reporterId', 'correta', 'escolhida', 'sugestao', 'comentario', 'reportId'],
+        ['data', 'estado', 'resolvidoEm', 'problema', 'pergunta', 'categoria', 'idade', 'naBaseDesde', 'dispositivo', 'sistema', 'browser', 'ecra', 'viewport', 'reporterId', 'correta', 'escolhida', 'sugestao', 'comentario', 'reportId'],
       ];
       for (const r of lastReports) {
         const isSite = String(r.source) === 'site' || String(r.format) === 'SITE' || String(r.issueType || '').startsWith('site_');
@@ -4973,6 +4975,7 @@
           isSite ? (r.comment || r.suggestion || r.question || '') : (r.question || ''),
           isSite ? 'Site/app' : (r.category?.name || ''),
           r.ageBand || '',
+          r.questionDbAddedAtPortugal || r.questionDbAddedAt || '',
           r.device?.type || '',
           r.device?.os ? `${r.device.os}${r.device.osVersion ? ' ' + r.device.osVersion : ''}` : '',
           r.device?.browser ? `${r.device.browser}${r.device.browserVersion ? ' ' + r.device.browserVersion : ''}` : '',

@@ -136,6 +136,8 @@ function buildReport(payload) {
     format: clip(payload.format, 40),
     source: clip(payload.source, 24),
     sourceId: clip(payload.sourceId, 80),
+    questionDbAddedAt: clip(payload.questionDbAddedAt, 40),
+    questionDbAddedAtPortugal: clip(payload.questionDbAddedAtPortugal, 40),
     options: Array.isArray(payload.options)
       ? payload.options.slice(0, 6).map((o) => clip(o, 120))
       : [],

@@ -156,7 +156,8 @@ BEGIN
     'bank_origin', v_row.source,
     'source_id', v_row.source_id,
     'fact_source', v_fact_source,
-    'source_url', v_source_url
+    'source_url', v_source_url,
+    'dbCreatedAt', v_row.created_at
   );
 END;
 $$;

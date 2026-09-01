@@ -43,6 +43,7 @@
       tags: Array.isArray(row.tags) ? row.tags.map(String) : [],
       verifiedAt: row.verifiedAt || null,
       verifiedBy: row.verifiedBy ? String(row.verifiedBy) : '',
+      createdAt: row.dbCreatedAt || row.createdAt || null,
     };
   }
 

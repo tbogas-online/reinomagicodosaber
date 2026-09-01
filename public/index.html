@@ -3972,6 +3972,7 @@
           sourceOrigin: bankRow.fact_source || undefined,
           sourceUrl: bankRow.source_url || undefined,
           bankOrigin: bankRow.bank_origin || undefined,
+          dbAddedAt: bankRow.dbCreatedAt || bankRow.db_created_at || undefined,
         };
         return finalizeQuestion(out);
       }
@@ -4587,6 +4588,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           sourceId: record.sourceId,
           sourceOrigin: record.source,
           sourceUrl: record.sourceUrl,
+          dbAddedAt: record.createdAt || undefined,
           confidence: record.confidence,
         });
       } catch (err) {
@@ -4793,6 +4795,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           sourceId: record.sourceId,
           sourceOrigin: record.source,
           sourceUrl: record.sourceUrl,
+          dbAddedAt: record.createdAt || undefined,
           confidence: record.confidence,
         });
       } catch (err) {
@@ -7823,6 +7826,19 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     }).format(date);
   }
 
+  function questionDbAddedFields(question){
+    const raw = question?.dbAddedAt || question?.dbCreatedAt || '';
+    if(!raw) return { questionDbAddedAt: '', questionDbAddedAtPortugal: '' };
+    const d = new Date(raw);
+    if(Number.isNaN(d.getTime())){
+      return { questionDbAddedAt: String(raw).slice(0, 40), questionDbAddedAtPortugal: '' };
+    }
+    return {
+      questionDbAddedAt: d.toISOString(),
+      questionDbAddedAtPortugal: formatPortugalDateTime(d),
+    };
+  }
+
   function getReporterId(){
     try {
       let id = localStorage.getItem(REPORTER_ID_KEY);
@@ -8005,6 +8021,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
 
   function buildQuestionReportPayload(issue, comment, suggestion, gameVersion){
     const now = new Date();
+    const dbAdded = questionDbAddedFields(currentQuestion);
     return {
       reportId: `rpt-${now.getTime().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
       questionId: currentQuestion.id || hashQuestionKey(stripTags(currentQuestion.q)),
@@ -8016,6 +8033,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
       format: currentQuestion.format || '',
       source: currentQuestion.source || '',
       sourceId: currentQuestion.sourceId || '',
+      ...dbAdded,
       options: Array.isArray(currentQuestion.options) ? currentQuestion.options.map(stripTags) : [],
       correctAnswer: stripTags(currentQuestion.a),
       selectedAnswer: lastSelectedAnswer,

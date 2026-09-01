@@ -162,7 +162,8 @@ BEGIN
     'allowedFormats', to_jsonb(v_row.allowed_formats),
     'tags', to_jsonb(v_row.tags),
     'verifiedAt', v_row.verified_at,
-    'verifiedBy', v_row.verified_by
+    'verifiedBy', v_row.verified_by,
+    'dbCreatedAt', v_row.created_at
   );
 END;
 $$;
