@@ -858,6 +858,29 @@
       <div id="reportsPanel">
       <div class="card stats" id="statsRow"></div>
 
+      <div class="card" id="genTelemetrySection">
+        <h2 class="charts-title">Geração IA <span style="font-size:0.85rem;font-weight:normal;color:var(--muted)">(este navegador)</span></h2>
+        <p class="chart-filter-note">Eventos de geração e validação guardados em localStorage neste dispositivo — útil para diagnosticar rejeições da IA.</p>
+        <div class="stats" id="genTelemetryStats"></div>
+        <div class="charts-grid" style="margin-top:12px">
+          <div class="chart-box">
+            <h3>Rejeições por código</h3>
+            <div id="chartGenIssueCodes" class="chart"></div>
+          </div>
+          <div class="chart-box">
+            <h3>Rejeições por categoria</h3>
+            <div id="chartGenCategories" class="chart"></div>
+          </div>
+          <div class="chart-box">
+            <h3>Rejeições por formato</h3>
+            <div id="chartGenFormats" class="chart"></div>
+          </div>
+        </div>
+        <p style="margin:12px 0 0">
+          <button type="button" class="secondary" id="clearGenTelemetryBtn">Limpar telemetria local</button>
+        </p>
+      </div>
+
       <div class="card" id="chartsSection">
         <h2 class="charts-title">Dashboard</h2>
         <div class="charts-grid">
@@ -1147,6 +1170,7 @@
     </div>
   </div>
 
+  <script src="question-engine/telemetry.js?v=20260901-130000"></script>
   <script>
     const AUTH_KEY = 'reino_admin_reports_auth';
     const ISSUE_LABELS = {
@@ -2403,6 +2427,69 @@
         <div class="stat stat-total"><strong>${stats.total || 0}</strong><span>Total</span></div>
         <div class="stat stat-top-issue"><strong>${topIssue ? esc(ISSUE_LABELS[topIssue[0]] || topIssue[0]) : '—'}</strong><span>Tipo mais comum</span></div>
       `;
+      renderGenTelemetry();
+    }
+
+    const GEN_ISSUE_LABELS = {
+      MC_NEAR_DUPLICATE: 'MC duplicadas',
+      MC_WRONG_CLASS: 'MC classe errada',
+      KNOWLEDGE_REPEATED: 'Conhecimento repetido',
+      QUESTION_SIMILAR: 'Pergunta semelhante',
+      ANSWER_REPEATED: 'Resposta repetida',
+      QUESTION_REPEATED: 'Pergunta repetida',
+      STRUCTURE_INCOMPLETE: 'JSON incompleto',
+      STRUCTURE_MISSING_Q: 'Campo q em falta',
+      STRUCTURE_MISSING_A: 'Campo a em falta',
+      PARSE_ERROR: 'JSON inválido',
+      API_EMPTY: 'Resposta vazia',
+      PT_BRASILISM: 'Brasileirismo',
+      PT_ENGLISH_ONLY: 'Só inglês',
+      UNSPECIFIED: 'Outro',
+    };
+
+    function renderGenTelemetry() {
+      const Tel = window.QuestionEngineTelemetry;
+      const statsEl = document.getElementById('genTelemetryStats');
+      const issueEl = document.getElementById('chartGenIssueCodes');
+      const catEl = document.getElementById('chartGenCategories');
+      const fmtEl = document.getElementById('chartGenFormats');
+      if (!Tel || !statsEl || !issueEl || !catEl || !fmtEl) return;
+
+      const summary = Tel.getTelemetrySummary();
+      if (!summary.total) {
+        statsEl.innerHTML = '<p class="chart-empty" style="margin:0">Ainda sem eventos — joga com IA neste navegador para recolher dados.</p>';
+        issueEl.innerHTML = '';
+        catEl.innerHTML = '';
+        fmtEl.innerHTML = '';
+        return;
+      }
+
+      const failures = summary.rejected + summary.parseErrors + summary.apiErrors;
+      const rejectPct = Math.round(summary.rejectionRate * 100);
+      statsEl.innerHTML = `
+        <div class="stat stat-total"><strong>${summary.total}</strong><span>Tentativas</span></div>
+        <div class="stat stat-resolved"><strong>${summary.accepted}</strong><span>Aceites</span></div>
+        <div class="stat stat-open"><strong>${failures}</strong><span>Rejeitadas</span></div>
+        <div class="stat stat-top-issue"><strong>${rejectPct}%</strong><span>Taxa rejeição</span></div>
+      `;
+
+      const issueEntries = Object.entries(summary.byIssueCode).sort((a, b) => b[1] - a[1]).slice(0, 10);
+      renderBarChart(issueEl, issueEntries, (k) => GEN_ISSUE_LABELS[k] || k);
+
+      const catMap = Object.fromEntries(BANK_CATEGORIES.map((c) => [String(c.n), c.name]));
+      const catEntries = Object.entries(summary.byCategory)
+        .map(([k, v]) => [k, v.rejected || 0])
+        .filter(([, n]) => n > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8);
+      renderBarChart(catEl, catEntries, (k) => catMap[k] || `Cat. ${k}`);
+
+      const fmtEntries = Object.entries(summary.byFormat)
+        .map(([k, v]) => [k, v.rejected || 0])
+        .filter(([, n]) => n > 0)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 8);
+      renderBarChart(fmtEl, fmtEntries);
     }
 
     function renderReports(reports) {
@@ -3443,6 +3530,12 @@
       closeRoomsAdmin([...selectedRoomIds]);
     });
     document.getElementById('logoutBtn').onclick = logout;
+    document.getElementById('clearGenTelemetryBtn')?.addEventListener('click', () => {
+      if (!window.QuestionEngineTelemetry) return;
+      if (!confirm('Limpar telemetria de geração IA deste navegador?')) return;
+      window.QuestionEngineTelemetry.clearTelemetry();
+      renderGenTelemetry();
+    });
     document.getElementById('refreshBtn').onclick = () => { offset = 0; loadDashboard(); };
     document.getElementById('exportBtn').onclick = exportCsv;
     document.getElementById('prevBtn').onclick = () => { offset = Math.max(0, offset - limit); loadDashboard(); };
