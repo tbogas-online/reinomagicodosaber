@@ -1,0 +1,1574 @@
+{
+  "exportedAt": "2026-09-01T21:00:01.479Z",
+  "count": 50,
+  "items": [
+    {
+      "knowledge_id": "knw-cat20-cur-b50-001",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O português é língua oficial em nove países.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O português é língua oficial em nove países. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-001",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 65,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "língua"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-002",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "Lisboa é mais antiga que Roma.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Lisboa é mais antiga que Roma. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-002",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 66,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "história"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-003",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "Portugal adotou o euro em 2002.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Portugal adotou o euro em 2002. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-003",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 67,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-004",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O Tejo é o rio mais longo da Península Ibérica.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Tejo é o rio mais longo da Península Ibérica. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-004",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 68,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "geografia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-005",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O vinho do Porto é produzido na região do Douro.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O vinho do Porto é produzido na região do Douro. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-005",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 69,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-006",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O fado foi reconhecido como Património Imaterial da Humanidade pela UNESCO em 2011.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O fado foi reconhecido como Património Imaterial da Humanidade pela UNESCO em 2011. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-006",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9700000000000001,
+      "priority_pt": 70,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "cultura"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-007",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "Os azulejos são uma tradição decorativa muito associada a Portugal.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os azulejos são uma tradição decorativa muito associada a Portugal. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-007",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 71,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "arte"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-008",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "A capital de Portugal é o Porto.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "A capital de Portugal é o Porto. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-008",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 72,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "geografia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-009",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "Fernando Pessoa escreveu sob vários heterónimos literários.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Fernando Pessoa escreveu sob vários heterónimos literários. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-009",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 73,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "literatura"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-010",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "Cristiano Ronaldo nasceu na Madeira, Portugal.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Cristiano Ronaldo nasceu na Madeira, Portugal. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-010",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 74,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "desporto"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-011",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "Um polvo tem três corações e sangue azul.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Um polvo tem três corações e sangue azul. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-011",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 75,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-012",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "As girafas só dormem alguns minutos de cada vez, muitas vezes em pé.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "As girafas só dormem alguns minutos de cada vez, muitas vezes em pé. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-012",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 76,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-013",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "As abelhas comunicam a localização das flores através de uma dança.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "As abelhas comunicam a localização das flores através de uma dança. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-013",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 77,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-014",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "O coração de uma baleia-azul pode pesar cerca de 180 quilogramas.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O coração de uma baleia-azul pode pesar cerca de 180 quilogramas. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-014",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9700000000000001,
+      "priority_pt": 78,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-015",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "Os ursos polares têm pele negra por baixo da pelagem branca.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os ursos polares têm pele negra por baixo da pelagem branca. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-015",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 79,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-016",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "Os golfinhos dormem com um olho aberto.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os golfinhos dormem com um olho aberto. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-016",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 80,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-017",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "As formigas não conseguem sentir o cheiro.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "As formigas não conseguem sentir o cheiro. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-017",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 65,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-018",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "A água é mais densa no estado líquido do que no gelo, por isso o gelo flutua.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A água é mais densa no estado líquido do que no gelo, por isso o gelo flutua. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-018",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 66,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "ciência"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-019",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "A luz do Sol demora cerca de oito minutos a chegar à Terra.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A luz do Sol demora cerca de oito minutos a chegar à Terra. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-019",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 67,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-020",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "espaço",
+      "fact": "Um dia em Vénus dura mais tempo que um ano em Vénus.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Um dia em Vénus dura mais tempo que um ano em Vénus. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-020",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 68,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-021",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "espaço",
+      "fact": "Plutão deixou de ser classificado como planeta em 2006.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Plutão deixou de ser classificado como planeta em 2006. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-021",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 69,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-022",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "espaço",
+      "fact": "A Lua não tem atmosfera.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Lua não tem atmosfera. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-022",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9700000000000001,
+      "priority_pt": 70,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-023",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "espaço",
+      "fact": "Júpiter é o maior planeta do Sistema Solar.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Júpiter é o maior planeta do Sistema Solar. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-023",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 71,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-024",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "espaço",
+      "fact": "Marte é conhecido como o planeta vermelho.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Marte é conhecido como o planeta vermelho. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-024",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 72,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-025",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "espaço",
+      "fact": "O Sol é um planeta.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "O Sol é um planeta. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-025",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 73,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-026",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "O estômago humano produz ácido forte o suficiente para dissolver alguns metais leves.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O estômago humano produz ácido forte o suficiente para dissolver alguns metais leves. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-026",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 74,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "ciência"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-027",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "Os ossos humanos são, proporcionalmente, mais resistentes que o aço.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os ossos humanos são, proporcionalmente, mais resistentes que o aço. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-027",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 75,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "ciência"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-028",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "O ser humano adulto tem 206 ossos.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O ser humano adulto tem 206 ossos. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-028",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 76,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "ciência"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-029",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "O sangue humano é azul antes de entrar em contacto com o ar.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "O sangue humano é azul antes de entrar em contacto com o ar. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-029",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 77,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "ciência"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-030",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "Perdemos grande parte do calor corporal pela cabeça, independentemente do tempo.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "Perdemos grande parte do calor corporal pela cabeça, independentemente do tempo. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-030",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9700000000000001,
+      "priority_pt": 78,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "ciência"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-031",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "Os Jogos Olímpicos de Tóquio de 2020 realizaram-se em 2021 por causa da pandemia.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os Jogos Olímpicos de Tóquio de 2020 realizaram-se em 2021 por causa da pandemia. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-031",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 79,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "desporto"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-032",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "A Segunda Guerra Mundial terminou em 1945.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Segunda Guerra Mundial terminou em 1945. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-032",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 80,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "história"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-033",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "Cristóvão Colombo chegou à América em 1492.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Cristóvão Colombo chegou à América em 1492. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-033",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 65,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "história"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-034",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "A Revolução dos Cravos em Portugal foi em 1974.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Revolução dos Cravos em Portugal foi em 1974. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-034",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 66,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "história"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-035",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "A Idade Média terminou antes do século XV.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "A Idade Média terminou antes do século XV. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-035",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 67,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "história"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-036",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "ciência",
+      "fact": "A luz viaja mais depressa que o som.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A luz viaja mais depressa que o som. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-036",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 68,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "física"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-037",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "ciência",
+      "fact": "O zero absoluto é aproximadamente −273 °C.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O zero absoluto é aproximadamente −273 °C. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-037",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 69,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "física"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-038",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "ciência",
+      "fact": "O ADN contém as instruções genéticas dos seres vivos.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O ADN contém as instruções genéticas dos seres vivos. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-038",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9700000000000001,
+      "priority_pt": 70,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "biologia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-039",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "ciência",
+      "fact": "Os diamantes são feitos principalmente de carbono.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os diamantes são feitos principalmente de carbono. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-039",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 71,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "química"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-040",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "ciência",
+      "fact": "A eletricidade viaja mais depressa pela água do que pelo cobre.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "A eletricidade viaja mais depressa pela água do que pelo cobre. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-040",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 72,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "física"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-041",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "O Monte Everest é a montanha mais alta do mundo acima do nível do mar.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Monte Everest é a montanha mais alta do mundo acima do nível do mar. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-041",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 73,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-042",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "O rio Amazonas está na América do Sul.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O rio Amazonas está na América do Sul. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-042",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 74,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-043",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "A Austrália é simultaneamente um país e um continente.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Austrália é simultaneamente um país e um continente. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-043",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 75,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-044",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "O deserto do Saara fica na África.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O deserto do Saara fica na África. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-044",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 76,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-045",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "O Danúbio nasce em Portugal.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "O Danúbio nasce em Portugal. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-045",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 77,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-046",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "tecnologia",
+      "fact": "A World Wide Web foi criada por Tim Berners-Lee em 1989.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A World Wide Web foi criada por Tim Berners-Lee em 1989. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-046",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9700000000000001,
+      "priority_pt": 78,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "tecnologia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-047",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "tecnologia",
+      "fact": "O primeiro iPhone foi apresentado em 2007.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O primeiro iPhone foi apresentado em 2007. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-047",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 79,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "tecnologia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-048",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "tecnologia",
+      "fact": "O GPS usa satélites para determinar a posição.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O GPS usa satélites para determinar a posição. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-048",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 80,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "tecnologia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-049",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "cultura",
+      "fact": "William Shakespeare escreveu Romeu e Julieta.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "William Shakespeare escreveu Romeu e Julieta. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-049",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 65,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "literatura"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b50-050",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "cultura",
+      "fact": "A Torre Eiffel fica em Londres.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "A Torre Eiffel fica em Londres. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b50-050",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 66,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-01",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    }
+  ]
+}
