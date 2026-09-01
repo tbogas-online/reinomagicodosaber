@@ -3936,47 +3936,49 @@
     return null;
   }
 
+  async function tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine, maxAttempts = 4){
+    const bankRow = await tryPickFromQuestionBank(category.n, ageBandKey, reuseCtx, maxAttempts);
+    if(!bankRow) return null;
+    rememberGlobalQuestion(ageBandKey, bankRow.q);
+    rememberGlobalAnswer(ageBandKey, bankRow.a);
+    if(bankRow.knowledge_key) rememberGlobalKnowledgeKey(ageBandKey, bankRow.knowledge_key);
+    if(bankRow.knowledge_id) rememberGlobalKnowledgeId(ageBandKey, bankRow.knowledge_id);
+    engine.persistQuestion(ageBandKey, bankRow.q, bankRow.a, normalizeQ, {
+      category: category.n,
+      format: bankRow.format || engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
+      knowledgeKey: bankRow.knowledge_key || undefined,
+      knowledgeId: bankRow.knowledge_id || undefined,
+      source: 'bank',
+      sourceId: bankRow.source_id || '',
+      questionHash: bankRow.question_hash || hashQuestionKey(stripTags(bankRow.q) + '|' + stripTags(bankRow.a)),
+    });
+    const withOpts = ensureMcOptionsForQuestion(
+      { q: bankRow.q, a: bankRow.a, options: bankRow.options },
+      category.n,
+      ageBandKey,
+      bankRow.format
+    );
+    if(!withOpts) return null;
+    return finalizeQuestion({
+      q: withOpts.q,
+      a: withOpts.a,
+      options: withOpts.options,
+      source: 'bank',
+      format: bankRow.format || engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
+      formatLabel: engine.FORMAT_LABELS[bankRow.format] || 'Escolha múltipla',
+      knowledgeKey: bankRow.knowledge_key || undefined,
+      knowledgeId: bankRow.knowledge_id || undefined,
+      sourceId: bankRow.source_id || undefined,
+      sourceOrigin: bankRow.fact_source || undefined,
+      sourceUrl: bankRow.source_url || undefined,
+      bankOrigin: bankRow.bank_origin || undefined,
+      dbAddedAt: bankRow.dbCreatedAt || bankRow.db_created_at || undefined,
+    });
+  }
+
   async function finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal = true } = {}){
-    const bankRow = await tryPickFromQuestionBank(category.n, ageBandKey, reuseCtx);
-    if(bankRow){
-      rememberGlobalQuestion(ageBandKey, bankRow.q);
-      rememberGlobalAnswer(ageBandKey, bankRow.a);
-      if(bankRow.knowledge_key) rememberGlobalKnowledgeKey(ageBandKey, bankRow.knowledge_key);
-      if(bankRow.knowledge_id) rememberGlobalKnowledgeId(ageBandKey, bankRow.knowledge_id);
-      engine.persistQuestion(ageBandKey, bankRow.q, bankRow.a, normalizeQ, {
-        category: category.n,
-        format: bankRow.format || engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
-        knowledgeKey: bankRow.knowledge_key || undefined,
-        knowledgeId: bankRow.knowledge_id || undefined,
-        source: 'bank',
-        sourceId: bankRow.source_id || '',
-        questionHash: bankRow.question_hash || hashQuestionKey(stripTags(bankRow.q) + '|' + stripTags(bankRow.a)),
-      });
-      const withOpts = ensureMcOptionsForQuestion(
-        { q: bankRow.q, a: bankRow.a, options: bankRow.options },
-        category.n,
-        ageBandKey,
-        bankRow.format
-      );
-      if(withOpts){
-        const out = {
-          q: withOpts.q,
-          a: withOpts.a,
-          options: withOpts.options,
-          source: 'bank',
-          format: bankRow.format || engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
-          formatLabel: engine.FORMAT_LABELS[bankRow.format] || 'Escolha múltipla',
-          knowledgeKey: bankRow.knowledge_key || undefined,
-          knowledgeId: bankRow.knowledge_id || undefined,
-          sourceId: bankRow.source_id || undefined,
-          sourceOrigin: bankRow.fact_source || undefined,
-          sourceUrl: bankRow.source_url || undefined,
-          bankOrigin: bankRow.bank_origin || undefined,
-          dbAddedAt: bankRow.dbCreatedAt || bankRow.db_created_at || undefined,
-        };
-        return finalizeQuestion(out);
-      }
-    }
+    const bankQuestion = await tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine);
+    if(bankQuestion) return bankQuestion;
     if(!allowLocal){
       return finalizeQuestion({
         q: 'Ainda não há perguntas verificadas disponíveis para esta categoria e faixa etária.',
@@ -4116,7 +4118,9 @@
     const expected = getRepositoryExpectedAnswer(record, engine);
     const factBody = String(record.fact || '').replace(/^curiosidade:\s*/i, '').trim();
     let qText = '';
-    if(repoFormatId === engine.FORMAT_IDS.VERDADEIRO_FALSO && record.statement){
+    const useStatement = repoFormatId === engine.FORMAT_IDS.VERDADEIRO_FALSO
+      || (repoFormatId == null && record.statement);
+    if(useStatement && record.statement){
       qText = record.statement;
     } else {
       const core = factBody.replace(/\?+\s*$/, '').replace(/[.!]\s*$/, '').trim();
@@ -4126,6 +4130,70 @@
       q: formatGameText(ensureTrueFalsePrompt(qText)),
       a: formatGameText(expected),
       options: ['Verdadeiro', 'Falso'],
+    };
+  }
+
+  const ADIVINHA_REPO_DISTRACTOR_POOL = [
+    'Serra', 'Martelo', 'Chave', 'Vela', 'Relógio', 'Espelho', 'Pente', 'Anel', 'Agulha',
+    'Gato', 'Cão', 'Rato', 'Pássaro', 'Peixe', 'Coelho', 'Abelha', 'Formiga', 'Girafa',
+    'Sol', 'Lua', 'Estrela', 'Nuvem', 'Chuva', 'Vento', 'Fogo', 'Água', 'Neve',
+    'Livro', 'Mesa', 'Cadeira', 'Porta', 'Janela', 'Cama', 'Colher', 'Faca', 'Garfo',
+    'Barco', 'Comboio', 'Carro', 'Bicicleta', 'Árvore', 'Flor', 'Maçã', 'Pão', 'Ovo',
+  ];
+
+  function recordHasRepoAdivinhaContent(record){
+    const answer = String(record?.answer || '').trim();
+    const clues = Array.isArray(record?.clues) ? record.clues.filter((c) => String(c).trim()) : [];
+    const fact = String(record?.fact || '').trim();
+    return !!(answer && (clues.length >= 2 || fact.length > 16));
+  }
+
+  function isRepositoryTrustedRecord(record){
+    const src = String(record?.source || '').toLowerCase();
+    if(src.includes('memóriamedia') || src.includes('memoriamedia') || src === 'manual') return true;
+    return (Number(record?.confidence) || 0) >= 0.92;
+  }
+
+  function buildAdivinhaRepoDistractors(answer, categoryNumber, ageBandKey){
+    const correctNorm = normalizeQ(answer);
+    const seen = new Set([correctNorm]);
+    const picked = [];
+    const fallback = buildFallbackOptions(answer, categoryNumber, ageBandKey);
+    if(fallback){
+      for(const opt of fallback){
+        const norm = normalizeQ(opt);
+        if(norm === correctNorm || seen.has(norm)) continue;
+        seen.add(norm);
+        picked.push(opt);
+        if(picked.length >= 3) return picked;
+      }
+    }
+    for(const opt of shuffled(ADIVINHA_REPO_DISTRACTOR_POOL)){
+      const norm = normalizeQ(opt);
+      if(!norm || seen.has(norm)) continue;
+      seen.add(norm);
+      picked.push(opt);
+      if(picked.length >= 3) break;
+    }
+    return picked.length >= 3 ? picked : null;
+  }
+
+  function buildAdivinhaDirectFromRecord(record, engine, categoryNumber, ageBandKey){
+    const clues = Array.isArray(record.clues) ? record.clues.map((c) => String(c).trim()).filter(Boolean) : [];
+    let qText = clues.length >= 2 ? clues.join(' ') : String(record.fact || '').trim();
+    qText = qText.replace(/^[«"']?\s*[^.!?]{1,40}[.!?]\s+/u, '').trim() || qText;
+    if(!/\?\s*$/.test(qText)){
+      qText = qText.replace(/[.!]\s*$/, '').trim() + '. O que sou?';
+    }
+    const answer = formatGameText(String(record.answer || '').trim());
+    const distractors = buildAdivinhaRepoDistractors(answer, categoryNumber, ageBandKey);
+    if(!distractors) return null;
+    const options = engine.assembleMcOptions(answer, distractors.map(formatGameText));
+    return {
+      q: formatGameText(qText),
+      a: answer,
+      options,
+      clues: clues.slice(0, 6),
     };
   }
 
@@ -4394,13 +4462,14 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     } = ctx;
 
     const KR = window.ReinoKnowledgeRepository;
-    if(!KR?.isConfigured?.() || skipAi) return null;
+    if(!KR?.isConfigured?.()) return null;
 
     let lastValidationIssues = [];
     let lastValidationIssueDetails = [];
     const triedKnowledgeIds = new Set([...(reuseCtx?.knowledgeIds || getEffectiveUsedKnowledgeIds(ageBandKey, persistent))]);
+    const maxAttempts = skipAi ? 3 : 5;
 
-    for(let attempt = 1; attempt <= 5; attempt++){
+    for(let attempt = 1; attempt <= maxAttempts; attempt++){
       const record = await KR.pickRecord(category.n, ageBandKey, {
         topic: REPO_ADIVINHA_TOPIC,
         formatId: questionFormat,
@@ -4432,6 +4501,18 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       };
 
       try {
+        const useDirect = recordHasRepoAdivinhaContent(record);
+        let parsed = null;
+        let aiData = null;
+
+        if(useDirect){
+          parsed = buildAdivinhaDirectFromRecord(record, engine, category.n, ageBandKey);
+          if(!parsed) continue;
+          if(!recentMcPositions[ageBandKey]) recentMcPositions[ageBandKey] = [];
+          parsed.options = engine.shuffleMcOptions(parsed.options, parsed.a, normalizeQ, recentMcPositions[ageBandKey]);
+        } else if(skipAi){
+          continue;
+        } else {
         const prompt = engine.buildPromptFromFact(record, {
           category,
           ageBandKey,
@@ -4451,18 +4532,18 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             : '',
         }).slice(0, 11000);
 
-        const data = await callAiApi(
+        aiData = await callAiApi(
           [{ role: 'user', content: prompt }],
           ageBandKey === '15+' ? 360 : 320,
         );
 
-        const text = (data.content || []).map((b) => b.text || '').join('');
+        const text = (aiData.content || []).map((b) => b.text || '').join('');
         if(!text.trim()){
           recordQuestionGenTelemetry(engine, { ...telemetryBase, outcome: 'api_error', issueCodes: ['API_EMPTY'] });
           continue;
         }
 
-        const parsed = parseAiJson(text);
+        parsed = parseAiJson(text);
         if(!parsed?.q || !parsed?.a){
           recordQuestionGenTelemetry(engine, {
             ...telemetryBase,
@@ -4487,6 +4568,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
         if(!recentMcPositions[ageBandKey]) recentMcPositions[ageBandKey] = [];
         parsed.options = engine.shuffleMcOptions(parsed.options, parsed.a, normalizeQ, recentMcPositions[ageBandKey]);
+        }
 
         const qualityCheck = engine.validateQuestion(parsed, buildQuestionValidationCtx(engine, {
           formatId: questionFormat,
@@ -4518,7 +4600,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           continue;
         }
 
-        if(engine.shouldRequestAdivinhaVerify({ formatId: questionFormat, ageBandKey })){
+        const skipAdivinhaVerify = useDirect && isRepositoryTrustedRecord(record);
+        if(!skipAdivinhaVerify && engine.shouldRequestAdivinhaVerify({ formatId: questionFormat, ageBandKey })){
           try {
             const adivinhaPrompt = engine.buildAdivinhaVerifyPrompt(parsed, {
               formatId: questionFormat,
@@ -4556,8 +4639,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         if(usedSet.has(normQ) || persistentQSet.has(normQ)) continue;
         if(usedAnswerSet.has(normA)) continue;
 
-        recordAiUsage(data);
-        setOnlineStatus(true);
+        if(aiData){
+          recordAiUsage(aiData);
+          setOnlineStatus(true);
+        }
         rememberGlobalQuestion(ageBandKey, parsed.q);
         rememberGlobalAnswer(ageBandKey, parsed.a);
         rememberGlobalKnowledgeKey(ageBandKey, knowledgeKey);
@@ -4628,12 +4713,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
     let lastValidationIssues = [];
     let lastValidationIssueDetails = [];
-    const formatCandidates = curiosidadeRepoFormatCandidates(engine, repoFormatId);
+    const formatCandidates = [null];
 
     for(const pickFormatId of formatCandidates){
       const triedKnowledgeIds = new Set([...(reuseCtx?.knowledgeIds || getEffectiveUsedKnowledgeIds(ageBandKey, persistent))]);
 
-      for(let attempt = 1; attempt <= 5; attempt++){
+      for(let attempt = 1; attempt <= 3; attempt++){
         const record = await KR.pickRecord(category.n, ageBandKey, {
           topic: REPO_CURIOSIDADE_TOPIC,
           formatId: pickFormatId,
@@ -4674,9 +4759,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
         try {
           let parsed = null;
-          const useDirect = skipAi || (isRepoTrueFalse && record.statement);
+          const useDirect = !!(record.fact && record.answer);
           if(useDirect){
             parsed = buildCuriosidadeDirectFromRecord(record, validateFormatId, engine);
+          } else if(skipAi){
+            continue;
           } else {
             const prompt = engine.buildPromptFromFact(record, {
               category,
@@ -4838,9 +4925,14 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       throw new Error('Categoria em falta para gerar pergunta.');
     }
     const engine = QE();
-    await ensureReportedHashesSynced(engine);
+    const isCat20 = category.n === 20;
+    if(isCat20){
+      void ensureReportedHashesSynced(engine);
+    } else {
+      await ensureReportedHashesSynced(engine);
+    }
     const localOnly = aiProviderChoice === 'local';
-    if(!localOnly && !aiStatusOnline) await tryRestoreAiOnline();
+    if(!localOnly && !isCat20 && !aiStatusOnline) await tryRestoreAiOnline();
     const isMC = true;
     const remember = (qText) => rememberGlobalQuestion(ageBandKey, qText);
     const questionFormat = chooseQuestionFormat(category.n, ageBandKey);
@@ -4899,17 +4991,14 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal: category.n !== 20 });
     }
 
-    // KR-1: adivinhas (cat. 20) — só factos do repositório; sem geração livre pelo LLM.
-    if(category.n === 20 && questionFormat === engine.FORMAT_IDS.ADIVINHA){
+    if(isCat20){
+      const bankQuestion = await tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine);
+      if(bankQuestion) return bankQuestion;
+    }
+
+    // KR-1: adivinhas (cat. 20) — repositório directo (rápido); IA só como fallback.
+    if(isCat20 && questionFormat === engine.FORMAT_IDS.ADIVINHA){
       subtopic = REPO_ADIVINHA_TOPIC;
-      let skipAiForRepo = !aiStatusOnline;
-      if(!skipAiForRepo){
-        try {
-          const quota = lastAiQuotaSnapshot || await fetchAiQuotaSnapshot();
-          const availability = getAiAvailabilityFromQuota(quota, aiProviderChoice);
-          if(!availability.online) skipAiForRepo = true;
-        } catch { /* tenta na mesma */ }
-      }
       const repoQuestion = await tryGenerateAdivinhaFromRepository({
         category,
         ageBandKey,
@@ -4927,24 +5016,16 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         jsonFormat,
         ageDifficultyExtra,
         openModeExtra,
-        skipAi: skipAiForRepo,
+        skipAi: !aiStatusOnline,
       });
       if(repoQuestion) return repoQuestion;
       return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal: false });
     }
 
-    // KR-2: curiosidades (cat. 20) — só factos do repositório; sem geração livre pelo LLM.
-    if(category.n === 20 && questionFormat === engine.FORMAT_IDS.CURIOSIDADE){
+    // KR-2: curiosidades (cat. 20) — repositório directo (sem IA).
+    if(isCat20 && questionFormat === engine.FORMAT_IDS.CURIOSIDADE){
       subtopic = REPO_CURIOSIDADE_TOPIC;
       const repoFormatId = chooseCuriosidadeRepoFormat(engine);
-      let skipAiForRepo = !aiStatusOnline;
-      if(!skipAiForRepo){
-        try {
-          const quota = lastAiQuotaSnapshot || await fetchAiQuotaSnapshot();
-          const availability = getAiAvailabilityFromQuota(quota, aiProviderChoice);
-          if(!availability.online) skipAiForRepo = true;
-        } catch { /* tenta na mesma */ }
-      }
       const repoQuestion = await tryGenerateCuriosidadeFromRepository({
         category,
         ageBandKey,
@@ -4962,7 +5043,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         jsonFormat,
         ageDifficultyExtra,
         openModeExtra,
-        skipAi: skipAiForRepo,
+        skipAi: true,
       });
       if(repoQuestion) return repoQuestion;
       return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal: false });
