@@ -215,6 +215,112 @@ function computeSummaryFromItems(items) {
   return summary;
 }
 
+function sumByBucket(byBucket) {
+  return Object.values(byBucket || {}).reduce((sum, value) => sum + value, 0);
+}
+
+function buildDailySeries(byDay, days = 14) {
+  const daily = [];
+  const now = new Date();
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(end.getTime() - i * 86400000);
+    const key = d.toISOString().slice(0, 10);
+    daily.push({ key, count: byDay[key] || 0 });
+  }
+  return daily;
+}
+
+function buildHourlySeries(byHour, hours = 24) {
+  const series = [];
+  const now = new Date();
+  const end = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+    now.getUTCHours(),
+    0,
+    0,
+    0,
+  ));
+  for (let i = hours - 1; i >= 0; i -= 1) {
+    const d = new Date(end.getTime() - i * 3600000);
+    const key = d.toISOString().slice(0, 13);
+    series.push({ key, count: byHour[key] || 0 });
+  }
+  return series;
+}
+
+function buildStackedDailySeries(byDayByBucket, days = 14) {
+  const daily = [];
+  const now = new Date();
+  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  for (let i = days - 1; i >= 0; i -= 1) {
+    const d = new Date(end.getTime() - i * 86400000);
+    const key = d.toISOString().slice(0, 10);
+    const byIssue = byDayByBucket[key] || {};
+    daily.push({ key, byIssue, count: sumByBucket(byIssue) });
+  }
+  return daily;
+}
+
+function buildStackedHourlySeries(byHourByBucket, hours = 24) {
+  const series = [];
+  const now = new Date();
+  const end = new Date(Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+    now.getUTCHours(),
+    0,
+    0,
+    0,
+  ));
+  for (let i = hours - 1; i >= 0; i -= 1) {
+    const d = new Date(end.getTime() - i * 3600000);
+    const key = d.toISOString().slice(0, 13);
+    const byIssue = byHourByBucket[key] || {};
+    series.push({ key, byIssue, count: sumByBucket(byIssue) });
+  }
+  return series;
+}
+
+function computeTimelineFromItems(items) {
+  const byDay = {};
+  const byHour = {};
+  const byDayByOutcome = {};
+  const byHourByOutcome = {};
+
+  for (const ev of items) {
+    const ts = Number(ev.ts);
+    if (!Number.isFinite(ts) || ts <= 0) continue;
+    const day = new Date(ts).toISOString().slice(0, 10);
+    const hour = new Date(ts).toISOString().slice(0, 13);
+    byDay[day] = (byDay[day] || 0) + 1;
+    byHour[hour] = (byHour[hour] || 0) + 1;
+    const outcome = ev.outcome || 'unknown';
+    if (!byDayByOutcome[day]) byDayByOutcome[day] = {};
+    if (!byHourByOutcome[hour]) byHourByOutcome[hour] = {};
+    byDayByOutcome[day][outcome] = (byDayByOutcome[day][outcome] || 0) + 1;
+    byHourByOutcome[hour][outcome] = (byHourByOutcome[hour][outcome] || 0) + 1;
+  }
+
+  return {
+    timelineSeries: {
+      '24h': buildHourlySeries(byHour, 24),
+      '3d': buildHourlySeries(byHour, 72),
+      '7d': buildDailySeries(byDay, 7),
+      '14d': buildDailySeries(byDay, 14),
+    },
+    timelineStacked: {
+      '24h': buildStackedHourlySeries(byHourByOutcome, 24),
+      '3d': buildStackedHourlySeries(byHourByOutcome, 72),
+      '7d': buildStackedDailySeries(byDayByOutcome, 7),
+      '14d': buildStackedDailySeries(byDayByOutcome, 14),
+    },
+  };
+}
+
 async function recordEvent(payload) {
   const normalized = normalizeEvent(payload);
   const inserted = await supabaseRequest(`/${TABLE}`, {
@@ -249,7 +355,10 @@ async function fetchEventItems(filters = {}) {
 
 async function getStats(_event, filters = {}) {
   const items = await fetchEventItems(filters);
-  return computeSummaryFromItems(items);
+  return {
+    ...computeSummaryFromItems(items),
+    ...computeTimelineFromItems(items),
+  };
 }
 
 async function clearAll() {
@@ -264,4 +373,5 @@ module.exports = {
   getStats,
   clearAll,
   computeSummaryFromItems,
+  computeTimelineFromItems,
 };

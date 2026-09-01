@@ -1198,6 +1198,25 @@
           </div>
 
           <p class="status" id="telemetryListStatus"></p>
+
+          <div class="chart-box chart-wide" style="margin-top:12px">
+            <div class="chart-head">
+              <h3 id="chartGenTelemetryTimelineTitle" style="margin:0;font-size:0.95rem;">Evolução temporal</h3>
+              <div class="timeline-chart-types" id="telemetryTimelineChartTypes" role="group" aria-label="Tipo de gráfico temporal">
+                <button type="button" class="secondary active" data-telemetry-chart-type="stacked">Empilhado</button>
+                <button type="button" class="secondary" data-telemetry-chart-type="line">Linha</button>
+              </div>
+            </div>
+            <div class="timeline-filters" id="telemetryTimelineFilters" role="group" aria-label="Período do gráfico temporal">
+              <button type="button" class="secondary" data-telemetry-range="24h">24 h</button>
+              <button type="button" class="secondary" data-telemetry-range="3d">3 d</button>
+              <button type="button" class="secondary" data-telemetry-range="7d">7 d</button>
+              <button type="button" class="secondary active" data-telemetry-range="14d">14 d</button>
+            </div>
+            <p class="timeline-note" id="telemetryTimelineNote"></p>
+            <div id="chartGenTelemetryTimeline" class="chart"></div>
+          </div>
+
           <div class="charts-grid" style="margin-top:12px">
             <div class="chart-box">
               <h3>Rejeições por causa</h3>
@@ -1519,7 +1538,7 @@
     }
 
     function renderIssueLegend(types, options = {}) {
-      const { showTotal = false } = options;
+      const { showTotal = false, labelMap = ISSUE_LABELS, colorFn = getIssueColor } = options;
       const items = [];
       if (showTotal) {
         items.push(`
@@ -1532,8 +1551,8 @@
       types.forEach((type, index) => {
         items.push(`
           <span class="line-legend-item">
-            <span class="line-legend-swatch" style="background:${getIssueColor(type, index)}"></span>
-            ${esc(ISSUE_LABELS[type] || type)}
+            <span class="line-legend-swatch" style="background:${colorFn(type, index)}"></span>
+            ${esc(labelMap[type] || type)}
           </span>
         `);
       });
@@ -1697,7 +1716,8 @@
       );
     }
 
-    function renderStackedColumnChart(el, series, issueTypes, granularity = 'day') {
+    function renderStackedColumnChart(el, series, issueTypes, granularity = 'day', options = {}) {
+      const { labelMap = ISSUE_LABELS, colorFn = getIssueColor } = options;
       if (!series?.length) {
         el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
         return;
@@ -1720,7 +1740,7 @@
           if (!value) return '';
           const barH = (value / max) * innerH;
           const y = yBottom - barH;
-          const rect = `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="${getIssueColor(type, typeIndex)}" rx="2" />`;
+          const rect = `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="${colorFn(type, typeIndex)}" rx="2" />`;
           yBottom = y;
           return rect;
         }).join('');
@@ -1732,7 +1752,7 @@
           ${bars}
           ${renderTimelineColumnXLabels(series, layout, granularity)}
         </svg>
-        ${renderIssueLegend(types)}
+        ${renderIssueLegend(types, { labelMap, colorFn })}
       `;
     }
 
@@ -2574,8 +2594,48 @@
       test: 'Teste',
     };
 
+    const GEN_OUTCOME_LABELS = {
+      accepted: 'Aceites',
+      rejected: 'Rejeitadas',
+      parse_error: 'JSON inválido',
+      api_error: 'Erro API',
+      unknown: 'Desconhecido',
+    };
+
+    const GEN_OUTCOME_COLORS = {
+      accepted: '#10b981',
+      rejected: '#ef4444',
+      parse_error: '#f59e0b',
+      api_error: '#8b5cf6',
+      unknown: '#94a3b8',
+    };
+
+    const GEN_OUTCOME_ORDER = ['accepted', 'rejected', 'parse_error', 'api_error', 'unknown'];
+
+    const TELEMETRY_TIMELINE_RANGES = {
+      '24h': { label: 'últimas 24 horas', granularity: 'hour' },
+      '3d': { label: 'últimos 3 dias', granularity: 'hour' },
+      '7d': { label: 'últimos 7 dias', granularity: 'day' },
+      '14d': { label: 'últimos 14 dias', granularity: 'day' },
+    };
+
+    const TELEMETRY_TIMELINE_STORAGE_KEY = 'reino_admin_telemetry_timeline_range';
+    const TELEMETRY_TIMELINE_CHART_STORAGE_KEY = 'reino_admin_telemetry_timeline_chart';
+
     let lastTelemetryPayload = null;
     let telemetryGameModeFilter = '';
+    let telemetryTimelineRange = '14d';
+    let telemetryTimelineChartType = 'stacked';
+    try {
+      const savedTelemetryRange = localStorage.getItem(TELEMETRY_TIMELINE_STORAGE_KEY);
+      if (savedTelemetryRange && TELEMETRY_TIMELINE_RANGES[savedTelemetryRange]) {
+        telemetryTimelineRange = savedTelemetryRange;
+      }
+      const savedTelemetryChart = localStorage.getItem(TELEMETRY_TIMELINE_CHART_STORAGE_KEY);
+      if (savedTelemetryChart === 'line' || savedTelemetryChart === 'stacked') {
+        telemetryTimelineChartType = savedTelemetryChart;
+      }
+    } catch { /* ignore */ }
 
     function telemetryStatsQuery() {
       const params = new URLSearchParams({ stats: '1' });
@@ -2587,6 +2647,53 @@
       document.querySelectorAll('#telemetryModeFilters [data-telemetry-mode]').forEach((btn) => {
         const mode = btn.getAttribute('data-telemetry-mode') || '';
         btn.classList.toggle('active', mode === telemetryGameModeFilter);
+      });
+    }
+
+    function updateTelemetryTimelineUi() {
+      document.querySelectorAll('#telemetryTimelineFilters [data-telemetry-range]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.telemetryRange === telemetryTimelineRange);
+      });
+      document.querySelectorAll('#telemetryTimelineChartTypes [data-telemetry-chart-type]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.telemetryChartType === telemetryTimelineChartType);
+      });
+    }
+
+    function getGenOutcomeColor(outcome, index = 0) {
+      return GEN_OUTCOME_COLORS[outcome] || CHART_COLORS[index % CHART_COLORS.length];
+    }
+
+    function renderGenTelemetryTimeline(summary) {
+      const el = document.getElementById('chartGenTelemetryTimeline');
+      const titleEl = document.getElementById('chartGenTelemetryTimelineTitle');
+      const noteEl = document.getElementById('telemetryTimelineNote');
+      if (!el) return;
+
+      updateTelemetryTimelineUi();
+      const meta = TELEMETRY_TIMELINE_RANGES[telemetryTimelineRange] || TELEMETRY_TIMELINE_RANGES['14d'];
+      if (titleEl) titleEl.textContent = `Evolução temporal — ${meta.label}`;
+      if (noteEl) {
+        noteEl.textContent = meta.granularity === 'hour'
+          ? 'Tentativas de geração IA por hora (UTC).'
+          : 'Tentativas de geração IA por dia (UTC).';
+      }
+
+      if (!summary?.total) {
+        el.innerHTML = '<div class="chart-empty">Ainda sem eventos — joga com IA para recolher dados.</div>';
+        return;
+      }
+
+      if (telemetryTimelineChartType === 'line') {
+        const series = summary.timelineSeries?.[telemetryTimelineRange] || [];
+        renderLineChart(el, series, meta.granularity, { color: CHART_TOTAL_COLOR });
+        return;
+      }
+
+      const series = summary.timelineStacked?.[telemetryTimelineRange] || [];
+      const types = GEN_OUTCOME_ORDER.filter((type) => series.some((point) => (point.byIssue?.[type] || 0) > 0));
+      renderStackedColumnChart(el, series, types, meta.granularity, {
+        labelMap: GEN_OUTCOME_LABELS,
+        colorFn: getGenOutcomeColor,
       });
     }
 
@@ -2622,6 +2729,7 @@
         statsEl.innerHTML = '<div class="stat stat-total"><strong>0</strong><span>Sem eventos ainda</span></div>';
         issueEl.innerHTML = '<p class="chart-empty">Ainda sem eventos — joga com IA para recolher dados.</p>';
         if (detailEl) detailEl.innerHTML = '';
+        renderGenTelemetryTimeline(summary);
         catEl.innerHTML = '';
         fmtEl.innerHTML = '';
         modeEl.innerHTML = '';
@@ -2646,6 +2754,7 @@
         { tooltipFn: (code) => genIssueTooltip(code, detailMap[code]?.sampleMessage) },
       );
       renderGenIssueDetailList(summary);
+      renderGenTelemetryTimeline(summary);
 
       const catMap = Object.fromEntries(BANK_CATEGORIES.map((c) => [String(c.n), c.name]));
       const catEntries = Object.entries(summary.byCategory)
@@ -3754,6 +3863,20 @@
       if (!btn) return;
       telemetryGameModeFilter = btn.getAttribute('data-telemetry-mode') || '';
       loadTelemetryDashboard();
+    });
+    document.getElementById('telemetryTimelineFilters')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-telemetry-range]');
+      if (!btn || !TELEMETRY_TIMELINE_RANGES[btn.dataset.telemetryRange]) return;
+      telemetryTimelineRange = btn.dataset.telemetryRange;
+      try { localStorage.setItem(TELEMETRY_TIMELINE_STORAGE_KEY, telemetryTimelineRange); } catch { /* ignore */ }
+      if (lastTelemetryPayload?.stats) renderGenTelemetryTimeline(lastTelemetryPayload.stats);
+    });
+    document.getElementById('telemetryTimelineChartTypes')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-telemetry-chart-type]');
+      if (!btn || (btn.dataset.telemetryChartType !== 'line' && btn.dataset.telemetryChartType !== 'stacked')) return;
+      telemetryTimelineChartType = btn.dataset.telemetryChartType;
+      try { localStorage.setItem(TELEMETRY_TIMELINE_CHART_STORAGE_KEY, telemetryTimelineChartType); } catch { /* ignore */ }
+      if (lastTelemetryPayload?.stats) renderGenTelemetryTimeline(lastTelemetryPayload.stats);
     });
     document.getElementById('clearGenTelemetryBtn')?.addEventListener('click', async () => {
       if (!confirm('Limpar toda a telemetria de geração IA no servidor?')) return;
