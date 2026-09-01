@@ -33,7 +33,7 @@
 
 [functions."knowledge-import-admin"]
   node_bundler = "esbuild"
-  included_files = ["data/knowledge-import-queue.json"]
+  included_files = ["./data/knowledge-import-queue.json"]
 
 [[redirects]]
   from = "/api/generate"

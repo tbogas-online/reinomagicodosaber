@@ -53,6 +53,7 @@ Em qualquer uma delas, o jogo chama sempre `/api/generate` e podes configurar **
      - `supabase/expire-rooms-24h.sql` *(expira salas inactivas após 24h)*
      - `supabase/question-bank.sql`
      - `supabase/knowledge-repository.sql` *(repositório de factos verificados — Knowledge Repository)*
+     - `supabase/knowledge-import-queue.sql` *(fila de importação diária — estado no Supabase)*
      - `supabase/seed-knowledge-cat20-sample.sql` *(opcional — 5 registos de teste cat. 20)*
   4. **Project Settings → API** → copiar URL e `anon` key para `public/supabase-config.js`
   5. **Database → Replication** → confirmar `rooms` e `room_players` no Realtime

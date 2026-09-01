@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   import:
@@ -21,20 +21,10 @@ jobs:
         with:
           node-version: '20'
 
-      - name: Import 1 registo por faixa etária
+      - name: Sincronizar fila (se vazia) e importar
         env:
           SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: node scripts/daily-knowledge-import.js
-
-      - name: Commit fila e estado actualizados
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/knowledge-import-queue.json data/knowledge-import-state.json
-          if git diff --staged --quiet; then
-            echo "Sem alterações na fila."
-          else
-            git commit -m "chore: importação diária knowledge repository"
-            git push
-          fi
+          node scripts/daily-knowledge-import.js --sync-only || true
+          node scripts/daily-knowledge-import.js

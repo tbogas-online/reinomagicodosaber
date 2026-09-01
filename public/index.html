@@ -4193,7 +4193,13 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       });
       if(!record){
         if(DEBUG_MODE){
-          console.info('[KnowledgeRepository] Sem adivinhas no repositório (verificar seed SQL e faixa etária/formato ADIVINHA)');
+          console.info('[KnowledgeRepository] Sem adivinhas no repositório', {
+            ageBand: ageBandKey,
+            format: questionFormat,
+            excluded: triedKnowledgeIds.size,
+            topic: REPO_ADIVINHA_TOPIC,
+            hint: 'Verifica seed SQL, faixa etária, formato ADIVINHA e consola por «pick falhou» ou «pick sem resultados»',
+          });
         }
         return null;
       }

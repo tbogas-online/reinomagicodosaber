@@ -19,9 +19,11 @@
    * Normaliza resposta RPC pick_knowledge_record → objeto estável no cliente.
    */
   function rowToRecord(row) {
-    if (!row || typeof row !== 'object' || !row.knowledgeId) return null;
+    if (!row || typeof row !== 'object') return null;
+    const knowledgeId = row.knowledgeId || row.knowledge_id;
+    if (!knowledgeId) return null;
     return {
-      knowledgeId: String(row.knowledgeId),
+      knowledgeId: String(knowledgeId),
       category: Number(row.category) || 0,
       topic: String(row.topic || ''),
       subtopic: row.subtopic ? String(row.subtopic) : '',
@@ -66,11 +68,20 @@
     });
 
     if (error) {
-      console.warn('[KnowledgeRepository] pick falhou:', error.message);
+      console.warn('[KnowledgeRepository] pick falhou:', error.message, { categoryN, ageBand, topic: opts.topic, formatId: opts.formatId });
       return null;
     }
 
-    return rowToRecord(data);
+    if (!data) {
+      console.info('[KnowledgeRepository] pick sem resultados', { categoryN, ageBand, topic: opts.topic, formatId: opts.formatId, excluded: (opts.excludeKnowledgeIds || []).length });
+      return null;
+    }
+
+    const record = rowToRecord(data);
+    if (!record) {
+      console.warn('[KnowledgeRepository] pick devolveu JSON inválido:', data);
+    }
+    return record;
   }
 
   /**

@@ -1212,13 +1212,16 @@
 
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px;">
             <button type="button" class="primary" id="knowledgeRefreshBtn">↻ Actualizar estado</button>
+            <button type="button" class="secondary" id="knowledgeSyncBtn" title="Copia novos itens de data/knowledge-import-queue.json para o Supabase">⟳ Sincronizar fila</button>
             <button type="button" class="secondary" id="knowledgeDryRunBtn" title="Simular sem gravar no Supabase">🧪 Simular</button>
             <button type="button" class="secondary" id="knowledgeImportBtn" title="Importar 1 registo por faixa etária">📥 Importar agora</button>
             <button type="button" class="danger" id="knowledgeForceImportBtn" title="Repetir mesmo que já tenha corrido hoje">⚡ Forçar importação</button>
+            <button type="button" class="secondary" id="knowledgeResetBtn" title="Limpa marcações importadas no servidor e repõe a fila pendente">↩ Repor fila pendente</button>
           </div>
 
           <p class="status" id="knowledgeImportStatus"></p>
-          <p class="sub" style="margin-top:0;">A fila vem de <code>data/knowledge-import-queue.json</code> no deploy. O estado das importações manuais fica guardado no servidor (Netlify Blobs).</p>
+          <p class="sub" id="knowledgeDiagnostics" style="margin-top:0;"></p>
+          <p class="sub" style="margin-top:0;">Fila e estado no <strong>Supabase</strong>. O ficheiro <code>data/knowledge-import-queue.json</code> no Git é modelo para sincronizar novos itens.</p>
 
           <h3 style="margin:16px 0 8px; font-size:0.95rem;">Próximos na fila</h3>
           <div id="knowledgeQueuePreview" class="knowledge-queue-preview"></div>
@@ -3430,6 +3433,23 @@
     let knowledgeLoading = false;
     let lastKnowledgePayload = null;
 
+    function renderKnowledgeDiagnostics(data) {
+      const el = document.getElementById('knowledgeDiagnostics');
+      if (!el) return;
+      const d = data?.diagnostics;
+      if (!d) {
+        el.textContent = '';
+        return;
+      }
+      const parts = [
+        `Armazenamento: ${d.storage || 'supabase'}`,
+        `Pendentes: ${d.effectivePending ?? data?.summary?.pending ?? '—'}`,
+      ];
+      if (d.seedFileTotal != null) parts.push(`Modelo Git: ${d.seedFileTotal} itens`);
+      if (data?.repository?.active != null) parts.push(`Factos activos: ${data.repository.active}`);
+      el.textContent = parts.join(' · ');
+    }
+
     function renderKnowledgeStats(data) {
       const row = document.getElementById('knowledgeStatsRow');
       if (!row) return;
@@ -3489,6 +3509,7 @@
         const data = await api('/api/knowledge-import-admin');
         lastKnowledgePayload = data;
         renderKnowledgeStats(data);
+        renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
         const updatedEl = document.getElementById('knowledgeLastUpdated');
         if (updatedEl) updatedEl.textContent = `Actualizado às ${formatPortugalDateTime(new Date())}`;
@@ -3521,6 +3542,7 @@
         });
         lastKnowledgePayload = data;
         renderKnowledgeStats(data);
+        renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
         if (statusEl) {
           statusEl.textContent = formatKnowledgeImportResult(data);
@@ -3533,6 +3555,60 @@
           statusEl.className = 'status err';
         }
         if (String(err.message || '').includes('incorretos')) logout();
+      }
+    }
+
+    async function syncKnowledgeQueue() {
+      const statusEl = document.getElementById('knowledgeImportStatus');
+      if (statusEl) {
+        statusEl.textContent = 'A sincronizar fila…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/knowledge-import-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'sync-seed' }),
+        });
+        lastKnowledgePayload = data;
+        renderKnowledgeStats(data);
+        renderKnowledgeDiagnostics(data);
+        renderKnowledgeQueuePreview(data);
+        if (statusEl) {
+          statusEl.textContent = data.message || 'Fila sincronizada.';
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao sincronizar fila.';
+          statusEl.className = 'status err';
+        }
+      }
+    }
+
+    async function resetKnowledgeOverrides() {
+      const statusEl = document.getElementById('knowledgeImportStatus');
+      if (statusEl) {
+        statusEl.textContent = 'A repor fila…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/knowledge-import-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'reset-overrides' }),
+        });
+        lastKnowledgePayload = data;
+        renderKnowledgeStats(data);
+        renderKnowledgeDiagnostics(data);
+        renderKnowledgeQueuePreview(data);
+        if (statusEl) {
+          statusEl.textContent = data.message || 'Fila reposta.';
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao repor fila.';
+          statusEl.className = 'status err';
+        }
       }
     }
 
@@ -4036,9 +4112,11 @@
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
     document.getElementById('knowledgeRefreshBtn')?.addEventListener('click', () => loadKnowledgeDashboard());
+    document.getElementById('knowledgeSyncBtn')?.addEventListener('click', () => syncKnowledgeQueue());
     document.getElementById('knowledgeDryRunBtn')?.addEventListener('click', () => runKnowledgeImport({ dryRun: true }));
     document.getElementById('knowledgeImportBtn')?.addEventListener('click', () => runKnowledgeImport());
     document.getElementById('knowledgeForceImportBtn')?.addEventListener('click', () => runKnowledgeImport({ force: true }));
+    document.getElementById('knowledgeResetBtn')?.addEventListener('click', () => resetKnowledgeOverrides());
     document.querySelector('.bank-matrix thead')?.addEventListener('click', (e) => {
       const th = e.target.closest('th[data-bank-sort]');
       if (!th) return;
