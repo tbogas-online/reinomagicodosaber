@@ -5,9 +5,10 @@
   'use strict';
 
   const Issues = global.QuestionEngineIssues;
+  const KnowledgeKey = global.QuestionEngineKnowledgeKey;
   const KnownFacts = global.QuestionEngineKnownFacts;
-  if (!Issues || !KnownFacts) {
-    throw new Error('QuestionEngine: carrega question-engine/issue-codes.js e question-engine/known-facts.js antes de question-engine.js');
+  if (!Issues || !KnowledgeKey || !KnownFacts) {
+    throw new Error('QuestionEngine: carrega issue-codes.js, knowledge-key.js e known-facts.js antes de question-engine.js');
   }
   const {
     mkIssue, issueMessage, issueCode, normalizeIssues, issueMessages,
@@ -555,7 +556,14 @@ ${ageRulesText}`;
     return String(text || '').replace(/<[^>]*>/g, '').trim();
   }
 
-  function computeKnowledgeKey(q, a, formatId, normalizeFn) {
+  function computeKnowledgeKey(q, a, formatId, normalizeFn, opts) {
+    const options = opts && typeof opts === 'object' ? opts : {};
+    const knowledgeMeta = options.knowledgeMeta || options.knowledge || null;
+    const categoryNumber = options.categoryNumber;
+    if (knowledgeMeta?.entity && knowledgeMeta?.concept) {
+      const structured = KnowledgeKey.buildStructuredKey(knowledgeMeta, categoryNumber, normalizeFn);
+      if (structured) return structured;
+    }
     const norm = normalizeFn || ((s) => String(s || '').trim().toLowerCase());
     const answer = stripTagsInternal(a || '').trim();
     const question = stripFormatLabel(stripTagsInternal(q || '').trim());
@@ -582,13 +590,13 @@ ${ageRulesText}`;
   }
 
   function knowledgeKeysMatch(keyA, keyB, normalizeFn) {
-    const norm = normalizeFn || ((s) => String(s || '').trim().toLowerCase());
-    const a = normalizeKnowledgeKeyForMatch(keyA, norm);
-    const b = normalizeKnowledgeKeyForMatch(keyB, norm);
-    if (!a || !b) return false;
-    if (a === b) return true;
-    if (a.includes(b) || b.includes(a)) return true;
-    return jaccardSimilarity(a, b) >= ENGINE_CONFIG.KNOWLEDGE_JACCARD_THRESHOLD;
+    return KnowledgeKey.knowledgeKeysMatch(
+      keyA,
+      keyB,
+      normalizeFn,
+      jaccardSimilarity,
+      ENGINE_CONFIG.KNOWLEDGE_JACCARD_THRESHOLD,
+    );
   }
 
   function resolveMcPositionHistory(mcPositionHistory) {
@@ -1921,7 +1929,12 @@ Só json válido, sem markdown: ${jsonFormat}`;
 
   function collectRepetitionIssues(q, a, formatId, ctx, normalizeFn) {
     const issues = [];
-    const knowledgeKey = ctx.knowledgeKey || computeKnowledgeKey(q, a, formatId, normalizeFn);
+    const knowledgeMeta = ctx.knowledgeMeta || KnowledgeKey.parseKnowledgeMeta(ctx.parsed) || null;
+    const keyOpts = {
+      knowledgeMeta,
+      categoryNumber: ctx.categoryNumber,
+    };
+    const knowledgeKey = ctx.knowledgeKey || computeKnowledgeKey(q, a, formatId, normalizeFn, keyOpts);
     const recentKeys = [...(ctx.usedKnowledgeKeys || []), ...(ctx.persistentKnowledgeKeys || [])];
     if (recentKeys.some((k) => knowledgeKeysMatch(k, knowledgeKey, normalizeFn))) {
       pushIssue(issues, 'KNOWLEDGE_REPEATED', ISSUE_LAYER.repetition, 'conhecimento já testado recentemente (knowledgeKey)');
@@ -2002,7 +2015,11 @@ Só json válido, sem markdown: ${jsonFormat}`;
     layers.semantic = layerScore(LAYER_WEIGHTS.semantic, semanticIssues);
     issues.push(...semanticIssues);
 
-    const { issues: repetitionIssues, knowledgeKey } = collectRepetitionIssues(q, a, formatId, ctx, normalizeFn);
+    const { issues: repetitionIssues, knowledgeKey } = collectRepetitionIssues(q, a, formatId, {
+      ...ctx,
+      parsed,
+      knowledgeMeta: KnowledgeKey.parseKnowledgeMeta(parsed),
+    }, normalizeFn);
     layers.repetition = layerScore(LAYER_WEIGHTS.repetition, repetitionIssues);
     issues.push(...repetitionIssues);
 
@@ -2149,13 +2166,19 @@ Só json válido, sem markdown: ${jsonFormat}`;
         a: answer,
         category: meta?.category || 0,
         format: formatId,
-        knowledgeKey: meta?.knowledgeKey || computeKnowledgeKey(question, answer, formatId, normalizeFn),
+        knowledgeKey: meta?.knowledgeKey || computeKnowledgeKey(question, answer, formatId, normalizeFn, {
+          knowledgeMeta: meta?.knowledge,
+          categoryNumber: meta?.category,
+        }),
         difficulty: meta?.difficulty || 2,
         subtopic: meta?.subtopic || '',
         ts: Date.now(),
       };
       const entries = store[ageBandKey].entries || [];
-      const kKey = meta?.knowledgeKey || computeKnowledgeKey(question, answer, formatId, normalizeFn);
+      const kKey = meta?.knowledgeKey || computeKnowledgeKey(question, answer, formatId, normalizeFn, {
+        knowledgeMeta: meta?.knowledge,
+        categoryNumber: meta?.category,
+      });
       const dup = entries.some((e) => normalizeFn(e.q) === normQ)
         || entries.some((e) => e.knowledgeKey && knowledgeKeysMatch(e.knowledgeKey, kKey, normalizeFn));
       if (!dup) entries.push(entry);
@@ -2208,6 +2231,10 @@ Só json válido, sem markdown: ${jsonFormat}`;
     scoreQuestion,
     computeKnowledgeKey,
     knowledgeKeysMatch,
+    parseKnowledgeMeta: KnowledgeKey.parseKnowledgeMeta,
+    buildStructuredKnowledgeKey: KnowledgeKey.buildStructuredKey,
+    isStructuredKnowledgeKey: KnowledgeKey.isStructuredKey,
+    KNOWLEDGE_JSON_HINT: ',"knowledge":{"entity":"entidade principal (país, pessoa, obra)","concept":"conhecimento testado (capital, inventor, data)","relation":"relação opcional (é, venceu, descobriu)"}',
     assembleMcOptions,
     shuffleMcOptions,
     recordMcAnswerPosition,

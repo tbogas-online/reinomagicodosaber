@@ -12,6 +12,7 @@ const vm = require('vm');
 const publicDir = path.join(__dirname, '..', 'public');
 const engineScripts = [
   'question-engine/issue-codes.js',
+  'question-engine/knowledge-key.js',
   'question-engine/known-facts.js',
   'question-engine.js',
 ];
@@ -761,6 +762,59 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 {
   const hint = QE.buildRetryHint(['conhecimento já testado recentemente (knowledgeKey)'], QE.FORMAT_IDS.RESPOSTA_DIRETA, '10-15');
   assert('88. buildRetryHint por code', hint.includes('Não repitas conhecimento já testado'));
+}
+
+// 89–94. Fase 2 — knowledgeKey estruturado (Groq + OpenAI)
+{
+  const meta = { entity: 'espanha', concept: 'capital', relation: 'é' };
+  const k = QE.buildStructuredKnowledgeKey(meta, 2, normalizeQ);
+  assert('89. structured key geografia', k === 'geografia|espanha|capital|e');
+}
+{
+  const kCap = QE.computeKnowledgeKey('Qual é a capital de Espanha?', 'Madrid', QE.FORMAT_IDS.RESPOSTA_DIRETA, normalizeQ, {
+    knowledgeMeta: { entity: 'espanha', concept: 'capital' },
+    categoryNumber: 2,
+  });
+  const kClub = QE.computeKnowledgeKey('Que clube tem o estádio Santiago Bernabéu?', 'Madrid', QE.FORMAT_IDS.RESPOSTA_DIRETA, normalizeQ, {
+    knowledgeMeta: { entity: 'real madrid', concept: 'estadio' },
+    categoryNumber: 15,
+  });
+  assert('90. Madrid capital vs clube distintos', !QE.knowledgeKeysMatch(kCap, kClub, normalizeQ), `${kCap} vs ${kClub}`);
+}
+{
+  const groqRaw = {
+    q: 'Qual é a capital de Espanha?',
+    a: 'Madrid',
+    knowledge: { entity: 'espanha', concept: 'capital', relation: 'é' },
+    distractors: ['Lisboa', 'Paris', 'Roma'],
+  };
+  const openaiRaw = JSON.parse('{"q":"Qual é a capital de Espanha?","a":"Madrid","knowledge":{"entity":"espanha","concept":"capital","relation":"é"},"distractors":["Lisboa","Paris","Roma"]}');
+  const groqMeta = QE.parseKnowledgeMeta(groqRaw);
+  const openaiMeta = QE.parseKnowledgeMeta(openaiRaw);
+  assert('91. parse Groq knowledge', groqMeta?.entity === 'espanha' && groqMeta?.concept === 'capital');
+  assert('92. parse OpenAI knowledge', openaiMeta?.entity === 'espanha' && openaiMeta?.concept === 'capital');
+  const kGroq = QE.computeKnowledgeKey(groqRaw.q, groqRaw.a, QE.FORMAT_IDS.ESCOLHA_MULTIPLA, normalizeQ, {
+    knowledgeMeta: groqMeta,
+    categoryNumber: 2,
+  });
+  const kOpenai = QE.computeKnowledgeKey(openaiRaw.q, openaiRaw.a, QE.FORMAT_IDS.ESCOLHA_MULTIPLA, normalizeQ, {
+    knowledgeMeta: openaiMeta,
+    categoryNumber: 2,
+  });
+  assert('93. Groq/OpenAI mesma chave', kGroq === kOpenai && QE.isStructuredKnowledgeKey(kGroq));
+}
+{
+  const parsed = {
+    q: 'Qual é a capital de França?',
+    a: 'Paris',
+    knowledge: { entity: 'frança', concept: 'capital', relation: 'é' },
+  };
+  const ctx = baseCtx({
+    usedKnowledgeKeys: [QE.buildStructuredKnowledgeKey({ entity: 'frança', concept: 'capital' }, 2, normalizeQ)],
+    categoryNumber: 2,
+  });
+  const r = QE.validateQuestion(parsed, ctx);
+  assert('94. repetição por knowledge estruturado', !r.ok, r.issues?.join(', '));
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

@@ -272,9 +272,10 @@
   <script src="supabase-config.js?v=20260830-201600"></script>
   <script src="supabase-client.js?v=20260830-201600"></script>
   <script src="question-bank.js?v=20260830-201600"></script>
-  <script src="question-engine/issue-codes.js?v=20260901-100000"></script>
-  <script src="question-engine/known-facts.js?v=20260901-100000"></script>
-  <script src="question-engine.js?v=20260901-100000"></script>
+  <script src="question-engine/issue-codes.js?v=20260901-110000"></script>
+  <script src="question-engine/knowledge-key.js?v=20260901-110000"></script>
+  <script src="question-engine/known-facts.js?v=20260901-110000"></script>
+  <script src="question-engine.js?v=20260901-110000"></script>
   <script>
   (function () {
     'use strict';
@@ -448,6 +449,8 @@
       if (distractors) {
         out.distractors = distractors.map(stripMcOptionPrefix).map((item) => String(item || '').trim()).filter(Boolean);
       }
+      const knowledge = QE.parseKnowledgeMeta ? QE.parseKnowledgeMeta(raw) : null;
+      if (knowledge) out.knowledge = knowledge;
       return out;
     }
 
@@ -770,10 +773,11 @@
       const mcInstruction = isMC
         ? (isTrueFalse ? ' options: ["Verdadeiro","Falso"]' : ' Inclui "a" e "distractors" (3 erradas).')
         : '';
+      const knowledgeHint = QE.KNOWLEDGE_JSON_HINT || '';
       const jsonFormat = isMC
-        ? (isTrueFalse ? '{"q":"... Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]}'
-          : '{"q":"...","a":"...","distractors":["...","...","..."]}')
-        : '{"q":"...","a":"..."}';
+        ? (isTrueFalse ? `{"q":"... Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]${knowledgeHint}`
+          : `{"q":"...","a":"...","distractors":["...","...","..."]${knowledgeHint}`)
+        : `{"q":"...","a":"..."${knowledgeHint}}`;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         $('gen-status').className = 'result run';
