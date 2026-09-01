@@ -67,6 +67,7 @@ self.addEventListener('install', (event) => {
       versionedUrl('/question-engine/issue-codes.js'),
       versionedUrl('/question-engine/knowledge-key.js'),
       versionedUrl('/question-engine/retry-strategy.js'),
+      versionedUrl('/question-engine/telemetry.js'),
       versionedUrl('/question-engine/known-facts.js'),
       versionedUrl('/question-engine.js'),
       ...PRECACHE_URLS.map((path) => versionedUrl(path)),

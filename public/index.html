@@ -3387,11 +3387,12 @@
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260831-103000"></script>
 <script src="multiplayer-controller.js?v=20260831-110800"></script>
-<script src="question-engine/issue-codes.js?v=20260901-120000"></script>
-<script src="question-engine/knowledge-key.js?v=20260901-120000"></script>
-<script src="question-engine/retry-strategy.js?v=20260901-120000"></script>
-<script src="question-engine/known-facts.js?v=20260901-120000"></script>
-<script src="question-engine.js?v=20260901-120000" id="question-engine-script"></script>
+<script src="question-engine/issue-codes.js?v=20260901-130000"></script>
+<script src="question-engine/knowledge-key.js?v=20260901-130000"></script>
+<script src="question-engine/retry-strategy.js?v=20260901-130000"></script>
+<script src="question-engine/telemetry.js?v=20260901-130000"></script>
+<script src="question-engine/known-facts.js?v=20260901-130000"></script>
+<script src="question-engine.js?v=20260901-130000" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -4148,6 +4149,13 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       } catch { /* ignora — tenta na mesma */ }
     }
     for(let attempt = 1; attempt <= 5 && !skipAi; attempt++){
+      const telemetryBase = {
+        category: category.n,
+        formatId: questionFormat,
+        ageBandKey,
+        difficulty,
+        attempt,
+      };
       try{
         if(attempt > 1 && engine.shouldRotateSubtopicForRetry(lastValidationIssueDetails, attempt)){
           subtopic = engine.chooseSubtopic(category.n, [...(usedSubtopics[ageBandKey] || []), subtopic]);
@@ -4192,6 +4200,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         const text = (data.content || []).map(b => b.text || '').join('');
         if(!text.trim()){
           lastAiError = 'A IA devolveu uma resposta vazia.';
+          recordQuestionGenTelemetry(engine, { ...telemetryBase, outcome: 'api_error', issueCodes: ['API_EMPTY'] });
           console.warn(`Resposta vazia da IA (tentativa ${attempt})`);
           continue;
         }
@@ -4199,6 +4208,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         const parsed = parseAiJson(text);
         if(!parsed){
           lastAiError = 'A IA devolveu JSON inválido.';
+          recordQuestionGenTelemetry(engine, { ...telemetryBase, outcome: 'parse_error', issueCodes: ['PARSE_ERROR'] });
           console.warn(`JSON inválido da IA (tentativa ${attempt}):`, clean);
           continue;
         }
@@ -4206,6 +4216,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           if(!parsed.q) lastValidationIssues = ['campo "q" em falta — inclui a pergunta completa no JSON'];
           else lastValidationIssues = ['campo "a" em falta — inclui a resposta no JSON'];
           lastAiError = 'A IA devolveu uma pergunta incompleta.';
+          recordQuestionGenTelemetry(engine, {
+            ...telemetryBase,
+            outcome: 'parse_error',
+            issueCodes: [!parsed.q ? 'STRUCTURE_MISSING_Q' : 'STRUCTURE_MISSING_A'],
+          });
           console.warn(`Resposta incompleta da IA (tentativa ${attempt}):`, clean.slice(0, 240));
           incompleteStreak++;
           if(incompleteStreak >= 2){
@@ -4286,6 +4301,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           lastValidationIssues = qualityCheck.issues || [];
           lastValidationIssueDetails = qualityCheck.issueDetails || [];
           lastAiError = 'Validação: ' + lastValidationIssues.join(', ');
+          recordQuestionGenTelemetry(engine, {
+            ...telemetryBase,
+            outcome: 'rejected',
+            issueDetails: qualityCheck.issueDetails,
+            score: qualityCheck.score,
+          });
           if(DEBUG_MODE || attempt >= 5){
             console.warn(`Validação falhou (tentativa ${attempt}, score ${qualityCheck.score ?? '?'}):`, lastValidationIssues, parsed.q);
           }
@@ -4304,11 +4325,23 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         const normA = normalizeQ(parsed.a);
         if(usedSet.has(normQ) || persistentQSet.has(normQ)){
           lastAiError = 'A IA repetiu uma pergunta já usada.';
+          recordQuestionGenTelemetry(engine, {
+            ...telemetryBase,
+            outcome: 'rejected',
+            issueCodes: ['QUESTION_REPEATED'],
+            score: qualityCheck.score,
+          });
           console.warn(`Pergunta repetida rejeitada (tentativa ${attempt}):`, parsed.q);
           continue;
         }
         if(!isTrueFalse && !effectiveTrueFalse && !isGenericTrueFalseAnswerLocal(parsed.a) && usedAnswerSet.has(normA)){
           lastAiError = 'A IA repetiu o mesmo conhecimento (resposta já usada).';
+          recordQuestionGenTelemetry(engine, {
+            ...telemetryBase,
+            outcome: 'rejected',
+            issueCodes: ['ANSWER_REPEATED'],
+            score: qualityCheck.score,
+          });
           console.warn(`Resposta repetida rejeitada (tentativa ${attempt}):`, parsed.a);
           continue;
         }
@@ -4323,6 +4356,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           knowledge: parsed.knowledge,
           difficulty,
           subtopic,
+        });
+        recordQuestionGenTelemetry(engine, {
+          ...telemetryBase,
+          outcome: 'accepted',
+          score: qualityCheck.score,
         });
         const questionHash = hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a));
         if(window.QuestionBank?.isConfigured?.() && hasValidMcOptions(parsed.options, questionFormat, parsed.a)){
@@ -4526,6 +4564,27 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     updateAiInUseUI();
     refreshStatusBadgeText();
     refreshStatusDetailText();
+  }
+
+  function recordQuestionGenTelemetry(engine, fields){
+    if(!engine?.recordGenerationTelemetry) return;
+    const usage = lastAiUsage || {};
+    const codes = (fields.issueDetails || [])
+      .map((d) => d?.code)
+      .filter(Boolean);
+    engine.recordGenerationTelemetry({
+      outcome: fields.outcome || 'unknown',
+      category: fields.category,
+      formatId: fields.formatId,
+      ageBandKey: fields.ageBandKey,
+      difficulty: fields.difficulty,
+      attempt: fields.attempt,
+      issueCodes: codes.length ? codes : (fields.issueCodes || []),
+      score: fields.score ?? null,
+      provider: usage.provider || '',
+      model: usage.model || '',
+      source: fields.source || 'ai',
+    });
   }
 
   function formatAiInUseLabel(){

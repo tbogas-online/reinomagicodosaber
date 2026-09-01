@@ -14,6 +14,7 @@ const engineScripts = [
   'question-engine/issue-codes.js',
   'question-engine/knowledge-key.js',
   'question-engine/retry-strategy.js',
+  'question-engine/telemetry.js',
   'question-engine/known-facts.js',
   'question-engine.js',
 ];
@@ -843,6 +844,38 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     { issueDetails: [{ code: 'MC_NEAR_DUPLICATE', layer: 'mcOptions', message: 'opções repetidas' }] },
   );
   assert('97. hint adaptativo MC', mcHint.includes('distractores'));
+}
+
+// 98–100. telemetria de geração
+{
+  QE.clearGenerationTelemetry();
+  QE.recordGenerationTelemetry({
+    outcome: 'rejected',
+    category: 2,
+    formatId: 'ESCOLHA_MULTIPLA',
+    ageBandKey: '10-15',
+    attempt: 2,
+    issueCodes: ['MC_NEAR_DUPLICATE'],
+  });
+  QE.recordGenerationTelemetry({
+    outcome: 'accepted',
+    category: 2,
+    formatId: 'ESCOLHA_MULTIPLA',
+    ageBandKey: '10-15',
+    attempt: 1,
+    score: 100,
+  });
+  const summary = QE.getGenerationTelemetrySummary();
+  assert('98. telemetria summary', summary.total === 2 && summary.accepted === 1 && summary.rejected === 1);
+  assert('99. telemetria byIssueCode', summary.byIssueCode.MC_NEAR_DUPLICATE === 1);
+}
+{
+  QE.clearGenerationTelemetry();
+  for (let i = 0; i < 210; i += 1) {
+    QE.recordGenerationTelemetry({ outcome: 'rejected', category: 1, formatId: 'QUEM_E', issueCodes: ['UNSPECIFIED'] });
+  }
+  const events = sandbox.globalThis.QuestionEngineTelemetry.getTelemetryEvents();
+  assert('100. telemetria ring buffer', events.length <= 200);
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

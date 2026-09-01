@@ -7,9 +7,10 @@
   const Issues = global.QuestionEngineIssues;
   const KnowledgeKey = global.QuestionEngineKnowledgeKey;
   const Retry = global.QuestionEngineRetry;
+  const Telemetry = global.QuestionEngineTelemetry;
   const KnownFacts = global.QuestionEngineKnownFacts;
-  if (!Issues || !KnowledgeKey || !Retry || !KnownFacts) {
-    throw new Error('QuestionEngine: carrega issue-codes.js, knowledge-key.js, retry-strategy.js e known-facts.js antes de question-engine.js');
+  if (!Issues || !KnowledgeKey || !Retry || !Telemetry || !KnownFacts) {
+    throw new Error('QuestionEngine: carrega issue-codes.js, knowledge-key.js, retry-strategy.js, telemetry.js e known-facts.js antes de question-engine.js');
   }
   const {
     mkIssue, issueMessage, issueCode, normalizeIssues, issueMessages,
@@ -1875,6 +1876,18 @@ Só json válido, sem markdown: ${jsonFormat}`;
     return Retry.shouldRotateSubtopic(issueDetails, attempt);
   }
 
+  function recordGenerationTelemetry(event) {
+    return Telemetry.recordGenerationEvent(event);
+  }
+
+  function getGenerationTelemetrySummary() {
+    return Telemetry.getTelemetrySummary();
+  }
+
+  function clearGenerationTelemetry() {
+    return Telemetry.clearTelemetry();
+  }
+
   function collectPtPtIssues(q, a, options, ageBandKey) {
     const blob = [q, a, ...options].join(' ');
     return [
@@ -2238,6 +2251,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
     buildRetryHint,
     buildAdaptiveRetryHint,
     shouldRotateSubtopicForRetry,
+    recordGenerationTelemetry,
+    getGenerationTelemetrySummary,
+    clearGenerationTelemetry,
     validateByFormat,
     validateAgeAppropriate,
     validateSemanticQuality,
