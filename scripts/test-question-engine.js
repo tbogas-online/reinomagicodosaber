@@ -18,6 +18,7 @@ const engineScripts = [
   'question-engine/known-facts.js',
   'question-engine/factual-verify.js',
   'question-engine/adivinha-verify.js',
+  'question-engine/difficulty-estimate.js',
   'question-engine.js',
 ];
 const memStore = {};
@@ -1040,6 +1041,31 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   };
   const r = QE.validateQuestion(pente, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '10-15' }));
   assert('125. ADIVINHA válida com clues', r.ok, r.issues?.join(', '));
+}
+
+// 126–130. Fase 6 — dificuldade pedida vs estimada
+{
+  const est = QE.estimateDifficulty('Qual é o planeta onde vivemos?', 'Terra', { ageBandKey: '15+' });
+  assert('126. estimateDifficulty trivial', est.estimatedDifficulty <= 2 && est.difficultyConfidence >= 0.7);
+}
+{
+  const parsed = { q: 'Qual é o planeta onde vivemos?', a: 'Terra' };
+  const r = QE.validateQuestion(parsed, baseCtx({ ageBandKey: '15+', difficulty: 5 }));
+  assert('127. DIFFICULTY_EASIER_THAN_REQUESTED', !r.ok && r.issueDetails?.some((i) => i.code === 'DIFFICULTY_EASIER_THAN_REQUESTED'), r.issues?.join(', '));
+}
+{
+  const parsed = { q: 'Quando começou a Segunda Guerra Mundial?', a: '1939' };
+  const r = QE.validateQuestion(parsed, baseCtx({ ageBandKey: '6-9', formatId: QE.FORMAT_IDS.QUANDO, difficulty: 1 }));
+  assert('128. DIFFICULTY_HARDER_THAN_REQUESTED', !r.ok && r.issueDetails?.some((i) => i.code === 'DIFFICULTY_HARDER_THAN_REQUESTED'), r.issues?.join(', '));
+}
+{
+  const parsed = { q: 'Qual é a capital de Espanha?', a: 'Madrid' };
+  const r = QE.validateQuestion(parsed, baseCtx({ ageBandKey: '10-15', difficulty: 2 }));
+  assert('129. dificuldade pedida alinhada', r.ok, r.issues?.join(', '));
+}
+{
+  const hint = QE.buildRetryHint([{ code: 'DIFFICULTY_EASIER_THAN_REQUESTED', message: 'test' }], QE.FORMAT_IDS.RESPOSTA_DIRETA, '15+');
+  assert('130. retry hint DIFFICULTY_EASIER_THAN_REQUESTED', hint.includes('exigência'));
 }
 {
   QE.clearGenerationTelemetry();

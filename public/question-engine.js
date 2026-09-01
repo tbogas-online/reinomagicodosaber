@@ -11,8 +11,9 @@
   const KnownFacts = global.QuestionEngineKnownFacts;
   const FactualVerify = global.QuestionEngineFactualVerify;
   const AdivinhaVerify = global.QuestionEngineAdivinhaVerify;
-  if (!Issues || !KnowledgeKey || !Retry || !Telemetry || !KnownFacts || !FactualVerify || !AdivinhaVerify) {
-    throw new Error('QuestionEngine: carrega issue-codes.js, knowledge-key.js, retry-strategy.js, telemetry.js, known-facts.js, factual-verify.js, adivinha-verify.js antes de question-engine.js');
+  const DifficultyEstimate = global.QuestionEngineDifficultyEstimate;
+  if (!Issues || !KnowledgeKey || !Retry || !Telemetry || !KnownFacts || !FactualVerify || !AdivinhaVerify || !DifficultyEstimate) {
+    throw new Error('QuestionEngine: carrega issue-codes.js, knowledge-key.js, retry-strategy.js, telemetry.js, known-facts.js, factual-verify.js, adivinha-verify.js e difficulty-estimate.js antes de question-engine.js');
   }
   const {
     mkIssue, issueMessage, issueCode, normalizeIssues, issueMessages,
@@ -1887,7 +1888,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     return [];
   }
 
-  function validateDifficultyFit(difficulty, ageBandKey, q) {
+  function validateDifficultyFit(difficulty, ageBandKey, q, a) {
     const issues = [];
     const lim = getAgeLimits(ageBandKey);
     const range = DIFFICULTY_RANGE[ageBandKey] || DIFFICULTY_RANGE['15+'];
@@ -1905,6 +1906,11 @@ Só json válido, sem markdown: ${jsonFormat}`;
     if (lim.rejectEasyDifficultyLte != null && diff <= lim.rejectEasyDifficultyLte) {
       const tooHard = /\b(teorema|algoritmo|revolução industrial|segunda guerra)\b/i;
       if (tooHard.test(q)) pushAgeHardIssue(issues, 'demasiado difícil para 6–9');
+    }
+    const estimation = DifficultyEstimate.estimateDifficulty(q, a, { ageBandKey });
+    const mismatch = DifficultyEstimate.validateDifficultyMatch(diff, estimation, ageBandKey);
+    for (const item of mismatch) {
+      pushIssue(issues, item.code, ISSUE_LAYER.difficulty, item.message);
     }
     return issues;
   }
@@ -1940,6 +1946,14 @@ Só json válido, sem markdown: ${jsonFormat}`;
 
   function parseAdivinhaClues(raw) {
     return AdivinhaVerify.parseAdivinhaClues(raw);
+  }
+
+  function estimateDifficulty(q, a, ctx) {
+    return DifficultyEstimate.estimateDifficulty(q, a, ctx);
+  }
+
+  function validateDifficultyMatch(requested, estimation, ageBandKey) {
+    return DifficultyEstimate.validateDifficultyMatch(requested, estimation, ageBandKey);
   }
 
   function buildRetryHint(issues, formatId, ageBandKey) {
@@ -2113,7 +2127,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     layers.age = layerScore(LAYER_WEIGHTS.age, ageCheck.issues);
     issues.push(...ageCheck.issues);
 
-    const diffIssues = validateDifficultyFit(difficulty, ageBandKey, q);
+    const diffIssues = validateDifficultyFit(difficulty, ageBandKey, q, a);
     layers.difficulty = layerScore(LAYER_WEIGHTS.difficulty, diffIssues);
     issues.push(...diffIssues);
 
@@ -2355,6 +2369,8 @@ Só json válido, sem markdown: ${jsonFormat}`;
     parseAdivinhaVerifyResponse,
     parseAdivinhaClues,
     validateAdivinhaClues,
+    estimateDifficulty,
+    validateDifficultyMatch,
     scoreQuestion,
     computeKnowledgeKey,
     knowledgeKeysMatch,

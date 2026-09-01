@@ -60,6 +60,8 @@
     MC_OPTIONS_TOO_LONG: 'Opções MC demasiado longas para a faixa etária.',
     FORMAT_VIOLATION: 'Reformula para respeitar o formato pedido.',
     DIFFICULTY_OUT_OF_RANGE: 'Ajusta a dificuldade ao intervalo da faixa etária.',
+    DIFFICULTY_EASIER_THAN_REQUESTED: 'A pergunta é demasiado fácil para a dificuldade pedida — aumenta a exigência.',
+    DIFFICULTY_HARDER_THAN_REQUESTED: 'A pergunta é demasiado difícil para a dificuldade pedida — simplifica o conteúdo.',
   });
 
   /** Fallback regex → hint (issues sem code ou UNSPECIFIED). */
