@@ -3387,10 +3387,11 @@
 <script src="player-names.js?v=20260830-143600"></script>
 <script src="multiplayer-sync.js?v=20260831-103000"></script>
 <script src="multiplayer-controller.js?v=20260831-110800"></script>
-<script src="question-engine/issue-codes.js?v=20260901-110000"></script>
-<script src="question-engine/knowledge-key.js?v=20260901-110000"></script>
-<script src="question-engine/known-facts.js?v=20260901-110000"></script>
-<script src="question-engine.js?v=20260901-110000" id="question-engine-script"></script>
+<script src="question-engine/issue-codes.js?v=20260901-120000"></script>
+<script src="question-engine/knowledge-key.js?v=20260901-120000"></script>
+<script src="question-engine/retry-strategy.js?v=20260901-120000"></script>
+<script src="question-engine/known-facts.js?v=20260901-120000"></script>
+<script src="question-engine.js?v=20260901-120000" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -4091,7 +4092,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const isTrueFalse = questionFormat === engine.FORMAT_IDS.VERDADEIRO_FALSO;
     const persistent = engine.getPersistentSlice(ageBandKey);
     const difficulty = engine.chooseDifficulty(ageBandKey, usedDifficulties[ageBandKey] || persistent.difficulties);
-    const subtopic = engine.chooseSubtopic(category.n, usedSubtopics[ageBandKey] || persistent.subtopics);
+    let subtopic = engine.chooseSubtopic(category.n, usedSubtopics[ageBandKey] || persistent.subtopics);
     if(!usedDifficulties[ageBandKey]) usedDifficulties[ageBandKey] = [];
     usedDifficulties[ageBandKey].push(difficulty);
     if(usedDifficulties[ageBandKey].length > 30) usedDifficulties[ageBandKey].shift();
@@ -4099,6 +4100,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     usedSubtopics[ageBandKey].push(subtopic);
     if(usedSubtopics[ageBandKey].length > 30) usedSubtopics[ageBandKey].shift();
     let lastValidationIssues = [];
+    let lastValidationIssueDetails = [];
 
     const openModeExtra = '';
 
@@ -4147,6 +4149,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
     for(let attempt = 1; attempt <= 5 && !skipAi; attempt++){
       try{
+        if(attempt > 1 && engine.shouldRotateSubtopicForRetry(lastValidationIssueDetails, attempt)){
+          subtopic = engine.chooseSubtopic(category.n, [...(usedSubtopics[ageBandKey] || []), subtopic]);
+        }
         aiWasAttempted = true;
         const prompt = engine.buildPrompt({
           category,
@@ -4172,7 +4177,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           mcInstruction,
           jsonFormat,
           retryHint: attempt > 1
-            ? engine.buildRetryHint(lastValidationIssues, questionFormat, ageBandKey)
+            ? engine.buildAdaptiveRetryHint(lastValidationIssues, questionFormat, ageBandKey, attempt, {
+              issueDetails: lastValidationIssueDetails,
+            })
             : '',
         }).slice(0, 11000);
 
@@ -4277,6 +4284,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         });
         if(!qualityCheck.ok){
           lastValidationIssues = qualityCheck.issues || [];
+          lastValidationIssueDetails = qualityCheck.issueDetails || [];
           lastAiError = 'Validação: ' + lastValidationIssues.join(', ');
           if(DEBUG_MODE || attempt >= 5){
             console.warn(`Validação falhou (tentativa ${attempt}, score ${qualityCheck.score ?? '?'}):`, lastValidationIssues, parsed.q);

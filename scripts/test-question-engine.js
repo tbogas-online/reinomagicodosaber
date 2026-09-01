@@ -13,6 +13,7 @@ const publicDir = path.join(__dirname, '..', 'public');
 const engineScripts = [
   'question-engine/issue-codes.js',
   'question-engine/knowledge-key.js',
+  'question-engine/retry-strategy.js',
   'question-engine/known-facts.js',
   'question-engine.js',
 ];
@@ -815,6 +816,33 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   });
   const r = QE.validateQuestion(parsed, ctx);
   assert('94. repetição por knowledge estruturado', !r.ok, r.issues?.join(', '));
+}
+
+// 95–97. Fase 3 — retry adaptativo
+{
+  const details = [{ code: 'KNOWLEDGE_REPEATED', layer: 'repetition', message: 'conhecimento já testado' }];
+  assert('95. rotate subtopic tentativa 2', QE.shouldRotateSubtopicForRetry(details, 2));
+  assert('95b. não rotate tentativa 1', !QE.shouldRotateSubtopicForRetry(details, 1));
+}
+{
+  const hint = QE.buildAdaptiveRetryHint(
+    ['conhecimento já testado recentemente (knowledgeKey)'],
+    QE.FORMAT_IDS.RESPOSTA_DIRETA,
+    '10-15',
+    3,
+    { issueDetails: [{ code: 'KNOWLEDGE_REPEATED', layer: 'repetition', message: 'conhecimento já testado' }] },
+  );
+  assert('96. hint adaptativo repetição', hint.includes('SUBTÓPICO') && hint.includes('entity e concept'));
+}
+{
+  const mcHint = QE.buildAdaptiveRetryHint(
+    ['opções repetidas ou quase iguais'],
+    QE.FORMAT_IDS.ESCOLHA_MULTIPLA,
+    '6-9',
+    2,
+    { issueDetails: [{ code: 'MC_NEAR_DUPLICATE', layer: 'mcOptions', message: 'opções repetidas' }] },
+  );
+  assert('97. hint adaptativo MC', mcHint.includes('distractores'));
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

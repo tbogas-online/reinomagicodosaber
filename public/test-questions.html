@@ -272,10 +272,11 @@
   <script src="supabase-config.js?v=20260830-201600"></script>
   <script src="supabase-client.js?v=20260830-201600"></script>
   <script src="question-bank.js?v=20260830-201600"></script>
-  <script src="question-engine/issue-codes.js?v=20260901-110000"></script>
-  <script src="question-engine/knowledge-key.js?v=20260901-110000"></script>
-  <script src="question-engine/known-facts.js?v=20260901-110000"></script>
-  <script src="question-engine.js?v=20260901-110000"></script>
+  <script src="question-engine/issue-codes.js?v=20260901-120000"></script>
+  <script src="question-engine/knowledge-key.js?v=20260901-120000"></script>
+  <script src="question-engine/retry-strategy.js?v=20260901-120000"></script>
+  <script src="question-engine/known-facts.js?v=20260901-120000"></script>
+  <script src="question-engine.js?v=20260901-120000"></script>
   <script>
   (function () {
     'use strict';
@@ -758,7 +759,7 @@
       const { cat, ageBandKey, answerMode, difficulty } = resolved;
       const formatId = resolveFormat(cat.n, ageBandKey, answerMode);
       resolved.formatId = formatId;
-      const subtopic = QE.chooseSubtopic(cat.n, session.usedSubtopics);
+      let subtopic = QE.chooseSubtopic(cat.n, session.usedSubtopics);
       resolved.subtopic = subtopic;
 
       const isTrueFalse = formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO;
@@ -766,6 +767,7 @@
       const persistent = QE.getPersistentSlice(ageBandKey);
       const maxAttempts = QE.ENGINE_CONFIG?.MAX_RETRIES || 5;
       let lastIssues = [];
+      let lastIssueDetails = [];
       let lastParsed = null;
       let lastResult = null;
       let lastAttemptUsage = null;
@@ -780,11 +782,15 @@
         : `{"q":"...","a":"..."${knowledgeHint}}`;
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        if (attempt > 1 && QE.shouldRotateSubtopicForRetry(lastIssueDetails, attempt)) {
+          subtopic = QE.chooseSubtopic(cat.n, [...session.usedSubtopics, subtopic]);
+          resolved.subtopic = subtopic;
+        }
         $('gen-status').className = 'result run';
         $('gen-status').textContent = `A gerar… tentativa ${attempt}/${maxAttempts} (${QE.FORMAT_LABELS[formatId]})`;
 
         const retryHint = attempt > 1
-          ? [QE.buildRetryHint(lastIssues, formatId, ageBandKey), getFeedbackHints()].filter(Boolean).join('\n')
+          ? [QE.buildAdaptiveRetryHint(lastIssues, formatId, ageBandKey, attempt, { issueDetails: lastIssueDetails }), getFeedbackHints()].filter(Boolean).join('\n')
           : getFeedbackHints();
 
         const prompt = QE.buildPrompt({
@@ -848,6 +854,7 @@
           return { parsed, result, resolved };
         }
         lastIssues = result.issues || ['validação falhou'];
+        lastIssueDetails = result.issueDetails || [];
         showResult(result, parsed, resolved, aiUsage);
       }
 

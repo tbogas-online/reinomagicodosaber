@@ -6,9 +6,10 @@
 
   const Issues = global.QuestionEngineIssues;
   const KnowledgeKey = global.QuestionEngineKnowledgeKey;
+  const Retry = global.QuestionEngineRetry;
   const KnownFacts = global.QuestionEngineKnownFacts;
-  if (!Issues || !KnowledgeKey || !KnownFacts) {
-    throw new Error('QuestionEngine: carrega issue-codes.js, knowledge-key.js e known-facts.js antes de question-engine.js');
+  if (!Issues || !KnowledgeKey || !Retry || !KnownFacts) {
+    throw new Error('QuestionEngine: carrega issue-codes.js, knowledge-key.js, retry-strategy.js e known-facts.js antes de question-engine.js');
   }
   const {
     mkIssue, issueMessage, issueCode, normalizeIssues, issueMessages,
@@ -1862,6 +1863,18 @@ Só json válido, sem markdown: ${jsonFormat}`;
     return buildRetryHintFromIssues(issues, formatId, ageBandKey, { FORMAT_LABELS, getAgeLimits });
   }
 
+  function buildAdaptiveRetryHint(issues, formatId, ageBandKey, attempt, opts) {
+    return Retry.buildAdaptiveRetryHint(issues, formatId, ageBandKey, attempt, {
+      FORMAT_LABELS,
+      getAgeLimits,
+      issueDetails: opts?.issueDetails,
+    });
+  }
+
+  function shouldRotateSubtopicForRetry(issueDetails, attempt) {
+    return Retry.shouldRotateSubtopic(issueDetails, attempt);
+  }
+
   function collectPtPtIssues(q, a, options, ageBandKey) {
     const blob = [q, a, ...options].join(' ');
     return [
@@ -2223,6 +2236,8 @@ Só json válido, sem markdown: ${jsonFormat}`;
     chooseSubtopic,
     buildPrompt,
     buildRetryHint,
+    buildAdaptiveRetryHint,
+    shouldRotateSubtopicForRetry,
     validateByFormat,
     validateAgeAppropriate,
     validateSemanticQuality,

@@ -92,6 +92,10 @@ if (fs.existsSync(INDEX_HTML)) {
     `question-engine/knowledge-key.js?v=${version}`,
   );
   html = html.replace(
+    /question-engine\/retry-strategy\.js\?v=[^"]+/g,
+    `question-engine/retry-strategy.js?v=${version}`,
+  );
+  html = html.replace(
     /question-engine\/known-facts\.js\?v=[^"]+/g,
     `question-engine/known-facts.js?v=${version}`,
   );
@@ -132,6 +136,10 @@ function patchTestPageHtml(filePath) {
   html = html.replace(
     /question-engine\/knowledge-key\.js\?v=[^"]+/g,
     `question-engine/knowledge-key.js?v=${version}`,
+  );
+  html = html.replace(
+    /question-engine\/retry-strategy\.js\?v=[^"]+/g,
+    `question-engine/retry-strategy.js?v=${version}`,
   );
   html = html.replace(
     /question-engine\/known-facts\.js\?v=[^"]+/g,
