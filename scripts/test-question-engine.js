@@ -29,6 +29,7 @@ const engineScripts = [
   'question-engine/repetition-validators.js',
   'question-engine/persistent-history.js',
   'question-engine/prompt-builder.js',
+  'question-engine/question-scoring.js',
   'question-engine.js',
 ];
 const memStore = {};
@@ -1171,6 +1172,26 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     normalizeFn: (s) => String(s || '').trim().toLowerCase(),
   });
   assert('141. buildPrompt estrutura', prompt.includes(cat.name) && prompt.includes('RESPOSTA_DIRETA') && prompt.includes('REGRAS GLOBAIS'));
+}
+
+// 142–143. Fase 10 — question-scoring modular
+{
+  const QS = sandbox.globalThis.QuestionEngineQuestionScoring;
+  assert('142. question-scoring layerScore', QS.layerScore(10, []) === 10 && QS.layerScore(10, ['x']) === 0);
+  const scored = QE.scoreQuestion({ q: 'Qual é a capital de Portugal?', a: 'Lisboa' }, {
+    formatId: 'RESPOSTA_DIRETA',
+    ageBandKey: '10-15',
+    categoryNumber: 2,
+    isMC: false,
+    difficulty: 3,
+    stripTags: (s) => String(s || '').replace(/<[^>]*>/g, '').trim(),
+    normalizeFn: (s) => String(s || '').trim().toLowerCase(),
+    usedQuestions: [],
+    usedAnswers: [],
+    usedKnowledgeKeys: [],
+    persistentKnowledgeKeys: [],
+  });
+  assert('143. scoreQuestion válida', scored.score === 100 && scored.issues.length === 0);
 }
 {
   QE.clearGenerationTelemetry();
