@@ -13,6 +13,62 @@ function isSiteIssueType(issueType) {
   return String(issueType || '').startsWith('site_');
 }
 
+function hashQuestionKey(text) {
+  const s = String(text || '');
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
+
+function questionHashFromReport(report) {
+  const q = String(report?.question || '').trim();
+  const a = String(report?.correctAnswer || '').trim();
+  if (q && a) return hashQuestionKey(`${q}|${a}`);
+  const qid = String(report?.questionId || '').trim();
+  if (/^[a-z0-9]{4,12}$/i.test(qid)) return qid;
+  return '';
+}
+
+/**
+ * Hashes de perguntas com reportes activos (não cancelados), por estado.
+ */
+async function getQuestionHashesByReportStatus(event) {
+  const store = getReportsStore(event);
+  const index = await readIndex(store);
+  const open = new Set();
+  const resolved = new Set();
+  const any = new Set();
+
+  for (const item of index.items || []) {
+    const status = normalizeReportStatus(item.status);
+    if (status === 'cancelled' || isSiteIssueType(item.issueType)) continue;
+
+    let report;
+    try {
+      report = await store.get(`report:${item.reportId}`, { type: 'json' });
+    } catch {
+      continue;
+    }
+    if (!report?.question) continue;
+
+    const hash = questionHashFromReport(report);
+    if (!hash) continue;
+
+    any.add(hash);
+    if (status === 'open') open.add(hash);
+    if (status === 'resolved') resolved.add(hash);
+  }
+
+  return {
+    open: [...open],
+    resolved: [...resolved],
+    any: [...any],
+  };
+}
+
 function resolveReportCategoryName(report) {
   if (isSiteIssueType(report?.issueType)) return SITE_CATEGORY_NAME;
   return String(report?.category?.name || '').trim();
@@ -475,6 +531,9 @@ module.exports = {
   deleteReport,
   deleteManyReports,
   normalizeReportStatus,
+  getQuestionHashesByReportStatus,
+  hashQuestionKey,
+  questionHashFromReport,
   MAX_ATTACHMENT_BYTES,
   isValidReportId,
   isAllowedAttachmentMime,

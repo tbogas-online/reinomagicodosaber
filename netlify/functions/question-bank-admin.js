@@ -1,5 +1,5 @@
 // GET /api/question-bank-admin — estatísticas do banco de perguntas
-// POST /api/question-bank-admin — { action: 'purge-without-options' | 'search' | 'delete' }
+// POST /api/question-bank-admin — { action: 'purge-without-options' | 'search' | 'delete' | 'delete-by-category' }
 
 const { json, validateAdminAuth } = require('./lib/report-utils');
 const {
@@ -7,8 +7,18 @@ const {
   purgeQuestionsWithoutOptions,
   searchQuestionBank,
   deleteQuestionsFromBank,
+  deleteQuestionsByCategory,
 } = require('./lib/question-bank-store');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
+const { getQuestionHashesByReportStatus } = require('./lib/reports-store');
+
+async function loadReportHashSets(event, reportFilter) {
+  const filter = String(reportFilter || 'all').trim() || 'all';
+  if (filter === 'all' || filter === 'bank-reported') {
+    return null;
+  }
+  return getQuestionHashesByReportStatus(event);
+}
 
 exports.handler = async (event) => {
   try {
@@ -63,6 +73,8 @@ exports.handler = async (event) => {
 
       if (body.action === 'search') {
         try {
+          const reportFilter = body.reportFilter || 'all';
+          const reportHashSets = await loadReportHashSets(event, reportFilter);
           const result = await searchQuestionBank({
             query: body.query,
             hash: body.hash,
@@ -70,7 +82,8 @@ exports.handler = async (event) => {
             ageBand: body.ageBand,
             limit: body.limit,
             offset: body.offset,
-            includeReported: body.includeReported !== false,
+            reportFilter,
+            reportHashSets,
           });
           return json(200, { ok: true, ...result });
         } catch (err) {
@@ -94,6 +107,34 @@ exports.handler = async (event) => {
             return json(503, { error: 'Função delete_questions_from_bank em falta — executa supabase/question-bank-delete.sql no Supabase.' });
           }
           return json(503, { error: 'Não foi possível apagar perguntas do banco.' });
+        }
+      }
+
+      if (body.action === 'delete-by-category') {
+        const categoryN = Number(body.categoryN);
+        if (!categoryN || categoryN < 1 || categoryN > 20) {
+          return json(400, { error: 'Indica uma categoria (1–20).' });
+        }
+        try {
+          const reportFilter = body.reportFilter || 'all';
+          const reportHashSets = await loadReportHashSets(event, reportFilter);
+          const result = await deleteQuestionsByCategory(categoryN, {
+            ageBand: body.ageBand,
+            reportFilter,
+            reportHashSets,
+            block: body.block !== false,
+          });
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] delete-by-category failed:', err);
+          const msg = String(err?.message || '');
+          if (msg.includes('delete_questions_from_bank_by_category') || msg.includes('PGRST202')) {
+            return json(503, { error: 'Função delete_questions_from_bank_by_category em falta — executa supabase/question-bank-delete.sql no Supabase.' });
+          }
+          if (err.code === 'INVALID_CATEGORY' || err.code === 'INVALID_AGE_BAND') {
+            return json(400, { error: err.message });
+          }
+          return json(503, { error: 'Não foi possível apagar perguntas da categoria.' });
         }
       }
 

@@ -1226,7 +1226,7 @@
 
         <div class="card" id="bankManageSection">
           <h2 class="charts-title" style="margin:0 0 8px;">Pesquisar e apagar perguntas</h2>
-          <p class="sub" style="margin-top:0;">Procura no Supabase por texto ou hash. Podes apagar do banco remoto e limpar o histórico local deste browser.</p>
+          <p class="sub" style="margin-top:0;">Procura no Supabase por texto ou hash, lista por categoria, ou apaga em lote. Filtra por estado de reporte (em aberto, resolvido, marcada no banco).</p>
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
             <input type="search" id="bankSearchQuery" placeholder="Texto da pergunta ou hash…" style="min-width:220px; flex:1;">
             <select id="bankSearchCategory" aria-label="Filtrar categoria">
@@ -1238,14 +1238,23 @@
               <option value="10-15">10–15</option>
               <option value="15+">15+</option>
             </select>
-            <label><input type="checkbox" id="bankSearchIncludeReported" checked> Incluir reportadas</label>
+            <select id="bankReportFilter" aria-label="Filtrar por reportes">
+              <option value="all">Reportes: todas</option>
+              <option value="open">Reporte em aberto</option>
+              <option value="resolved">Reporte resolvido</option>
+              <option value="reported">Com reporte (aberto ou resolvido)</option>
+              <option value="bank-reported">Marcada no banco</option>
+              <option value="not-reported">Sem reporte</option>
+            </select>
             <button type="button" class="primary" id="bankSearchBtn">Pesquisar</button>
+            <button type="button" class="secondary" id="bankListCategoryBtn">Listar categoria</button>
           </div>
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
             <label><input type="checkbox" id="bankDeleteBlock" checked> Bloquear re-inserção</label>
             <label><input type="checkbox" id="bankDeleteLocal" checked> Limpar neste browser</label>
             <button type="button" class="secondary" id="bankPurgeInvalidBtn">Remover sem opções</button>
             <button type="button" class="danger" id="bankDeleteSelectedBtn" disabled>Apagar seleccionadas</button>
+            <button type="button" class="danger" id="bankDeleteCategoryBtn">Apagar por categoria</button>
           </div>
           <p class="status" id="bankSearchStatus"></p>
           <div class="bank-matrix-wrap">
@@ -1262,7 +1271,7 @@
                 </tr>
               </thead>
               <tbody id="bankSearchBody">
-                <tr><td colspan="7" class="sub">Pesquisa por texto ou hash para ver resultados.</td></tr>
+                <tr><td colspan="7" class="sub">Pesquisa por texto/hash ou lista por categoria.</td></tr>
               </tbody>
             </table>
           </div>
@@ -3305,8 +3314,10 @@
 
     function updateBankDeleteUi() {
       const btn = document.getElementById('bankDeleteSelectedBtn');
+      const catBtn = document.getElementById('bankDeleteCategoryBtn');
       const selectAll = document.getElementById('bankSelectAll');
       if (btn) btn.disabled = bankDeleteLoading || selectedBankHashes.size === 0;
+      if (catBtn) catBtn.disabled = bankDeleteLoading;
       if (selectAll && lastBankSearchRows.length) {
         selectAll.checked = lastBankSearchRows.every((r) => selectedBankHashes.has(r.question_hash));
         selectAll.indeterminate = !selectAll.checked
@@ -3344,16 +3355,46 @@
       updateBankDeleteUi();
     }
 
-    async function searchBankQuestions() {
+    const BANK_REPORT_FILTER_LABELS = {
+      all: 'todas',
+      open: 'com reporte em aberto',
+      resolved: 'com reporte resolvido',
+      reported: 'com reporte',
+      'bank-reported': 'marcadas no banco',
+      'not-reported': 'sem reporte',
+    };
+
+    function getBankSearchFilters() {
+      const reportFilter = document.getElementById('bankReportFilter')?.value || 'all';
+      return {
+        query: document.getElementById('bankSearchQuery')?.value?.trim() || '',
+        categoryN: document.getElementById('bankSearchCategory')?.value || '',
+        ageBand: document.getElementById('bankSearchAge')?.value || '',
+        reportFilter,
+        reportFilterLabel: BANK_REPORT_FILTER_LABELS[reportFilter] || reportFilter,
+      };
+    }
+
+    function bankCategoryLabel(categoryN) {
+      const cat = BANK_CATEGORIES.find((c) => String(c.n) === String(categoryN));
+      return cat ? `${cat.n}. ${cat.name}` : `categoria ${categoryN}`;
+    }
+
+    async function searchBankQuestions(options = {}) {
       if (bankSearchLoading) return;
-      const query = document.getElementById('bankSearchQuery')?.value?.trim() || '';
-      const categoryN = document.getElementById('bankSearchCategory')?.value || '';
-      const ageBand = document.getElementById('bankSearchAge')?.value || '';
-      const includeReported = document.getElementById('bankSearchIncludeReported')?.checked !== false;
+      const { query, categoryN, ageBand, reportFilter } = getBankSearchFilters();
+      const requireQuery = options.requireQuery !== false;
       const statusEl = document.getElementById('bankSearchStatus');
-      if (!query) {
+      if (requireQuery && !query) {
         if (statusEl) {
-          statusEl.textContent = 'Indica texto ou hash para pesquisar.';
+          statusEl.textContent = 'Indica texto ou hash para pesquisar (ou usa «Listar categoria»).';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      if (!requireQuery && !categoryN) {
+        if (statusEl) {
+          statusEl.textContent = 'Escolhe uma categoria para listar.';
           statusEl.className = 'status err';
         }
         return;
@@ -3372,13 +3413,16 @@
             query,
             categoryN: categoryN ? Number(categoryN) : null,
             ageBand,
-            includeReported,
-            limit: 50,
+            reportFilter,
+            limit: 100,
           }),
         });
         renderBankSearchResults(data.rows || []);
         if (statusEl) {
-          statusEl.textContent = `${(data.rows || []).length} resultado(s).`;
+          const shown = (data.rows || []).length;
+          const total = Number(data.total) || shown;
+          const suffix = shown >= 100 && total > shown ? ` (máx. 100 de ${total})` : '';
+          statusEl.textContent = `${shown} resultado(s)${suffix}.`;
           statusEl.className = 'status ok';
         }
       } catch (err) {
@@ -3388,6 +3432,88 @@
         }
       } finally {
         bankSearchLoading = false;
+        updateBankDeleteUi();
+      }
+    }
+
+    async function listBankCategory() {
+      await searchBankQuestions({ requireQuery: false });
+    }
+
+    async function deleteBankByCategory() {
+      const { categoryN, ageBand, reportFilter, reportFilterLabel } = getBankSearchFilters();
+      if (!categoryN) {
+        const statusEl = document.getElementById('bankSearchStatus');
+        if (statusEl) {
+          statusEl.textContent = 'Escolhe uma categoria para apagar.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+
+      const block = document.getElementById('bankDeleteBlock')?.checked !== false;
+      const clearLocal = document.getElementById('bankDeleteLocal')?.checked !== false;
+      const catLabel = bankCategoryLabel(categoryN);
+      const ageLabel = ageBand ? ` · faixa ${ageBand}` : '';
+      const reportLabel = reportFilter !== 'all' ? ` · ${reportFilterLabel}` : '';
+
+      const ok = await confirmAction(
+        `Apagar TODAS as perguntas de ${catLabel}${ageLabel}${reportLabel} no Supabase${clearLocal ? ' e limpar neste browser' : ''}? Esta acção não pode ser desfeita.`,
+        { okLabel: 'Apagar categoria', danger: true },
+      );
+      if (!ok) return;
+
+      const statusEl = document.getElementById('bankSearchStatus');
+      bankDeleteLoading = true;
+      updateBankDeleteUi();
+      if (statusEl) {
+        statusEl.textContent = 'A apagar por categoria…';
+        statusEl.className = 'status';
+      }
+
+      try {
+        const data = await api('/api/question-bank-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'delete-by-category',
+            categoryN: Number(categoryN),
+            ageBand,
+            reportFilter,
+            block,
+          }),
+        });
+
+        const hashes = Array.isArray(data.hashes) ? data.hashes : [];
+        const metaByHash = {};
+        for (const row of lastBankSearchRows) {
+          if (row.question_hash) {
+            metaByHash[row.question_hash] = { question: row.question, answer: row.correct_answer };
+          }
+        }
+
+        let localMsg = '';
+        if (clearLocal && hashes.length) {
+          const local = purgeQuestionsFromLocalStorage(hashes, block, metaByHash);
+          localMsg = ` Local: ${local.historyRemoved} entrada(s) de histórico, ${local.gameRoundsRemoved} ronda(s)${block ? `, ${local.blocked} bloqueada(s)` : ''}.`;
+        }
+
+        selectedBankHashes.clear();
+        lastBankSearchRows = [];
+        renderBankSearchResults([]);
+        await loadBankDashboard({ quiet: true });
+
+        if (statusEl) {
+          const matched = data.matched ?? hashes.length;
+          statusEl.textContent = `${matched} encontrada(s), ${data.deleted || 0} apagada(s) no Supabase${block ? `, ${data.blocked || 0} bloqueada(s)` : ''}.${localMsg}`;
+          statusEl.className = matched ? 'status ok' : 'status';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao apagar por categoria.';
+          statusEl.className = 'status err';
+        }
+      } finally {
+        bankDeleteLoading = false;
         updateBankDeleteUi();
       }
     }
@@ -4661,6 +4787,8 @@
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
     initBankSearchCategorySelect();
     document.getElementById('bankSearchBtn')?.addEventListener('click', () => searchBankQuestions());
+    document.getElementById('bankListCategoryBtn')?.addEventListener('click', () => listBankCategory());
+    document.getElementById('bankDeleteCategoryBtn')?.addEventListener('click', () => deleteBankByCategory());
     document.getElementById('bankSearchQuery')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') searchBankQuestions();
     });

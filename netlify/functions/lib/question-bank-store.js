@@ -366,6 +366,69 @@ function escapePostgrestFilter(value) {
     .trim();
 }
 
+function toReportHashSets(reportHashSets) {
+  if (!reportHashSets) return null;
+  return {
+    open: new Set(reportHashSets.open || []),
+    resolved: new Set(reportHashSets.resolved || []),
+    any: new Set(reportHashSets.any || []),
+  };
+}
+
+function filterRowsByReportStatus(rows, reportFilter, reportHashSets) {
+  const filter = String(reportFilter || 'all').trim() || 'all';
+  if (filter === 'all') return rows || [];
+
+  const sets = toReportHashSets(reportHashSets);
+  return (rows || []).filter((row) => {
+    const hash = String(row.question_hash || '').trim();
+    switch (filter) {
+      case 'open':
+        return sets?.open.has(hash);
+      case 'resolved':
+        return sets?.resolved.has(hash);
+      case 'reported':
+        return sets?.any.has(hash);
+      case 'bank-reported':
+        return row.is_reported === true;
+      case 'not-reported':
+        return row.is_reported !== true && !sets?.any.has(hash);
+      default:
+        return true;
+    }
+  });
+}
+
+async function fetchAllBankRowsByCategory(categoryN, options = {}) {
+  const cat = Number(categoryN);
+  const ageBand = String(options.ageBand || '').trim();
+  const reportFilter = String(options.reportFilter || 'all').trim() || 'all';
+  const rows = [];
+  const pageSize = 1000;
+  let offset = 0;
+
+  while (true) {
+    const params = new URLSearchParams();
+    params.set('select', 'question_hash,is_reported,question,correct_answer');
+    params.set('category_n', `eq.${cat}`);
+    params.set('order', 'created_at.desc');
+    params.set('limit', String(pageSize));
+    params.set('offset', String(offset));
+
+    if (BANK_AGE_BANDS.includes(ageBand)) params.set('age_band', `eq.${ageBand}`);
+    if (reportFilter === 'bank-reported') params.set('is_reported', 'eq.true');
+    if (reportFilter === 'not-reported') params.set('is_reported', 'eq.false');
+
+    const batch = await supabaseRequest(`/question_bank?${params.toString()}`);
+    if (!batch?.length) break;
+    rows.push(...batch);
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return filterRowsByReportStatus(rows, reportFilter, options.reportHashSets);
+}
+
 async function searchQuestionBank(options = {}) {
   const {
     query = '',
@@ -374,8 +437,14 @@ async function searchQuestionBank(options = {}) {
     ageBand = '',
     limit = 25,
     offset = 0,
-    includeReported = true,
+    reportFilter = 'all',
+    reportHashSets = null,
   } = options;
+
+  const filter = String(reportFilter || 'all').trim() || 'all';
+  const fetchLimit = filter === 'all'
+    ? Math.min(Math.max(Number(limit) || 25, 1), 100)
+    : 1000;
 
   const params = new URLSearchParams();
   params.set(
@@ -383,11 +452,13 @@ async function searchQuestionBank(options = {}) {
     'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at',
   );
   params.set('order', 'created_at.desc');
-  params.set('limit', String(Math.min(Math.max(Number(limit) || 25, 1), 100)));
+  params.set('limit', String(fetchLimit));
   params.set('offset', String(Math.max(Number(offset) || 0, 0)));
 
   const hashTrim = String(hash || '').trim();
   const queryTrim = escapePostgrestFilter(query);
+
+  const cat = Number(categoryN);
 
   if (hashTrim) {
     params.set('question_hash', `eq.${hashTrim}`);
@@ -397,29 +468,40 @@ async function searchQuestionBank(options = {}) {
     } else {
       params.set('question', `ilike.*${queryTrim}*`);
     }
+  } else if (cat >= 1 && cat <= 20) {
+    params.set('category_n', `eq.${cat}`);
   } else {
     return { rows: [], total: 0 };
   }
 
-  const cat = Number(categoryN);
-  if (cat >= 1 && cat <= 20) params.set('category_n', `eq.${cat}`);
+  if (cat >= 1 && cat <= 20 && (hashTrim || queryTrim)) {
+    params.set('category_n', `eq.${cat}`);
+  }
 
   const age = String(ageBand || '').trim();
   if (BANK_AGE_BANDS.includes(age)) params.set('age_band', `eq.${age}`);
 
-  if (!includeReported) params.set('is_reported', 'eq.false');
+  if (filter === 'bank-reported') params.set('is_reported', 'eq.true');
+  if (filter === 'not-reported') params.set('is_reported', 'eq.false');
 
-  const rows = await supabaseRequest(`/question_bank?${params.toString()}`);
+  const rawRows = await supabaseRequest(`/question_bank?${params.toString()}`);
+  const filtered = filterRowsByReportStatus(
+    Array.isArray(rawRows) ? rawRows : [],
+    filter,
+    reportHashSets,
+  );
+  const capped = filtered.slice(0, Math.min(Math.max(Number(limit) || 25, 1), 100));
+
   return {
-    rows: Array.isArray(rows) ? rows : [],
-    total: Array.isArray(rows) ? rows.length : 0,
+    rows: capped,
+    total: filtered.length,
   };
 }
 
 async function deleteQuestionsFromBank(hashes, block = true) {
   const unique = [...new Set((hashes || []).map((h) => String(h || '').trim()).filter(Boolean))];
   if (!unique.length) {
-    return { deleted: 0, blocked: 0, reuseEventsRemoved: 0 };
+    return { deleted: 0, blocked: 0, reuseEventsRemoved: 0, hashes: [] };
   }
 
   const data = await supabaseRpc('delete_questions_from_bank', {
@@ -435,9 +517,73 @@ async function deleteQuestionsFromBank(hashes, block = true) {
   };
 }
 
+async function deleteQuestionsByCategory(categoryN, options = {}) {
+  const cat = Number(categoryN);
+  if (!cat || cat < 1 || cat > 20) {
+    const err = new Error('Categoria inválida (1–20).');
+    err.code = 'INVALID_CATEGORY';
+    throw err;
+  }
+
+  const ageBand = String(options.ageBand || '').trim();
+  if (ageBand && !BANK_AGE_BANDS.includes(ageBand)) {
+    const err = new Error('Faixa etária inválida.');
+    err.code = 'INVALID_AGE_BAND';
+    throw err;
+  }
+
+  const reportFilter = String(options.reportFilter || 'all').trim() || 'all';
+  const block = options.block !== false;
+
+  if (reportFilter === 'all') {
+    const data = await supabaseRpc('delete_questions_from_bank_by_category', {
+      p_category_n: cat,
+      p_age_band: ageBand || null,
+      p_include_reported: true,
+      p_block: block,
+    });
+
+    const hashes = Array.isArray(data?.hashes)
+      ? data.hashes.map((h) => String(h || '').trim()).filter(Boolean)
+      : [];
+
+    return {
+      deleted: Number(data?.deleted) || 0,
+      blocked: Number(data?.blocked) || 0,
+      reuseEventsRemoved: Number(data?.reuseEventsRemoved) || 0,
+      matched: Number(data?.matched) || hashes.length,
+      hashes,
+    };
+  }
+
+  const rows = await fetchAllBankRowsByCategory(cat, {
+    ageBand,
+    reportFilter,
+    reportHashSets: options.reportHashSets,
+  });
+  const hashes = rows.map((r) => r.question_hash).filter(Boolean);
+  if (!hashes.length) {
+    return {
+      deleted: 0,
+      blocked: 0,
+      reuseEventsRemoved: 0,
+      matched: 0,
+      hashes: [],
+    };
+  }
+
+  const result = await deleteQuestionsFromBank(hashes, block);
+  return {
+    ...result,
+    matched: hashes.length,
+  };
+}
+
 module.exports = {
   getQuestionBankStats,
   purgeQuestionsWithoutOptions,
   searchQuestionBank,
   deleteQuestionsFromBank,
+  deleteQuestionsByCategory,
+  filterRowsByReportStatus,
 };
