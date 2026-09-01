@@ -4,6 +4,20 @@
 (function (global) {
   'use strict';
 
+  const Issues = global.QuestionEngineIssues;
+  const KnownFacts = global.QuestionEngineKnownFacts;
+  if (!Issues || !KnownFacts) {
+    throw new Error('QuestionEngine: carrega question-engine/issue-codes.js e question-engine/known-facts.js antes de question-engine.js');
+  }
+  const {
+    mkIssue, issueMessage, issueCode, normalizeIssues, issueMessages,
+    buildRetryHintFromIssues, ISSUE_LAYER,
+  } = Issues;
+
+  function pushIssue(arr, code, layer, message) {
+    arr.push(mkIssue(code, layer, message));
+  }
+
   const ENGINE_CONFIG = Object.freeze({
     TRUE_FALSE_CHANCE: 0.11,
     TRUE_FALSE_MIN_GAP: 4,
@@ -1427,85 +1441,16 @@ Só json válido, sem markdown: ${jsonFormat}`;
     return issues;
   }
 
-  /** Factos/ambiguidades reportados (feedback, CSV) — ver testes 7–8, 21–23 */
-  const REPORTED_FACT_RULES = [
-    { when: (q, a, opts) => /\btoy\s*story\b/i.test(q) && /\b(chapéu|chapeu)\b/i.test(q) && /\b(cowboy|vaqueir|xerife)\b/i.test(q), issue: 'pergunta ambígua — Woody e Jessie usam chapéu de cowboy; especifica "xerife", "vaqueira" ou outro detalhe único' },
-    { when: (q, a, opts) => /\b(ursinho|urso)\b.*\bmel\b|\bmel\b.*\b(ursinho|urso)\b/i.test(q) && /\b(disney|desenho)\b/i.test(q) && (/\b(pooh|winnie|puff)\b/i.test(a) || opts.some((o) => /\b(pooh|winnie|puff)\b/i.test(o))), issue: 'pergunta ambígua — em PT-PT usa "Ursinho Puff" de forma única (não Pooh/Winnie em separado)' },
-    { when: (q, a, opts) => /\bqual\s+(personagem|herói|heroi)\b/i.test(q) && /\b(chapéu|chapeu|óculos|oculos|veste|usa)\b/i.test(q) && !/\b(único|unico|só\s+ele|so\s+ele|principal|xerife|vaqueira)\b/i.test(q) && /\bwoody\b/i.test(a) && opts.some((o) => /\bjessie\b/i.test(o)), issue: 'pergunta ambígua — mais do que um personagem encaixa na descrição' },
-    { when: (q, a) => /\b(olho aberto|metade do cérebro|metade do cerebro|unihemisfério|unihemisferio)\b/i.test(q) && /\b(golfinho|baleia|pato|foca)\b/i.test(a), issue: 'pergunta ambígua — vários animais marinhos/aves dormem com um olho aberto; especifica espécie ou contexto' },
-    { when: (q, a) => /\b(primeira\s+mulher|primeira\s+realizadora)\b/i.test(q) && /\b(steven|spielberg|scorsese|nolan|cameron|tarantino|hitchcock|kubrick)\b/i.test(a), issue: 'resposta masculina incompatível com "primeira mulher"' },
-    { when: (q) => /\b(primeira\s+mulher|primeira\s+realizadora)\b/i.test(q) && /\brealizador\b/i.test(q) && !/\brealizadora\b/i.test(q), issue: 'pergunta contraditória — "primeira mulher" com "realizador"' },
-    { when: (q) => /\blista de schindler\b/i.test(q) && /\bprimeira\s+mulher\b/i.test(q), issue: 'facto incorreto — A Lista de Schindler não se liga ao primeiro Óscar de melhor realizadora' },
-    { when: (q, a) => /\b(4[,.]5\s*metros?|metros?\s+de\s+altura|mais\s+alto|altura.*ombros)\b/i.test(q) && /\b(maior|animal\s+terrestre)\b/i.test(q) && /\bzebra\b/i.test(a) && /\b(giraf|elefant|altura|ombros|4)\b/i.test(q), issue: 'resposta não corresponde à descrição de tamanho' },
-    { when: (q, a) => /\bmaior animal terrestre\b/i.test(q) && /\bzebra\b/i.test(a), issue: 'zebra não é o maior animal terrestre' },
-    { when: (q, a) => /\b(chove|chuva)\b/i.test(q) && /\b(mãos|maos)\b/i.test(q) && /\bacessório\b/i.test(q) && /\b(luvas|gorro|cachecol)\b/i.test(a), issue: 'na chuva, o acessório usual é guarda-chuva ou impermeável, não luvas' },
-    { when: (q) => /\b(cabelo|olhos)\s+(castanh|azul|verde|loiro|ruivo)\b/i.test(q) && /\b(artista|cantor|pianista|músico|música)\b/i.test(q), issue: 'pergunta vaga — traço físico genérico não identifica uma pessoa de forma única' },
-    { when: (q, a) => /^o\s+que\s+é\s+(um|uma)\s+/i.test(q) && /^(imagem\s+de|tipo\s+de|forma\s+de)\b/i.test(a), issue: 'definição circular ou demasiado vaga no "O que é"' },
-    { when: (q, a) => /\barco[-\s]?íris|arco[-\s]?iris\b/i.test(q) && /\b(desenho|pintura|nuvem|animal|fruta|planta)\b/i.test(a), issue: 'resposta factualmente errada — arco-íris é um fenómeno da luz e da água no céu' },
-    { when: (q, a) => /^o\s+que\s+é\s+(um|uma)\s+/i.test(q) && /\b(desenho|pintura)\s+de\s+(cores|luz)\b/i.test(a), issue: 'definição errada — não confundir fenómeno natural com "desenho" ou "pintura"' },
-    { when: (q, a) => /\b(bica|galão)\b/i.test(q) && /\balém\b.*\bproporção\b/i.test(q) && /\bcafé\b/i.test(a), issue: 'bica e galão diferem sobretudo na proporção de leite — pergunta ambígua' },
-    { when: (q, a, opts) => {
-      const mapGlobeRiddle = /\bcidades\b/i.test(q) && /\bn[aã]o\s+casas\b/i.test(q)
-        && /\bmontanhas\b/i.test(q) && /\bn[aã]o\s+(árvores|arvores)\b/i.test(q)
-        && /\b(água|agua)\b/i.test(q) && /\bn[aã]o\s+peixes\b/i.test(q);
-      if (!mapGlobeRiddle) return false;
-      const hasMapa = opts.some((o) => /\bmapa\b/i.test(o)) || /\bmapa\b/i.test(a);
-      const hasGlobo = opts.some((o) => /\bglobo\b/i.test(o));
-      return hasMapa && hasGlobo;
-    }, issue: 'pergunta ambígua — mapa e globo terráqueo respondem às mesmas pistas' },
-    { when: (q, a) => /\bpastel\s+de\s+nata\b/i.test(q) && /\b(cidade|onde|fica|nasceu|origem|populariz|criado|inventado)\b/i.test(q) && !/\b(lisboa|bel[eé]m)\b/i.test(String(a || '')), issue: 'facto incorreto — o pastel de nata associa-se a Belém/Lisboa' },
-    { when: (q, a) => /\bfrancesinha\b/i.test(q) && /\b(cidade|onde|fica|origem|nasceu|típic[ao])\b/i.test(q) && !/\bporto\b/i.test(String(a || '')), issue: 'facto incorreto — a francesinha é típica do Porto' },
-    { when: (q) => /\bchita\b/i.test(q) && /\btraje\b/i.test(q) && /\bviana\b/i.test(q), issue: 'facto cultural — a chita associa-se sobretudo a Alcobaça; não confundir com o traje de Viana sem contexto histórico claro' },
-    { when: (q, a, opts) => {
-      if (!/\bbacalhau\b/i.test(q) || !/\b(prato|pratos|típic[oa]s?)\b/i.test(q)) return false;
-      const all = [a, ...(opts || [])].map((x) => String(x || ''));
-      return all.filter((x) => /\bbacalhau\b/i.test(x)).length >= 2;
-    }, issue: 'pergunta ambígua — vários pratos de bacalhau são igualmente defensáveis; indica um prato específico' },
-    { when: (q) => /\bpulsar\b/i.test(q) && (/\bpsr\b/i.test(q) || /\bplaneta\b.*\b[óo]rbita\b/i.test(q) || /\bpulsa[çc][õo]es\b/i.test(q)), issue: 'tema astronómico demasiado técnico ou obscuro para o jogo' },
-    { when: (q) => /\bmerckx\b/i.test(q) && /\b1975\b/.test(q) && /\btour\s+de\s+france\b/i.test(q) && /\bvenceu\b/i.test(q), issue: 'facto incorreto — Eddy Merckx não venceu o Tour de 1975 (vencedor: Bernard Thévenet)' },
-    { when: (q) => /\b(vantagem|diferen[çc]a)\b/i.test(q) && /\b\d+\s+dias\b/i.test(q) && /\b(tour|ciclismo|ciclista|volta)\b/i.test(q), issue: 'facto duvidoso — vantagens no ciclismo medem-se em minutos ou horas, não em dias' },
-    { when: (q, a) => /\b(a|uma)\s+(engenheira|actriz|atriz|inventora|escritora|diretora|realizadora)\b/i.test(q) && /\b(dario|martin|james|john|robert|leonardo|quentin|stanley|heath|elon|ray|hiroshi)\b/i.test(String(a || '').toLowerCase()), issue: 'inconsistência de género — a pergunta pede uma mulher mas a resposta é um nome masculino' },
-    { when: (q) => /\broald\s+dahl\b/i.test(q) && /\brato\b/i.test(q) && /\b(queria\s+ser|ser)\s+rei\b/i.test(q), issue: 'facto incorreto — Roald Dahl não escreveu "O rato que queria ser rei"' },
-    { when: (q, a) => /\basfato\b/i.test(a) && !/\basfalto\b/i.test(a), issue: 'erro ortográfico — escreve "asfalto" (não "asfato")' },
-    { when: (q) => /\bestrada\s+para\s+os\s+carros\b/i.test(q), issue: 'formulação estranha — diz "estrada" ou "piso da estrada", não "estrada para os carros"' },
-    { when: (q, a) => /\b(estrad|autoestrada)\b/i.test(q) && /\bfeit[ao]\s+de\b/i.test(q) && /\b(asfalto|alcatrão|alcatrao|betume)\b/i.test(a), issue: 'resposta ambígua — asfalto e alcatrão são ambos aceitáveis em PT-PT; reformula ou escolhe outro tema' },
-    { when: (q, a, opts) => {
-      if (!(/\b(rato|ratos)\b/i.test(q) && /\bqueijo\b/i.test(q) && /\b(disney|pixar|filme)\b/i.test(q))) return false;
-      const all = [a, ...(opts || [])].map((x) => String(x || '').toLowerCase());
-      if (all.some((x) => /\b(remy|rémy|ratatouille)\b/i.test(x))) return false;
-      return true;
-    }, issue: 'pergunta confusa — "rato que faz queijo" é o Remy (Ratatouille), não o Mickey nem outros personagens clássicos' },
-    { when: (q, a) => /\b(rato|ratos)\b/i.test(q) && /\bqueijo\b/i.test(q) && /\b(disney|pixar|filme)\b/i.test(q) && /\bmickey\b/i.test(a), issue: 'facto incorreto — o rato que cozinha/faz queijo é o Remy (Ratatouille), não o Mickey' },
-    { when: (q, a) => /\b(sapatilha|sapato)\b/i.test(q) && /\b(salto|madeira)\b/i.test(q) && /\b(designer|criou|criador|famoso)\b/i.test(q) && /\bmanuel\s+branco\b/i.test(a), issue: 'facto duvidoso — designer/obras de moda portuguesa obscuras; prefere temas verificáveis (ex.: Nuno Gama)' },
-    { when: (q, a) => /\b(asas|asa)\b/i.test(q) && /\b(penas|pena)\b/i.test(q) && /\bn[aã]o\s+voa\b/i.test(q) && /\bpato\s+de\s+borracha\b/i.test(a), issue: 'pergunta confusa — pato de borracha não tem penas reais; reformula a adivinha' },
-    { when: (q) => /\bnilo\b/i.test(q) && /\b(mais\s+longo|maior\s+rio)\b/i.test(q) && /verdadeiro\s+ou\s+falso/i.test(q), issue: 'facto disputado — comprimento do Nilo vs Amazónia varia conforme a medição; evita V/F absoluto' },
-    { when: (q) => /\b(copa\s+do\s+mundo|mundial)\b/i.test(q) && /\b2026\b/.test(q) && /\b(golo|golos|marcou|jogador|sele[cç][ãa]o)\b/i.test(q), issue: 'facto desportivo específico do Mundial 2026 não verificável — evita golos/jogadores desse torneio' },
-    { when: (q) => /\bcopa\s+do\s+mundo\b/i.test(q), issue: 'termo brasileiro — em PT-PT usa "Mundial" ou "Campeonato do Mundo"' },
-    { when: (q) => /\b(chapéu|chapeu)\b/i.test(q) && /\b(óculos|oculos)\b/i.test(q) && /\b(canta|cantor|cantora|festival)\b/i.test(q), issue: 'pergunta vaga — chapéu e óculos não identificam um cantor de forma única' },
-    { when: (q, _a, _o, _ql, _al, formatId) => formatId === FORMAT_IDS.O_QUE_E && /^o\s+que\s+é\s+(?:a|o|um|uma)\s+(flor|folha|raiz|tronco|casca|semente|fruto|galho)\s+(?:d[aeo]s?\s+)(?:planta|árvore|arvore|flor)\b/i.test(q), issue: 'pergunta confusa — evita "O que é a [parte] da planta/árvore?"; reformula (ex.: "Para que serve a flor?")' },
-    { when: (q, a, _o, _ql, _al, formatId) => {
-      if (formatId !== FORMAT_IDS.O_QUE_E) return false;
-      const circular = q.match(/^o\s+que\s+é\s+(?:a|o|um|uma)\s+(\w+)\s+(?:d[aeo]s?\s+)(\w+)/i);
-      if (!circular) return false;
-      const term = circular[1].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-      const answerFirst = String(a || '').trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').split(/\s+/)[0];
-      return term && answerFirst && term === answerFirst;
-    }, issue: 'pergunta circular — a resposta repete a palavra que se pede para definir' },
-  ];
-
+  /** Factos reportados — ver question-engine/known-facts.js */
   function runReportedFactRules(q, a, options, formatId) {
-    const opts = (options || []).map((o) => String(o).toLowerCase());
-    const issues = [];
-    for (const rule of REPORTED_FACT_RULES) {
-      if (rule.when(q, a, opts, q.toLowerCase(), a.toLowerCase(), formatId)) issues.push(rule.issue);
-    }
-    return issues;
+    return KnownFacts.runReportedFactRules(q, a, options, formatId, mkIssue);
   }
-
   const CONFUSING_FACT_PREFIXES = ['pergunta confusa', 'formulação', 'resposta ambígua — asfalto', 'pergunta circular'];
 
   function isConfusingFactIssue(issue) {
-    return CONFUSING_FACT_PREFIXES.some((prefix) => issue.startsWith(prefix));
+    const code = issueCode(issue);
+    if (code && KnownFacts.CONFUSING_FACT_CODES.has(code)) return true;
+    return CONFUSING_FACT_PREFIXES.some((prefix) => issueMessage(issue).startsWith(prefix));
   }
 
   function validateCategoryTopicFit(q, categoryN, ageBandKey) {
@@ -1621,7 +1566,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const clean = (options || []).map((o) => stripTags(o).trim()).filter(Boolean);
     if (clean.length < 2) return issues;
     if (hasNearDuplicateMcOptions(clean)) {
-      issues.push('opções repetidas ou quase iguais (ex.: Woody / Wooody / Sheriff Woody)');
+      pushIssue(issues, 'MC_NEAR_DUPLICATE', ISSUE_LAYER.mcOptions, 'opções repetidas ou quase iguais (ex.: Woody / Wooody / Sheriff Woody)');
     }
     const lim = getAgeLimits(ageBandKey);
     const tooLong = clean.filter((o) => {
@@ -1901,36 +1846,12 @@ Só json válido, sem markdown: ${jsonFormat}`;
   }
 
   function validateFactualConsistency(q, a) {
-    return runReportedFactRules(q, a, [], null).filter((i) => !isConfusingFactIssue(i) && !i.startsWith('pergunta ambígua'));
+    return runReportedFactRules(q, a, [], null)
+      .filter((i) => !isConfusingFactIssue(i) && !issueMessage(i).startsWith('pergunta ambígua'));
   }
 
-  const RETRY_HINT_RULES = [
-    { re: /ambígu|múltiplas respostas|várias respostas/i, hint: 'Evita respostas ambíguas. Gera uma pergunta com apenas uma resposta inequívoca.' },
-    { re: /opções repetidas|quase iguais|semelhantes/i, hint: 'Gera distractores claramente diferentes mas pertencentes à mesma classe conceptual.' },
-    { re: /demasiado difícil|tema avançado|vocabulário técnico/i, hint: 'Reduz a dificuldade e utiliza vocabulário adequado à faixa etária.' },
-    { re: /demasiado fácil|senso comum/i, hint: 'Aumenta a exigência com factos menos óbvios mas verificáveis.' },
-    { re: /repetid|semelhante|knowledgeKey|conhecimento/i, hint: 'Não repitas conhecimento já testado — escolhe outro tema dentro da mesma categoria.' },
-    { re: /distratores|incoerentes|classes conceptuais|mesmo tipo|filmes|anos|países|marcas/i, hint: 'Os distractores devem ser plausíveis e da mesma classe que a resposta correcta (4 pessoas, 4 anos, 4 materiais…). Nunca mistures filmes, anos, países ou marcas genéricas.' },
-    { re: /revelada na pergunta/i, hint: 'A resposta não pode aparecer nem ser deduzível directamente da pergunta.' },
-    { re: /português|brasileir|inglês|PT-PT|futebol|goleiro|guarda-redes/i, hint: 'Revisa português de Portugal: vocabulário, ortografia e nomes de países.' },
-    { re: /categoria|tema|Geografia|Espaço/i, hint: 'Mantém a pergunta estritamente dentro da categoria indicada.' },
-    { re: /factual|facto incorreto|errada/i, hint: 'Confirma o facto antes de responder — evita inventar ou confundir conceitos.' },
-    { re: /confus|circular|formulação estranha/i, hint: 'Reformula a pergunta de forma clara e directa, sem repetir a resposta nem usar construções ambíguas.' },
-    { re: /asfalto|alcatrão|ambígu/i, hint: 'Evita perguntas com várias respostas igualmente correctas — escolhe um facto inequívoco.' },
-    { re: /campo "q"|pergunta incompleta|falta.*\bq\b|json incompleto/i, hint: 'Devolve JSON completo com "q" (pergunta inteira terminada em ?), "a" (resposta) e "distractors" (exactamente 3 opções erradas). Nunca omitas o campo "q".' },
-  ];
-
   function buildRetryHint(issues, formatId, ageBandKey) {
-    const list = Array.isArray(issues) ? issues : [];
-    const hints = new Set();
-    const blob = list.join(' ');
-    for (const rule of RETRY_HINT_RULES) {
-      if (rule.re.test(blob)) hints.add(rule.hint);
-    }
-    if (!hints.size && list.length) hints.add(`Corrige: ${list.slice(0, 3).join('; ')}.`);
-    const lim = getAgeLimits(ageBandKey);
-    const formatLabel = FORMAT_LABELS[formatId] || formatId;
-    return `ERRO NA VALIDAÇÃO: ${list.slice(0, 4).join('; ')}.\n${[...hints].join('\n')}\nMantém o formato "${formatLabel}" (${formatId})${lim.retryHintSuffix || ''}.`;
+    return buildRetryHintFromIssues(issues, formatId, ageBandKey, { FORMAT_LABELS, getAgeLimits });
   }
 
   function collectPtPtIssues(q, a, options, ageBandKey) {
@@ -2003,13 +1924,13 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const knowledgeKey = ctx.knowledgeKey || computeKnowledgeKey(q, a, formatId, normalizeFn);
     const recentKeys = [...(ctx.usedKnowledgeKeys || []), ...(ctx.persistentKnowledgeKeys || [])];
     if (recentKeys.some((k) => knowledgeKeysMatch(k, knowledgeKey, normalizeFn))) {
-      issues.push('conhecimento já testado recentemente (knowledgeKey)');
+      pushIssue(issues, 'KNOWLEDGE_REPEATED', ISSUE_LAYER.repetition, 'conhecimento já testado recentemente (knowledgeKey)');
     }
     for (const prev of (ctx.usedQuestions || []).slice(-8)) {
       const qNorm = normalizeForRepetitionCheck(q, formatId);
       const prevNorm = normalizeForRepetitionCheck(prev, formatId);
       if (jaccardSimilarity(qNorm, prevNorm) >= ENGINE_CONFIG.QUESTION_JACCARD_THRESHOLD) {
-        issues.push('pergunta semelhante a uma recente');
+        pushIssue(issues, 'QUESTION_SIMILAR', ISSUE_LAYER.repetition, 'pergunta semelhante a uma recente');
         break;
       }
     }
@@ -2018,7 +1939,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
       const normA = normalizeFn ? normalizeFn(a) : a.toLowerCase();
       const recentA = filterKnowledgeAnswers(ctx.usedAnswers || [], normalizeFn)
         .map((x) => (normalizeFn ? normalizeFn(x) : x.toLowerCase()));
-      if (normA && recentA.includes(normA)) issues.push('resposta já usada recentemente');
+      if (normA && recentA.includes(normA)) {
+        pushIssue(issues, 'ANSWER_REPEATED', ISSUE_LAYER.repetition, 'resposta já usada recentemente');
+      }
     }
     return { issues, knowledgeKey };
   }
@@ -2038,7 +1961,14 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const layers = {};
 
     if (!q || !a) {
-      return { score: 0, issues: ['estrutura incompleta'], layers: { structural: 0 }, knowledgeKey: '' };
+      const issueDetails = [mkIssue('STRUCTURE_INCOMPLETE', ISSUE_LAYER.structural, 'estrutura incompleta')];
+      return {
+        score: 0,
+        issues: issueMessages(issueDetails),
+        issueDetails,
+        layers: { structural: 0 },
+        knowledgeKey: '',
+      };
     }
 
     layers.structural = LAYER_WEIGHTS.structural;
@@ -2084,7 +2014,21 @@ Só json válido, sem markdown: ${jsonFormat}`;
     layers.factual = layerScore(LAYER_WEIGHTS.semantic, factualOnly);
 
     const score = Object.keys(LAYER_WEIGHTS).reduce((sum, key) => sum + (Number(layers[key]) || 0), 0);
-    return { score, issues: [...new Set(issues)], layers, knowledgeKey };
+    const normalized = normalizeIssues(issues);
+    const seen = new Set();
+    const issueDetails = normalized.filter((i) => {
+      const m = issueMessage(i);
+      if (seen.has(m)) return false;
+      seen.add(m);
+      return true;
+    });
+    return {
+      score,
+      issues: issueMessages(issueDetails),
+      issueDetails,
+      layers,
+      knowledgeKey,
+    };
   }
 
   function validateSemanticQuality(parsed, ctx) {
@@ -2108,12 +2052,20 @@ Só json válido, sem markdown: ${jsonFormat}`;
       return {
         ok: false,
         issues: scored.issues,
+        issueDetails: scored.issueDetails,
         score: scored.score,
         layers: scored.layers,
         knowledgeKey: scored.knowledgeKey,
       };
     }
-    return { ok: true, issues: [], score: scored.score, layers: scored.layers, knowledgeKey: scored.knowledgeKey };
+    return {
+      ok: true,
+      issues: [],
+      issueDetails: [],
+      score: scored.score,
+      layers: scored.layers,
+      knowledgeKey: scored.knowledgeKey,
+    };
   }
 
   const PERSISTENT_HISTORY_KEY = 'reino_magico_q_history_v3';
@@ -2266,5 +2218,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
     isGenericTrueFalseAnswer,
     buildGlobalRules,
     buildFormatRules,
+    ISSUE_LAYER,
+    mkIssue,
+    issueMessage,
+    issueCode,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

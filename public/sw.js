@@ -64,6 +64,8 @@ self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(STATIC_CACHE);
     const assets = [
+      versionedUrl('/question-engine/issue-codes.js'),
+      versionedUrl('/question-engine/known-facts.js'),
       versionedUrl('/question-engine.js'),
       ...PRECACHE_URLS.map((path) => versionedUrl(path)),
     ];

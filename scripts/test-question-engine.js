@@ -9,8 +9,12 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const enginePath = path.join(__dirname, '..', 'public', 'question-engine.js');
-const code = fs.readFileSync(enginePath, 'utf8');
+const publicDir = path.join(__dirname, '..', 'public');
+const engineScripts = [
+  'question-engine/issue-codes.js',
+  'question-engine/known-facts.js',
+  'question-engine.js',
+];
 const memStore = {};
 const sandbox = {
   globalThis: {},
@@ -22,7 +26,9 @@ const sandbox = {
 };
 sandbox.window = sandbox.globalThis;
 vm.createContext(sandbox);
-vm.runInContext(code, sandbox);
+for (const rel of engineScripts) {
+  vm.runInContext(fs.readFileSync(path.join(publicDir, rel), 'utf8'), sandbox);
+}
 const QE = sandbox.globalThis.QuestionEngine;
 
 if (!QE) {
@@ -739,6 +745,22 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const keys15 = Object.keys(QE.getAgeLimits('15+')).sort();
   assert('85. AGE_LIMITS shape igual', JSON.stringify(keys69) === JSON.stringify(keys1015)
     && JSON.stringify(keys69) === JSON.stringify(keys15));
+}
+
+// 86–88. Fase 1 — issue codes estruturados
+{
+  const r = QE.validateQuestion({ q: '', a: '' }, baseCtx());
+  assert('86. issueDetails em estrutura incompleta', Array.isArray(r.issueDetails) && r.issueDetails[0]?.code === 'STRUCTURE_INCOMPLETE');
+  assert('86b. issues string backward compat', r.issues[0] === 'estrutura incompleta');
+}
+{
+  const dup = { q: 'Quem é o xerife?', a: 'Woody', options: ['Woody', 'Wooody', 'Buzz', 'Rex'] };
+  const r = QE.validateQuestion(dup, baseCtx({ isMC: true, categoryNumber: 11, ageBandKey: '6-9' }));
+  assert('87. MC_NEAR_DUPLICATE code', !r.ok && r.issueDetails?.some((i) => i.code === 'MC_NEAR_DUPLICATE'), r.issues?.join(', '));
+}
+{
+  const hint = QE.buildRetryHint(['conhecimento já testado recentemente (knowledgeKey)'], QE.FORMAT_IDS.RESPOSTA_DIRETA, '10-15');
+  assert('88. buildRetryHint por code', hint.includes('Não repitas conhecimento já testado'));
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

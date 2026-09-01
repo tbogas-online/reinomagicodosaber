@@ -84,6 +84,14 @@ if (fs.existsSync(INDEX_HTML)) {
     `<meta name="app-build" content="${version}">`,
   );
   html = html.replace(
+    /question-engine\/issue-codes\.js\?v=[^"]+/g,
+    `question-engine/issue-codes.js?v=${version}`,
+  );
+  html = html.replace(
+    /question-engine\/known-facts\.js\?v=[^"]+/g,
+    `question-engine/known-facts.js?v=${version}`,
+  );
+  html = html.replace(
     /question-engine\.js\?v=[^"]+/g,
     `question-engine.js?v=${version}`,
   );
@@ -112,6 +120,14 @@ function patchTestPageHtml(filePath) {
   html = html.replace(
     /<meta name="app-build" content="[^"]*">/,
     `<meta name="app-build" content="${version}">`,
+  );
+  html = html.replace(
+    /question-engine\/issue-codes\.js\?v=[^"]+/g,
+    `question-engine/issue-codes.js?v=${version}`,
+  );
+  html = html.replace(
+    /question-engine\/known-facts\.js\?v=[^"]+/g,
+    `question-engine/known-facts.js?v=${version}`,
   );
   html = html.replace(
     /question-engine\.js\?v=[^"]+/g,
