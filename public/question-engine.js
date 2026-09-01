@@ -119,6 +119,27 @@
       quemEExtra: ' PARA 6–9: pergunta pelo PERSONAGEM, não pelo autor — BOM: "Quem é o menino bruxo de Harry Potter?" (Harry Potter). MAU: "Quem escreveu Harry Potter?" (J.K. Rowling). Só nomes que uma criança reconheça de imediato. Opções MC: 4 personagens DIFERENTES, sem repetir a mesma (Woody/Wooody).',
       oQueEExtra: ' PARA 6–9: pergunta curta, resposta de 1–4 palavras simples (ex.: "O que é o Natal?" → "uma festa"). Opções MC também curtas e distintas — não repitas a mesma palavra em todas (ex.: evita quatro opções que comecem por "festa de…").',
       maxCausaConsequenciaChars: 120,
+      maxQuestionChars: 110,
+      maxQuestionWords: 18,
+      maxQuestionWordsTopic: 16,
+      maxAnswerWords: 4,
+      maxCompletaAnswerWords: 2,
+      maxMcOptionWords: 4,
+      maxMcOptionChars: 38,
+      maxWordLength: 13,
+      mcOptionsTooLongMsg: 'opções demasiado longas para 6–9 (máx. 4 palavras)',
+      rejectDifficultyGte: 4,
+      rejectEasyDifficultyLte: 2,
+      rejectMoonMission: true,
+      rejectHardHistoricalWhen: true,
+      retryHintSuffix: ' com frases curtas e vocabulário simples',
+      promptDiffExtraEasy: '\nNível muito fácil (6–9): vocabulário do dia a dia, temas reconhecíveis por crianças de 7 anos.\n',
+      ageRulesText: `LIMITES RÍGIDOS (6–9 anos):
+- Pergunta: máx. 110 caracteres e 18 palavras — UMA frase curta.
+- Resposta: máx. 4 palavras. Temas familiares do quotidiano.
+- Personagens: nomes que uma criança de 7 anos reconheça de imediato — não inventores do século XVII nem compositores clássicos com nome completo.
+- ADEQUAÇÃO: só temas que uma criança de 7 anos reconheça (escola, animais, festas, desenhos animados, desporto básico). Se duvidares, simplifica.
+- Tudo em português — nunca respostas só em inglês.`,
     }),
     '10-15': Object.freeze({
       shortQ: '',
@@ -129,6 +150,18 @@
       quemEExtra: '',
       oQueEExtra: '',
       maxCausaConsequenciaChars: 180,
+      maxQuestionChars: 180,
+      maxQuestionWords: 22,
+      maxAnswerWordsTopic: 6,
+      maxTechnicalAnswerWords: 8,
+      maxMcOptionWords: 6,
+      maxMcOptionChars: 52,
+      mcOptionsTooLongMsg: 'opções demasiado longas para 10–15 (máx. 6 palavras) — sê mais directo',
+      ageRulesText: `LIMITES (10–15 anos):
+- Pergunta até 180 caracteres e 22 palavras; linguagem clara, sem parágrafos.
+- Resposta e opções em português de Portugal — traduz conceitos (ex.: "Verão", não "Summer").
+- ADEQUAÇÃO: dificuldade intermédia — nem infantil nem universitária. Evita teoria avançada ou nomes obscuros.
+- Opções MC curtas e directas (máx. 6 palavras).`,
     }),
     '15+': Object.freeze({
       shortQ: '',
@@ -139,11 +172,23 @@
       quemEExtra: '',
       oQueEExtra: '',
       maxCausaConsequenciaChars: 200,
+      maxQuestionChars: 240,
+      maxMcOptionWords: 8,
+      maxMcOptionChars: 72,
+      mcOptionsTooLongMsg: 'opções demasiado longas — usa termos mais curtos',
+      rejectTrivialAtHighDiff: true,
+      promptDiffExtraHard: '\nNível exigente/especialista (+15): evita factos óbvios de manual escolar; prefere detalhes precisos, contexto histórico/científico e raciocínio em dois passos.\n',
+      ageRulesText: 'LIMITES (+15): pergunta até 240 caracteres; exigente mas legível em voz alta. Não simplifiques demasiado.',
     }),
   });
 
   function getAgeLimits(ageBandKey) {
     return AGE_LIMITS[ageBandKey] || AGE_LIMITS['15+'];
+  }
+
+  function isHardHistoricalWhenQuestion(q) {
+    return /\b(nasceu|nascimento|subiram|escalada|primeira\s+vez)\b/i.test(q)
+      && /\b(picasso|einstein|shakespeare|beethoven|mozart|darwin|galileu|newton|everest|monte\s+everest)\b/i.test(q);
   }
 
   /** Registo único por categoria — editar aqui ao adicionar/alterar categorias. */
@@ -370,22 +415,9 @@ MAU: "Em que ano foram os Jogos Olímpicos em Tóquio?" (isso é QUANDO, não cu
   }
 
   function buildAgeRules(ageBandKey, ageBandPromptText) {
-    const limits = {
-      '6-9': `LIMITES RÍGIDOS (6–9 anos):
-- Pergunta: máx. 110 caracteres e 18 palavras — UMA frase curta.
-- Resposta: máx. 4 palavras. Temas familiares do quotidiano.
-- Personagens: nomes que uma criança de 7 anos reconheça de imediato — não inventores do século XVII nem compositores clássicos com nome completo.
-- ADEQUAÇÃO: só temas que uma criança de 7 anos reconheça (escola, animais, festas, desenhos animados, desporto básico). Se duvidares, simplifica.
-- Tudo em português — nunca respostas só em inglês.`,
-      '10-15': `LIMITES (10–15 anos):
-- Pergunta até 180 caracteres e 22 palavras; linguagem clara, sem parágrafos.
-- Resposta e opções em português de Portugal — traduz conceitos (ex.: "Verão", não "Summer").
-- ADEQUAÇÃO: dificuldade intermédia — nem infantil nem universitária. Evita teoria avançada ou nomes obscuros.
-- Opções MC curtas e directas (máx. 6 palavras).`,
-      '15+': `LIMITES (+15): pergunta até 240 caracteres; exigente mas legível em voz alta. Não simplifiques demasiado.`,
-    };
+    const { ageRulesText } = getAgeLimits(ageBandKey);
     return `IDADE E DIFICULDADE (${ageBandKey}): ${ageBandPromptText}
-${limits[ageBandKey] || limits['15+']}`;
+${ageRulesText}`;
   }
 
   function buildHistoryRules(ctx) {
@@ -632,11 +664,10 @@ ${limits[ageBandKey] || limits['15+']}`;
     const techFocusBlock = ctx.category?.n === 17
       ? `\nFOCO DESTA RODADA (Tecnologia): ${pickTechFocus()}. NÃO faças a pergunta sobre computadores, programação, RAM, HTML ou sistemas operativos a menos que o foco desta ronda seja o digital.\n`
       : '';
-    const diffExtra = ageBandKey === '15+' && diff >= 4
-      ? '\nNível exigente/especialista (+15): evita factos óbvios de manual escolar; prefere detalhes precisos, contexto histórico/científico e raciocínio em dois passos.\n'
-      : (ageBandKey === '6-9' && diff <= 2
-        ? '\nNível muito fácil (6–9): vocabulário do dia a dia, temas reconhecíveis por crianças de 7 anos.\n'
-        : '');
+    const lim = getAgeLimits(ageBandKey);
+    const diffExtra = (lim.promptDiffExtraHard && diff >= 4)
+      ? lim.promptDiffExtraHard
+      : (lim.promptDiffExtraEasy && diff <= 2 ? lim.promptDiffExtraEasy : '');
 
     return `Cria UMA pergunta de trivia EXCLUSIVAMENTE sobre a categoria "${category.name}" (${category.desc}), para ${ageBandPromptText}.
 
@@ -858,21 +889,27 @@ Só json válido, sem markdown: ${jsonFormat}`;
   function validateAgeTopicFit(q, a, options, ageBandKey) {
     const issues = [];
     const blob = [q, a, ...(options || [])].join(' ');
-    if (ageBandKey === '6-9') {
+    const lim = getAgeLimits(ageBandKey);
+    if (lim.maxQuestionWordsTopic != null) {
       const adultTopics = /\b(tratado|imperialismo|dodecafonismo|mitocôndria|algoritmo|quântico|burocracia|constituição|epistemologia|hegel|nietzsche|versalhes|holocausto|genocídio)\b/i;
       if (adultTopics.test(blob)) issues.push('tema inadequado para 6–9');
       if (/\b(apesar de|embora|contudo|por conseguinte|outrossim|consequentemente)\b/i.test(q)) {
         issues.push('linguagem demasiado complexa para 6–9');
       }
       const qWords = q.split(/\s+/).filter(Boolean).length;
-      if (qWords > 16 && !/completa/i.test(q)) issues.push('pergunta demasiado complexa para 6–9');
-    } else if (ageBandKey === '10-15') {
+      if (qWords > lim.maxQuestionWordsTopic && !/completa/i.test(q)) {
+        issues.push('pergunta demasiado complexa para 6–9');
+      }
+    }
+    if (lim.maxAnswerWordsTopic != null) {
       const gradTopics = /\b(epistemologia|fenomenologia|dialética materialista|dodecafonismo|hegeliano|nietzscheano)\b/i;
       if (gradTopics.test(blob)) issues.push('tema inadequado para 10–15');
       const qWords = q.split(/\s+/).filter(Boolean).length;
-      if (qWords > 22) issues.push('pergunta demasiado complexa para 10–15');
+      if (lim.maxQuestionWords && qWords > lim.maxQuestionWords) {
+        issues.push('pergunta demasiado complexa para 10–15');
+      }
       const answerWords = a.split(/\s+/).filter(Boolean).length;
-      if (answerWords > 6) issues.push('resposta demasiado longa para 10–15');
+      if (answerWords > lim.maxAnswerWordsTopic) issues.push('resposta demasiado longa para 10–15');
     }
     return issues;
   }
@@ -1421,6 +1458,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
 
   function validateCategoryTopicFit(q, categoryN, ageBandKey) {
     const issues = [];
+    const lim = getAgeLimits(ageBandKey);
     if (categoryN === 2 && /\b(homem|pessoa|astronauta).{0,40}\blua\b|\bprimeira\s+vez.{0,30}\blua\b|\bprimeiro\s+homem\b.*\blua\b/i.test(q)) {
       issues.push('missão à Lua é Espaço/História, não Geografia');
     }
@@ -1432,7 +1470,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
         issues.push('espaço/foguetões são Categoria 6 (Espaço), não Tecnologia');
       }
     }
-    if (ageBandKey === '6-9' && /\b(homem|pessoa).{0,25}\blua\b|\bfoi\s+à\s+lua\b/i.test(q)) {
+    if (lim.rejectMoonMission && /\b(homem|pessoa).{0,25}\blua\b|\bfoi\s+à\s+lua\b/i.test(q)) {
       issues.push('missão à Lua demasiado avançada para 6–9');
     }
     if (categoryN === 5 && /\b(solidifica[çc][ãa]o|congelamento|fundir|derreter|evapora[çc][ãa]o|estados?\s+(f[íi]sicos?|da\s+mat[ée]ria)|l[íi]quido\s+ao\s+s[óo]lido)\b/i.test(q)) {
@@ -1533,22 +1571,13 @@ Só json válido, sem markdown: ${jsonFormat}`;
     if (hasNearDuplicateMcOptions(clean)) {
       issues.push('opções repetidas ou quase iguais (ex.: Woody / Wooody / Sheriff Woody)');
     }
-    const limits = {
-      '6-9': { maxWords: 4, maxChars: 38 },
-      '10-15': { maxWords: 6, maxChars: 52 },
-      '15+': { maxWords: 8, maxChars: 72 },
-    };
-    const lim = limits[ageBandKey] || limits['15+'];
+    const lim = getAgeLimits(ageBandKey);
     const tooLong = clean.filter((o) => {
       const words = o.split(/\s+/).filter(Boolean).length;
-      return words > lim.maxWords || o.length > lim.maxChars;
+      return words > lim.maxMcOptionWords || o.length > lim.maxMcOptionChars;
     });
     if (tooLong.length) {
-      issues.push(ageBandKey === '6-9'
-        ? 'opções demasiado longas para 6–9 (máx. 4 palavras)'
-        : (ageBandKey === '10-15'
-          ? 'opções demasiado longas para 10–15 (máx. 6 palavras) — sê mais directo'
-          : 'opções demasiado longas — usa termos mais curtos'));
+      issues.push(lim.mcOptionsTooLongMsg || 'opções demasiado longas — usa termos mais curtos');
     }
     return issues;
   }
@@ -1648,9 +1677,8 @@ Só json válido, sem markdown: ${jsonFormat}`;
     if (formatId === FORMAT_IDS.QUANDO && !looksLikeWhenQuestion(q, a)) {
       issues.push('QUANDO deve pedir tempo/data/período');
     }
-    if (formatId === FORMAT_IDS.QUANDO && ageBandKey === '6-9'
-      && /\b(nasceu|nascimento|subiram|escalada|primeira\s+vez)\b/i.test(q)
-      && /\b(picasso|einstein|shakespeare|beethoven|mozart|darwin|galileu|newton|everest|monte\s+everest)\b/i.test(q)) {
+    if (formatId === FORMAT_IDS.QUANDO && getAgeLimits(ageBandKey).rejectHardHistoricalWhen
+      && isHardHistoricalWhenQuestion(q)) {
       issues.push('data histórica demasiado difícil para 6–9');
     }
 
@@ -1692,33 +1720,46 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const options = Array.isArray(parsed?.options) ? parsed.options : [];
     const blob = (q + ' ' + a + ' ' + options.join(' ')).toLowerCase();
     const issues = [];
+    const lim = getAgeLimits(ageBandKey);
     const abstractMath = /(\d+\s*%|\bpercentagem\b|\bprobabilidade\b|\bfraç[ãõ]o\b|\bmédia\b)/i;
     const veryTechnical = /\b(mitocôndria|fotossíntese|condensação|eletromagnético|metamorfose celular)\b/i;
     const youngestTooHard = /\b(imperialismo|algoritmo|programador|programadora|engenheir|máquina analítica|maquina analitica|babbage|tratado de versalhes|segunda guerra mundial|primeira guerra mundial)\b/i;
     const isCompleta = formatId === FORMAT_IDS.COMPLETA || /_{2,}|…|\.{3}/.test(q);
 
-    if (ageBandKey === '6-9') {
-      if (q.length > 110) issues.push('pergunta demasiado longa');
-      if (q.split(/\s+/).filter(Boolean).length > 18) issues.push('pergunta demasiado longa');
-      const maxAnswerWords = isCompleta ? 2 : 4;
+    if (lim.maxQuestionChars && q.length > lim.maxQuestionChars) {
+      issues.push('pergunta demasiado longa');
+    }
+    if (lim.maxQuestionWords) {
+      const qWordCount = q.split(/\s+/).filter(Boolean).length;
+      if (qWordCount > lim.maxQuestionWords) issues.push('pergunta demasiado longa');
+    }
+    if (lim.maxAnswerWords) {
+      const maxAnswerWords = isCompleta && lim.maxCompletaAnswerWords
+        ? lim.maxCompletaAnswerWords
+        : lim.maxAnswerWords;
       if (a.split(/\s+/).filter(Boolean).length > maxAnswerWords) {
-        issues.push(isCompleta ? 'resposta COMPLETA demasiado longa para 6–9 (máx. 2 palavras)' : 'resposta demasiado longa');
+        issues.push(isCompleta
+          ? 'resposta COMPLETA demasiado longa para 6–9 (máx. 2 palavras)'
+          : 'resposta demasiado longa');
       }
-      if (formatId === FORMAT_IDS.QUANDO && /\b(nasceu|nascimento|subiram|escalada|primeira\s+vez)\b/i.test(q)
-        && /\b(picasso|einstein|shakespeare|beethoven|mozart|darwin|galileu|newton|everest|monte\s+everest)\b/i.test(q)) {
-        issues.push('data histórica demasiado difícil para 6–9');
-      }
+    }
+    if (lim.rejectHardHistoricalWhen && formatId === FORMAT_IDS.QUANDO && isHardHistoricalWhenQuestion(q)) {
+      issues.push('data histórica demasiado difícil para 6–9');
+    }
+    if (lim.maxQuestionWordsTopic != null) {
       if (abstractMath.test(blob)) issues.push('conceito matemático abstrato');
       if (veryTechnical.test(blob)) issues.push('vocabulário técnico');
       if (youngestTooHard.test(blob)) issues.push('tema avançado demais');
       issues.push(...validateYoungAgeContent(q, a, options, formatId));
       issues.push(...validateAgeTopicFit(q, a, options, ageBandKey));
       issues.push(...validatePortugueseNotEnglish([a, ...options], ageBandKey));
-      const longWords = q.split(/\s+/).filter((w) => w.replace(/[^a-zàáâãäåèéêëìíîïòóôõöùúûüçñ-]/gi, '').length > 13);
-      if (longWords.length) issues.push('palavras demasiado complexas');
-    } else if (ageBandKey === '10-15') {
-      if (q.length > 180) issues.push('pergunta demasiado longa');
-      if (veryTechnical.test(a) && a.split(/\s+/).filter(Boolean).length > 8) {
+      if (lim.maxWordLength) {
+        const longWords = q.split(/\s+/).filter((w) => w.replace(/[^a-zàáâãäåèéêëìíîïòóôõöùúûüçñ-]/gi, '').length > lim.maxWordLength);
+        if (longWords.length) issues.push('palavras demasiado complexas');
+      }
+    }
+    if (lim.maxAnswerWordsTopic != null) {
+      if (veryTechnical.test(a) && a.split(/\s+/).filter(Boolean).length > (lim.maxTechnicalAnswerWords || 8)) {
         issues.push('resposta demasiado técnica');
       }
       issues.push(...validateAgeTopicFit(q, a, options, ageBandKey));
@@ -1726,8 +1767,6 @@ Só json válido, sem markdown: ${jsonFormat}`;
       if (options.length) {
         issues.push(...validateMcOptionsQuality(options, stripTags, collapseOptionKey, ageBandKey));
       }
-    } else if (q.length > 240) {
-      issues.push('pergunta demasiado longa');
     }
 
     return { ok: !issues.length, issues };
@@ -1789,17 +1828,20 @@ Só json válido, sem markdown: ${jsonFormat}`;
 
   function validateDifficultyFit(difficulty, ageBandKey, q) {
     const issues = [];
+    const lim = getAgeLimits(ageBandKey);
     const range = DIFFICULTY_RANGE[ageBandKey] || DIFFICULTY_RANGE['15+'];
     const diff = Number(difficulty) || range.min;
     if (diff < range.min || diff > range.max) {
       issues.push(`dificuldade ${diff} incompatível com faixa ${ageBandKey}`);
     }
-    if (ageBandKey === '6-9' && diff >= 4) issues.push('demasiado difícil para 6–9');
-    if (ageBandKey === '15+' && diff >= 4) {
+    if (lim.rejectDifficultyGte != null && diff >= lim.rejectDifficultyGte) {
+      issues.push('demasiado difícil para 6–9');
+    }
+    if (lim.rejectTrivialAtHighDiff && diff >= 4) {
       const tooEasy = /\b(planeta onde vivemos|cor do céu|quantos dedos|quantas pernas tem um cão)\b/i;
       if (tooEasy.test(q)) issues.push('demasiado fácil para +15 nível exigente');
     }
-    if (ageBandKey === '6-9' && diff <= 2) {
+    if (lim.rejectEasyDifficultyLte != null && diff <= lim.rejectEasyDifficultyLte) {
       const tooHard = /\b(teorema|algoritmo|revolução industrial|segunda guerra)\b/i;
       if (tooHard.test(q)) issues.push('demasiado difícil para 6–9');
     }
@@ -1834,8 +1876,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
       if (rule.re.test(blob)) hints.add(rule.hint);
     }
     if (!hints.size && list.length) hints.add(`Corrige: ${list.slice(0, 3).join('; ')}.`);
+    const lim = getAgeLimits(ageBandKey);
     const formatLabel = FORMAT_LABELS[formatId] || formatId;
-    return `ERRO NA VALIDAÇÃO: ${list.slice(0, 4).join('; ')}.\n${[...hints].join('\n')}\nMantém o formato "${formatLabel}" (${formatId})${ageBandKey === '6-9' ? ' com frases curtas e vocabulário simples' : ''}.`;
+    return `ERRO NA VALIDAÇÃO: ${list.slice(0, 4).join('; ')}.\n${[...hints].join('\n')}\nMantém o formato "${formatLabel}" (${formatId})${lim.retryHintSuffix || ''}.`;
   }
 
   function collectPtPtIssues(q, a, options, ageBandKey) {

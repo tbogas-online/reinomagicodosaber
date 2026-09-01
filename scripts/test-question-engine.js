@@ -721,7 +721,17 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 // 82. AGE_LIMITS
 {
   const lim = QE.getAgeLimits('6-9');
-  assert('82. AGE_LIMITS 6-9', lim.shortQ.includes('110') && lim.maxCausaConsequenciaChars === 120);
+  assert('82. AGE_LIMITS 6-9', lim.shortQ.includes('110') && lim.maxCausaConsequenciaChars === 120
+    && lim.maxQuestionChars === 110 && lim.maxMcOptionWords === 4);
+}
+{
+  const longQ = { q: 'A'.repeat(181), a: 'Lisboa' };
+  const r = QE.validateQuestion(longQ, baseCtx({ categoryNumber: 2, ageBandKey: '10-15' }));
+  assert('83. pergunta longa 10-15', !r.ok, r.issues?.join(', '));
+}
+{
+  const lim15 = QE.getAgeLimits('15+');
+  assert('84. AGE_LIMITS 15+', lim15.maxQuestionChars === 240 && lim15.promptDiffExtraHard?.includes('exigente'));
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
