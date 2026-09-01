@@ -1261,5 +1261,38 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('152. repository answer mismatch', !badRepo.ok && badRepo.issues.some((i) => /repositório/i.test(i)));
 }
 
+// 153–154. CURIOSIDADE — só Verdadeiro/Falso
+{
+  const ostra = {
+    q: 'Sabias que as ostras produzem as pérolas? Verdadeiro ou Falso?',
+    a: 'Verdadeiro',
+    options: ['Não sei', 'Falso', 'Verdadeiro', 'Às vezes'],
+  };
+  const badCur = QE.validateQuestion(ostra, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.CURIOSIDADE, isMC: true }),
+    helpers: {
+      stripTags,
+      validateTrueFalseQuestion: (p) => (/verdadeiro\s+ou\s+falso/i.test(stripTags(p?.q || ''))
+        ? { ok: true, issues: [] }
+        : { ok: false, issues: ['sem V/F'] }),
+      ageBandKey: '6-9',
+    },
+  });
+  assert('153. curiosidade rejeita opções inválidas', !badCur.ok);
+  const okCur = QE.validateQuestion({
+    q: 'Sabias que um polvo tem três corações? Verdadeiro ou Falso?',
+    a: 'Verdadeiro',
+    options: ['Verdadeiro', 'Falso'],
+  }, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.CURIOSIDADE, isMC: true }),
+    helpers: {
+      stripTags,
+      validateTrueFalseQuestion: () => ({ ok: true, issues: [] }),
+      ageBandKey: '6-9',
+    },
+  });
+  assert('154. curiosidade V/F válida', okCur.ok, okCur.issues?.join(', '));
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

@@ -3398,7 +3398,7 @@
 <script src="question-engine/adivinha-verify.js?v=20260901-160000"></script>
 <script src="question-engine/difficulty-estimate.js?v=20260901-163000"></script>
 <script src="question-engine/pt-pt-validators.js?v=20260901-180000"></script>
-<script src="question-engine/format-validators.js?v=20260901-190000"></script>
+<script src="question-engine/format-validators.js?v=20260901-145000"></script>
 <script src="question-engine/mc-validators.js?v=20260901-200000"></script>
 <script src="question-engine/age-validators.js?v=20260901-210000"></script>
 <script src="question-engine/category-validators.js?v=20260901-220000"></script>
@@ -3406,7 +3406,7 @@
 <script src="question-engine/repetition-validators.js?v=20260901-230000"></script>
 <script src="question-engine/knowledge-key-compute.js?v=20260901-270000"></script>
 <script src="question-engine/persistent-history.js?v=20260901-280000"></script>
-<script src="question-engine/prompt-builder.js?v=20260901-143500"></script>
+<script src="question-engine/prompt-builder.js?v=20260901-145000"></script>
 <script src="question-engine/mc-assembly.js?v=20260901-270000"></script>
 <script src="question-engine/question-scoring.js?v=20260901-143500"></script>
 <script src="question-engine.js?v=20260901-143500" id="question-engine-script"></script>
@@ -3770,9 +3770,9 @@
     if(hasValidMcOptions(optsFromBank, fmt, item.a)){
       return { ...item, options: optsFromBank };
     }
-    if(expectedMcOptionCount(fmt, item.a) === 2){
+    if(fmt === 'CURIOSIDADE' || fmt === 'VERDADEIRO_FALSO' || expectedMcOptionCount(fmt, item.a) === 2){
       const vfOpts = buildTrueFalseOptions(item.a);
-      if(vfOpts) return { ...item, options: vfOpts };
+      if(vfOpts) return { ...item, options: vfOpts, format: fmt || 'CURIOSIDADE' };
     }
     const fallbackOpts = buildFallbackOptions(item.a, categoryNumber, ageBandKey);
     if(fallbackOpts) return { ...item, options: fallbackOpts };
@@ -4167,7 +4167,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         minConfidence: REPO_ADIVINHA_MIN_CONFIDENCE,
       });
       if(!record){
-        if(DEBUG_MODE) console.info('[KnowledgeRepository] Sem adivinhas disponíveis no repositório');
+        if(DEBUG_MODE){
+          console.info('[KnowledgeRepository] Sem adivinhas no repositório (verificar seed SQL e faixa etária/formato ADIVINHA)');
+        }
         return null;
       }
       triedKnowledgeIds.add(record.knowledgeId);
@@ -4370,7 +4372,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const isMC = true;
     const remember = (qText) => rememberGlobalQuestion(ageBandKey, qText);
     const questionFormat = chooseQuestionFormat(category.n, ageBandKey);
-    const isTrueFalse = questionFormat === engine.FORMAT_IDS.VERDADEIRO_FALSO;
+    const isCuriosidade = questionFormat === engine.FORMAT_IDS.CURIOSIDADE;
+    const isTrueFalse = questionFormat === engine.FORMAT_IDS.VERDADEIRO_FALSO || isCuriosidade;
     const persistent = engine.getPersistentSlice(ageBandKey);
     const difficulty = engine.chooseDifficulty(ageBandKey, usedDifficulties[ageBandKey] || persistent.difficulties);
     let subtopic = engine.chooseSubtopic(category.n, usedSubtopics[ageBandKey] || persistent.subtopics);
@@ -4393,13 +4396,15 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       : '';
 
     const mcInstruction = isTrueFalse
-      ? ` Inclui também um array "options" com EXATAMENTE 2 opções: ["Verdadeiro","Falso"] (nesta ordem), sendo "a" igual a "Verdadeiro" ou "Falso" consoante a resposta correta.`
+      ? ` Inclui também um array "options" com EXATAMENTE 2 opções: ["Verdadeiro","Falso"] (nesta ordem), sendo "a" igual a "Verdadeiro" ou "Falso" consoante a resposta correta. PROIBIDO: "Não sei", "Às vezes", "Talvez" ou outras opções.`
       : (questionFormat === 'ADIVINHA'
         ? ` Inclui "a", "clues" (array com 2–5 pistas curtas que apontam unicamente para a resposta) e "distractors" (3 opções erradas plausíveis). Campos OBRIGATÓRIOS: "q", "a", "clues", "distractors".${mcDifficultyExtra}`
         : ` Inclui "a" com a resposta correcta e um array "distractors" com EXACTAMENTE 3 opções erradas plausíveis da mesma classe conceptual (nomes/termos curtos). O JavaScript baralhará as opções — NÃO envies "options" completo. Campos OBRIGATÓRIOS: "q" (pergunta completa), "a" (resposta), "distractors" (3 strings) — nunca omitas "q".${mcDifficultyExtra}`);
     const knowledgeHint = engine.KNOWLEDGE_JSON_HINT || '';
     const jsonFormat = isTrueFalse
-      ? `{"q":"A Lua orbita a Terra. Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]${knowledgeHint}}`
+      ? (isCuriosidade
+        ? `{"q":"Sabias que um polvo tem três corações? Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]${knowledgeHint}}`
+        : `{"q":"A Lua orbita a Terra. Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]${knowledgeHint}}`)
       : (questionFormat === 'ADIVINHA'
         ? `{"q":"Tenho dentes mas não mordo. O que sou?","a":"Pente","clues":["tem dentes","não morde"],"distractors":["Garfo","Colher","Faca"]${knowledgeHint}}`
         : `{"q":"pergunta","a":"resposta correta","distractors":["errada1","errada2","errada3"]${knowledgeHint}}`);
@@ -4467,6 +4472,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       } catch { /* ignora — tenta na mesma */ }
     }
     for(let attempt = 1; attempt <= 5 && !skipAi; attempt++){
+      // KR-1: adivinhas cat. 20 nunca pelo LLM livre (só repositório ou banco).
+      if(category.n === 20 && questionFormat === engine.FORMAT_IDS.ADIVINHA){
+        break;
+      }
       const telemetryBase = {
         category: category.n,
         formatId: questionFormat,
@@ -4552,8 +4561,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         parsed.q = formatGameText(parsed.q);
         parsed.a = formatGameText(parsed.a);
 
-        const effectiveTrueFalse = isTrueFalse
-          || (questionFormat === engine.FORMAT_IDS.CURIOSIDADE && /verdadeiro\s+ou\s+falso/i.test(stripTags(parsed.q)));
+        const effectiveTrueFalse = isTrueFalse;
 
         if(effectiveTrueFalse){
           parsed.q = ensureTrueFalsePrompt(parsed.q);

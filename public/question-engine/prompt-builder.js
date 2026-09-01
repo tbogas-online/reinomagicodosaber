@@ -112,8 +112,9 @@ Em matemática, calcula internamente a resposta.${mcNote}`,
 Usa "Que animal…" / "O que é…" — NÃO "Quem é o animal". A resposta tem de encaixar claramente nas pistas (ex.: instrumento batido → tambor, não bola).
 Inclui array "clues" com 2–5 pistas curtas (frases ou fragmentos) que apontam unicamente para a resposta — serão validadas semanticamente.`,
       CURIOSIDADE: `FORMATO OBRIGATÓRIO: CURIOSIDADE — facto surpreendente em PT-PT claro, que provoque "Não sabia disso!". Frase curta e natural em voz alta.
-BOM: "Sabias que os Jogos Olímpicos de Tóquio de 2020 só se realizaram em 2021 por causa da pandemia?" / "É verdade que um polvo tem três corações? Verdadeiro ou Falso?"
-MAU: "Em que ano foram os Jogos Olímpicos em Tóquio?" (isso é QUANDO, não curiosidade). MAU: misturar palavras em chinês ou outro idioma (ex.: «延期») — só português.`,
+SEMPRE Verdadeiro ou Falso: afirmação + "Verdadeiro ou Falso?" no final. Campo "a" = exactamente "Verdadeiro" ou "Falso". Opções: ["Verdadeiro","Falso"] — PROIBIDO "Não sei", "Às vezes", distractores de escolha múltipla.
+BOM: "Sabias que os Jogos Olímpicos de Tóquio de 2020 só se realizaram em 2021 por causa da pandemia? Verdadeiro ou Falso?" / "É verdade que um polvo tem três corações? Verdadeiro ou Falso?"
+MAU: "Em que ano foram os Jogos Olímpicos em Tóquio?" (isso é QUANDO, não curiosidade). MAU: opções como "Não sei" ou "Às vezes". MAU: misturar palavras em chinês ou outro idioma (ex.: «延期») — só português.`,
     };
     return rules[formatId] || rules.RESPOSTA_DIRETA;
   }

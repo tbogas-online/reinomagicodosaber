@@ -66,6 +66,39 @@ function validateCuriosidade(q) {
   return issues;
 }
 
+function validateCuriosidadeTrueFalse(parsed, helpers) {
+  const issues = [];
+  const { stripTags, validateTrueFalseQuestion } = helpers || {};
+  const a = stripTags(parsed?.a || '').trim().toLowerCase();
+  if (a !== 'verdadeiro' && a !== 'falso') {
+    pushFormatViolation(issues, 'CURIOSIDADE: resposta tem de ser Verdadeiro ou Falso');
+  }
+  const vf = validateTrueFalseQuestion?.(parsed);
+  if (vf && !vf.ok) issues.push(...vf.issues.map((msg) => mkIssue('FORMAT_VIOLATION', ISSUE_LAYER.format, msg)));
+
+  const opts = Array.isArray(parsed?.options) ? parsed.options : [];
+  if (opts.length !== 2) {
+    pushFormatViolation(issues, 'CURIOSIDADE: exactamente 2 opções — Verdadeiro e Falso');
+  }
+  const forbidden = /\b(não sei|nao sei|às vezes|as vezes|talvez|depende|não tenho a certeza)\b/i;
+  for (const opt of opts) {
+    const text = stripTags(opt).trim();
+    if (forbidden.test(text)) {
+      pushFormatViolation(issues, 'CURIOSIDADE: opções inválidas — só Verdadeiro e Falso');
+      break;
+    }
+  }
+  const normOpts = opts.map((o) => stripTags(o).toLowerCase());
+  if (normOpts.length === 2 && (normOpts[0] !== 'verdadeiro' || normOpts[1] !== 'falso')) {
+    const hasV = normOpts.includes('verdadeiro');
+    const hasF = normOpts.includes('falso');
+    if (!hasV || !hasF || new Set(normOpts).size !== 2) {
+      pushFormatViolation(issues, 'CURIOSIDADE: opções têm de ser Verdadeiro e Falso');
+    }
+  }
+  return issues;
+}
+
 function validateCompletaOral(q, ageBandKey) {
   const issues = [];
   const blank = q.match(/_{2,}|…|\.{3}/);
@@ -185,9 +218,9 @@ function validateByFormat(parsed, formatId, helpers) {
     return vf.ok ? { ok: true, issues: [] } : vf;
   }
 
-  if (formatId === FORMAT_IDS.CURIOSIDADE && /verdadeiro\s+ou\s+falso/i.test(q)) {
-    const vf = validateTrueFalseQuestion(parsed);
-    if (!vf.ok) return vf;
+  if (formatId === FORMAT_IDS.CURIOSIDADE) {
+    issues.push(...validateCuriosidade(q));
+    issues.push(...validateCuriosidadeTrueFalse(parsed, helpers));
   }
 
   if (formatId === FORMAT_IDS.QUEM_E) {
@@ -239,10 +272,6 @@ function validateByFormat(parsed, formatId, helpers) {
   if (formatId === FORMAT_IDS.ADIVINHA) {
     issues.push(...validateAdivinhaQuality(q, a));
     issues.push(...validateAdivinhaClues(parsed, stripTags));
-  }
-
-  if (formatId === FORMAT_IDS.CURIOSIDADE) {
-    issues.push(...validateCuriosidade(q));
   }
 
   if (formatId === FORMAT_IDS.CAUSA_CONSEQUENCIA) {
