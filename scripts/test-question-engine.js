@@ -17,6 +17,7 @@ const engineScripts = [
   'question-engine/telemetry.js',
   'question-engine/known-facts.js',
   'question-engine/factual-verify.js',
+  'question-engine/adivinha-verify.js',
   'question-engine.js',
 ];
 const memStore = {};
@@ -385,6 +386,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const parsed = {
     q: 'Tenho cidades mas não casas, montanhas mas não árvores, água mas não peixes. O que sou?',
     a: 'Um mapa',
+    clues: ['tem cidades sem casas', 'tem montanhas sem árvores', 'tem água sem peixes'],
     options: ['Um globo terráqueo', 'Uma fotografia aérea', 'Um mapa', 'Um quadro de paisagem'],
   };
   const r = QE.validateQuestion(parsed, baseCtx({
@@ -538,6 +540,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const apito = {
     q: 'Tenho cabeça sem cérebro, corpo sem coração e rabo sem osso. Quando corre, faz barulho, mas quando para, cala a boca. O que é?',
     a: 'Cavalo',
+    clues: ['cabeça sem cérebro', 'faz barulho quando corre', 'cala quando para'],
   };
   const r = QE.validateQuestion(apito, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '15+' }));
   assert('60. adivinha apito vs cavalo', !r.ok, r.issues?.join(', '));
@@ -617,6 +620,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const pato = {
     q: 'O que é que tem asas e não voa, tem penas e não canta?',
     a: 'Pato de borracha',
+    clues: ['tem asas mas não voa', 'tem penas mas não canta'],
     options: ['Gato', 'Cão', 'Pato de borracha', 'Peixe'],
   };
   const r = QE.validateQuestion(pato, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '6-9' }));
@@ -886,6 +890,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const apito = {
     q: 'Tenho cabeça sem cérebro, corpo sem coração e rabo sem osso. Quando corre, faz barulho, mas quando para, cala a boca. O que é?',
     a: 'Cavalo',
+    clues: ['cabeça sem cérebro', 'faz barulho quando corre', 'cala quando para'],
   };
   const r = QE.validateQuestion(apito, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '15+' }));
   assert('105. ADIVINHA_WHISTLE code', !r.ok && r.issueDetails?.some((i) => i.code === 'ADIVINHA_WHISTLE_RIDDLE'), r.issues?.join(', '));
@@ -894,6 +899,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const mapa = {
     q: 'Tenho cidades mas não casas, montanhas mas não árvores, água mas não peixes. O que sou?',
     a: 'Um mapa',
+    clues: ['tem cidades sem casas', 'tem montanhas sem árvores', 'tem água sem peixes'],
     options: ['Um globo terráqueo', 'Uma fotografia aérea', 'Um mapa', 'Um quadro de paisagem'],
   };
   const r = QE.validateQuestion(mapa, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '10-15', isMC: true }));
@@ -997,6 +1003,43 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 {
   const hint = QE.buildRetryHint([{ code: 'FORMAT_VIOLATION', message: 'test' }], QE.FORMAT_IDS.QUEM_E, '15+');
   assert('120. retry hint FORMAT_VIOLATION', hint.includes('formato pedido'));
+}
+
+// 121–125. Fase 5 — ADIVINHA com clues[] e verificador semântico
+{
+  const semClues = {
+    q: 'Tenho dentes mas não mordo. O que sou?',
+    a: 'Pente',
+  };
+  const r = QE.validateQuestion(semClues, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '10-15' }));
+  assert('121. ADIVINHA_MISSING_CLUES', !r.ok && r.issueDetails?.some((i) => i.code === 'ADIVINHA_MISSING_CLUES'), r.issues?.join(', '));
+}
+{
+  const leak = {
+    q: 'O que é redondo e salta?',
+    a: 'Bola',
+    clues: ['é uma bola', 'salta muito'],
+  };
+  const r = QE.validateQuestion(leak, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '10-15' }));
+  assert('122. ADIVINHA_CLUE_LEAKS_ANSWER', !r.ok && r.issueDetails?.some((i) => i.code === 'ADIVINHA_CLUE_LEAKS_ANSWER'), r.issues?.join(', '));
+}
+{
+  assert('123. shouldRequestAdivinhaVerify', QE.shouldRequestAdivinhaVerify({ formatId: 'ADIVINHA', ageBandKey: '10-15' }));
+  assert('123b. skip adivinha verify outros formatos', !QE.shouldRequestAdivinhaVerify({ formatId: 'QUEM_E', ageBandKey: '10-15' }));
+}
+{
+  const ok = QE.parseAdivinhaVerifyResponse('{"ok":true}');
+  const bad = QE.parseAdivinhaVerifyResponse('{"ok":false,"issues":["charada ambígua"]}');
+  assert('124. parseAdivinhaVerifyResponse', ok.ok && !bad.ok && bad.issues[0].includes('ambígua'));
+}
+{
+  const pente = {
+    q: 'Tenho dentes mas não mordo. O que sou?',
+    a: 'Pente',
+    clues: ['tem dentes', 'não morde'],
+  };
+  const r = QE.validateQuestion(pente, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '10-15' }));
+  assert('125. ADIVINHA válida com clues', r.ok, r.issues?.join(', '));
 }
 {
   QE.clearGenerationTelemetry();

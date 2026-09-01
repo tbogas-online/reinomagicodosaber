@@ -10,8 +10,9 @@
   const Telemetry = global.QuestionEngineTelemetry;
   const KnownFacts = global.QuestionEngineKnownFacts;
   const FactualVerify = global.QuestionEngineFactualVerify;
-  if (!Issues || !KnowledgeKey || !Retry || !Telemetry || !KnownFacts || !FactualVerify) {
-    throw new Error('QuestionEngine: carrega issue-codes.js, knowledge-key.js, retry-strategy.js, telemetry.js, known-facts.js e factual-verify.js antes de question-engine.js');
+  const AdivinhaVerify = global.QuestionEngineAdivinhaVerify;
+  if (!Issues || !KnowledgeKey || !Retry || !Telemetry || !KnownFacts || !FactualVerify || !AdivinhaVerify) {
+    throw new Error('QuestionEngine: carrega issue-codes.js, knowledge-key.js, retry-strategy.js, telemetry.js, known-facts.js, factual-verify.js, adivinha-verify.js antes de question-engine.js');
   }
   const {
     mkIssue, issueMessage, issueCode, normalizeIssues, issueMessages,
@@ -489,7 +490,8 @@ BOM: "Num avião a voar em linha recta a velocidade constante, largas uma moeda.
 MAU: "Para onde cai a moeda?" (ambíguo — depende se medes em relação ao chão ou ao avião). MAU: "avoando" — escreve "a voar".
 Em matemática, calcula internamente a resposta.${mcNote}`,
       ADIVINHA: `FORMATO: ADIVINHA — adivinha ou charada tradicional portuguesa, tom lúdico, adequada à idade. NÃO transformes um facto directo numa adivinha forçada.
-Usa "Que animal…" / "O que é…" — NÃO "Quem é o animal". A resposta tem de encaixar claramente nas pistas (ex.: instrumento batido → tambor, não bola).`,
+Usa "Que animal…" / "O que é…" — NÃO "Quem é o animal". A resposta tem de encaixar claramente nas pistas (ex.: instrumento batido → tambor, não bola).
+Inclui array "clues" com 2–5 pistas curtas (frases ou fragmentos) que apontam unicamente para a resposta — serão validadas semanticamente.`,
       CURIOSIDADE: `FORMATO OBRIGATÓRIO: CURIOSIDADE — facto surpreendente em PT-PT claro, que provoque "Não sabia disso!". Frase curta e natural em voz alta.
 BOM: "Sabias que os Jogos Olímpicos de Tóquio de 2020 só se realizaram em 2021 por causa da pandemia?" / "É verdade que um polvo tem três corações? Verdadeiro ou Falso?"
 MAU: "Em que ano foram os Jogos Olímpicos em Tóquio?" (isso é QUANDO, não curiosidade). MAU: misturar palavras em chinês ou outro idioma (ex.: «延期») — só português.`,
@@ -1225,6 +1227,31 @@ Só json válido, sem markdown: ${jsonFormat}`;
     return issues;
   }
 
+  function validateAdivinhaClues(parsed, stripTags) {
+    const issues = [];
+    const clues = AdivinhaVerify.parseAdivinhaClues(parsed);
+    const answer = stripTags(parsed?.a || '').trim().toLowerCase();
+    if (clues.length < 2) {
+      pushIssue(issues, 'ADIVINHA_MISSING_CLUES', ISSUE_LAYER.format, 'ADIVINHA deve incluir array "clues" com pelo menos 2 pistas curtas');
+      return issues;
+    }
+    const seen = new Set();
+    for (const clue of clues) {
+      const c = stripTags(clue).trim();
+      const norm = c.toLowerCase();
+      if (!norm) continue;
+      if (seen.has(norm)) {
+        pushFormatViolation(issues, 'ADIVINHA: pistas duplicadas no array clues');
+        continue;
+      }
+      seen.add(norm);
+      if (norm === answer || (answer.length >= 3 && norm.includes(answer))) {
+        pushIssue(issues, 'ADIVINHA_CLUE_LEAKS_ANSWER', ISSUE_LAYER.format, 'ADIVINHA: uma pista revela ou repete a resposta');
+      }
+    }
+    return issues;
+  }
+
   function validateAdivinhaMcAmbiguity(q, a, options, stripTags, formatId) {
     const issues = [];
     if (formatId !== FORMAT_IDS.ADIVINHA) return issues;
@@ -1718,6 +1745,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     }
     if (formatId === FORMAT_IDS.ADIVINHA) {
       issues.push(...validateAdivinhaQuality(q, a));
+      issues.push(...validateAdivinhaClues(parsed, stripTags));
     }
 
     if (formatId === FORMAT_IDS.CURIOSIDADE) {
@@ -1896,6 +1924,22 @@ Só json válido, sem markdown: ${jsonFormat}`;
 
   function parseFactualVerifyResponse(text) {
     return FactualVerify.parseFactualVerifyResponse(text);
+  }
+
+  function shouldRequestAdivinhaVerify(ctx) {
+    return AdivinhaVerify.shouldRequestAdivinhaVerify(ctx);
+  }
+
+  function buildAdivinhaVerifyPrompt(parsed, ctx) {
+    return AdivinhaVerify.buildAdivinhaVerifyPrompt(parsed, ctx);
+  }
+
+  function parseAdivinhaVerifyResponse(text) {
+    return AdivinhaVerify.parseAdivinhaVerifyResponse(text);
+  }
+
+  function parseAdivinhaClues(raw) {
+    return AdivinhaVerify.parseAdivinhaClues(raw);
   }
 
   function buildRetryHint(issues, formatId, ageBandKey) {
@@ -2306,6 +2350,11 @@ Só json válido, sem markdown: ${jsonFormat}`;
     shouldRequestFactualVerify,
     buildFactualVerifyPrompt,
     parseFactualVerifyResponse,
+    shouldRequestAdivinhaVerify,
+    buildAdivinhaVerifyPrompt,
+    parseAdivinhaVerifyResponse,
+    parseAdivinhaClues,
+    validateAdivinhaClues,
     scoreQuestion,
     computeKnowledgeKey,
     knowledgeKeysMatch,
@@ -2313,6 +2362,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     buildStructuredKnowledgeKey: KnowledgeKey.buildStructuredKey,
     isStructuredKnowledgeKey: KnowledgeKey.isStructuredKey,
     KNOWLEDGE_JSON_HINT: ',"knowledge":{"entity":"entidade principal (país, pessoa, obra)","concept":"conhecimento testado (capital, inventor, data)","relation":"relação opcional (é, venceu, descobriu)"}',
+    ADIVINHA_CLUES_JSON_HINT: ',"clues":["pista curta 1","pista curta 2"]',
     assembleMcOptions,
     shuffleMcOptions,
     recordMcAnswerPosition,

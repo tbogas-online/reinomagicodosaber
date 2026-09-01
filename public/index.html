@@ -3393,6 +3393,7 @@
 <script src="question-engine/telemetry.js?v=20260901-130000"></script>
 <script src="question-engine/known-facts.js?v=20260901-140000"></script>
 <script src="question-engine/factual-verify.js?v=20260901-140000"></script>
+<script src="question-engine/adivinha-verify.js?v=20260901-160000"></script>
 <script src="question-engine.js?v=20260901-130000" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>
@@ -4148,10 +4149,15 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
     const mcInstruction = isTrueFalse
       ? ` Inclui também um array "options" com EXATAMENTE 2 opções: ["Verdadeiro","Falso"] (nesta ordem), sendo "a" igual a "Verdadeiro" ou "Falso" consoante a resposta correta.`
-      : ` Inclui "a" com a resposta correcta e um array "distractors" com EXACTAMENTE 3 opções erradas plausíveis da mesma classe conceptual (nomes/termos curtos). O JavaScript baralhará as opções — NÃO envies "options" completo. Campos OBRIGATÓRIOS: "q" (pergunta completa), "a" (resposta), "distractors" (3 strings) — nunca omitas "q".${mcDifficultyExtra}`;
+      : (questionFormat === 'ADIVINHA'
+        ? ` Inclui "a", "clues" (array com 2–5 pistas curtas que apontam unicamente para a resposta) e "distractors" (3 opções erradas plausíveis). Campos OBRIGATÓRIOS: "q", "a", "clues", "distractors".${mcDifficultyExtra}`
+        : ` Inclui "a" com a resposta correcta e um array "distractors" com EXACTAMENTE 3 opções erradas plausíveis da mesma classe conceptual (nomes/termos curtos). O JavaScript baralhará as opções — NÃO envies "options" completo. Campos OBRIGATÓRIOS: "q" (pergunta completa), "a" (resposta), "distractors" (3 strings) — nunca omitas "q".${mcDifficultyExtra}`);
+    const knowledgeHint = engine.KNOWLEDGE_JSON_HINT || '';
     const jsonFormat = isTrueFalse
-      ? `{"q":"A Lua orbita a Terra. Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]${engine.KNOWLEDGE_JSON_HINT}}`
-      : `{"q":"pergunta","a":"resposta correta","distractors":["errada1","errada2","errada3"]${engine.KNOWLEDGE_JSON_HINT}}`;
+      ? `{"q":"A Lua orbita a Terra. Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]${knowledgeHint}}`
+      : (questionFormat === 'ADIVINHA'
+        ? `{"q":"Tenho dentes mas não mordo. O que sou?","a":"Pente","clues":["tem dentes","não morde"],"distractors":["Garfo","Colher","Faca"]${knowledgeHint}}`
+        : `{"q":"pergunta","a":"resposta correta","distractors":["errada1","errada2","errada3"]${knowledgeHint}}`);
 
     const usedSet = getGlobalUsedSet(ageBandKey);
     const usedAnswerSet = new Set(
@@ -4387,6 +4393,43 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             }
           } catch (verifyErr) {
             console.warn('Verificação factual IA indisponível — a continuar:', verifyErr?.message || verifyErr);
+          }
+        }
+
+        if(engine.shouldRequestAdivinhaVerify({ formatId: questionFormat, ageBandKey })){
+          try {
+            const adivinhaPrompt = engine.buildAdivinhaVerifyPrompt(parsed, {
+              formatId: questionFormat,
+              ageBandKey,
+              stripTags,
+            });
+            const adivinhaData = await callAiApi(
+              [{ role: 'user', content: adivinhaPrompt }],
+              160,
+            );
+            const adivinhaText = (adivinhaData.content || []).map((b) => b.text || '').join('');
+            const adivinhaCheck = engine.parseAdivinhaVerifyResponse(adivinhaText);
+            if(!adivinhaCheck.ok){
+              lastValidationIssues = adivinhaCheck.issues;
+              lastValidationIssueDetails = adivinhaCheck.issues.map((msg) => ({
+                code: 'ADIVINHA_SEMANTIC_REJECT',
+                layer: 'semantic',
+                message: msg,
+              }));
+              lastAiError = 'Verificação adivinha: ' + adivinhaCheck.issues.join(', ');
+              recordQuestionGenTelemetry(engine, {
+                ...telemetryBase,
+                outcome: 'rejected',
+                issueDetails: lastValidationIssueDetails,
+                score: qualityCheck.score,
+              });
+              if(DEBUG_MODE || attempt >= 4){
+                console.warn('Verificação semântica ADIVINHA rejeitou:', adivinhaCheck.issues, parsed.q);
+              }
+              continue;
+            }
+          } catch (adivinhaErr) {
+            console.warn('Verificação semântica ADIVINHA indisponível — a continuar:', adivinhaErr?.message || adivinhaErr);
           }
         }
 
@@ -4953,6 +4996,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
     if(Array.isArray(distractors)){
       out.distractors = distractors.map(stripMcOptionPrefix).map((item) => String(item || '').trim()).filter(Boolean);
+    }
+    const clues = pickFirstArray(raw.clues, raw.pistas, raw.hints);
+    if(Array.isArray(clues)){
+      out.clues = clues.map((item) => String(item || '').trim()).filter(Boolean);
     }
     const knowledge = window.QuestionEngine?.parseKnowledgeMeta
       ? window.QuestionEngine.parseKnowledgeMeta(raw)
