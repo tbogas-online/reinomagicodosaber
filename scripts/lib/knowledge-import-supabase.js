@@ -109,6 +109,52 @@ async function fetchRepositoryStats(cfg) {
   }
 }
 
+async function fetchQuarantineStats(cfg) {
+  try {
+    const data = await supabaseRpc(cfg, 'get_question_reuse_quarantine_stats', { p_days: 30 });
+    if (!data || typeof data !== 'object') {
+      return {
+        days: 30,
+        available: false,
+        bankTotal: 0,
+        knowledgeTotal: 0,
+        eventsTotal: 0,
+        bankByCategoryAge: [],
+        bankByCategory: [],
+        knowledgeByCategory: [],
+        knowledgeByCategoryTopic: [],
+      };
+    }
+    return {
+      days: Number(data.days) || 30,
+      available: data.available !== false,
+      bankTotal: Number(data.bankTotal) || 0,
+      knowledgeTotal: Number(data.knowledgeTotal) || 0,
+      eventsTotal: Number(data.eventsTotal) || 0,
+      bankByCategoryAge: Array.isArray(data.bankByCategoryAge) ? data.bankByCategoryAge : [],
+      bankByCategory: Array.isArray(data.bankByCategory) ? data.bankByCategory : [],
+      knowledgeByCategory: Array.isArray(data.knowledgeByCategory) ? data.knowledgeByCategory : [],
+      knowledgeByCategoryTopic: Array.isArray(data.knowledgeByCategoryTopic) ? data.knowledgeByCategoryTopic : [],
+    };
+  } catch (err) {
+    const msg = String(err?.message || '');
+    if (!msg.includes('get_question_reuse_quarantine_stats') && !msg.includes('PGRST202')) {
+      console.warn('[knowledge-import] quarantine stats failed:', msg);
+    }
+    return {
+      days: 30,
+      available: false,
+      bankTotal: 0,
+      knowledgeTotal: 0,
+      eventsTotal: 0,
+      bankByCategoryAge: [],
+      bankByCategory: [],
+      knowledgeByCategory: [],
+      knowledgeByCategoryTopic: [],
+    };
+  }
+}
+
 async function getDashboard(cfg, { autoSync = true } = {}) {
   if (autoSync) {
     try {
@@ -135,11 +181,13 @@ async function getDashboard(cfg, { autoSync = true } = {}) {
   }
 
   const repository = await fetchRepositoryStats(cfg);
+  const quarantine = await supa.fetchQuarantineStats(cfg);
   const seed = loadSeedQueueFile();
   return {
     ok: true,
     ...dashboard,
     repository,
+    quarantine,
     diagnostics: {
       storage: 'supabase',
       seedFileFound: !seed._fileMissing,
@@ -287,4 +335,5 @@ module.exports = {
   resetQueuePending,
   syncSeedQueue,
   loadSeedQueueFile,
+  fetchQuarantineStats,
 };

@@ -17,13 +17,14 @@
   const FormatValidators = global.QuestionEngineFormatValidators;
   const AgeValidators = global.QuestionEngineAgeValidators;
   const PersistentHistory = global.QuestionEnginePersistentHistory;
+  const ReportedContent = global.QuestionEngineReportedContent;
   const PromptBuilder = global.QuestionEnginePromptBuilder;
   const McAssembly = global.QuestionEngineMcAssembly;
   const QuestionScoring = global.QuestionEngineQuestionScoring;
 
   if (!Issues || !KnowledgeKey || !KnowledgeKeyCompute || !Retry || !Telemetry || !KnownFacts
     || !FactualVerify || !AdivinhaVerify || !DifficultyEstimate || !Config || !FormatValidators
-    || !AgeValidators || !PersistentHistory || !PromptBuilder || !McAssembly || !QuestionScoring) {
+    || !AgeValidators || !PersistentHistory || !ReportedContent || !PromptBuilder || !McAssembly || !QuestionScoring) {
     throw new Error('QuestionEngine: carrega todos os módulos question-engine/*.js antes de question-engine.js');
   }
 
@@ -81,6 +82,13 @@
     ANTI_REUSE_DAYS,
     questionHashFromPair,
   } = PersistentHistory;
+  const {
+    registerReportedQuestion,
+    mergeReportedHashesFromServer,
+    getReportedSnapshot,
+    getReportedContentValidationCtx,
+    questionHashFromPair: reportedQuestionHashFromPair,
+  } = ReportedContent;
 
   function buildRetryHint(issues, formatId, ageBandKey) {
     return buildRetryHintFromIssues(issues, formatId, ageBandKey, { FORMAT_LABELS, getAgeLimits });
@@ -162,6 +170,11 @@
     PERSISTENT_HISTORY_KEY,
     ANTI_REUSE_DAYS,
     questionHashFromPair,
+    registerReportedQuestion,
+    mergeReportedHashesFromServer,
+    getReportedSnapshot,
+    getReportedContentValidationCtx,
+    reportedQuestionHashFromPair,
     isGenericTrueFalseAnswer,
     buildGlobalRules,
     buildFormatRules,

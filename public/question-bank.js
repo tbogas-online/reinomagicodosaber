@@ -264,17 +264,32 @@
     return data || { ok: false };
   }
 
-  async function markReported(questionHashValue) {
+  async function markReported(questionHashValue, knowledgeId) {
     const c = await ensureClient();
     if (!c || !questionHashValue) return { ok: false };
     const { data, error } = await c.rpc('mark_question_reported', {
       p_question_hash: questionHashValue,
+      p_knowledge_id: knowledgeId || null,
     });
     if (error) {
       console.warn('[QuestionBank] markReported falhou:', error.message);
       return { ok: false, error };
     }
     return data || { ok: false };
+  }
+
+  async function fetchReportedHashes() {
+    const c = await ensureClient();
+    if (!c) return [];
+    const { data, error } = await c.rpc('get_reported_question_hashes');
+    if (error) {
+      if (typeof console !== 'undefined' && console.debug) {
+        console.debug('[QuestionBank] fetchReportedHashes:', error.message);
+      }
+      return [];
+    }
+    const hashes = data?.hashes;
+    return Array.isArray(hashes) ? hashes.filter(Boolean) : [];
   }
 
   /**
@@ -419,6 +434,7 @@
     pick,
     save,
     markReported,
+    fetchReportedHashes,
     recordPlay,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

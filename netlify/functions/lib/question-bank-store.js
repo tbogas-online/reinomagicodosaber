@@ -1,3 +1,4 @@
+const { getQuarantineStats } = require('./quarantine-store');
 const { getSupabaseAdmin } = require('./rooms-store');
 
 const LISBON_TZ = 'Europe/Lisbon';
@@ -312,12 +313,13 @@ async function fetchQuestionTimelineRows() {
 }
 
 async function getQuestionBankStats() {
-  const [data, timelineRows] = await Promise.all([
+  const [data, timelineRows, quarantine] = await Promise.all([
     supabaseRpc('get_question_bank_stats'),
     fetchQuestionTimelineRows().catch((err) => {
       console.warn('[question-bank-store] timeline rows failed:', err?.message || err);
       return [];
     }),
+    getQuarantineStats(30),
   ]);
 
   const base = (!data || typeof data !== 'object')
@@ -344,6 +346,7 @@ async function getQuestionBankStats() {
     ...base,
     timeline: buildTimeline(timelineRows),
     timelineByCategory: buildTimelineByCategory(timelineRows),
+    quarantine,
   };
 }
 

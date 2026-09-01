@@ -90,6 +90,19 @@
       background: linear-gradient(180deg, rgba(20, 184, 166, 0.16) 0%, rgba(11, 18, 32, 0.95) 100%);
     }
     .stat.stat-repository strong { color: #5eead4; }
+    .stat.stat-quarantine {
+      border-color: #d97706;
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.16) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .stat.stat-quarantine strong { color: #fbbf24; }
+    .bank-quarantine-section {
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid var(--border);
+    }
+    .bank-matrix.quarantine-matrix tbody tr:hover td {
+      background: rgba(245, 158, 11, 0.06);
+    }
     .stats.telemetry-kpis { flex-wrap: wrap; }
     .stats.telemetry-kpis .stat {
       flex: 1 1 120px;
@@ -1189,6 +1202,25 @@
               <tfoot id="bankMatrixFoot"></tfoot>
             </table>
           </div>
+          <div id="bankQuarantineSection" class="bank-quarantine-section">
+            <h3 class="charts-title" style="font-size:1rem; margin:0 0 6px;">Quarentena (30 dias)</h3>
+            <p class="sub" id="bankQuarantineNote" style="margin-top:0;">Perguntas do banco jogadas recentemente — indisponíveis para novo sorteio.</p>
+            <div class="bank-matrix-wrap">
+              <table class="bank-matrix quarantine-matrix">
+                <thead>
+                  <tr>
+                    <th>Categoria</th>
+                    <th class="num" title="6 a 9 anos">6–9</th>
+                    <th class="num" title="10 a 15 anos">10–15</th>
+                    <th class="num" title="Mais de 15 anos">+15</th>
+                    <th class="num" title="Total por categoria">Σ</th>
+                  </tr>
+                </thead>
+                <tbody id="bankQuarantineBody"></tbody>
+                <tfoot id="bankQuarantineFoot"></tfoot>
+              </table>
+            </div>
+          </div>
           <div id="bankSourceBreakdown"></div>
         </div>
         <p class="bank-footer-link-wrap">
@@ -1198,6 +1230,24 @@
 
       <div id="knowledgePanel" class="hidden">
         <div class="card stats" id="knowledgeStatsRow"></div>
+
+        <div class="card" id="knowledgeQuarantineSection">
+          <h2 class="charts-title" style="margin:0 0 6px;">Quarentena repositório (30 dias)</h2>
+          <p class="sub" id="knowledgeQuarantineNote" style="margin-top:0;">Factos verificados jogados recentemente — indisponíveis para adivinhas e curiosidades.</p>
+          <div class="bank-matrix-wrap">
+            <table class="bank-matrix quarantine-matrix">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th class="num" title="Factos em quarentena">Factos</th>
+                </tr>
+              </thead>
+              <tbody id="knowledgeQuarantineBody"></tbody>
+              <tfoot id="knowledgeQuarantineFoot"></tfoot>
+            </table>
+          </div>
+          <div id="knowledgeQuarantineTopics" class="bank-gaps-list" style="margin-top:12px;"></div>
+        </div>
 
         <div class="card" id="knowledgeImportSection">
           <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
@@ -3150,8 +3200,12 @@
     function renderBankStats(stats) {
       const el = document.getElementById('bankStatsRow');
       if (!el || !stats) return;
+      const q = stats.quarantine || {};
+      const qDays = q.days || 30;
+      const qBank = q.available === false ? '—' : (q.bankTotal ?? 0);
       el.innerHTML = `
         <div class="stat stat-resolved"><strong>${stats.validActive ?? stats.active ?? 0}</strong><span>Com opções (jogáveis)</span></div>
+        <div class="stat stat-quarantine"><strong>${qBank}</strong><span>Quarentena banco (${qDays}d)</span></div>
         <div class="stat stat-open"><strong>${stats.invalidActive || 0}</strong><span>Sem opções válidas</span></div>
         <div class="stat stat-total"><strong>${stats.total || 0}</strong><span>Total registadas</span></div>
         <div class="stat stat-cancelled"><strong>${stats.reported || 0}</strong><span>Reportadas</span></div>
@@ -3273,6 +3327,72 @@
       const cls = bankCountClass(v);
       const tip = title ? ` title="${esc(title)}"` : '';
       return `<span class="bank-cell ${cls}"${tip}>${v || 0}</span>`;
+    }
+
+    function buildCategoryAgeGrid(rows) {
+      const grid = {};
+      const ageTotals = Object.fromEntries(BANK_AGE_BANDS.map((b) => [b, 0]));
+      let grandTotal = 0;
+      for (const row of rows || []) {
+        const cat = Number(row.category_n);
+        const age = row.age_band;
+        const count = Number(row.count) || 0;
+        if (!cat || !BANK_AGE_BANDS.includes(age)) continue;
+        if (!grid[cat]) grid[cat] = {};
+        grid[cat][age] = count;
+        ageTotals[age] += count;
+        grandTotal += count;
+      }
+      return { grid, ageTotals, grandTotal };
+    }
+
+    function renderBankQuarantineMatrix(stats) {
+      const body = document.getElementById('bankQuarantineBody');
+      const foot = document.getElementById('bankQuarantineFoot');
+      const noteEl = document.getElementById('bankQuarantineNote');
+      if (!body || !foot) return;
+
+      const q = stats?.quarantine || {};
+      const days = q.days || 30;
+      if (noteEl) {
+        if (q.available === false) {
+          noteEl.textContent = `Anti-reuso global indisponível — executa supabase/question-reuse-global.sql no Supabase.`;
+        } else {
+          noteEl.innerHTML = `Perguntas do banco jogadas nos últimos <strong>${days}</strong> dias — indisponíveis para novo sorteio. Total: <strong>${q.bankTotal || 0}</strong> · eventos registados: <strong>${q.eventsTotal || 0}</strong>.`;
+        }
+      }
+
+      const { grid, ageTotals, grandTotal } = buildCategoryAgeGrid(q.bankByCategoryAge);
+      const cell = (n, title) => {
+        const gapCls = bankCellGapClass(n);
+        return `<td class="num${gapCls ? ` ${gapCls}` : ''}">${bankCountCell(n, title)}</td>`;
+      };
+
+      const rows = BANK_CATEGORIES.map((cat) => {
+        const row = grid[cat.n] || {};
+        const rowTotal = BANK_AGE_BANDS.reduce((sum, age) => sum + (Number(row[age]) || 0), 0);
+        return { cat, row, rowTotal };
+      }).filter((item) => item.rowTotal > 0);
+
+      if (!rows.length) {
+        body.innerHTML = `<tr><td colspan="5" class="sub">Sem perguntas do banco em quarentena.</td></tr>`;
+        foot.innerHTML = '';
+        return;
+      }
+
+      body.innerHTML = rows.map(({ cat, row, rowTotal }) => `
+        <tr>
+          <td class="cat-name"><span class="cat-num">${cat.n}</span>${esc(cat.name)}</td>
+          ${BANK_AGE_BANDS.map((age) => cell(row[age] || 0, `${cat.name} · ${age}: ${row[age] || 0} em quarentena`)).join('')}
+          <td class="num">${bankCountCell(rowTotal, `${cat.name} · total: ${rowTotal}`)}</td>
+        </tr>
+      `).join('');
+
+      foot.innerHTML = `<tr class="total-row">
+        <th>Total</th>
+        ${BANK_AGE_BANDS.map((age) => `<th class="num">${bankCountCell(ageTotals[age] || 0, `Total ${age}: ${ageTotals[age] || 0}`)}</th>`).join('')}
+        <th class="num">${bankCountCell(grandTotal, `Total geral: ${grandTotal}`)}</th>
+      </tr>`;
     }
 
     function renderBankMatrix(stats) {
@@ -3456,13 +3576,74 @@
       const summary = data?.summary || {};
       const repo = data?.repository || {};
       const lastRun = data?.lastRun;
+      const q = data?.quarantine || {};
+      const qDays = q.days || 30;
+      const qKnowledge = q.available === false ? '—' : (q.knowledgeTotal ?? 0);
       row.innerHTML = `
         <div class="stat stat-total"><strong>${summary.pending ?? '—'}</strong><span>Pendentes na fila</span></div>
         <div class="stat stat-resolved"><strong>${summary.imported ?? '—'}</strong><span>Já importados</span></div>
         <div class="stat stat-repository"><strong>${repo.active ?? repo.total ?? '—'}</strong><span>Activos no Supabase</span></div>
+        <div class="stat stat-quarantine"><strong>${qKnowledge}</strong><span>Quarentena repo (${qDays}d)</span></div>
         <div class="stat stat-open"><strong>${data?.state?.lastRunDate || '—'}</strong><span>Última importação</span></div>
         <div class="stat stat-top-issue"><strong>${lastRun?.upserted ?? '—'}</strong><span>Último lote (upserted)</span></div>
       `;
+    }
+
+    function renderKnowledgeQuarantine(data) {
+      const body = document.getElementById('knowledgeQuarantineBody');
+      const foot = document.getElementById('knowledgeQuarantineFoot');
+      const noteEl = document.getElementById('knowledgeQuarantineNote');
+      const topicsEl = document.getElementById('knowledgeQuarantineTopics');
+      if (!body || !foot) return;
+
+      const q = data?.quarantine || {};
+      const days = q.days || 30;
+      if (noteEl) {
+        if (q.available === false) {
+          noteEl.textContent = 'Anti-reuso global indisponível — executa supabase/question-reuse-global.sql no Supabase.';
+        } else {
+          noteEl.innerHTML = `Factos verificados jogados nos últimos <strong>${days}</strong> dias. Total em quarentena: <strong>${q.knowledgeTotal || 0}</strong>.`;
+        }
+      }
+
+      const byCat = new Map((q.knowledgeByCategory || []).map((row) => [Number(row.category_n), Number(row.count) || 0]));
+      const rows = BANK_CATEGORIES
+        .map((cat) => ({ cat, count: byCat.get(cat.n) || 0 }))
+        .filter((item) => item.count > 0);
+
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="2" class="sub">Sem factos do repositório em quarentena.</td></tr>';
+        foot.innerHTML = '';
+        if (topicsEl) topicsEl.innerHTML = '';
+        return;
+      }
+
+      const grandTotal = rows.reduce((sum, row) => sum + row.count, 0);
+      body.innerHTML = rows.map(({ cat, count }) => `
+        <tr>
+          <td class="cat-name"><span class="cat-num">${cat.n}</span>${esc(cat.name)}</td>
+          <td class="num">${bankCountCell(count, `${cat.name}: ${count} facto(s) em quarentena`)}</td>
+        </tr>
+      `).join('');
+      foot.innerHTML = `<tr class="total-row">
+        <th>Total</th>
+        <th class="num">${bankCountCell(grandTotal, `Total: ${grandTotal}`)}</th>
+      </tr>`;
+
+      if (topicsEl) {
+        const topics = (q.knowledgeByCategoryTopic || [])
+          .filter((row) => Number(row.count) > 0)
+          .sort((a, b) => Number(b.count) - Number(a.count) || Number(a.category_n) - Number(b.category_n));
+        if (!topics.length) {
+          topicsEl.innerHTML = '';
+          return;
+        }
+        const catName = (n) => BANK_CATEGORIES.find((c) => c.n === Number(n))?.name || `Cat. ${n}`;
+        topicsEl.innerHTML = topics.map((row) => {
+          const label = `${catName(row.category_n)} · ${row.topic || '—'}`;
+          return `<span class="pill" title="${esc(label)}">${esc(String(row.category_n))} ${esc(row.topic || '—')} <strong>${row.count}</strong></span>`;
+        }).join('');
+      }
     }
 
     function renderKnowledgeQueuePreview(data) {
@@ -3509,6 +3690,7 @@
         const data = await api('/api/knowledge-import-admin');
         lastKnowledgePayload = data;
         renderKnowledgeStats(data);
+        renderKnowledgeQuarantine(data);
         renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
         const updatedEl = document.getElementById('knowledgeLastUpdated');
@@ -3542,6 +3724,7 @@
         });
         lastKnowledgePayload = data;
         renderKnowledgeStats(data);
+        renderKnowledgeQuarantine(data);
         renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
         if (statusEl) {
@@ -3571,6 +3754,7 @@
         });
         lastKnowledgePayload = data;
         renderKnowledgeStats(data);
+        renderKnowledgeQuarantine(data);
         renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
         if (statusEl) {
@@ -3598,6 +3782,7 @@
         });
         lastKnowledgePayload = data;
         renderKnowledgeStats(data);
+        renderKnowledgeQuarantine(data);
         renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
         if (statusEl) {
@@ -3628,6 +3813,7 @@
         renderBankChart(lastBankStats);
         renderBankCategoryChart(lastBankStats);
         renderBankMatrix(lastBankStats);
+        renderBankQuarantineMatrix(lastBankStats);
         const updatedEl = document.getElementById('bankLastUpdated');
         if (updatedEl) updatedEl.textContent = `Actualizado às ${formatPortugalDateTime(new Date())}`;
         if (!quiet && statusEl) statusEl.textContent = '';

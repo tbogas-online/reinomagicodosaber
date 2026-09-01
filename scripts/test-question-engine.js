@@ -1435,5 +1435,39 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   delete memStore[key];
 }
 
+// 166–167. Reportes — bloqueio até correcção
+{
+  QE.registerReportedQuestion({
+    questionHash: 'hash-reportado-teste',
+    question: 'Qual é a capital de Portugal?',
+    answer: 'Lisboa',
+  }, normalizeQ);
+  const blocked = QE.validateQuestion({
+    q: 'Qual é a capital de Portugal?',
+    a: 'Lisboa',
+  }, {
+    ...baseCtx({ categoryNumber: 2 }),
+    questionHash: 'hash-reportado-teste',
+    blockedQuestionHashes: ['hash-reportado-teste'],
+    blockedQuestionNorms: [normalizeQ('Qual é a capital de Portugal?')],
+  });
+  assert('166. pergunta reportada rejeitada', !blocked.ok && blocked.issues.some((i) => /reportad/i.test(i)));
+  const repoBlocked = QE.validateQuestion({
+    q: 'Um polvo tem três corações. Verdadeiro ou Falso?',
+    a: 'Verdadeiro',
+    options: ['Verdadeiro', 'Falso'],
+  }, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.CURIOSIDADE, isMC: true }),
+    repositoryRecord: { knowledgeId: 'knw-reported-001', answer: 'Verdadeiro' },
+    blockedKnowledgeIds: ['knw-reported-001'],
+    helpers: {
+      stripTags,
+      validateTrueFalseQuestion: () => ({ ok: true, issues: [] }),
+      ageBandKey: '10-15',
+    },
+  });
+  assert('167. knowledgeId reportado rejeitado', !repoBlocked.ok && repoBlocked.issues.some((i) => /reportad/i.test(i)));
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

@@ -80,6 +80,28 @@ function collectRepetitionIssues(q, a, formatId, ctx, normalizeFn) {
   if (recordId && recentKnowledgeIds.includes(recordId)) {
     pushIssue(issues, 'KNOWLEDGE_ID_REPEATED', ISSUE_LAYER.repetition, 'facto do repositório já usado recentemente (knowledgeId)');
   }
+  const blockedKnowledgeIds = (ctx.blockedKnowledgeIds || [])
+    .map((id) => String(id || '').trim())
+    .filter(Boolean);
+  if (recordId && blockedKnowledgeIds.includes(recordId)) {
+    pushIssue(issues, 'KNOWLEDGE_REPORTED', ISSUE_LAYER.repetition, 'facto reportado — só pode voltar após correcção');
+  }
+  const blockedHashes = (ctx.blockedQuestionHashes || [])
+    .map((h) => String(h || '').trim())
+    .filter(Boolean);
+  const questionHash = String(ctx.questionHash || '').trim();
+  if (questionHash && blockedHashes.includes(questionHash)) {
+    pushIssue(issues, 'QUESTION_REPORTED', ISSUE_LAYER.repetition, 'pergunta reportada — só pode voltar após correcção');
+  }
+  const blockedNorms = (ctx.blockedQuestionNorms || [])
+    .map((n) => String(n || '').trim())
+    .filter(Boolean);
+  const qNormForReport = normalizeFn
+    ? normalizeFn(normalizeForRepetitionCheck(q, formatId))
+    : normalizeForRepetitionCheck(q, formatId).toLowerCase();
+  if (qNormForReport && blockedNorms.includes(qNormForReport)) {
+    pushIssue(issues, 'QUESTION_REPORTED', ISSUE_LAYER.repetition, 'pergunta reportada — só pode voltar após correcção');
+  }
   for (const prev of (ctx.usedQuestions || []).slice(-8)) {
     const qNorm = normalizeForRepetitionCheck(q, formatId);
     const prevNorm = normalizeForRepetitionCheck(prev, formatId);

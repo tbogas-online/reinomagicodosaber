@@ -218,6 +218,152 @@ $$;
 -- Limpeza opcional (cron ou manual): eventos > 90 dias
 -- DELETE FROM public.question_reuse_events WHERE played_at < now() - interval '90 days';
 
+-- ---------------------------------------------------------------------------
+-- RPC: estatísticas de quarentena (admin — service role)
+-- Perguntas/factos jogados nos últimos N dias (indisponíveis para novo sorteio)
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.get_question_reuse_quarantine_stats(
+  p_days INT DEFAULT 30
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_days INT := GREATEST(COALESCE(p_days, 30), 1);
+  v_cutoff TIMESTAMPTZ := now() - (v_days || ' days')::interval;
+  v_bank_total INT := 0;
+  v_knowledge_total INT := 0;
+  v_events_total INT := 0;
+  v_bank_by_category_age JSONB := '[]'::jsonb;
+  v_bank_by_category JSONB := '[]'::jsonb;
+  v_knowledge_by_category JSONB := '[]'::jsonb;
+  v_knowledge_by_category_topic JSONB := '[]'::jsonb;
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.tables
+    WHERE table_schema = 'public'
+      AND table_name = 'question_reuse_events'
+  ) THEN
+    RETURN jsonb_build_object(
+      'days', v_days,
+      'available', false,
+      'bankTotal', 0,
+      'knowledgeTotal', 0,
+      'eventsTotal', 0,
+      'bankByCategoryAge', '[]'::jsonb,
+      'bankByCategory', '[]'::jsonb,
+      'knowledgeByCategory', '[]'::jsonb,
+      'knowledgeByCategoryTopic', '[]'::jsonb
+    );
+  END IF;
+
+  SELECT COUNT(*)::INT INTO v_events_total
+  FROM public.question_reuse_events e
+  WHERE e.played_at >= v_cutoff;
+
+  SELECT COUNT(DISTINCT qb.question_hash)::INT INTO v_bank_total
+  FROM public.question_bank qb
+  INNER JOIN public.question_reuse_events e ON e.question_hash = qb.question_hash
+  WHERE e.played_at >= v_cutoff
+    AND qb.is_reported = false
+    AND public.reino_has_valid_mc_options(qb.options, qb.format, qb.correct_answer);
+
+  SELECT COUNT(DISTINCT kr.knowledge_id)::INT INTO v_knowledge_total
+  FROM public.knowledge_records kr
+  INNER JOIN public.question_reuse_events e ON e.knowledge_id = kr.knowledge_id
+  WHERE e.played_at >= v_cutoff
+    AND kr.is_active = true
+    AND kr.knowledge_id IS NOT NULL
+    AND kr.knowledge_id <> '';
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'category_n', t.category_n,
+      'age_band', t.age_band,
+      'count', t.cnt
+    ) ORDER BY t.category_n, t.age_band
+  ), '[]'::jsonb)
+  INTO v_bank_by_category_age
+  FROM (
+    SELECT qb.category_n, qb.age_band, COUNT(DISTINCT qb.question_hash)::INT AS cnt
+    FROM public.question_bank qb
+    INNER JOIN public.question_reuse_events e ON e.question_hash = qb.question_hash
+    WHERE e.played_at >= v_cutoff
+      AND qb.is_reported = false
+      AND public.reino_has_valid_mc_options(qb.options, qb.format, qb.correct_answer)
+    GROUP BY qb.category_n, qb.age_band
+  ) t;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object('category_n', t.category_n, 'count', t.cnt)
+    ORDER BY t.category_n
+  ), '[]'::jsonb)
+  INTO v_bank_by_category
+  FROM (
+    SELECT qb.category_n, COUNT(DISTINCT qb.question_hash)::INT AS cnt
+    FROM public.question_bank qb
+    INNER JOIN public.question_reuse_events e ON e.question_hash = qb.question_hash
+    WHERE e.played_at >= v_cutoff
+      AND qb.is_reported = false
+      AND public.reino_has_valid_mc_options(qb.options, qb.format, qb.correct_answer)
+    GROUP BY qb.category_n
+  ) t;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object('category_n', t.category_n, 'count', t.cnt)
+    ORDER BY t.category_n
+  ), '[]'::jsonb)
+  INTO v_knowledge_by_category
+  FROM (
+    SELECT kr.category_n, COUNT(DISTINCT kr.knowledge_id)::INT AS cnt
+    FROM public.knowledge_records kr
+    INNER JOIN public.question_reuse_events e ON e.knowledge_id = kr.knowledge_id
+    WHERE e.played_at >= v_cutoff
+      AND kr.is_active = true
+      AND kr.knowledge_id IS NOT NULL
+      AND kr.knowledge_id <> ''
+    GROUP BY kr.category_n
+  ) t;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'category_n', t.category_n,
+      'topic', t.topic,
+      'count', t.cnt
+    ) ORDER BY t.category_n, t.topic
+  ), '[]'::jsonb)
+  INTO v_knowledge_by_category_topic
+  FROM (
+    SELECT kr.category_n, kr.topic, COUNT(DISTINCT kr.knowledge_id)::INT AS cnt
+    FROM public.knowledge_records kr
+    INNER JOIN public.question_reuse_events e ON e.knowledge_id = kr.knowledge_id
+    WHERE e.played_at >= v_cutoff
+      AND kr.is_active = true
+      AND kr.knowledge_id IS NOT NULL
+      AND kr.knowledge_id <> ''
+    GROUP BY kr.category_n, kr.topic
+  ) t;
+
+  RETURN jsonb_build_object(
+    'days', v_days,
+    'available', true,
+    'bankTotal', v_bank_total,
+    'knowledgeTotal', v_knowledge_total,
+    'eventsTotal', v_events_total,
+    'bankByCategoryAge', v_bank_by_category_age,
+    'bankByCategory', v_bank_by_category,
+    'knowledgeByCategory', v_knowledge_by_category,
+    'knowledgeByCategoryTopic', v_knowledge_by_category_topic
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.get_question_reuse_quarantine_stats(INT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.get_question_reuse_quarantine_stats(INT) TO service_role;
+
 REVOKE ALL ON FUNCTION public.record_question_reuse(TEXT, TEXT, INT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.record_question_reuse(TEXT, TEXT, INT, TEXT) TO anon, authenticated;
 

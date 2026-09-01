@@ -21,6 +21,7 @@
     'question-engine/age-validators.js',
     'question-engine/category-validators.js',
     'question-engine/semantic-validators.js',
+    'question-engine/reported-content.js',
     'question-engine/repetition-validators.js',
     'question-engine/knowledge-key-compute.js',
     'question-engine/persistent-history.js',

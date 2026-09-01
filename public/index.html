@@ -3441,7 +3441,8 @@
 <script src="question-engine/age-validators.js?v=20260901-210000"></script>
 <script src="question-engine/category-validators.js?v=20260901-220000"></script>
 <script src="question-engine/semantic-validators.js?v=20260901-220000"></script>
-<script src="question-engine/repetition-validators.js?v=20260901-190000"></script>
+<script src="question-engine/reported-content.js?v=20260901-280000"></script>
+<script src="question-engine/repetition-validators.js?v=20260901-280000"></script>
 <script src="question-engine/knowledge-key-compute.js?v=20260901-270000"></script>
 <script src="question-engine/persistent-history.js?v=20260901-190000"></script>
 <script src="question-engine/prompt-builder.js?v=20260901-184500"></script>
@@ -4081,6 +4082,7 @@
 
   function buildQuestionReuseContext(ageBandKey, persistent, engine){
     const antiReuse = engine.getAntiReuseSnapshot?.() || { entries: [] };
+    const reported = engine.getReportedSnapshot?.(normalizeQ) || { hashes: [], questionNorms: [], knowledgeIds: [] };
     const questionNorms = new Set(getEffectiveUsedQuestions(ageBandKey).map(normalizeQ));
     const knowledgeIds = new Set([...(usedKnowledgeIds[ageBandKey] || [])]);
     const knowledgeKeys = new Set(getEffectiveUsedKnowledgeKeys(ageBandKey));
@@ -4109,8 +4111,39 @@
       const n = normalizeQ(k);
       if(n) knowledgeKeys.add(n);
     }
+    for(const h of (reported.hashes || [])){
+      const s = String(h || '').trim();
+      if(s) questionHashes.add(s);
+    }
+    for(const n of (reported.questionNorms || [])){
+      const norm = normalizeQ(n);
+      if(norm) questionNorms.add(norm);
+    }
+    for(const id of (reported.knowledgeIds || [])){
+      const s = String(id || '').trim();
+      if(s) knowledgeIds.add(s);
+    }
 
     return { questionNorms, knowledgeIds, knowledgeKeys, questionHashes, engine };
+  }
+
+  let reportedHashesSynced = false;
+  async function ensureReportedHashesSynced(engine){
+    if(reportedHashesSynced) return;
+    reportedHashesSynced = true;
+    const QB = window.QuestionBank;
+    if(!QB?.fetchReportedHashes) return;
+    try {
+      const hashes = await QB.fetchReportedHashes();
+      engine.mergeReportedHashesFromServer?.(hashes);
+    } catch { /* offline */ }
+  }
+
+  function buildQuestionValidationCtx(engine, extra = {}){
+    return {
+      ...(engine.getReportedContentValidationCtx?.(normalizeQ) || {}),
+      ...extra,
+    };
   }
 
   function isBankRowAlreadyUsed(row, reuseCtx){
@@ -4388,7 +4421,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         if(!recentMcPositions[ageBandKey]) recentMcPositions[ageBandKey] = [];
         parsed.options = engine.shuffleMcOptions(parsed.options, parsed.a, normalizeQ, recentMcPositions[ageBandKey]);
 
-        const qualityCheck = engine.validateQuestion(parsed, {
+        const qualityCheck = engine.validateQuestion(parsed, buildQuestionValidationCtx(engine, {
           formatId: questionFormat,
           ageBandKey,
           categoryNumber: category.n,
@@ -4400,11 +4433,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           persistentKnowledgeIds: persistent.knowledgeIds || [],
           persistentKnowledgeKeys: persistent.knowledgeKeys,
           repositoryRecord: record,
+          questionHash: hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a)),
           isMC,
           stripTags,
           normalizeFn: normalizeQ,
           helpers: { stripTags, validateTrueFalseQuestion, ageBandKey },
-        });
+        }));
         if(!qualityCheck.ok){
           lastValidationIssues = qualityCheck.issues || [];
           lastValidationIssueDetails = qualityCheck.issueDetails || [];
@@ -4621,7 +4655,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           parsed.options = ['Verdadeiro', 'Falso'];
         }
 
-        const qualityCheck = engine.validateQuestion(parsed, {
+        const qualityCheck = engine.validateQuestion(parsed, buildQuestionValidationCtx(engine, {
           formatId: validateFormatId,
           ageBandKey,
           categoryNumber: category.n,
@@ -4636,11 +4670,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             ...record,
             answer: getRepositoryExpectedAnswer(record, engine),
           },
+          questionHash: hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a)),
           isMC,
           stripTags,
           normalizeFn: normalizeQ,
           helpers: { stripTags, validateTrueFalseQuestion, ageBandKey },
-        });
+        }));
         if(!qualityCheck.ok){
           lastValidationIssues = qualityCheck.issues || [];
           lastValidationIssueDetails = qualityCheck.issueDetails || [];
@@ -4719,6 +4754,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       throw new Error('Categoria em falta para gerar pergunta.');
     }
     const engine = QE();
+    await ensureReportedHashesSynced(engine);
     const localOnly = aiProviderChoice === 'local';
     if(!localOnly && !aiStatusOnline) await tryRestoreAiOnline();
     const isMC = true;
@@ -5008,7 +5044,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           }
         }
 
-        const qualityCheck = engine.validateQuestion(parsed, {
+        const qualityCheck = engine.validateQuestion(parsed, buildQuestionValidationCtx(engine, {
           formatId: questionFormat,
           ageBandKey,
           categoryNumber: category.n,
@@ -5019,11 +5055,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           usedKnowledgeIds: getEffectiveUsedKnowledgeIds(ageBandKey, persistent),
           persistentKnowledgeIds: persistent.knowledgeIds || [],
           persistentKnowledgeKeys: persistent.knowledgeKeys,
+          questionHash: hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a)),
           isMC,
           stripTags,
           normalizeFn: normalizeQ,
           helpers: { stripTags, validateTrueFalseQuestion, ageBandKey },
-        });
+        }));
         if(!qualityCheck.ok){
           lastValidationIssues = qualityCheck.issues || [];
           lastValidationIssueDetails = qualityCheck.issueDetails || [];
@@ -7956,9 +7993,19 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     } catch(err) {
       console.warn('Reporte guardado neste dispositivo; envio ao servidor falhou:', err);
     }
-    if(!isSuggestion && window.QuestionBank?.isConfigured?.() && currentQuestion?.q && currentQuestion?.a){
+    if(!isSuggestion && currentQuestion?.q && currentQuestion?.a){
       const qHash = hashQuestionKey(stripTags(currentQuestion.q) + '|' + stripTags(currentQuestion.a));
-      window.QuestionBank.markReported(qHash).catch(() => {});
+      try {
+        QE().registerReportedQuestion({
+          questionHash: qHash,
+          question: stripTags(currentQuestion.q),
+          answer: stripTags(currentQuestion.a),
+          knowledgeId: currentQuestion.knowledgeId || '',
+        }, normalizeQ);
+      } catch { /* motor indisponível */ }
+      if(window.QuestionBank?.isConfigured?.()){
+        window.QuestionBank.markReported(qHash, currentQuestion.knowledgeId || null).catch(() => {});
+      }
     }
     setReportButtonVisible(true, true);
     status.textContent = isSuggestion

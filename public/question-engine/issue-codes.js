@@ -25,6 +25,8 @@
     MC_INSUFFICIENT_OPTIONS: 'Devolve JSON completo com 4 opções MC distintas e uma única resposta correcta.',
     MC_MULTIPLE_CORRECT: 'Gera exactamente uma opção correcta — as outras três devem ser claramente erradas.',
     KNOWLEDGE_REPEATED: 'Não repitas conhecimento já testado — escolhe outro tema dentro da mesma categoria.',
+    KNOWLEDGE_REPORTED: 'Este facto foi reportado pelos jogadores — inventa outro tema ou reformula completamente a pergunta.',
+    QUESTION_REPORTED: 'Esta pergunta foi reportada — não a repitas; escolhe outro tema ou reformula por completo.',
     QUESTION_REPEATED: 'Não repitas conhecimento já testado — escolhe outro tema dentro da mesma categoria.',
     QUESTION_SIMILAR: 'Não repitas conhecimento já testado — escolhe outro tema dentro da mesma categoria.',
     ANSWER_REPEATED: 'Não repitas conhecimento já testado — escolhe outro tema dentro da mesma categoria.',
