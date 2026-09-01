@@ -1128,12 +1128,12 @@ Só json válido, sem markdown: ${jsonFormat}`;
       || /verdadeiro\s+ou\s+falso/i.test(body);
 
     if (/^em que ano\b|^qual é o ano\b|^em que ano foram\b|^quando foram realizados\b/i.test(body) && !surpriseFrame) {
-      issues.push('CURIOSIDADE não deve ser pergunta simples de ano/data');
+      pushFormatViolation(issues, 'CURIOSIDADE não deve ser pergunta simples de ano/data');
     }
     if (/^em que (país|cidade|continente)\b/i.test(body) && !surpriseFrame) {
-      issues.push('CURIOSIDADE não deve ser pergunta geográfica banal');
+      pushFormatViolation(issues, 'CURIOSIDADE não deve ser pergunta geográfica banal');
     }
-    if (body.length > 200) issues.push('CURIOSIDADE demasiado longa para ler em voz alta');
+    if (body.length > 200) pushFormatViolation(issues, 'CURIOSIDADE demasiado longa para ler em voz alta');
     return issues;
   }
 
@@ -1156,18 +1156,18 @@ Só json válido, sem markdown: ${jsonFormat}`;
 
     const afterBlank = q.slice(blank.index + blank[0].length).trim();
     if (afterBlank && !/^[.?!…]+$/.test(afterBlank)) {
-      issues.push('COMPLETA: a lacuna deve ficar no final da frase (sem texto depois)');
+      pushFormatViolation(issues, 'COMPLETA: a lacuna deve ficar no final da frase (sem texto depois)');
     }
 
     const body = q.replace(/^completa:\s*/i, '').trim();
     if (!/_{2,}\s*[.?!…]?\s*$|…\s*[.?!…]?\s*$|\.{3}\s*[.?!…]?\s*$/i.test(body)) {
-      issues.push('COMPLETA: a lacuna tem de ser a última parte da frase');
+      pushFormatViolation(issues, 'COMPLETA: a lacuna tem de ser a última parte da frase');
     }
 
     const before = q.slice(0, blank.index).replace(/^completa:\s*/i, '').trim();
     const beforeWords = before.split(/\s+/).filter(Boolean).length;
-    if (q.length > lim.total) issues.push('COMPLETA demasiado longa para ler em voz alta');
-    if (beforeWords > lim.before) issues.push('COMPLETA: demasiado texto antes da lacuna');
+    if (q.length > lim.total) pushFormatViolation(issues, 'COMPLETA demasiado longa para ler em voz alta');
+    if (beforeWords > lim.before) pushFormatViolation(issues, 'COMPLETA: demasiado texto antes da lacuna');
 
     return issues;
   }
@@ -1179,7 +1179,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const vagueWhere = /\bpara onde\b.*\b(cai|cair|vai|ir)\b/i.test(q);
     const hasFrame = /\bem relação\b|\brelativamente\b|\bcontigo\b|\ba bordo\b|\bdentro do\b|\bvisto de dentro\b|\bpara ti\b/i.test(q);
     if (motion && vagueWhere && !hasFrame) {
-      issues.push('situação prática ambígua — especifica o referencial (ex.: "em relação a ti")');
+      pushFormatViolation(issues, 'situação prática ambígua — especifica o referencial (ex.: "em relação a ti")');
     }
     return issues;
   }
@@ -1196,10 +1196,10 @@ Só json válido, sem markdown: ${jsonFormat}`;
       && cleanOpts.filter((o) => countryOptionPattern.test(o)).length >= 2;
 
     if (multiPlaceFeature && vague && !specific) {
-      issues.push('ONDE_FICA ambíguo — especifica país de origem, desagua, capital ou continente');
+      pushFormatViolation(issues, 'ONDE_FICA ambíguo — especifica país de origem, desagua, capital ou continente');
     }
     if (countryishOptions && vague && multiPlaceFeature && !specific) {
-      issues.push('ONDE_FICA com países/continentes exige localização inequívoca');
+      pushFormatViolation(issues, 'ONDE_FICA com países/continentes exige localização inequívoca');
     }
     return issues;
   }
@@ -1379,7 +1379,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const foreignKinds = ['film', 'year', 'country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'];
     const distinctForeign = new Set(kinds.filter((k) => foreignKinds.includes(k)));
     if (distinctForeign.size >= 2) {
-      issues.push('opções parecem respostas de perguntas diferentes — todas devem ser do mesmo tipo');
+      pushMcWrongClass(issues, 'opções parecem respostas de perguntas diferentes — todas devem ser do mesmo tipo');
     }
 
     if (/\b(material|tecido|fibr[ao]|sintétic|sintetic)\b/i.test(q)) {
@@ -1535,7 +1535,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     if (ageBandKey !== '6-9') return issues;
     if (/\b(cinderela|cinderella)\b/i.test(q) && /\b(rato|ratos)\b/i.test(q)) {
       if (/\b(jaquim|jaq|gus|névoa|nevoa)\b/i.test(a)) {
-        issues.push('personagem secundário obscuro para 6–9 — usa personagens principais');
+        pushAgeHardIssue(issues, 'personagem secundário obscuro para 6–9 — usa personagens principais');
       }
     }
     return issues;
@@ -1618,34 +1618,34 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const blob = [q, a, ...(options || [])].join(' ');
     const obscurePeople = /\b(cristofori|bartolomeo|johann|sebastian|wolfgang|amadeus|ludwig|beethoven|bach|mozart|chopin|verdi|puccini|galileu|copérnico|copernico|arquimedes|pitágoras|pitagoras|darwin|pasteur|faraday)\b/i;
     if (obscurePeople.test(blob)) {
-      issues.push('personagem ou tema demasiado avançado para 6–9');
+      pushAgeHardIssue(issues, 'personagem ou tema demasiado avançado para 6–9');
     }
     if (/quem\s+(é|e)\s+quem\b/i.test(q)) {
-      issues.push('formulação incorrecta — evita "Quem é quem"');
+      pushFormatViolation(issues, 'formulação incorrecta — evita "Quem é quem"');
     }
     if (formatId === FORMAT_IDS.QUEM_E && /\b(inventou|criou|descobriu)\s+o\s+(piano|violino|gramofone|telefone)\b/i.test(q)) {
-      issues.push('inventor de instrumento demasiado avançado para 6–9');
+      pushAgeHardIssue(issues, 'inventor de instrumento demasiado avançado para 6–9');
     }
     if (formatId === FORMAT_IDS.QUEM_E && /\b(escreveu|escreve|autor|autora)\b/i.test(q)) {
-      issues.push('para 6–9 prefere personagem, não autor (ex.: "Quem é o menino de Harry Potter?")');
+      pushAgeHardIssue(issues, 'para 6–9 prefere personagem, não autor (ex.: "Quem é o menino de Harry Potter?")');
     }
     if (formatId === FORMAT_IDS.QUEM_E && (/^[A-Z]\.[A-Z]\./.test(a.trim()) || /\b[A-Z]\.[A-Z]\.\s/.test(a))) {
-      issues.push('nome com iniciais difícil para 6–9 (ex.: evita "J.K. Rowling")');
+      pushAgeHardIssue(issues, 'nome com iniciais difícil para 6–9 (ex.: evita "J.K. Rowling")');
     }
     if (formatId === FORMAT_IDS.QUEM_E) {
       const answerWords = a.split(/\s+/).filter(Boolean);
       if (answerWords.length >= 3) {
-        issues.push('nome de pessoa demasiado longo para 6–9 (máx. 2 palavras)');
+        pushAgeHardIssue(issues, 'nome de pessoa demasiado longo para 6–9 (máx. 2 palavras)');
       }
     }
     if (formatId === FORMAT_IDS.QUANDO && /\b(playstation|ps\s*one|ps1|xbox|mega\s*drive|super\s*nintendo|nintendo\s*64)\b/i.test(blob)) {
-      issues.push('data de lançamento de consola demasiado difícil para 6–9');
+      pushAgeHardIssue(issues, 'data de lançamento de consola demasiado difícil para 6–9');
     }
     if (/\b(bob\s+marley|reggae)\b/i.test(blob)) {
-      issues.push('artista ou género musical demasiado avançado para 6–9');
+      pushAgeHardIssue(issues, 'artista ou género musical demasiado avançado para 6–9');
     }
     if (formatId === FORMAT_IDS.O_QUE_E && q.length > 95) {
-      issues.push('pergunta O que é demasiado longa para 6–9');
+      pushFormatViolation(issues, 'pergunta O que é demasiado longa para 6–9');
     }
     if (options?.length) {
       const strip = (t) => String(t || '').replace(/<[^>]*>/g, '').trim();
@@ -1672,27 +1672,27 @@ Só json válido, sem markdown: ${jsonFormat}`;
 
     if (formatId === FORMAT_IDS.QUEM_E) {
       if (!/^quem\b/i.test(q) && !/qual\s+(é|e)\s+o\s+nome\b/i.test(q)) {
-        issues.push('QUEM_E deve começar por "Quem"');
+        pushFormatViolation(issues, 'QUEM_E deve começar por "Quem"');
       }
-      if (/quem\s+(é|e)\s+quem\b/i.test(q)) issues.push('QUEM_E: evita "Quem é quem"');
-      if (/^o\s+que\s+(é|e)\b/i.test(q)) issues.push('QUEM_E não deve usar "O que é"');
-      if (isObviouslyNotAPerson(a)) issues.push('QUEM_E: resposta deve ser uma pessoa');
+      if (/quem\s+(é|e)\s+quem\b/i.test(q)) pushFormatViolation(issues, 'QUEM_E: evita "Quem é quem"');
+      if (/^o\s+que\s+(é|e)\b/i.test(q)) pushFormatViolation(issues, 'QUEM_E não deve usar "O que é"');
+      if (isObviouslyNotAPerson(a)) pushFormatViolation(issues, 'QUEM_E: resposta deve ser uma pessoa');
       if (/\b(a|uma)\s+(engenheira|actriz|atriz|inventora|escritora|diretora|realizadora)\b/i.test(q)
         && /\b(dario|martin|james|john|robert|leonardo|quentin|stanley|heath|elon|ray|hiroshi)\b/i.test(a.toLowerCase())) {
-        issues.push('inconsistência de género — a pergunta pede uma mulher mas a resposta é um nome masculino');
+        pushFormatViolation(issues, 'inconsistência de género — a pergunta pede uma mulher mas a resposta é um nome masculino');
       }
     }
 
     if (formatId === FORMAT_IDS.O_QUE_E) {
       if (!/^o\s+que\b|^que\s+significa\b|^qual\s+é\s+o\s+(termo|significado|nome do)\b/i.test(q)) {
-        issues.push('O_QUE_E deve perguntar por conceito/termo/fenómeno');
+        pushFormatViolation(issues, 'O_QUE_E deve perguntar por conceito/termo/fenómeno');
       }
-      if (/^quem\b/i.test(q)) issues.push('O_QUE_E não deve perguntar por pessoa');
+      if (/^quem\b/i.test(q)) pushFormatViolation(issues, 'O_QUE_E não deve perguntar por pessoa');
     }
 
     if (formatId === FORMAT_IDS.COMPLETA) {
       if (!/_{2,}|…|\.{3}|completa|falta/i.test(q)) {
-        issues.push('COMPLETA deve ter lacuna visível');
+        pushFormatViolation(issues, 'COMPLETA deve ter lacuna visível');
       } else {
         issues.push(...validateCompletaOral(q, ageBandKey || '15+'));
       }
@@ -1700,13 +1700,13 @@ Só json válido, sem markdown: ${jsonFormat}`;
 
     if (formatId === FORMAT_IDS.ONDE_FICA) {
       if (!/\bonde\b|\bem\s+que\s+(país|cidade|continente|região|regiao)\b/i.test(q)) {
-        issues.push('ONDE_FICA deve perguntar por localização');
+        pushFormatViolation(issues, 'ONDE_FICA deve perguntar por localização');
       }
       issues.push(...validateOndeFica(q, parsed?.options, stripTags));
     }
 
     if (formatId === FORMAT_IDS.QUANDO && !looksLikeWhenQuestion(q, a)) {
-      issues.push('QUANDO deve pedir tempo/data/período');
+      pushFormatViolation(issues, 'QUANDO deve pedir tempo/data/período');
     }
     if (formatId === FORMAT_IDS.QUANDO && getAgeLimits(ageBandKey).rejectHardHistoricalWhen
       && isHardHistoricalWhenQuestion(q)) {
@@ -1726,7 +1726,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
 
     if (formatId === FORMAT_IDS.CAUSA_CONSEQUENCIA) {
       const maxQ = getAgeLimits(ageBandKey).maxCausaConsequenciaChars;
-      if (q.length > maxQ) issues.push('pergunta CAUSA_CONSEQUENCIA demasiado longa para ler em voz alta');
+      if (q.length > maxQ) pushFormatViolation(issues, 'pergunta CAUSA_CONSEQUENCIA demasiado longa para ler em voz alta');
     }
 
     if (formatId === FORMAT_IDS.SITUACAO_PRATICA) {
@@ -1734,12 +1734,12 @@ Só json válido, sem markdown: ${jsonFormat}`;
     }
 
     if ((formatId === FORMAT_IDS.RESPOSTA_DIRETA || formatId === FORMAT_IDS.ESCOLHA_MULTIPLA)) {
-      if (q.includes('→') || q.includes('->')) issues.push('sem setas de associação');
-      if (/qual\s+destes.*\bnão\b/i.test(q)) issues.push('evitar "qual não é"');
+      if (q.includes('→') || q.includes('->')) pushFormatViolation(issues, 'sem setas de associação');
+      if (/qual\s+destes.*\bnão\b/i.test(q)) pushFormatViolation(issues, 'evitar "qual não é"');
     }
 
     if (/\bqual\s+destas\s+afirmações\s+não\s+é\s+incorreta\b/i.test(q)) {
-      issues.push('negação múltipla');
+      pushFormatViolation(issues, 'negação múltipla');
     }
 
     return { ok: !issues.length, issues };

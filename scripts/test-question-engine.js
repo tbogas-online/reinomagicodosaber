@@ -969,6 +969,35 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const hint = QE.buildRetryHint(versalhes.options.map(() => ({ code: 'MC_WRONG_CLASS', message: 'test' })), QE.FORMAT_IDS.ESCOLHA_MULTIPLA, '15+');
   assert('115. retry hint MC_WRONG_CLASS', hint.includes('mesma classe'));
 }
+
+// 116–120. Fase 4c — pushIssue em validadores de formato
+{
+  const engenheira = {
+    q: 'Quem é a engenheira que desenvolveu a primeira mão robótica controlada pelo pensamento?',
+    a: 'Dario Rossi',
+  };
+  const r = QE.validateQuestion(engenheira, baseCtx({ formatId: QE.FORMAT_IDS.QUEM_E, categoryNumber: 17, ageBandKey: '15+' }));
+  assert('116. FORMAT_VIOLATION género QUEM_E', !r.ok && r.issueDetails?.some((i) => i.code === 'FORMAT_VIOLATION'), r.issues?.join(', '));
+}
+{
+  const tejo = { q: 'Onde fica o rio Tejo?', a: 'Portugal', options: ['Espanha', 'França', 'Portugal', 'Itália'] };
+  const r = QE.validateQuestion(tejo, baseCtx({ formatId: QE.FORMAT_IDS.ONDE_FICA, categoryNumber: 2, ageBandKey: '10-15', isMC: true }));
+  assert('117. FORMAT_VIOLATION ONDE_FICA ambíguo', !r.ok && r.issueDetails?.some((i) => i.code === 'FORMAT_VIOLATION'), r.issues?.join(', '));
+}
+{
+  const curiosidade = { q: 'Em que ano foi descoberto o Brasil?', a: '1500' };
+  const r = QE.validateQuestion(curiosidade, baseCtx({ formatId: QE.FORMAT_IDS.CURIOSIDADE, categoryNumber: 3, ageBandKey: '15+' }));
+  assert('118. FORMAT_VIOLATION CURIOSIDADE ano', !r.ok && r.issueDetails?.some((i) => i.code === 'FORMAT_VIOLATION'), r.issues?.join(', '));
+}
+{
+  const completa = { q: 'Descreve o processo de evaporização da água.', a: 'evaporação' };
+  const r = QE.validateQuestion(completa, baseCtx({ formatId: QE.FORMAT_IDS.COMPLETA, categoryNumber: 5, ageBandKey: '10-15' }));
+  assert('119. FORMAT_VIOLATION COMPLETA sem lacuna', !r.ok && r.issueDetails?.some((i) => i.code === 'FORMAT_VIOLATION'), r.issues?.join(', '));
+}
+{
+  const hint = QE.buildRetryHint([{ code: 'FORMAT_VIOLATION', message: 'test' }], QE.FORMAT_IDS.QUEM_E, '15+');
+  assert('120. retry hint FORMAT_VIOLATION', hint.includes('formato pedido'));
+}
 {
   QE.clearGenerationTelemetry();
   for (let i = 0; i < 210; i += 1) {
