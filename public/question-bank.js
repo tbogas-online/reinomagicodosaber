@@ -65,7 +65,9 @@
 
   function expectedOptionCount(format, correctAnswer) {
     const norm = stripTags(correctAnswer).toLowerCase();
-    if (format === 'VERDADEIRO_FALSO' || norm === 'verdadeiro' || norm === 'falso') return 2;
+    if (format === 'VERDADEIRO_FALSO' || format === 'CURIOSIDADE' || norm === 'verdadeiro' || norm === 'falso') {
+      return 2;
+    }
     return 4;
   }
 
@@ -77,7 +79,13 @@
     if (cleaned.length !== expected) return false;
     const normalized = cleaned.map((o) => stripTags(o).toLowerCase());
     if (new Set(normalized).size !== expected) return false;
-    return normalized.includes(stripTags(correctAnswer).toLowerCase());
+    if (!normalized.includes(stripTags(correctAnswer).toLowerCase())) return false;
+    if (format === 'VERDADEIRO_FALSO' || format === 'CURIOSIDADE') {
+      const normA = stripTags(correctAnswer).toLowerCase();
+      if (normA !== 'verdadeiro' && normA !== 'falso') return false;
+      return normalized.includes('verdadeiro') && normalized.includes('falso');
+    }
+    return true;
   }
 
   function hashQuestionKey(text) {

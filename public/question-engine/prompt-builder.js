@@ -108,7 +108,7 @@ Em física do quotidiano, especifica o referencial: "em relação a ti", "visto 
 BOM: "Num avião a voar em linha recta a velocidade constante, largas uma moeda. Em relação a ti, cai na vertical ou afasta-se para trás?" → resposta: "Na vertical" (ou V/F).
 MAU: "Para onde cai a moeda?" (ambíguo — depende se medes em relação ao chão ou ao avião). MAU: "avoando" — escreve "a voar".
 Em matemática, calcula internamente a resposta.${mcNote}`,
-      ADIVINHA: `FORMATO: ADIVINHA — adivinha ou charada tradicional portuguesa, tom lúdico, adequada à idade. NÃO transformes um facto directo numa adivinha forçada.
+      ADIVINHA: `FORMATO: ADIVINHA — adivinha tradicional portuguesa, tom lúdico, adequada à idade. NÃO transformes um facto directo numa adivinha forçada.
 Usa "Que animal…" / "O que é…" — NÃO "Quem é o animal". A resposta tem de encaixar claramente nas pistas (ex.: instrumento batido → tambor, não bola).
 Inclui array "clues" com 2–5 pistas curtas (frases ou fragmentos) que apontam unicamente para a resposta — serão validadas semanticamente.`,
       CURIOSIDADE: `FORMATO OBRIGATÓRIO: CURIOSIDADE — facto surpreendente em PT-PT claro, que provoque "Não sabia disso!". Frase curta e natural em voz alta.
@@ -362,7 +362,7 @@ FACTO VERIFICADO (fonte: ${sourceLine}):
 
 REGRAS DO REPOSITÓRIO (obrigatórias):
 - O campo "a" tem de ser EXACTAMENTE "${record.answer}" — sem sinónimos nem variantes.
-- Reformula apenas "q" como charada natural em PT-PT; podes reordenar as pistas oficiais em "clues" (2–5 entradas).
+- Reformula apenas "q" como adivinha natural em PT-PT; podes reordenar as pistas oficiais em "clues" (2–5 entradas).
 - NÃO mudes a resposta nem o significado do facto.
 - NÃO cries curiosidades factuais nem perguntas directas de cultura geral.
 

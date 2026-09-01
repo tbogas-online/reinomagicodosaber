@@ -172,11 +172,11 @@ function validateAdivinhaQuality(q, a) {
     }
   }
   if (/\bpernas\b.*\bnão\s+anda\b/i.test(q) && /\b(bola|cadeira|mesa)\b/i.test(a)) {
-    pushIssue(issues, 'ADIVINHA_WEAK_RIDDLE', ISSUE_LAYER.format, 'ADIVINHA: charada fraca — a resposta não encaixa bem nas pistas');
+    pushIssue(issues, 'ADIVINHA_WEAK_RIDDLE', ISSUE_LAYER.format, 'ADIVINHA: adivinha fraca — a resposta não encaixa bem nas pistas');
   }
   if (/\b(faz|fazem)\s+barulho\b/i.test(q) && /\bcorre\b/i.test(q) && /\b(cala|calou)\b/i.test(q)) {
     if (/\b(cavalo|cabra|vaca|ovelha|carneiro|porco|rato)\b/i.test(a) && !/\b(apito|pião|piao|flauta|corneta|reco-reco)\b/i.test(a)) {
-      pushIssue(issues, 'ADIVINHA_WHISTLE_RIDDLE', ISSUE_LAYER.format, 'ADIVINHA: charada clássica do apito — a resposta não deve ser um animal');
+      pushIssue(issues, 'ADIVINHA_WHISTLE_RIDDLE', ISSUE_LAYER.format, 'ADIVINHA: adivinha clássica do apito — a resposta não deve ser um animal');
     }
   }
   return issues;

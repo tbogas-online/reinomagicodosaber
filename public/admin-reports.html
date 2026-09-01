@@ -1223,6 +1223,50 @@
           </div>
           <div id="bankSourceBreakdown"></div>
         </div>
+
+        <div class="card" id="bankManageSection">
+          <h2 class="charts-title" style="margin:0 0 8px;">Pesquisar e apagar perguntas</h2>
+          <p class="sub" style="margin-top:0;">Procura no Supabase por texto ou hash. Podes apagar do banco remoto e limpar o histórico local deste browser.</p>
+          <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <input type="search" id="bankSearchQuery" placeholder="Texto da pergunta ou hash…" style="min-width:220px; flex:1;">
+            <select id="bankSearchCategory" aria-label="Filtrar categoria">
+              <option value="">Todas as categorias</option>
+            </select>
+            <select id="bankSearchAge" aria-label="Filtrar faixa etária">
+              <option value="">Todas as idades</option>
+              <option value="6-9">6–9</option>
+              <option value="10-15">10–15</option>
+              <option value="15+">15+</option>
+            </select>
+            <label><input type="checkbox" id="bankSearchIncludeReported" checked> Incluir reportadas</label>
+            <button type="button" class="primary" id="bankSearchBtn">Pesquisar</button>
+          </div>
+          <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <label><input type="checkbox" id="bankDeleteBlock" checked> Bloquear re-inserção</label>
+            <label><input type="checkbox" id="bankDeleteLocal" checked> Limpar neste browser</label>
+            <button type="button" class="secondary" id="bankPurgeInvalidBtn">Remover sem opções</button>
+            <button type="button" class="danger" id="bankDeleteSelectedBtn" disabled>Apagar seleccionadas</button>
+          </div>
+          <p class="status" id="bankSearchStatus"></p>
+          <div class="bank-matrix-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:28px;"><input type="checkbox" id="bankSelectAll" aria-label="Seleccionar todas"></th>
+                  <th>Pergunta</th>
+                  <th>Resposta</th>
+                  <th>Cat.</th>
+                  <th>Idade</th>
+                  <th>Hash</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="bankSearchBody">
+                <tr><td colspan="7" class="sub">Pesquisa por texto ou hash para ver resultados.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
         <p class="bank-footer-link-wrap">
           <a class="bank-footer-link" href="/test-questions.html">🧪 Teste de perguntas</a>
         </p>
@@ -2649,7 +2693,7 @@
       UNSPECIFIED: 'Outro',
       ADIVINHA_ANIMAL_PHRASING: 'ADIVINHA — formulação animal',
       ADIVINHA_PERCUSSION: 'ADIVINHA — percussão',
-      ADIVINHA_WEAK_RIDDLE: 'ADIVINHA — charada fraca',
+      ADIVINHA_WEAK_RIDDLE: 'ADIVINHA — adivinha fraca',
       ADIVINHA_WHISTLE_RIDDLE: 'ADIVINHA — apito vs animal',
       ADIVINHA_MAP_GLOBE_AMBIGUOUS: 'ADIVINHA — mapa/globo ambíguo',
       ADIVINHA_FACTUAL_DIRECT: 'ADIVINHA factual directa',
@@ -3034,6 +3078,7 @@
             ${status !== 'resolved' ? `<button type="button" class="success resolve-report">Resolver</button>` : ''}
             ${status !== 'cancelled' ? `<button type="button" class="secondary cancel-report">Cancelar</button>` : ''}
             ${status !== 'open' ? `<button type="button" class="secondary reopen-report">Reabrir</button>` : ''}
+              ${!isSite && r.question ? `<button type="button" class="danger delete-bank-question">Apagar do banco</button>` : ''}
             ${status === 'cancelled' ? `<button type="button" class="danger delete-report">Apagar</button>` : ''}
           </td>
         </tr>`;
@@ -3146,6 +3191,323 @@
     };
     let bankLoading = false;
     let lastBankStats = null;
+    let lastBankSearchRows = [];
+    const selectedBankHashes = new Set();
+    let bankSearchLoading = false;
+    let bankDeleteLoading = false;
+
+    const LOCAL_HISTORY_KEY = 'reino_magico_q_history_v3';
+    const LOCAL_GAME_HISTORY_KEY = 'reino_magico_game_history_v1';
+    const LOCAL_REPORTED_KEY = 'reino_magico_reported_content_v1';
+
+    function hashQuestionKey(text) {
+      const s = String(text || '');
+      let h = 2166136261;
+      for (let i = 0; i < s.length; i++) {
+        h ^= s.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return (h >>> 0).toString(36);
+    }
+
+    function questionHashFromPair(question, answer) {
+      return hashQuestionKey(`${String(question || '')}|${String(answer || '')}`);
+    }
+
+    function purgeQuestionsFromLocalStorage(hashes, block, metaByHash) {
+      const hashSet = new Set((hashes || []).map((h) => String(h || '').trim()).filter(Boolean));
+      if (!hashSet.size) return { historyRemoved: 0, gameRoundsRemoved: 0, blocked: 0 };
+
+      let historyRemoved = 0;
+      let gameRoundsRemoved = 0;
+      let blocked = 0;
+
+      try {
+        const rawHistory = localStorage.getItem(LOCAL_HISTORY_KEY);
+        if (rawHistory) {
+          const store = JSON.parse(rawHistory);
+          for (const bucket of Object.values(store || {})) {
+            const entries = bucket?.entries || [];
+            const kept = [];
+            for (const entry of entries) {
+              const hash = String(entry.questionHash || '').trim()
+                || questionHashFromPair(entry.q, entry.a);
+              if (hashSet.has(hash)) {
+                historyRemoved += 1;
+              } else {
+                kept.push(entry);
+              }
+            }
+            bucket.entries = kept;
+          }
+          localStorage.setItem(LOCAL_HISTORY_KEY, JSON.stringify(store));
+        }
+      } catch { /* ignore */ }
+
+      try {
+        const rawGames = localStorage.getItem(LOCAL_GAME_HISTORY_KEY);
+        if (rawGames) {
+          const games = JSON.parse(rawGames);
+          if (Array.isArray(games)) {
+            for (const game of games) {
+              const rounds = game.rounds || [];
+              const kept = [];
+              for (const round of rounds) {
+                const hash = questionHashFromPair(round.question, round.correctAnswer);
+                if (hashSet.has(hash)) {
+                  gameRoundsRemoved += 1;
+                } else {
+                  kept.push(round);
+                }
+              }
+              game.rounds = kept;
+            }
+            localStorage.setItem(LOCAL_GAME_HISTORY_KEY, JSON.stringify(games));
+          }
+        }
+      } catch { /* ignore */ }
+
+      if (block) {
+        try {
+          const rawReported = localStorage.getItem(LOCAL_REPORTED_KEY);
+          const store = rawReported ? JSON.parse(rawReported) : { entries: [] };
+          const entries = Array.isArray(store.entries) ? store.entries : [];
+          const known = new Set(entries.map((e) => e.questionHash).filter(Boolean));
+          for (const hash of hashSet) {
+            if (known.has(hash)) continue;
+            const meta = metaByHash?.[hash] || {};
+            entries.push({
+              questionHash: hash,
+              questionNorm: String(meta.question || '').trim().toLowerCase(),
+              knowledgeId: '',
+              ts: Date.now(),
+            });
+            known.add(hash);
+            blocked += 1;
+          }
+          localStorage.setItem(LOCAL_REPORTED_KEY, JSON.stringify({ entries: entries.slice(-500) }));
+        } catch { /* ignore */ }
+      }
+
+      return { historyRemoved, gameRoundsRemoved, blocked };
+    }
+
+    function initBankSearchCategorySelect() {
+      const sel = document.getElementById('bankSearchCategory');
+      if (!sel || sel.options.length > 1) return;
+      for (const cat of BANK_CATEGORIES) {
+        const opt = document.createElement('option');
+        opt.value = String(cat.n);
+        opt.textContent = `${cat.n}. ${cat.name}`;
+        sel.appendChild(opt);
+      }
+    }
+
+    function updateBankDeleteUi() {
+      const btn = document.getElementById('bankDeleteSelectedBtn');
+      const selectAll = document.getElementById('bankSelectAll');
+      if (btn) btn.disabled = bankDeleteLoading || selectedBankHashes.size === 0;
+      if (selectAll && lastBankSearchRows.length) {
+        selectAll.checked = lastBankSearchRows.every((r) => selectedBankHashes.has(r.question_hash));
+        selectAll.indeterminate = !selectAll.checked
+          && lastBankSearchRows.some((r) => selectedBankHashes.has(r.question_hash));
+      } else if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      }
+    }
+
+    function renderBankSearchResults(rows) {
+      lastBankSearchRows = rows || [];
+      const body = document.getElementById('bankSearchBody');
+      if (!body) return;
+      if (!lastBankSearchRows.length) {
+        body.innerHTML = '<tr><td colspan="7" class="sub">Nenhuma pergunta encontrada.</td></tr>';
+        updateBankDeleteUi();
+        return;
+      }
+      const catMap = Object.fromEntries(BANK_CATEGORIES.map((c) => [String(c.n), c.name]));
+      body.innerHTML = lastBankSearchRows.map((row) => {
+        const hash = row.question_hash || '';
+        const checked = selectedBankHashes.has(hash) ? 'checked' : '';
+        const reported = row.is_reported ? ' · reportada' : '';
+        return `<tr data-hash="${esc(hash)}">
+          <td><input type="checkbox" class="bank-row-check" data-hash="${esc(hash)}" ${checked} aria-label="Seleccionar pergunta"></td>
+          <td>${esc(row.question || '—')}${reported ? `<span class="pill" style="margin-left:6px;">reportada</span>` : ''}</td>
+          <td>${esc(row.correct_answer || '—')}</td>
+          <td>${esc(catMap[String(row.category_n)] || row.category_n || '—')}</td>
+          <td>${esc(row.age_band || '—')}</td>
+          <td><code>${esc(hash || '—')}</code></td>
+          <td class="actions-cell"><button type="button" class="danger bank-delete-one" data-hash="${esc(hash)}">Apagar</button></td>
+        </tr>`;
+      }).join('');
+      updateBankDeleteUi();
+    }
+
+    async function searchBankQuestions() {
+      if (bankSearchLoading) return;
+      const query = document.getElementById('bankSearchQuery')?.value?.trim() || '';
+      const categoryN = document.getElementById('bankSearchCategory')?.value || '';
+      const ageBand = document.getElementById('bankSearchAge')?.value || '';
+      const includeReported = document.getElementById('bankSearchIncludeReported')?.checked !== false;
+      const statusEl = document.getElementById('bankSearchStatus');
+      if (!query) {
+        if (statusEl) {
+          statusEl.textContent = 'Indica texto ou hash para pesquisar.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      bankSearchLoading = true;
+      selectedBankHashes.clear();
+      if (statusEl) {
+        statusEl.textContent = 'A pesquisar…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/question-bank-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'search',
+            query,
+            categoryN: categoryN ? Number(categoryN) : null,
+            ageBand,
+            includeReported,
+            limit: 50,
+          }),
+        });
+        renderBankSearchResults(data.rows || []);
+        if (statusEl) {
+          statusEl.textContent = `${(data.rows || []).length} resultado(s).`;
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao pesquisar.';
+          statusEl.className = 'status err';
+        }
+      } finally {
+        bankSearchLoading = false;
+        updateBankDeleteUi();
+      }
+    }
+
+    async function deleteBankQuestions(hashes, options = {}) {
+      const unique = [...new Set((hashes || []).map((h) => String(h || '').trim()).filter(Boolean))];
+      if (!unique.length) return null;
+      const block = options.block !== false;
+      const clearLocal = options.clearLocal !== false;
+      const statusEl = options.statusEl || document.getElementById('bankSearchStatus');
+
+      const metaByHash = {};
+      for (const row of lastBankSearchRows) {
+        if (row.question_hash) {
+          metaByHash[row.question_hash] = { question: row.question, answer: row.correct_answer };
+        }
+      }
+      if (options.reportMeta) {
+        for (const hash of unique) {
+          if (!metaByHash[hash]) metaByHash[hash] = options.reportMeta;
+        }
+      }
+
+      bankDeleteLoading = true;
+      updateBankDeleteUi();
+      if (statusEl) {
+        statusEl.textContent = 'A apagar…';
+        statusEl.className = 'status';
+      }
+
+      try {
+        const data = await api('/api/question-bank-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'delete', hashes: unique, block }),
+        });
+        let localMsg = '';
+        if (clearLocal) {
+          const local = purgeQuestionsFromLocalStorage(unique, block, metaByHash);
+          localMsg = ` Local: ${local.historyRemoved} entrada(s) de histórico, ${local.gameRoundsRemoved} ronda(s) de partidas${block ? `, ${local.blocked} bloqueada(s)` : ''}.`;
+        }
+        unique.forEach((h) => selectedBankHashes.delete(h));
+        lastBankSearchRows = lastBankSearchRows.filter((r) => !unique.includes(r.question_hash));
+        renderBankSearchResults(lastBankSearchRows);
+        await loadBankDashboard({ quiet: true });
+        if (statusEl) {
+          statusEl.textContent = `Apagadas ${data.deleted || 0} no Supabase${block ? `, ${data.blocked || 0} bloqueada(s)` : ''}.${localMsg}`;
+          statusEl.className = 'status ok';
+        }
+        return data;
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao apagar.';
+          statusEl.className = 'status err';
+        }
+        return null;
+      } finally {
+        bankDeleteLoading = false;
+        updateBankDeleteUi();
+      }
+    }
+
+    async function purgeInvalidBankQuestions() {
+      const invalid = Number(lastBankStats?.invalidActive) || 0;
+      const msg = invalid > 0
+        ? `Remover ${invalid} pergunta(s) activa(s) sem opções válidas do Supabase?`
+        : 'Remover todas as perguntas activas sem opções válidas do Supabase?';
+      const ok = await confirmAction(msg, { okLabel: 'Remover', danger: true });
+      if (!ok) return;
+      const statusEl = document.getElementById('bankSearchStatus');
+      try {
+        const data = await api('/api/question-bank-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'purge-without-options' }),
+        });
+        await loadBankDashboard({ quiet: true });
+        if (statusEl) {
+          statusEl.textContent = `${data.deleted || 0} pergunta(s) removida(s) do Supabase.`;
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao remover perguntas inválidas.';
+          statusEl.className = 'status err';
+        }
+      }
+    }
+
+    async function deleteBankQuestionFromReport(report) {
+      if (!report?.question) return;
+      const computedHash = questionHashFromPair(report.question, report.correctAnswer || '');
+      const ok = await confirmAction(
+        'Apagar esta pergunta do banco Supabase e limpar o histórico local deste browser?',
+        { okLabel: 'Apagar', danger: true },
+      );
+      if (!ok) return;
+
+      let hashes = [computedHash];
+      try {
+        const search = await api('/api/question-bank-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'search',
+            query: report.question.slice(0, 80),
+            includeReported: true,
+            limit: 10,
+          }),
+        });
+        const fromBank = (search.rows || [])
+          .map((r) => r.question_hash)
+          .filter(Boolean);
+        if (fromBank.length) hashes = [...new Set([...fromBank, computedHash])];
+      } catch { /* fallback ao hash calculado */ }
+
+      await deleteBankQuestions(hashes, {
+        block: document.getElementById('bankDeleteBlock')?.checked !== false,
+        clearLocal: document.getElementById('bankDeleteLocal')?.checked !== false,
+        reportMeta: { question: report.question, answer: report.correctAnswer || '' },
+        statusEl: document.getElementById('listStatus'),
+      });
+    }
     let bankTimelineRange = '24h';
     let bankMatrixSort = { key: 'cat', dir: 'asc' };
     try {
@@ -4297,6 +4659,55 @@
     document.getElementById('tabTelemetry')?.addEventListener('click', () => setAdminTab('telemetry'));
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
+    initBankSearchCategorySelect();
+    document.getElementById('bankSearchBtn')?.addEventListener('click', () => searchBankQuestions());
+    document.getElementById('bankSearchQuery')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') searchBankQuestions();
+    });
+    document.getElementById('bankPurgeInvalidBtn')?.addEventListener('click', () => purgeInvalidBankQuestions());
+    document.getElementById('bankDeleteSelectedBtn')?.addEventListener('click', async () => {
+      const hashes = [...selectedBankHashes];
+      if (!hashes.length) return;
+      const block = document.getElementById('bankDeleteBlock')?.checked !== false;
+      const clearLocal = document.getElementById('bankDeleteLocal')?.checked !== false;
+      const ok = await confirmAction(
+        `Apagar ${hashes.length} pergunta(s) do Supabase${clearLocal ? ' e limpar neste browser' : ''}?`,
+        { okLabel: 'Apagar', danger: true },
+      );
+      if (!ok) return;
+      await deleteBankQuestions(hashes, { block, clearLocal });
+    });
+    document.getElementById('bankSelectAll')?.addEventListener('change', (e) => {
+      const checked = e.target.checked;
+      for (const row of lastBankSearchRows) {
+        const hash = row.question_hash;
+        if (!hash) continue;
+        if (checked) selectedBankHashes.add(hash);
+        else selectedBankHashes.delete(hash);
+      }
+      renderBankSearchResults(lastBankSearchRows);
+    });
+    document.getElementById('bankSearchBody')?.addEventListener('change', (e) => {
+      if (!e.target.classList.contains('bank-row-check')) return;
+      const hash = e.target.dataset.hash;
+      if (!hash) return;
+      if (e.target.checked) selectedBankHashes.add(hash);
+      else selectedBankHashes.delete(hash);
+      updateBankDeleteUi();
+    });
+    document.getElementById('bankSearchBody')?.addEventListener('click', async (e) => {
+      if (!e.target.classList.contains('bank-delete-one')) return;
+      const hash = e.target.dataset.hash;
+      if (!hash) return;
+      const block = document.getElementById('bankDeleteBlock')?.checked !== false;
+      const clearLocal = document.getElementById('bankDeleteLocal')?.checked !== false;
+      const ok = await confirmAction(
+        'Apagar esta pergunta do Supabase' + (clearLocal ? ' e limpar neste browser' : '') + '?',
+        { okLabel: 'Apagar', danger: true },
+      );
+      if (!ok) return;
+      await deleteBankQuestions([hash], { block, clearLocal });
+    });
     document.getElementById('knowledgeRefreshBtn')?.addEventListener('click', () => loadKnowledgeDashboard());
     document.getElementById('knowledgeSyncBtn')?.addEventListener('click', () => syncKnowledgeQueue());
     document.getElementById('knowledgeDryRunBtn')?.addEventListener('click', () => runKnowledgeImport({ dryRun: true }));
@@ -4473,6 +4884,12 @@
       if (e.target.classList.contains('reopen-report')) {
         if (!reportId || !confirm('Reabrir este reporte?')) return;
         await changeReportStatus([reportId], 'open');
+        return;
+      }
+      if (e.target.classList.contains('delete-bank-question')) {
+        const report = reportsById[reportId];
+        if (!report) return;
+        await deleteBankQuestionFromReport(report);
         return;
       }
       if (e.target.classList.contains('delete-report')) {

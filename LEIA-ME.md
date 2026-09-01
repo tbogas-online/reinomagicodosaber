@@ -327,7 +327,7 @@ Regra detalhada: `.cursor/rules/reportes-ia.mdc`.
 | `/api/report-attachment` | POST/GET | Imagem anexada (reportes do site) |
 | `/api/reports-admin` | GET/PATCH/DELETE | Painel admin — reportes (Basic Auth) |
 | `/api/rooms-admin` | GET/PATCH | Painel admin — salas e estatísticas de jogos (Basic Auth + Supabase service role) |
-| `/api/question-bank-admin` | GET/PATCH | Painel admin — banco de perguntas Supabase (Basic Auth + service role) |
+| `/api/question-bank-admin` | GET/POST | Painel admin — banco de perguntas Supabase: estatísticas, pesquisa, apagar, purge sem opções (Basic Auth + service role) |
 
 Redirects em `netlify.toml` e `public/_redirects`.
 

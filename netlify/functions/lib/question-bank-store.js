@@ -357,7 +357,87 @@ async function purgeQuestionsWithoutOptions() {
   };
 }
 
+function escapePostgrestFilter(value) {
+  return String(value || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/,/g, ' ')
+    .replace(/\(/g, ' ')
+    .replace(/\)/g, ' ')
+    .trim();
+}
+
+async function searchQuestionBank(options = {}) {
+  const {
+    query = '',
+    hash = '',
+    categoryN = null,
+    ageBand = '',
+    limit = 25,
+    offset = 0,
+    includeReported = true,
+  } = options;
+
+  const params = new URLSearchParams();
+  params.set(
+    'select',
+    'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at',
+  );
+  params.set('order', 'created_at.desc');
+  params.set('limit', String(Math.min(Math.max(Number(limit) || 25, 1), 100)));
+  params.set('offset', String(Math.max(Number(offset) || 0, 0)));
+
+  const hashTrim = String(hash || '').trim();
+  const queryTrim = escapePostgrestFilter(query);
+
+  if (hashTrim) {
+    params.set('question_hash', `eq.${hashTrim}`);
+  } else if (queryTrim) {
+    if (/^[a-z0-9]{4,12}$/i.test(queryTrim)) {
+      params.set('or', `(question_hash.eq.${queryTrim},question.ilike.*${queryTrim}*)`);
+    } else {
+      params.set('question', `ilike.*${queryTrim}*`);
+    }
+  } else {
+    return { rows: [], total: 0 };
+  }
+
+  const cat = Number(categoryN);
+  if (cat >= 1 && cat <= 20) params.set('category_n', `eq.${cat}`);
+
+  const age = String(ageBand || '').trim();
+  if (BANK_AGE_BANDS.includes(age)) params.set('age_band', `eq.${age}`);
+
+  if (!includeReported) params.set('is_reported', 'eq.false');
+
+  const rows = await supabaseRequest(`/question_bank?${params.toString()}`);
+  return {
+    rows: Array.isArray(rows) ? rows : [],
+    total: Array.isArray(rows) ? rows.length : 0,
+  };
+}
+
+async function deleteQuestionsFromBank(hashes, block = true) {
+  const unique = [...new Set((hashes || []).map((h) => String(h || '').trim()).filter(Boolean))];
+  if (!unique.length) {
+    return { deleted: 0, blocked: 0, reuseEventsRemoved: 0 };
+  }
+
+  const data = await supabaseRpc('delete_questions_from_bank', {
+    p_hashes: unique,
+    p_block: block !== false,
+  });
+
+  return {
+    deleted: Number(data?.deleted) || 0,
+    blocked: Number(data?.blocked) || 0,
+    reuseEventsRemoved: Number(data?.reuseEventsRemoved) || 0,
+    hashes: unique,
+  };
+}
+
 module.exports = {
   getQuestionBankStats,
   purgeQuestionsWithoutOptions,
+  searchQuestionBank,
+  deleteQuestionsFromBank,
 };

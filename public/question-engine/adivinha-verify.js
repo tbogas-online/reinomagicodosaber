@@ -30,7 +30,7 @@
       '',
       `Faixa etária: ${ctx?.ageBandKey || '—'}`,
       '',
-      `Pergunta/charada: ${q}`,
+      `Pergunta/adivinha: ${q}`,
       `Resposta indicada: ${a}`,
       `Pistas (clues): ${clues.length ? clues.map((c, i) => `${i + 1}. ${c}`).join(' | ') : '(nenhuma)'}`,
     ];
@@ -41,7 +41,7 @@
       '',
       'Responde APENAS com JSON válido, sem markdown:',
       '{"ok":true} — se a resposta encaixa claramente nas pistas e não há outra resposta igualmente defensável.',
-      '{"ok":false,"issues":["motivo curto em português"]} — se a charada é fraca, ambígua, ou a resposta não segue das pistas.',
+      '{"ok":false,"issues":["motivo curto em português"]} — se a adivinha é fraca, ambígua, ou a resposta não segue das pistas.',
       '',
       'Não critiques estilo ou comprimento — só coerência lógica entre pistas e resposta.',
     );

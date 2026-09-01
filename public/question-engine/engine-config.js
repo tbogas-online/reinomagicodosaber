@@ -330,7 +330,7 @@
     },
     20: {
       formats: ["ADIVINHA","CURIOSIDADE"],
-      rules: "Categoria ESPECIAL — experiência diferente do resto do jogo. ADIVINHA: charadas/adivinhas tradicionais portuguesas, tom lúdico. CURIOSIDADE: factos surpreendentes (\"Não sabia disso!\"). NÃO uses perguntas normais de cultura geral aqui.",
+      rules: "Categoria ESPECIAL — experiência diferente do resto do jogo. ADIVINHA: adivinhas tradicionais portuguesas, tom lúdico. CURIOSIDADE: factos surpreendentes (\"Não sabia disso!\"). NÃO uses perguntas normais de cultura geral aqui.",
       subtopics: ["adivinha tradicional","curiosidade surpreendente"],
       formatMix: {"ADIVINHA":0.7,"CURIOSIDADE":0.3},
     },
