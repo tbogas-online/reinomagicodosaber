@@ -14,14 +14,16 @@ Fonte confiável → facto → IA → pergunta → validação → jogador
 
 ## Estado actual (baseline)
 
-| Componente | Papel hoje | Limitação |
-|------------|------------|-----------|
-| `generateQuestion()` (`index.html`) | Prompt → LLM → JSON | LLM inventa o facto |
-| `question-engine.js` + módulos | Validação pós-geração | Não valida proveniência |
-| `factual-verify.js` | Segunda passagem IA em categorias de risco | Ainda é LLM a verificar LLM |
-| `known-facts.js` | Regras de reportes manuais | Lista fixa, não escala |
-| `question_bank` (Supabase) | Cache de perguntas `source='ai'` | Sem ligação a fonte verificável |
-| `knowledge` JSON na resposta IA | `entity/concept/relation` opcional | Metadados fracos, não auditáveis |
+
+| Componente                          | Papel hoje                                 | Limitação                        |
+| ----------------------------------- | ------------------------------------------ | -------------------------------- |
+| `generateQuestion()` (`index.html`) | Prompt → LLM → JSON                        | LLM inventa o facto              |
+| `question-engine.js` + módulos      | Validação pós-geração                      | Não valida proveniência          |
+| `factual-verify.js`                 | Segunda passagem IA em categorias de risco | Ainda é LLM a verificar LLM      |
+| `known-facts.js`                    | Regras de reportes manuais                 | Lista fixa, não escala           |
+| `question_bank` (Supabase)          | Cache de perguntas `source='ai'`           | Sem ligação a fonte verificável  |
+| `knowledge` JSON na resposta IA     | `entity/concept/relation` opcional         | Metadados fracos, não auditáveis |
+
 
 ---
 
@@ -49,26 +51,28 @@ Fontes PT   Fontes gerais   Fontes específicas
 
 ### Prioridade de fontes (global)
 
-1. Institucional portuguesa / PT-PT  
-2. Especializada de elevada qualidade  
-3. Wikidata / bases estruturadas  
-4. Outras referência  
-5. LLM — **apenas** transformação linguística, nunca facto primário  
+1. Institucional portuguesa / PT-PT
+2. Especializada de elevada qualidade
+3. Wikidata / bases estruturadas
+4. Outras referência
+5. LLM — **apenas** transformação linguística, nunca facto primário
 
 ### Fontes transversais
 
-| Fonte | Função |
-|-------|--------|
-| Wikidata | Base factual estruturada |
-| RTP / RTP Arquivos | Conteúdo PT e histórico |
-| Arquivo.pt | Pesquisa Web PT |
-| BNP | Literatura, história, cultura |
-| Museus e Monumentos PT | Arte e património |
-| Academia das Ciências | Língua PT |
-| Priberam | PT-PT, vocabulário |
-| UNESCO | Património mundial |
-| Wikipedia | Investigação, **não** fonte final |
-| LLM | Formulação/adaptação |
+
+| Fonte                  | Função                            |
+| ---------------------- | --------------------------------- |
+| Wikidata               | Base factual estruturada          |
+| RTP / RTP Arquivos     | Conteúdo PT e histórico           |
+| Arquivo.pt             | Pesquisa Web PT                   |
+| BNP                    | Literatura, história, cultura     |
+| Museus e Monumentos PT | Arte e património                 |
+| Academia das Ciências  | Língua PT                         |
+| Priberam               | PT-PT, vocabulário                |
+| UNESCO                 | Património mundial                |
+| Wikipedia              | Investigação, **não** fonte final |
+| LLM                    | Formulação/adaptação              |
+
 
 ---
 
@@ -127,22 +131,25 @@ Cada pergunta gerada (depois da IA + validação):
 
 ## Fases globais (macro-roadmap)
 
-| Fase | Nome | Entregável |
-|------|------|------------|
-| **KR-0** | Fundações | Schema, tipos, manifest de fontes, política de confiança |
-| **KR-1** | Categoria 20 — Adivinhas | Import + jogo só com repositório |
-| **KR-2** | Categoria 20 — Curiosidades | Idem + regra 50/50 V/F |
-| **KR-3** | Pipeline IA restrito | Prompt «formula a partir deste facto» (sem inventar) |
-| **KR-4** | Integração jogo | `generateQuestion` escolhe facto → IA → valida |
-| **KR-5** | Persistência | Supabase `knowledge_records` + `question_bank` ligado |
-| **KR-6** | Admin & auditoria | Painel: origem, confiança, re-import, desactivar |
-| **KR-7+** | Categorias 1–19 | Uma a uma (fontes fornecidas pelo utilizador) |
+
+| Fase      | Nome                        | Entregável                                               |
+| --------- | --------------------------- | -------------------------------------------------------- |
+| **KR-0**  | Fundações                   | Schema, tipos, manifest de fontes, política de confiança |
+| **KR-1**  | Categoria 20 — Adivinhas    | Import + jogo só com repositório                         |
+| **KR-2**  | Categoria 20 — Curiosidades | Idem + regra 50/50 V/F                                   |
+| **KR-3**  | Pipeline IA restrito        | Prompt «formula a partir deste facto» (sem inventar)     |
+| **KR-4**  | Integração jogo             | `generateQuestion` escolhe facto → IA → valida           |
+| **KR-5**  | Persistência                | Supabase `knowledge_records` + `question_bank` ligado    |
+| **KR-6**  | Admin & auditoria           | Painel: origem, confiança, re-import, desactivar         |
+| **KR-7+** | Categorias 1–19             | Uma a uma (fontes fornecidas pelo utilizador)            |
+
 
 ---
 
 ## KR-0 — Fundações (pré-requisito)
 
 ### KR-0.1 Schema e armazenamento — **Supabase** (decisão tomada)
+
 - [x] Tabela `knowledge_records` — `supabase/knowledge-repository.sql`
 - [x] RPC `pick_knowledge_record`, `import_knowledge_batch`, `disable_knowledge_record`, `get_knowledge_repository_stats`
 - [x] Colunas `knowledge_id`, `source_id`, `confidence` em `question_bank`
@@ -150,17 +157,20 @@ Cada pergunta gerada (depois da IA + validação):
 - [ ] Executar SQL no projecto Supabase + seed de amostra (`seed-knowledge-cat20-sample.sql`)
 
 ### KR-0.2 Módulo `knowledge-repository.js`
+
 - [ ] `loadRecords(category, filters)`
 - [ ] `pickRecord(ctx)` — respeita idade, formato, não repetido, prioridade PT
 - [ ] `getRecordById(knowledgeId)`
 - [ ] `markUsed(knowledgeId, ageBandKey, sessionId)`
 
 ### KR-0.3 Política de confiança
+
 - [ ] `confidence` mínimo por categoria (ex.: adivinhas ≥ 0.90)
 - [ ] Bloquear geração se `source` não estiver na allowlist da categoria
 - [ ] Campo `blocked` / `supersededBy` para correcções
 
 ### KR-0.4 Contrato IA
+
 - [x] Novo prompt: `buildPromptFromFact(record, formatId, ageBandKey)` — **facto fornecido no prompt**
 - [x] Proibir no system: «inventa um facto», «cria uma curiosidade»
 - [x] Validador: resposta IA não pode contradizer `record.answer` / `record.fact`
@@ -173,27 +183,34 @@ Cada pergunta gerada (depois da IA + validação):
 **Regra:** sem geração livre pelo LLM.
 
 ### Fontes (fase 1)
-| Fonte | Tipo | Notas |
-|-------|------|-------|
-| MemóriaMedia / Adivinhário | Primária | Coleção digital PT |
-| Fundo Michel Giacometti | Primária | Folclore |
-| Biblioteca Nacional de Portugal | Secundária | Validação / enriquecimento |
-| Coleções tradicionais portuguesas | Primária | Manual + CSV após curadoria |
-| Outras coleções folclore PT | Secundária | Por acordo de licença |
+
+
+| Fonte                             | Tipo       | Notas                       |
+| --------------------------------- | ---------- | --------------------------- |
+| MemóriaMedia / Adivinhário        | Primária   | Coleção digital PT          |
+| Fundo Michel Giacometti           | Primária   | Folclore                    |
+| Biblioteca Nacional de Portugal   | Secundária | Validação / enriquecimento  |
+| Coleções tradicionais portuguesas | Primária   | Manual + CSV após curadoria |
+| Outras coleções folclore PT       | Secundária | Por acordo de licença       |
+
 
 ### KR-1.1 Inventário e import
-- [ ] Definir formato de import (`scripts/import-knowledge-adivinhas.js`)
-- [ ] Campos obrigatórios: `fact`, `answer`, `clues[]`, `source`, `sourceId`
+
+- [x] Definir formato de import (`scripts/import-knowledge-adivinhas.js`)
+- [x] API JSON Fabrik: `…/adivinhario-base-de-dados/list/5?format=json` (233 registos, paginação `limitstart5`)
+- [ ] Campos obrigatórios: `fact`, `answer`, `clues[]`, `source`, `sourceId` *(clues derivados das estrofes; ~122 aptas sem maliciosas)*
 - [ ] Normalização PT-PT (Priberam para variantes ortográficas)
-- [ ] Deduplicação por `answer` + similaridade de `fact`
-- [ ] Meta: **≥ 200 adivinhas** verificadas para MVP
+- [x] Deduplicação por `answer` + similaridade de `fact` (Jaccard)
+- [ ] Meta: **≥ 200 adivinhas** verificadas para MVP *(122 da MemóriaMedia + outras fontes Giacometti/BNP)*
 
 ### KR-1.2 Validação de import
+
 - [ ] Testes automáticos: clues não revelam resposta
 - [ ] Idade mínima por vocabulário
 - [ ] Rejeitar adivinhas ambíguas (regras `known-facts` + heurísticas)
 
 ### KR-1.3 Jogo (só adivinhas)
+
 - [x] Em `category.n === 20` + formato `ADIVINHA`: **só** `pickRecord` do repositório
 - [x] IA recebe `record` completo; gera apenas `q` + reordena `clues` + `distractors`
 - [x] Fallback: banco local de perguntas já validadas — **não** LLM livre
@@ -201,6 +218,7 @@ Cada pergunta gerada (depois da IA + validação):
 - [ ] Telemetria: `% perguntas com source ≠ ai`
 
 ### KR-1.4 Critérios de aceitação
+
 - [ ] 0 perguntas de adivinha sem `knowledgeId` em produção
 - [x] Reporte de pergunta mau → desactiva `knowledgeId` no repositório (ao resolver no admin ou botão dedicado; cliente já marca no Supabase ao reportar)
 - [x] Telemetria `% source=repository` visível no painel Repositório
@@ -214,37 +232,45 @@ Cada pergunta gerada (depois da IA + validação):
 **Formato:** CURIOSIDADE + **50% Verdadeiro/Falso**
 
 ### Fontes
-| Fonte | Peso PT |
-|-------|---------|
-| RTP / RTP Ensina | Alto |
-| Ciência Viva | Alto |
-| Museus portugueses | Alto |
-| Instituições científicas PT | Médio |
-| UNESCO | Médio |
-| Wikidata | Estruturado |
+
+
+| Fonte                            | Peso PT              |
+| -------------------------------- | -------------------- |
+| RTP / RTP Ensina                 | Alto                 |
+| Ciência Viva                     | Alto                 |
+| Museus portugueses               | Alto                 |
+| Instituições científicas PT      | Médio                |
+| UNESCO                           | Médio                |
+| Wikidata                         | Estruturado          |
 | Repositório próprio curiosidades | Crescimento contínuo |
 
+
 ### Critérios da curiosidade
+
 - Verdadeira e verificável  
 - Surpreendente mas clara  
 - Não controversa  
 - Adequada à idade  
-- Em PT-PT natural  
+- Em PT-PT natural
 
 ### KR-2.1 Import curiosidades
+
 - [x] Schema: `fact` + `answer` (ou `statement` + `isTrue` para V/F) — `knowledge-repository.sql`
 - [x] Seed de amostra (`seed-knowledge-cat20-sample.sql`, fila `knowledge-import-queue.json`)
 - [ ] Meta: **≥ 150 curiosidades** MVP
 
 ### KR-2.2 Alternância 50/50
+
 - [x] `chooseCuriosidadeRepoFormat()` — 50% `CURIOSIDADE`, 50% `VERDADEIRO_FALSO` no ramo curiosidades
 - [x] V/F directo a partir de `record.statement`; CURIOSIDADE via `buildPromptFromFact` (ou template offline)
 
 ### KR-2.3 Validação reforçada
+
 - [x] `validateQuestion` + `repositoryRecord` — resposta tem de coincidir com `isTrue` / `answer`
 - [ ] Opcional: factual-verify só como **último recurso** para curiosidades Wikidata
 
 ### KR-2.4 Jogo (só curiosidades)
+
 - [x] Em `category.n === 20` + formato `CURIOSIDADE`: **só** `pickRecord` do repositório
 - [x] Fallback: banco local — **não** LLM livre
 
@@ -253,6 +279,7 @@ Cada pergunta gerada (depois da IA + validação):
 ## KR-3 — Pipeline IA restrito
 
 ### Novo fluxo em `generateQuestion`
+
 ```
 1. pickRecord(category, ageBand, format, history)
 2. if (!record) → fallback banco / mensagem «sem stock» (NÃO LLM livre em cat. 20)
@@ -265,11 +292,14 @@ Cada pergunta gerada (depois da IA + validação):
 ```
 
 ### Módulos novos
-| Ficheiro | Responsabilidade |
-|----------|------------------|
-| `knowledge-repository.js` | Load, pick, usage |
-| `knowledge-prompt.js` | Prompts «só formulação» |
-| `knowledge-assert.js` | IA não alterou o facto/resposta |
+
+
+| Ficheiro                  | Responsabilidade                |
+| ------------------------- | ------------------------------- |
+| `knowledge-repository.js` | Load, pick, usage               |
+| `knowledge-prompt.js`     | Prompts «só formulação»         |
+| `knowledge-assert.js`     | IA não alterou o facto/resposta |
+
 
 ---
 
@@ -297,48 +327,54 @@ Para cada categoria **1–19**, repetir mini-roadmap:
 
 ### Template `KR-CAT-XX`
 
-1. **Definir fontes** (utilizador fornece URLs, APIs, dumps)  
-2. **Prioridade PT** (% alvo)  
-3. **Formatos permitidos** (da matriz `engine-config`)  
-4. **Import script** (`import-knowledge-catXX.js`)  
-5. **Meta de stock** (N registos MVP)  
-6. **Validadores específicos** (se necessário)  
-7. **Activar no jogo** (flag `useKnowledgeRepository[category]`)  
-8. **Desactivar LLM livre** quando stock ≥ limiar  
+1. **Definir fontes** (utilizador fornece URLs, APIs, dumps)
+2. **Prioridade PT** (% alvo)
+3. **Formatos permitidos** (da matriz `engine-config`)
+4. **Import script** (`import-knowledge-catXX.js`)
+5. **Meta de stock** (N registos MVP)
+6. **Validadores específicos** (se necessário)
+7. **Activar no jogo** (flag `useKnowledgeRepository[category]`)
+8. **Desactivar LLM livre** quando stock ≥ limiar
 
 ### Ordem sugerida (após cat. 20)
 
-| Ordem | Cat. | Motivo |
-|-------|------|--------|
-| 1 | 2 Geografia | Wikidata forte, factual-verify já activo |
-| 2 | 3 História | BNP, Arquivo.pt |
-| 3 | 4–6 Ciência/Natureza/Espaço | Ciência Viva, NASA/ESA |
-| 4 | 8–10 Literatura/PT/Arte | BNP, museus |
-| 5 | 12 Música | MusicBrainz |
-| 6 | 14–15 Gastronomia/Desporto | Fontes PT + Wikidata |
-| 7 | 17 Tecnologia | Inventos + Wikidata (cuidado com datas) |
-| 8 | Restantes | Conforme fontes disponíveis |
+
+| Ordem | Cat.                        | Motivo                                   |
+| ----- | --------------------------- | ---------------------------------------- |
+| 1     | 2 Geografia                 | Wikidata forte, factual-verify já activo |
+| 2     | 3 História                  | BNP, Arquivo.pt                          |
+| 3     | 4–6 Ciência/Natureza/Espaço | Ciência Viva, NASA/ESA                   |
+| 4     | 8–10 Literatura/PT/Arte     | BNP, museus                              |
+| 5     | 12 Música                   | MusicBrainz                              |
+| 6     | 14–15 Gastronomia/Desporto  | Fontes PT + Wikidata                     |
+| 7     | 17 Tecnologia               | Inventos + Wikidata (cuidado com datas)  |
+| 8     | Restantes                   | Conforme fontes disponíveis              |
+
 
 **Placeholder por categoria** — preencher quando o utilizador fornecer fontes:
 
-| Cat. | Nome | Fontes (a definir) | Prioridade PT | Stock MVP |
-|------|------|-------------------|---------------|-----------|
-| 1 | Conhecimentos Gerais | | | |
-| 2 | Geografia | Wikidata, … | | |
-| … | … | | | |
-| 19 | Transportes | | | |
+
+| Cat. | Nome                 | Fontes (a definir) | Prioridade PT | Stock MVP |
+| ---- | -------------------- | ------------------ | ------------- | --------- |
+| 1    | Conhecimentos Gerais |                    |               |           |
+| 2    | Geografia            | Wikidata, …        |               |           |
+| …    | …                    |                    |               |           |
+| 19   | Transportes          |                    |               |           |
+
 
 ---
 
 ## Riscos e mitigação
 
-| Risco | Mitigação |
-|-------|-----------|
+
+| Risco              | Mitigação                                         |
+| ------------------ | ------------------------------------------------- |
 | Stock insuficiente | MVP cat. 20 grande; fallback banco, não LLM livre |
-| Licenças | Campo `license` + allowlist por fonte |
-| IA altera facto | `assertAnswerMatchesRecord` + rejeição automática |
-| Duplicados | `knowledgeId` + dedup na importação |
-| Manutenção | `verifiedAt`, re-import incremental, admin |
+| Licenças           | Campo `license` + allowlist por fonte             |
+| IA altera facto    | `assertAnswerMatchesRecord` + rejeição automática |
+| Duplicados         | `knowledgeId` + dedup na importação               |
+| Manutenção         | `verifiedAt`, re-import incremental, admin        |
+
 
 ---
 
@@ -357,3 +393,4 @@ Para cada categoria **1–19**, repetir mini-roadmap:
 2. Fornecer formato/export da primeira fonte real (MemóriaMedia ou CSV) — meta ≥200 adivinhas + ≥150 curiosidades
 3. **KR-1.4** — telemetria `% source=repository` no KP; desactivar `knowledgeId` ao resolver reporte (feito)
 4. **KR-4** — `knowledgeId` em `persistent-history` e repetição prioritária (feito)
+

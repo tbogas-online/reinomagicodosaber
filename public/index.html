@@ -920,13 +920,14 @@
     font-family:'Cinzel', serif;
     font-size:11px;
     letter-spacing:.04em;
+    line-height:1.35;
     color: var(--parchment-dim);
     background: rgba(var(--parchment-rgb),0.08);
     border: 1px dashed rgba(var(--gold-rgb),0.35);
     border-radius: 999px;
     padding: 4px 12px;
     width: fit-content;
-    max-width: min(92vw, 420px);
+    max-width: min(92vw, 520px);
     text-align: center;
   }
   .q-source-foot.visible{
@@ -3462,6 +3463,47 @@
     'local-repeat': 'Banco local (repetida)',
   };
 
+  const FACT_SOURCE_ID_PREFIXES = [
+    [/^mm:adivinha:/i, 'MemóriaMedia'],
+    [/^manual:/i, 'Curadoria manual'],
+    [/^sample:/i, 'Amostra'],
+  ];
+
+  function normalizeFactSourceLabel(raw) {
+    const s = String(raw || '').trim();
+    if (!s) return '';
+    const known = {
+      memoriamedia: 'MemóriaMedia',
+      'memória media': 'MemóriaMedia',
+      manual: 'Curadoria manual',
+      sample: 'Amostra',
+      repository: 'Repositório',
+      ai: 'IA',
+    };
+    const key = s.toLowerCase();
+    return known[key] || s;
+  }
+
+  function resolveFactSourceOrigin(question) {
+    if (!question) return '';
+    const explicit = normalizeFactSourceLabel(question.sourceOrigin);
+    if (explicit) return explicit;
+    const sid = String(question.sourceId || '').trim();
+    for (const [re, label] of FACT_SOURCE_ID_PREFIXES) {
+      if (re.test(sid)) return label;
+    }
+    if (question.bankOrigin === 'repository') return 'Repositório';
+    return '';
+  }
+
+  function formatQuestionSourceFoot(question) {
+    const channel = QUESTION_SOURCE_LABELS[question.source] || question.source || '';
+    const origin = resolveFactSourceOrigin(question);
+    const formatNote = question.formatLabel ? ` · ${question.formatLabel}` : '';
+    const originNote = origin && origin !== channel ? ` · ${origin}` : '';
+    return `Fonte: ${channel}${originNote}${formatNote}`;
+  }
+
   let cachedGameVersion = '';
   let versionInfoPromise = null;
 
@@ -3925,6 +3967,11 @@
           format: bankRow.format || engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
           formatLabel: engine.FORMAT_LABELS[bankRow.format] || 'Escolha múltipla',
           knowledgeKey: bankRow.knowledge_key || undefined,
+          knowledgeId: bankRow.knowledge_id || undefined,
+          sourceId: bankRow.source_id || undefined,
+          sourceOrigin: bankRow.fact_source || undefined,
+          sourceUrl: bankRow.source_url || undefined,
+          bankOrigin: bankRow.bank_origin || undefined,
         };
         return finalizeQuestion(out);
       }
@@ -4538,6 +4585,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           knowledgeKey,
           knowledgeId: record.knowledgeId,
           sourceId: record.sourceId,
+          sourceOrigin: record.source,
+          sourceUrl: record.sourceUrl,
           confidence: record.confidence,
         });
       } catch (err) {
@@ -4742,6 +4791,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           knowledgeKey,
           knowledgeId: record.knowledgeId,
           sourceId: record.sourceId,
+          sourceOrigin: record.source,
+          sourceUrl: record.sourceUrl,
           confidence: record.confidence,
         });
       } catch (err) {
@@ -7360,8 +7411,13 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       return;
     }
     const label = QUESTION_SOURCE_LABELS[question.source] || question.source;
-    const formatNote = question.formatLabel ? ` · ${question.formatLabel}` : '';
-    el.textContent = `Fonte: ${label}${formatNote}`;
+    el.textContent = formatQuestionSourceFoot(question);
+    const origin = resolveFactSourceOrigin(question);
+    const titleParts = [label];
+    if (origin && origin !== label) titleParts.push(origin);
+    if (question.sourceUrl) titleParts.push(question.sourceUrl);
+    if (question.formatLabel) titleParts.push(question.formatLabel);
+    el.title = titleParts.filter(Boolean).join(' · ');
     el.classList.add('visible');
     el.classList.toggle('source-ai', question.source === 'ai');
     el.classList.toggle('source-bank', question.source === 'bank');

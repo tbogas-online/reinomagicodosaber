@@ -104,6 +104,8 @@ SET search_path = public
 AS $$
 DECLARE
   v_row public.question_bank%ROWTYPE;
+  v_fact_source TEXT;
+  v_source_url TEXT;
 BEGIN
   IF p_category_n IS NULL OR p_age_band IS NULL OR p_age_band = '' THEN
     RETURN NULL;
@@ -134,6 +136,14 @@ BEGIN
     RETURN NULL;
   END IF;
 
+  SELECT kr.source, kr.source_url
+    INTO v_fact_source, v_source_url
+  FROM public.knowledge_records kr
+  WHERE v_row.knowledge_id IS NOT NULL
+    AND v_row.knowledge_id <> ''
+    AND kr.knowledge_id = v_row.knowledge_id
+  LIMIT 1;
+
   RETURN jsonb_build_object(
     'q', v_row.question,
     'a', v_row.correct_answer,
@@ -142,7 +152,11 @@ BEGIN
     'knowledge_key', v_row.knowledge_key,
     'knowledge_id', v_row.knowledge_id,
     'question_hash', v_row.question_hash,
-    'source', 'bank'
+    'source', 'bank',
+    'bank_origin', v_row.source,
+    'source_id', v_row.source_id,
+    'fact_source', v_fact_source,
+    'source_url', v_source_url
   );
 END;
 $$;
