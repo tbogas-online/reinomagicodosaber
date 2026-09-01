@@ -3906,6 +3906,8 @@
         format: bankRow.format || engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
         knowledgeKey: bankRow.knowledge_key || undefined,
         knowledgeId: bankRow.knowledge_id || undefined,
+        source: 'bank',
+        sourceId: bankRow.source_id || '',
         questionHash: bankRow.question_hash || hashQuestionKey(stripTags(bankRow.q) + '|' + stripTags(bankRow.a)),
       });
       const withOpts = ensureMcOptionsForQuestion(
@@ -4500,6 +4502,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           format: questionFormat,
           knowledgeKey,
           knowledgeId: record.knowledgeId,
+          source: 'repository',
+          sourceId: record.sourceId,
           difficulty,
           subtopic: REPO_ADIVINHA_TOPIC,
           questionHash: hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a)),
@@ -4702,6 +4706,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           format: validateFormatId,
           knowledgeKey,
           knowledgeId: record.knowledgeId,
+          source: 'repository',
+          sourceId: record.sourceId,
           difficulty,
           subtopic: REPO_CURIOSIDADE_TOPIC,
           questionHash: hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a)),
@@ -5198,6 +5204,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           format: questionFormat,
           knowledgeKey,
           knowledge: parsed.knowledge,
+          source: 'ai',
           difficulty,
           subtopic,
           questionHash: hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a)),
@@ -7382,6 +7389,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         format: question.format,
         knowledgeKey: question.knowledgeKey,
         knowledgeId: question.knowledgeId,
+        source: question.source,
+        sourceId: question.sourceId,
         questionHash: hash,
       });
     } catch { /* motor indisponível */ }
@@ -7943,12 +7952,14 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     return {
       reportId: `rpt-${now.getTime().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
       questionId: currentQuestion.id || hashQuestionKey(stripTags(currentQuestion.q)),
+      knowledgeId: currentQuestion.knowledgeId || '',
       question: stripTags(currentQuestion.q),
       category: lastCategory ? { n: lastCategory.n, name: lastCategory.name, desc: lastCategory.desc || '' } : null,
       surprise: !!lastIsSurprise,
       ageBand: selectedAgeBand,
       format: currentQuestion.format || '',
       source: currentQuestion.source || '',
+      sourceId: currentQuestion.sourceId || '',
       options: Array.isArray(currentQuestion.options) ? currentQuestion.options.map(stripTags) : [],
       correctAnswer: stripTags(currentQuestion.a),
       selectedAnswer: lastSelectedAnswer,

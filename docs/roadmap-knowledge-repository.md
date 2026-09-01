@@ -202,7 +202,8 @@ Cada pergunta gerada (depois da IA + validação):
 
 ### KR-1.4 Critérios de aceitação
 - [ ] 0 perguntas de adivinha sem `knowledgeId` em produção
-- [ ] Reporte de pergunta mau → desactiva `knowledgeId` no repositório
+- [x] Reporte de pergunta mau → desactiva `knowledgeId` no repositório (ao resolver no admin ou botão dedicado; cliente já marca no Supabase ao reportar)
+- [x] Telemetria `% source=repository` visível no painel Repositório
 - [ ] Testes 150+ passam; novos testes KR-1 (import + pick + no-hallucination)
 
 ---
@@ -274,10 +275,10 @@ Cada pergunta gerada (depois da IA + validação):
 
 ## KR-4 — Integração com motor actual
 
-- [ ] `collectRepetitionIssues`: priorizar `knowledgeId` sobre heurística
-- [ ] `persistent-history`: guardar `knowledgeId`, `source`, `sourceId`
-- [ ] `question-bank` SQL: colunas `knowledge_id`, `source_id`, `confidence`
-- [ ] Admin reports: mostrar origem da pergunta
+- [x] `collectRepetitionIssues`: priorizar `knowledgeId` sobre heurística `knowledgeKey`
+- [x] `persistent-history`: guardar `knowledgeId`, `source`, `sourceId`
+- [x] `question-bank` SQL: colunas `knowledge_id`, `source_id`, `confidence`
+- [x] Admin reports: mostrar origem da pergunta (`source`, `sourceId`)
 
 ---
 
@@ -286,7 +287,7 @@ Cada pergunta gerada (depois da IA + validação):
 - [x] Painel: listar `knowledge_records` por categoria/fonte/tópico (pesquisa + listar categoria)
 - [x] Acção: desactivar registo (selecção múltipla ou individual)
 - [x] Export CSV para curadoria
-- [ ] Métricas: cobertura por categoria (% jogos com repositório vs fallback)
+- [x] Métricas: % aceites com `source=repository` (telemetria IA no painel Repositório)
 
 ---
 
@@ -354,5 +355,5 @@ Para cada categoria **1–19**, repetir mini-roadmap:
 
 1. **Supabase SQL Editor** — executar `supabase/knowledge-repository.sql` e `supabase/seed-knowledge-cat20-sample.sql` (se ainda não corrido)
 2. Fornecer formato/export da primeira fonte real (MemóriaMedia ou CSV) — meta ≥200 adivinhas + ≥150 curiosidades
-3. **KR-1.4** — telemetria `% source=repository`, desactivar `knowledgeId` após reporte
-4. **KR-4** — `knowledgeId` em `persistent-history` e repetição prioritária
+3. **KR-1.4** — telemetria `% source=repository` no KP; desactivar `knowledgeId` ao resolver reporte (feito)
+4. **KR-4** — `knowledgeId` em `persistent-history` e repetição prioritária (feito)

@@ -225,6 +225,8 @@
           categoryNumber: meta?.category,
         }),
         knowledgeId: meta?.knowledgeId ? String(meta.knowledgeId) : '',
+        source: meta?.source ? String(meta.source) : '',
+        sourceId: meta?.sourceId ? String(meta.sourceId) : '',
         questionHash: qHash,
         difficulty: meta?.difficulty || 2,
         subtopic: meta?.subtopic || '',

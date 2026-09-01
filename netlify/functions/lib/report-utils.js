@@ -128,12 +128,14 @@ function buildReport(payload) {
   return {
     reportId: clip(payload.reportId, 80),
     questionId: clip(payload.questionId, 80),
+    knowledgeId: clip(payload.knowledgeId, 80),
     question: clip(payload.question, 500),
     category,
     surprise: !!payload.surprise,
     ageBand: clip(payload.ageBand, 16),
     format: clip(payload.format, 40),
     source: clip(payload.source, 24),
+    sourceId: clip(payload.sourceId, 80),
     options: Array.isArray(payload.options)
       ? payload.options.slice(0, 6).map((o) => clip(o, 120))
       : [],

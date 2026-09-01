@@ -69,17 +69,20 @@ function collectRepetitionIssues(q, a, formatId, ctx, normalizeFn) {
     categoryNumber: ctx.categoryNumber,
   };
   const knowledgeKey = ctx.knowledgeKey || (typeof ctx.computeKnowledgeKey === 'function' ? ctx.computeKnowledgeKey(q, a, formatId, normalizeFn, keyOpts) : '');
-  const recentKeys = [...(ctx.usedKnowledgeKeys || []), ...(ctx.persistentKnowledgeKeys || [])];
-  if (typeof ctx.knowledgeKeysMatch === 'function' && recentKeys.some((k) => ctx.knowledgeKeysMatch(k, knowledgeKey, normalizeFn))) {
-    pushIssue(issues, 'KNOWLEDGE_REPEATED', ISSUE_LAYER.repetition, 'conhecimento já testado recentemente (knowledgeKey)');
-  }
   const recentKnowledgeIds = [...(ctx.usedKnowledgeIds || []), ...(ctx.persistentKnowledgeIds || [])]
     .map((id) => String(id || '').trim())
     .filter(Boolean);
   const recordId = String(ctx.repositoryRecord?.knowledgeId || ctx.parsed?.knowledgeId || '').trim();
+
   if (recordId && recentKnowledgeIds.includes(recordId)) {
     pushIssue(issues, 'KNOWLEDGE_ID_REPEATED', ISSUE_LAYER.repetition, 'facto do repositório já usado recentemente (knowledgeId)');
   }
+
+  const recentKeys = [...(ctx.usedKnowledgeKeys || []), ...(ctx.persistentKnowledgeKeys || [])];
+  if (!recordId && typeof ctx.knowledgeKeysMatch === 'function' && recentKeys.some((k) => ctx.knowledgeKeysMatch(k, knowledgeKey, normalizeFn))) {
+    pushIssue(issues, 'KNOWLEDGE_REPEATED', ISSUE_LAYER.repetition, 'conhecimento já testado recentemente (knowledgeKey)');
+  }
+
   const blockedKnowledgeIds = (ctx.blockedKnowledgeIds || [])
     .map((id) => String(id || '').trim())
     .filter(Boolean);
