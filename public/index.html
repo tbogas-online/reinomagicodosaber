@@ -3851,7 +3851,7 @@
       if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: não configurado — a usar código local');
       return null;
     }
-    const excludeHashes = [];
+    const excludeHashes = [...(reuseCtx?.questionHashes || new Set())];
     const excludeKnowledgeIds = [...(reuseCtx?.knowledgeIds || new Set())];
     let lastError = '';
     for(let attempt = 0; attempt < maxAttempts; attempt++){
@@ -3905,6 +3905,7 @@
         format: bankRow.format || engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
         knowledgeKey: bankRow.knowledge_key || undefined,
         knowledgeId: bankRow.knowledge_id || undefined,
+        questionHash: bankRow.question_hash || hashQuestionKey(stripTags(bankRow.q) + '|' + stripTags(bankRow.a)),
       });
       const withOpts = ensureMcOptionsForQuestion(
         { q: bankRow.q, a: bankRow.a, options: bankRow.options },
@@ -4079,18 +4080,37 @@
   }
 
   function buildQuestionReuseContext(ageBandKey, persistent, engine){
+    const antiReuse = engine.getAntiReuseSnapshot?.() || { entries: [] };
     const questionNorms = new Set(getEffectiveUsedQuestions(ageBandKey).map(normalizeQ));
+    const knowledgeIds = new Set([...(usedKnowledgeIds[ageBandKey] || [])]);
+    const knowledgeKeys = new Set(getEffectiveUsedKnowledgeKeys(ageBandKey));
+    const questionHashes = new Set();
+
+    for(const entry of antiReuse.entries || []){
+      const n = normalizeQ(entry.q);
+      if(n) questionNorms.add(n);
+      const kid = String(entry.knowledgeId || '').trim();
+      if(kid) knowledgeIds.add(kid);
+      const kk = String(entry.knowledgeKey || '').trim();
+      if(kk) knowledgeKeys.add(normalizeQ(kk));
+      const qh = String(entry.questionHash || '').trim();
+      if(qh) questionHashes.add(qh);
+    }
+
     for(const q of (persistent?.questions || [])){
       const n = normalizeQ(q);
       if(n) questionNorms.add(n);
     }
-    const knowledgeIds = new Set(getEffectiveUsedKnowledgeIds(ageBandKey, persistent));
-    const knowledgeKeys = new Set(getEffectiveUsedKnowledgeKeys(ageBandKey));
+    for(const id of (persistent?.knowledgeIds || [])){
+      const s = String(id || '').trim();
+      if(s) knowledgeIds.add(s);
+    }
     for(const k of (persistent?.knowledgeKeys || [])){
       const n = normalizeQ(k);
       if(n) knowledgeKeys.add(n);
     }
-    return { questionNorms, knowledgeIds, knowledgeKeys, engine };
+
+    return { questionNorms, knowledgeIds, knowledgeKeys, questionHashes, engine };
   }
 
   function isBankRowAlreadyUsed(row, reuseCtx){
@@ -4098,7 +4118,9 @@
     const questionNorms = reuseCtx?.questionNorms || new Set();
     const knowledgeIds = reuseCtx?.knowledgeIds || new Set();
     const knowledgeKeys = reuseCtx?.knowledgeKeys || new Set();
+    const questionHashes = reuseCtx?.questionHashes || new Set();
     const engine = reuseCtx?.engine;
+    if(row.question_hash && questionHashes.has(row.question_hash)) return true;
     if(questionNorms.has(normalizeQ(row.q))) return true;
     const kid = String(row.knowledge_id || row.knowledgeId || '').trim();
     if(kid && knowledgeIds.has(kid)) return true;
@@ -4267,7 +4289,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   async function tryGenerateAdivinhaFromRepository(ctx){
     const {
       category, ageBandKey, questionFormat, difficulty, subtopic, engine, isMC,
-      usedSet, usedAnswerSet, persistentQSet, persistent,
+      usedSet, usedAnswerSet, persistentQSet, persistent, reuseCtx,
       mcInstruction, jsonFormat, ageDifficultyExtra, openModeExtra, skipAi,
     } = ctx;
 
@@ -4276,7 +4298,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
     let lastValidationIssues = [];
     let lastValidationIssueDetails = [];
-    const triedKnowledgeIds = new Set(getEffectiveUsedKnowledgeIds(ageBandKey, persistent));
+    const triedKnowledgeIds = new Set([...(reuseCtx?.knowledgeIds || getEffectiveUsedKnowledgeIds(ageBandKey, persistent))]);
 
     for(let attempt = 1; attempt <= 5; attempt++){
       const record = await KR.pickRecord(category.n, ageBandKey, {
@@ -4443,8 +4465,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           category: category.n,
           format: questionFormat,
           knowledgeKey,
+          knowledgeId: record.knowledgeId,
           difficulty,
           subtopic: REPO_ADIVINHA_TOPIC,
+          questionHash: hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a)),
         });
         recordQuestionGenTelemetry(engine, { ...telemetryBase, outcome: 'accepted', score: qualityCheck.score });
 
@@ -4489,7 +4513,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   async function tryGenerateCuriosidadeFromRepository(ctx){
     const {
       category, ageBandKey, repoFormatId, difficulty, subtopic, engine, isMC,
-      usedSet, usedAnswerSet, persistentQSet, persistent,
+      usedSet, usedAnswerSet, persistentQSet, persistent, reuseCtx,
       mcInstruction, jsonFormat, ageDifficultyExtra, openModeExtra, skipAi,
     } = ctx;
 
@@ -4504,7 +4528,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
     let lastValidationIssues = [];
     let lastValidationIssueDetails = [];
-    const triedKnowledgeIds = new Set(getEffectiveUsedKnowledgeIds(ageBandKey, persistent));
+    const triedKnowledgeIds = new Set([...(reuseCtx?.knowledgeIds || getEffectiveUsedKnowledgeIds(ageBandKey, persistent))]);
 
     for(let attempt = 1; attempt <= 5; attempt++){
       const record = await KR.pickRecord(category.n, ageBandKey, {
@@ -4642,8 +4666,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           category: category.n,
           format: validateFormatId,
           knowledgeKey,
+          knowledgeId: record.knowledgeId,
           difficulty,
           subtopic: REPO_CURIOSIDADE_TOPIC,
+          questionHash: hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a)),
         });
         recordQuestionGenTelemetry(engine, { ...telemetryBase, outcome: 'accepted', score: qualityCheck.score });
 
@@ -4776,6 +4802,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         usedAnswerSet,
         persistentQSet,
         persistent,
+        reuseCtx,
         mcInstruction,
         jsonFormat,
         ageDifficultyExtra,
@@ -4810,6 +4837,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         usedAnswerSet,
         persistentQSet,
         persistent,
+        reuseCtx,
         mcInstruction,
         jsonFormat,
         ageDifficultyExtra,
@@ -5135,6 +5163,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           knowledge: parsed.knowledge,
           difficulty,
           subtopic,
+          questionHash: hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a)),
         });
         recordQuestionGenTelemetry(engine, {
           ...telemetryBase,
@@ -6893,6 +6922,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       document.getElementById('btn-mostrar-resposta').style.display = 'inline-block';
       document.getElementById('btn-mostrar-resposta').textContent = '👁️ Mostrar Resposta';
     }
+    recordQuestionReusePlay(question, cat, ageBand);
     startQuestionCountdown();
   }
 
@@ -7303,6 +7333,32 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
   }
 
+  function recordQuestionReusePlay(question, cat, ageBand){
+    if(!question?.q) return;
+    const qPlain = stripTags(question.q);
+    const aPlain = stripTags(question.a);
+    const hash = question.questionHash || hashQuestionKey(`${qPlain}|${aPlain}`);
+    try {
+      const engine = QE();
+      engine.persistQuestion(ageBand, question.q, question.a, normalizeQ, {
+        category: cat?.n,
+        format: question.format,
+        knowledgeKey: question.knowledgeKey,
+        knowledgeId: question.knowledgeId,
+        questionHash: hash,
+      });
+    } catch { /* motor indisponível */ }
+    const QB = window.QuestionBank;
+    if(QB?.recordPlay){
+      QB.recordPlay({
+        questionHash: hash,
+        knowledgeId: question.knowledgeId || null,
+        categoryN: cat?.n || null,
+        ageBand: ageBand || null,
+      }).catch(() => {});
+    }
+  }
+
   async function showQuestion(cat, isSurprise, ageBand){
     if(!cat?.n){
       console.warn('Categoria em falta — a regressar ao tabuleiro.');
@@ -7361,6 +7417,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       document.getElementById('btn-mostrar-resposta').style.display = 'inline-block';
       document.getElementById('btn-mostrar-resposta').textContent = '👁️ Mostrar Resposta';
     }
+    recordQuestionReusePlay(question, cat, ageBand);
     startQuestionCountdown();
   }
 

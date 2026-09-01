@@ -1397,5 +1397,43 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('162. persistent slice knowledgeIds', Array.isArray(slice.knowledgeIds));
 }
 
+// 163–165. Anti-reuso 30 dias entre sessões
+{
+  const key = QE.PERSISTENT_HISTORY_KEY;
+  const now = Date.now();
+  const MS_DAY = 24 * 60 * 60 * 1000;
+  memStore[key] = JSON.stringify({
+    '10-15': {
+      entries: [
+        {
+          q: 'Pergunta recente anti-reuso?',
+          a: 'Sim',
+          category: 2,
+          format: 'RESPOSTA_DIRETA',
+          knowledgeKey: 'geo|capital|lisboa',
+          knowledgeId: 'knw-recent-001',
+          questionHash: QE.questionHashFromPair('Pergunta recente anti-reuso?', 'Sim'),
+          ts: now - 2 * MS_DAY,
+        },
+        {
+          q: 'Pergunta antiga expirada?',
+          a: 'Não',
+          category: 2,
+          format: 'RESPOSTA_DIRETA',
+          knowledgeKey: 'geo|capital|porto',
+          knowledgeId: 'knw-old-001',
+          questionHash: QE.questionHashFromPair('Pergunta antiga expirada?', 'Não'),
+          ts: now - 40 * MS_DAY,
+        },
+      ],
+    },
+  });
+  const snap = QE.getAntiReuseSnapshot(30);
+  assert('163. anti-reuse inclui recente', snap.knowledgeIds.includes('knw-recent-001'));
+  assert('164. anti-reuse exclui >30 dias', !snap.knowledgeIds.includes('knw-old-001'));
+  assert('165. ANTI_REUSE_DAYS config', QE.ANTI_REUSE_DAYS === 30);
+  delete memStore[key];
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

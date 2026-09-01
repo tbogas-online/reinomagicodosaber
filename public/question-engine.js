@@ -75,8 +75,11 @@
   const { computeKnowledgeKey, knowledgeKeysMatch } = KnowledgeKeyCompute;
   const {
     getPersistentSlice,
+    getAntiReuseSnapshot,
     persistQuestion,
     PERSISTENT_HISTORY_KEY,
+    ANTI_REUSE_DAYS,
+    questionHashFromPair,
   } = PersistentHistory;
 
   function buildRetryHint(issues, formatId, ageBandKey) {
@@ -154,8 +157,11 @@
     recordMcAnswerPosition,
     resetMcPositions,
     getPersistentSlice,
+    getAntiReuseSnapshot,
     persistQuestion,
     PERSISTENT_HISTORY_KEY,
+    ANTI_REUSE_DAYS,
+    questionHashFromPair,
     isGenericTrueFalseAnswer,
     buildGlobalRules,
     buildFormatRules,

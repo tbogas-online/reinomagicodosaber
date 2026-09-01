@@ -9,6 +9,8 @@
     TRUE_FALSE_MIN_GAP: 4,
     FORMAT_MAX_CONSECUTIVE: 2,
     PERSISTENT_HISTORY_MAX: 400,
+    /** Janela anti-reuso entre sessões (mesmo browser / dispositivo). */
+    ANTI_REUSE_DAYS: 30,
     MAX_RECENT_QUESTIONS: 30,
     MAX_RECENT_KNOWLEDGE_KEYS: 40,
     MAX_RECENT_FORMATS: 40,

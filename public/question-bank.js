@@ -278,6 +278,27 @@
   }
 
   /**
+   * Regista pergunta mostrada ao jogador (anti-reuso global 30 dias no Supabase).
+   */
+  async function recordPlay(meta) {
+    const c = await ensureClient();
+    if (!c || !meta?.questionHash) return { ok: false };
+    const { data, error } = await c.rpc('record_question_reuse', {
+      p_question_hash: meta.questionHash,
+      p_knowledge_id: meta.knowledgeId || null,
+      p_category_n: meta.categoryN ?? null,
+      p_age_band: meta.ageBand || null,
+    });
+    if (error) {
+      if (typeof console !== 'undefined' && console.debug) {
+        console.debug('[QuestionBank] recordPlay:', error.message);
+      }
+      return { ok: false, error };
+    }
+    return data || { ok: true };
+  }
+
+  /**
    * Envia o histórico local deste browser para o banco Supabase.
    */
   async function importFromLocalStorage({ batchSize = 40, onProgress } = {}) {
@@ -398,5 +419,6 @@
     pick,
     save,
     markReported,
+    recordPlay,
   };
 })(typeof window !== 'undefined' ? window : globalThis);
