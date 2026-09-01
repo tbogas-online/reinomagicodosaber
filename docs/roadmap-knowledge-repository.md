@@ -283,9 +283,9 @@ Cada pergunta gerada (depois da IA + validação):
 
 ## KR-5 — Admin e auditoria
 
-- [ ] Painel: listar `knowledge_records` por categoria/fonte
-- [ ] Acção: desactivar registo após reporte
-- [ ] Export CSV para curadoria
+- [x] Painel: listar `knowledge_records` por categoria/fonte/tópico (pesquisa + listar categoria)
+- [x] Acção: desactivar registo (selecção múltipla ou individual)
+- [x] Export CSV para curadoria
 - [ ] Métricas: cobertura por categoria (% jogos com repositório vs fallback)
 
 ---

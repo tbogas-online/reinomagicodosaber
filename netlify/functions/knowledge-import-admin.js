@@ -1,8 +1,12 @@
 // GET /api/knowledge-import-admin — estado da fila e repositório
-// POST /api/knowledge-import-admin — { action: 'run', force?: bool, dryRun?: bool }
+// POST — { action: 'run' | 'dry-run' | 'sync-seed' | 'reset-overrides' | 'search' | 'disable' }
 
 const { json, validateAdminAuth } = require('./lib/report-utils');
 const { getImportDashboard, runDailyImport, resetImportOverrides, syncImportQueueFromSeed } = require('./lib/knowledge-import-store');
+const {
+  searchKnowledgeRecords,
+  disableKnowledgeRecords,
+} = require('./lib/knowledge-repository-store');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
 
 exports.handler = async (event) => {
@@ -86,7 +90,50 @@ exports.handler = async (event) => {
         }
       }
 
-      return json(400, { error: 'Acção desconhecida. Usa action: "run", "dry-run", "sync-seed" ou "reset-overrides".' });
+      if (body.action === 'search') {
+        if (!getSupabaseAdmin()) {
+          return json(503, { error: 'Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).' });
+        }
+        try {
+          const result = await searchKnowledgeRecords({
+            query: body.query,
+            knowledgeId: body.knowledgeId,
+            categoryN: body.categoryN,
+            topic: body.topic,
+            source: body.source,
+            activeFilter: body.activeFilter || 'all',
+            limit: body.limit,
+            offset: body.offset,
+          });
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[knowledge-import-admin] search failed:', err);
+          return json(503, { error: 'Não foi possível pesquisar o repositório.' });
+        }
+      }
+
+      if (body.action === 'disable') {
+        if (!getSupabaseAdmin()) {
+          return json(503, { error: 'Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).' });
+        }
+        const knowledgeIds = Array.isArray(body.knowledgeIds) ? body.knowledgeIds : [];
+        if (!knowledgeIds.length) {
+          return json(400, { error: 'Indica pelo menos um knowledge_id.' });
+        }
+        try {
+          const result = await disableKnowledgeRecords(knowledgeIds);
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[knowledge-import-admin] disable failed:', err);
+          const msg = String(err?.message || '');
+          if (msg.includes('disable_knowledge_record') || msg.includes('PGRST202')) {
+            return json(503, { error: 'Função disable_knowledge_record em falta — executa supabase/knowledge-repository.sql no Supabase.' });
+          }
+          return json(503, { error: 'Não foi possível desactivar registo(s).' });
+        }
+      }
+
+      return json(400, { error: 'Acção desconhecida. Usa action: "run", "dry-run", "sync-seed", "reset-overrides", "search" ou "disable".' });
     }
 
     return json(405, { error: 'Método não permitido.' });

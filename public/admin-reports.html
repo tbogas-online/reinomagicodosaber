@@ -1329,6 +1329,51 @@
           <h3 style="margin:16px 0 8px; font-size:0.95rem;">Próximos na fila</h3>
           <div id="knowledgeQueuePreview" class="knowledge-queue-preview"></div>
         </div>
+
+        <div class="card" id="knowledgeBrowseSection">
+          <h2 class="charts-title" style="margin:0 0 8px;">Explorar repositório</h2>
+          <p class="sub" style="margin-top:0;">Pesquisa factos verificados no Supabase, desactiva registos problemáticos ou exporta para curadoria.</p>
+          <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <input type="search" id="knowledgeSearchQuery" placeholder="Texto, resposta ou knowledge_id…" style="min-width:200px; flex:1;">
+            <select id="knowledgeSearchCategory" aria-label="Filtrar categoria">
+              <option value="">Todas as categorias</option>
+            </select>
+            <input type="text" id="knowledgeSearchTopic" placeholder="Tópico…" style="min-width:120px;">
+            <input type="text" id="knowledgeSearchSource" placeholder="Fonte…" style="min-width:100px;">
+            <select id="knowledgeActiveFilter" aria-label="Estado do registo">
+              <option value="all">Todos os estados</option>
+              <option value="active" selected>Activos</option>
+              <option value="inactive">Inactivos</option>
+            </select>
+            <button type="button" class="primary" id="knowledgeSearchBtn">Pesquisar</button>
+            <button type="button" class="secondary" id="knowledgeListCategoryBtn">Listar categoria</button>
+          </div>
+          <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <button type="button" class="secondary" id="knowledgeExportBtn" disabled>⬇ Exportar CSV</button>
+            <button type="button" class="danger" id="knowledgeDisableSelectedBtn" disabled>Desactivar seleccionados</button>
+          </div>
+          <p class="status" id="knowledgeSearchStatus"></p>
+          <div id="knowledgeBySource" class="bank-gaps-list" style="margin-bottom:10px;"></div>
+          <div class="bank-matrix-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th style="width:28px;"><input type="checkbox" id="knowledgeSelectAll" aria-label="Seleccionar todos"></th>
+                  <th>ID</th>
+                  <th>Facto</th>
+                  <th>Resposta</th>
+                  <th>Cat.</th>
+                  <th>Fonte</th>
+                  <th>Estado</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="knowledgeSearchBody">
+                <tr><td colspan="8" class="sub">Pesquisa ou lista por categoria para ver factos.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
 
       <div id="telemetryPanel" class="hidden">
@@ -4040,6 +4085,217 @@
 
     let knowledgeLoading = false;
     let lastKnowledgePayload = null;
+    let lastKnowledgeSearchRows = [];
+    const selectedKnowledgeIds = new Set();
+    let knowledgeSearchLoading = false;
+    let knowledgeDisableLoading = false;
+
+    function initKnowledgeSearchCategorySelect() {
+      const sel = document.getElementById('knowledgeSearchCategory');
+      if (!sel || sel.options.length > 1) return;
+      for (const cat of BANK_CATEGORIES) {
+        const opt = document.createElement('option');
+        opt.value = String(cat.n);
+        opt.textContent = `${cat.n}. ${cat.name}`;
+        sel.appendChild(opt);
+      }
+    }
+
+    function getKnowledgeSearchFilters() {
+      return {
+        query: document.getElementById('knowledgeSearchQuery')?.value?.trim() || '',
+        categoryN: document.getElementById('knowledgeSearchCategory')?.value || '',
+        topic: document.getElementById('knowledgeSearchTopic')?.value?.trim() || '',
+        source: document.getElementById('knowledgeSearchSource')?.value?.trim() || '',
+        activeFilter: document.getElementById('knowledgeActiveFilter')?.value || 'active',
+      };
+    }
+
+    function renderKnowledgeBySource(data) {
+      const el = document.getElementById('knowledgeBySource');
+      if (!el) return;
+      const sources = data?.repository?.bySource || [];
+      if (!sources.length) {
+        el.innerHTML = '';
+        return;
+      }
+      el.innerHTML = `<div><strong>Por fonte (activos):</strong> ${sources.map((s) =>
+        `<span class="pill" title="${esc(s.source || '')}">${esc(s.source || '—')} <strong>${s.count || 0}</strong></span>`,
+      ).join(' ')}</div>`;
+    }
+
+    function updateKnowledgeBrowseUi() {
+      const disableBtn = document.getElementById('knowledgeDisableSelectedBtn');
+      const exportBtn = document.getElementById('knowledgeExportBtn');
+      const selectAll = document.getElementById('knowledgeSelectAll');
+      if (disableBtn) disableBtn.disabled = knowledgeDisableLoading || selectedKnowledgeIds.size === 0;
+      if (exportBtn) exportBtn.disabled = !lastKnowledgeSearchRows.length;
+      if (selectAll && lastKnowledgeSearchRows.length) {
+        selectAll.checked = lastKnowledgeSearchRows.every((r) => selectedKnowledgeIds.has(r.knowledge_id));
+        selectAll.indeterminate = !selectAll.checked
+          && lastKnowledgeSearchRows.some((r) => selectedKnowledgeIds.has(r.knowledge_id));
+      } else if (selectAll) {
+        selectAll.checked = false;
+        selectAll.indeterminate = false;
+      }
+    }
+
+    function renderKnowledgeSearchResults(rows) {
+      lastKnowledgeSearchRows = rows || [];
+      const body = document.getElementById('knowledgeSearchBody');
+      if (!body) return;
+      if (!lastKnowledgeSearchRows.length) {
+        body.innerHTML = '<tr><td colspan="8" class="sub">Nenhum facto encontrado.</td></tr>';
+        updateKnowledgeBrowseUi();
+        return;
+      }
+      const catMap = Object.fromEntries(BANK_CATEGORIES.map((c) => [String(c.n), c.name]));
+      body.innerHTML = lastKnowledgeSearchRows.map((row) => {
+        const kid = row.knowledge_id || '';
+        const checked = selectedKnowledgeIds.has(kid) ? 'checked' : '';
+        const active = row.is_active !== false;
+        return `<tr data-kid="${esc(kid)}">
+          <td><input type="checkbox" class="knowledge-row-check" data-kid="${esc(kid)}" ${checked} aria-label="Seleccionar facto"></td>
+          <td><code>${esc(kid || '—')}</code></td>
+          <td>${esc((row.fact || '—').slice(0, 120))}${(row.fact || '').length > 120 ? '…' : ''}</td>
+          <td>${esc(row.answer || '—')}</td>
+          <td>${esc(catMap[String(row.category_n)] || row.category_n || '—')}</td>
+          <td>${esc(row.source || '—')}</td>
+          <td>${active ? '<span class="pill">activo</span>' : '<span class="pill">inactivo</span>'}</td>
+          <td class="actions-cell">${active ? `<button type="button" class="danger knowledge-disable-one" data-kid="${esc(kid)}">Desactivar</button>` : '—'}</td>
+        </tr>`;
+      }).join('');
+      updateKnowledgeBrowseUi();
+    }
+
+    async function searchKnowledgeRecords(options = {}) {
+      if (knowledgeSearchLoading) return;
+      const { query, categoryN, topic, source, activeFilter } = getKnowledgeSearchFilters();
+      const requireQuery = options.requireQuery !== false;
+      const statusEl = document.getElementById('knowledgeSearchStatus');
+
+      if (requireQuery && !query) {
+        if (statusEl) {
+          statusEl.textContent = 'Indica texto para pesquisar (ou usa «Listar categoria»).';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      if (!requireQuery && !categoryN && !topic && !source) {
+        if (statusEl) {
+          statusEl.textContent = 'Escolhe categoria, tópico ou fonte para listar.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+
+      knowledgeSearchLoading = true;
+      selectedKnowledgeIds.clear();
+      if (statusEl) {
+        statusEl.textContent = 'A pesquisar…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/knowledge-import-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'search',
+            query,
+            categoryN: categoryN ? Number(categoryN) : null,
+            topic,
+            source,
+            activeFilter,
+            limit: 100,
+          }),
+        });
+        renderKnowledgeSearchResults(data.rows || []);
+        if (statusEl) {
+          const shown = (data.rows || []).length;
+          statusEl.textContent = `${shown} facto(s) encontrado(s).`;
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao pesquisar repositório.';
+          statusEl.className = 'status err';
+        }
+      } finally {
+        knowledgeSearchLoading = false;
+        updateKnowledgeBrowseUi();
+      }
+    }
+
+    async function listKnowledgeCategory() {
+      await searchKnowledgeRecords({ requireQuery: false });
+    }
+
+    async function disableKnowledgeRecords(knowledgeIds, options = {}) {
+      const unique = [...new Set((knowledgeIds || []).map((id) => String(id || '').trim()).filter(Boolean))];
+      if (!unique.length) return null;
+      const statusEl = options.statusEl || document.getElementById('knowledgeSearchStatus');
+
+      knowledgeDisableLoading = true;
+      updateKnowledgeBrowseUi();
+      if (statusEl) {
+        statusEl.textContent = 'A desactivar…';
+        statusEl.className = 'status';
+      }
+
+      try {
+        const data = await api('/api/knowledge-import-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'disable', knowledgeIds: unique }),
+        });
+        unique.forEach((id) => selectedKnowledgeIds.delete(id));
+        lastKnowledgeSearchRows = lastKnowledgeSearchRows.map((row) => (
+          unique.includes(row.knowledge_id) ? { ...row, is_active: false } : row
+        ));
+        renderKnowledgeSearchResults(lastKnowledgeSearchRows);
+        await loadKnowledgeDashboard({ quiet: true });
+        if (statusEl) {
+          const failed = (data.failed || []).length;
+          statusEl.textContent = failed
+            ? `${data.disabled || 0} desactivado(s); ${failed} falharam.`
+            : `${data.disabled || 0} registo(s) desactivado(s).`;
+          statusEl.className = failed ? 'status err' : 'status ok';
+        }
+        return data;
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao desactivar.';
+          statusEl.className = 'status err';
+        }
+        return null;
+      } finally {
+        knowledgeDisableLoading = false;
+        updateKnowledgeBrowseUi();
+      }
+    }
+
+    function exportKnowledgeCsv() {
+      if (!lastKnowledgeSearchRows.length) return;
+      const headers = ['knowledge_id', 'category_n', 'topic', 'subtopic', 'fact', 'answer', 'source', 'source_id', 'confidence', 'is_active', 'age_bands', 'allowed_formats'];
+      const lines = [headers.join(',')];
+      for (const row of lastKnowledgeSearchRows) {
+        const cells = headers.map((key) => {
+          let val = row[key];
+          if (Array.isArray(val)) val = val.join('|');
+          val = String(val ?? '');
+          if (val.includes(',') || val.includes('"') || val.includes('\n')) {
+            return `"${val.replace(/"/g, '""')}"`;
+          }
+          return val;
+        });
+        lines.push(cells.join(','));
+      }
+      const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `knowledge-records-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
 
     function renderKnowledgeDiagnostics(data) {
       const el = document.getElementById('knowledgeDiagnostics');
@@ -4179,6 +4435,7 @@
         lastKnowledgePayload = data;
         renderKnowledgeStats(data);
         renderKnowledgeQuarantine(data);
+        renderKnowledgeBySource(data);
         renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
         const updatedEl = document.getElementById('knowledgeLastUpdated');
@@ -4213,6 +4470,7 @@
         lastKnowledgePayload = data;
         renderKnowledgeStats(data);
         renderKnowledgeQuarantine(data);
+        renderKnowledgeBySource(data);
         renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
         if (statusEl) {
@@ -4243,6 +4501,7 @@
         lastKnowledgePayload = data;
         renderKnowledgeStats(data);
         renderKnowledgeQuarantine(data);
+        renderKnowledgeBySource(data);
         renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
         if (statusEl) {
@@ -4271,6 +4530,7 @@
         lastKnowledgePayload = data;
         renderKnowledgeStats(data);
         renderKnowledgeQuarantine(data);
+        renderKnowledgeBySource(data);
         renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
         if (statusEl) {
@@ -4786,6 +5046,7 @@
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
     initBankSearchCategorySelect();
+    initKnowledgeSearchCategorySelect();
     document.getElementById('bankSearchBtn')?.addEventListener('click', () => searchBankQuestions());
     document.getElementById('bankListCategoryBtn')?.addEventListener('click', () => listBankCategory());
     document.getElementById('bankDeleteCategoryBtn')?.addEventListener('click', () => deleteBankByCategory());
@@ -4842,6 +5103,51 @@
     document.getElementById('knowledgeImportBtn')?.addEventListener('click', () => runKnowledgeImport());
     document.getElementById('knowledgeForceImportBtn')?.addEventListener('click', () => runKnowledgeImport({ force: true }));
     document.getElementById('knowledgeResetBtn')?.addEventListener('click', () => resetKnowledgeOverrides());
+    document.getElementById('knowledgeSearchBtn')?.addEventListener('click', () => searchKnowledgeRecords());
+    document.getElementById('knowledgeListCategoryBtn')?.addEventListener('click', () => listKnowledgeCategory());
+    document.getElementById('knowledgeSearchQuery')?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') searchKnowledgeRecords();
+    });
+    document.getElementById('knowledgeExportBtn')?.addEventListener('click', () => exportKnowledgeCsv());
+    document.getElementById('knowledgeDisableSelectedBtn')?.addEventListener('click', async () => {
+      const ids = [...selectedKnowledgeIds];
+      if (!ids.length) return;
+      const ok = await confirmAction(
+        `Desactivar ${ids.length} facto(s) no repositório? Deixam de ser usados no jogo.`,
+        { okLabel: 'Desactivar', danger: true },
+      );
+      if (!ok) return;
+      await disableKnowledgeRecords(ids);
+    });
+    document.getElementById('knowledgeSelectAll')?.addEventListener('change', (e) => {
+      const checked = e.target.checked;
+      for (const row of lastKnowledgeSearchRows) {
+        const kid = row.knowledge_id;
+        if (!kid || row.is_active === false) continue;
+        if (checked) selectedKnowledgeIds.add(kid);
+        else selectedKnowledgeIds.delete(kid);
+      }
+      renderKnowledgeSearchResults(lastKnowledgeSearchRows);
+    });
+    document.getElementById('knowledgeSearchBody')?.addEventListener('change', (e) => {
+      if (!e.target.classList.contains('knowledge-row-check')) return;
+      const kid = e.target.dataset.kid;
+      if (!kid) return;
+      if (e.target.checked) selectedKnowledgeIds.add(kid);
+      else selectedKnowledgeIds.delete(kid);
+      updateKnowledgeBrowseUi();
+    });
+    document.getElementById('knowledgeSearchBody')?.addEventListener('click', async (e) => {
+      if (!e.target.classList.contains('knowledge-disable-one')) return;
+      const kid = e.target.dataset.kid;
+      if (!kid) return;
+      const ok = await confirmAction(
+        `Desactivar o facto ${kid}? Deixa de ser usado no jogo.`,
+        { okLabel: 'Desactivar', danger: true },
+      );
+      if (!ok) return;
+      await disableKnowledgeRecords([kid]);
+    });
     document.querySelector('.bank-matrix thead')?.addEventListener('click', (e) => {
       const th = e.target.closest('th[data-bank-sort]');
       if (!th) return;
