@@ -183,6 +183,195 @@
         "allowed_formats": ["ADIVINHA"],
         "tags": ["folclore"]
       }
+    },
+    {
+      "queueId": "q-cur-004",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-004",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "portugal",
+        "fact": "O vinho do Porto é produzido na região do Douro, no norte de Portugal.",
+        "answer": "Verdadeiro",
+        "statement": "O vinho do Porto é produzido na região do Douro. Verdadeiro ou Falso?",
+        "is_true": true,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-004",
+        "confidence": 0.96,
+        "priority_pt": 75,
+        "age_bands": ["10-15", "15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["portugal"]
+      }
+    },
+    {
+      "queueId": "q-cur-005",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-005",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "ciência",
+        "fact": "A água é mais densa no estado líquido do que no estado sólido (gelo flutua).",
+        "answer": "Verdadeiro",
+        "statement": "O gelo flutua na água porque é menos denso que a água líquida. Verdadeiro ou Falso?",
+        "is_true": true,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-005",
+        "confidence": 0.98,
+        "priority_pt": 74,
+        "age_bands": ["10-15", "15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["ciência"]
+      }
+    },
+    {
+      "queueId": "q-cur-006",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-006",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "história",
+        "fact": "A Grande Muralha da China não é visível a olho nu desde a Lua.",
+        "answer": "Verdadeiro",
+        "statement": "A Grande Muralha da China é visível a olho nu desde a Lua. Verdadeiro ou Falso?",
+        "is_true": false,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-006",
+        "confidence": 0.97,
+        "priority_pt": 73,
+        "age_bands": ["10-15", "15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["história"]
+      }
+    },
+    {
+      "queueId": "q-cur-007",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-007",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "natureza",
+        "fact": "As abelhas comunicam a localização das flores através de uma dança.",
+        "answer": "Verdadeiro",
+        "statement": "As abelhas comunicam onde há flores através de uma dança. Verdadeiro ou Falso?",
+        "is_true": true,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-007",
+        "confidence": 0.96,
+        "priority_pt": 72,
+        "age_bands": ["6-9", "10-15", "15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["animais"]
+      }
+    },
+    {
+      "queueId": "q-cur-008",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-008",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "corpo humano",
+        "fact": "Os ossos humanos são mais resistentes que o aço, proporcionalmente.",
+        "answer": "Verdadeiro",
+        "statement": "Os ossos humanos são mais resistentes que o aço (proporcionalmente). Verdadeiro ou Falso?",
+        "is_true": true,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-008",
+        "confidence": 0.95,
+        "priority_pt": 71,
+        "age_bands": ["15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["ciência"]
+      }
+    },
+    {
+      "queueId": "q-cur-009",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-009",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "portugal",
+        "fact": "Lisboa é mais antiga que Roma.",
+        "answer": "Verdadeiro",
+        "statement": "Lisboa é mais antiga que Roma. Verdadeiro ou Falso?",
+        "is_true": true,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-009",
+        "confidence": 0.94,
+        "priority_pt": 76,
+        "age_bands": ["10-15", "15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["portugal", "história"]
+      }
+    },
+    {
+      "queueId": "q-cur-010",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-010",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "espaço",
+        "fact": "Plutão deixou de ser classificado como planeta em 2006.",
+        "answer": "Verdadeiro",
+        "statement": "Plutão deixou de ser considerado planeta em 2006. Verdadeiro ou Falso?",
+        "is_true": true,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-010",
+        "confidence": 0.99,
+        "priority_pt": 70,
+        "age_bands": ["6-9", "10-15", "15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["astronomia"]
+      }
+    },
+    {
+      "queueId": "q-cur-011",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-011",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "língua",
+        "fact": "O português é a língua oficial de nove países.",
+        "answer": "Verdadeiro",
+        "statement": "O português é língua oficial em nove países. Verdadeiro ou Falso?",
+        "is_true": true,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-011",
+        "confidence": 0.93,
+        "priority_pt": 78,
+        "age_bands": ["15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["portugal", "língua"]
+      }
+    },
+    {
+      "queueId": "q-cur-012",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-012",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "natureza",
+        "fact": "O coração de uma baleia-azul pode pesar cerca de 180 quilogramas.",
+        "answer": "Verdadeiro",
+        "statement": "O coração de uma baleia-azul pode pesar cerca de 180 kg. Verdadeiro ou Falso?",
+        "is_true": true,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-012",
+        "confidence": 0.96,
+        "priority_pt": 69,
+        "age_bands": ["10-15", "15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["animais"]
+      }
     }
   ]
 }

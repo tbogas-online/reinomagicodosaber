@@ -3936,7 +3936,7 @@
     return null;
   }
 
-  async function finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine){
+  async function finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal = true } = {}){
     const bankRow = await tryPickFromQuestionBank(category.n, ageBandKey, reuseCtx);
     if(bankRow){
       rememberGlobalQuestion(ageBandKey, bankRow.q);
@@ -3976,6 +3976,16 @@
         };
         return finalizeQuestion(out);
       }
+    }
+    if(!allowLocal){
+      return finalizeQuestion({
+        q: 'Ainda não há perguntas verificadas disponíveis para esta categoria e faixa etária.',
+        a: '—',
+        options: ['—', '—', '—', '—'],
+        source: 'local',
+        format: engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
+        formatLabel: 'Sem stock',
+      });
     }
     const fallback = pickQuestionWithMcOptions(category.n, ageBandKey, reuseCtx?.questionNorms);
     if(fallback){
@@ -4084,6 +4094,13 @@
     return Math.random() < REPO_CURIOSIDADE_VF_CHANCE
       ? engine.FORMAT_IDS.VERDADEIRO_FALSO
       : engine.FORMAT_IDS.CURIOSIDADE;
+  }
+
+  function curiosidadeRepoFormatCandidates(engine, primaryFormatId){
+    const alt = primaryFormatId === engine.FORMAT_IDS.VERDADEIRO_FALSO
+      ? engine.FORMAT_IDS.CURIOSIDADE
+      : engine.FORMAT_IDS.VERDADEIRO_FALSO;
+    return [...new Set([primaryFormatId, alt, null].filter((f) => f !== undefined))];
   }
 
   function getRepositoryExpectedAnswer(record, engine){
@@ -4609,57 +4626,63 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const KR = window.ReinoKnowledgeRepository;
     if(!KR?.isConfigured?.()) return null;
 
-    const isRepoTrueFalse = repoFormatId === engine.FORMAT_IDS.VERDADEIRO_FALSO;
-    const validateFormatId = isRepoTrueFalse ? engine.FORMAT_IDS.VERDADEIRO_FALSO : engine.FORMAT_IDS.CURIOSIDADE;
-    const formatLabel = isRepoTrueFalse
-      ? (engine.FORMAT_LABELS[engine.FORMAT_IDS.VERDADEIRO_FALSO] || 'Verdadeiro/Falso')
-      : (engine.FORMAT_LABELS[engine.FORMAT_IDS.CURIOSIDADE] || 'Curiosidade');
-
     let lastValidationIssues = [];
     let lastValidationIssueDetails = [];
-    const triedKnowledgeIds = new Set([...(reuseCtx?.knowledgeIds || getEffectiveUsedKnowledgeIds(ageBandKey, persistent))]);
+    const formatCandidates = curiosidadeRepoFormatCandidates(engine, repoFormatId);
 
-    for(let attempt = 1; attempt <= 5; attempt++){
-      const record = await KR.pickRecord(category.n, ageBandKey, {
-        topic: REPO_CURIOSIDADE_TOPIC,
-        formatId: repoFormatId,
-        excludeKnowledgeIds: [...triedKnowledgeIds],
-        minConfidence: REPO_CURIOSIDADE_MIN_CONFIDENCE,
-      });
-      if(!record){
-        if(DEBUG_MODE){
-          console.info('[KnowledgeRepository] Sem curiosidades no repositório', {
-            ageBand: ageBandKey,
-            format: repoFormatId,
-            excluded: triedKnowledgeIds.size,
-            topic: REPO_CURIOSIDADE_TOPIC,
-          });
+    for(const pickFormatId of formatCandidates){
+      const triedKnowledgeIds = new Set([...(reuseCtx?.knowledgeIds || getEffectiveUsedKnowledgeIds(ageBandKey, persistent))]);
+
+      for(let attempt = 1; attempt <= 5; attempt++){
+        const record = await KR.pickRecord(category.n, ageBandKey, {
+          topic: REPO_CURIOSIDADE_TOPIC,
+          formatId: pickFormatId,
+          excludeKnowledgeIds: [...triedKnowledgeIds],
+          minConfidence: REPO_CURIOSIDADE_MIN_CONFIDENCE,
+        });
+        if(!record){
+          if(DEBUG_MODE){
+            console.info('[KnowledgeRepository] Sem curiosidades no repositório', {
+              ageBand: ageBandKey,
+              format: pickFormatId || 'qualquer',
+              excluded: triedKnowledgeIds.size,
+              topic: REPO_CURIOSIDADE_TOPIC,
+            });
+          }
+          break;
         }
-        return null;
-      }
-      triedKnowledgeIds.add(record.knowledgeId);
+        triedKnowledgeIds.add(record.knowledgeId);
 
-      const telemetryBase = {
-        category: category.n,
-        formatId: validateFormatId,
-        ageBandKey,
-        difficulty,
-        attempt,
-        knowledgeId: record.knowledgeId,
-        source: 'repository',
-      };
+        const validateFormatId = pickFormatId === engine.FORMAT_IDS.VERDADEIRO_FALSO
+          || (pickFormatId == null && record.statement)
+          ? engine.FORMAT_IDS.VERDADEIRO_FALSO
+          : engine.FORMAT_IDS.CURIOSIDADE;
+        const isRepoTrueFalse = validateFormatId === engine.FORMAT_IDS.VERDADEIRO_FALSO;
+        const formatLabel = isRepoTrueFalse
+          ? (engine.FORMAT_LABELS[engine.FORMAT_IDS.VERDADEIRO_FALSO] || 'Verdadeiro/Falso')
+          : (engine.FORMAT_LABELS[engine.FORMAT_IDS.CURIOSIDADE] || 'Curiosidade');
 
-      try {
-        let parsed = null;
-        const useDirect = skipAi || (isRepoTrueFalse && record.statement);
-        if(useDirect){
-          parsed = buildCuriosidadeDirectFromRecord(record, repoFormatId, engine);
-        } else {
-          const prompt = engine.buildPromptFromFact(record, {
-            category,
-            ageBandKey,
-            ageBandPromptText: AGE_BAND_PROMPT_TEXT[ageBandKey],
-            formatId: repoFormatId,
+        const telemetryBase = {
+          category: category.n,
+          formatId: validateFormatId,
+          ageBandKey,
+          difficulty,
+          attempt,
+          knowledgeId: record.knowledgeId,
+          source: 'repository',
+        };
+
+        try {
+          let parsed = null;
+          const useDirect = skipAi || (isRepoTrueFalse && record.statement);
+          if(useDirect){
+            parsed = buildCuriosidadeDirectFromRecord(record, validateFormatId, engine);
+          } else {
+            const prompt = engine.buildPromptFromFact(record, {
+              category,
+              ageBandKey,
+              ageBandPromptText: AGE_BAND_PROMPT_TEXT[ageBandKey],
+              formatId: validateFormatId,
             ptPtRules: PT_PT_RULES,
             isMC,
             isTrueFalse: true,
@@ -4704,9 +4727,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           }
           recordAiUsage(data);
           setOnlineStatus(true);
-        }
+          }
 
-        if(!parsed?.options || parsed.options.length !== 2){
+          if(!parsed?.options || parsed.options.length !== 2){
           parsed.options = ['Verdadeiro', 'Falso'];
         }
 
@@ -4801,6 +4824,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       } catch (err) {
         if(DEBUG_MODE) console.warn('[KnowledgeRepository] curiosidade falhou:', err?.message || err);
       }
+      }
     }
 
     return null;
@@ -4872,7 +4896,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const persistentQSet = new Set((persistent.questions || []).map(normalizeQ));
 
     if(localOnly){
-      return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine);
+      return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal: category.n !== 20 });
     }
 
     // KR-1: adivinhas (cat. 20) — só factos do repositório; sem geração livre pelo LLM.
@@ -4906,7 +4930,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         skipAi: skipAiForRepo,
       });
       if(repoQuestion) return repoQuestion;
-      return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine);
+      return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal: false });
     }
 
     // KR-2: curiosidades (cat. 20) — só factos do repositório; sem geração livre pelo LLM.
@@ -4941,7 +4965,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         skipAi: skipAiForRepo,
       });
       if(repoQuestion) return repoQuestion;
-      return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine);
+      return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal: false });
     }
 
     let aiWasAttempted = false;
