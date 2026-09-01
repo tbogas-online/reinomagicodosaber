@@ -851,35 +851,13 @@
         <button type="button" id="tabReports" class="active">Reportes</button>
         <button type="button" id="tabRooms" class="secondary">Salas multijogador</button>
         <button type="button" id="tabBank" class="secondary">Banco de perguntas</button>
+        <button type="button" id="tabTelemetry" class="secondary">Telemetria IA</button>
         <span class="spacer"></span>
         <button type="button" id="logoutBtn" class="secondary">Sair</button>
       </div>
 
       <div id="reportsPanel">
       <div class="card stats" id="statsRow"></div>
-
-      <div class="card" id="genTelemetrySection">
-        <h2 class="charts-title">Geração IA <span style="font-size:0.85rem;font-weight:normal;color:var(--muted)">(este navegador)</span></h2>
-        <p class="chart-filter-note">Eventos de geração e validação guardados em localStorage neste dispositivo — útil para diagnosticar rejeições da IA.</p>
-        <div class="stats" id="genTelemetryStats"></div>
-        <div class="charts-grid" style="margin-top:12px">
-          <div class="chart-box">
-            <h3>Rejeições por código</h3>
-            <div id="chartGenIssueCodes" class="chart"></div>
-          </div>
-          <div class="chart-box">
-            <h3>Rejeições por categoria</h3>
-            <div id="chartGenCategories" class="chart"></div>
-          </div>
-          <div class="chart-box">
-            <h3>Rejeições por formato</h3>
-            <div id="chartGenFormats" class="chart"></div>
-          </div>
-        </div>
-        <p style="margin:12px 0 0">
-          <button type="button" class="secondary" id="clearGenTelemetryBtn">Limpar telemetria local</button>
-        </p>
-      </div>
 
       <div class="card" id="chartsSection">
         <h2 class="charts-title">Dashboard</h2>
@@ -1157,6 +1135,45 @@
           <a class="bank-footer-link" href="/test-questions.html">🧪 Teste de perguntas</a>
         </p>
       </div>
+
+      <div id="telemetryPanel" class="hidden">
+        <div class="card stats" id="genTelemetryStats"></div>
+
+        <div class="card" id="genTelemetrySection">
+          <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
+            <div>
+              <h2 class="charts-title" style="margin:0;">Geração IA</h2>
+              <p class="chart-filter-note" style="margin:6px 0 0">Eventos de todos os dispositivos, jogos locais e multijogador.</p>
+            </div>
+            <div class="rooms-refresh-wrap">
+              <button type="button" class="secondary" id="telemetryRefreshBtn">↻ Actualizar</button>
+              <span id="telemetryLastUpdated" class="rooms-last-updated"></span>
+            </div>
+          </div>
+          <p class="status" id="telemetryListStatus"></p>
+          <div class="charts-grid" style="margin-top:12px">
+            <div class="chart-box">
+              <h3>Rejeições por código</h3>
+              <div id="chartGenIssueCodes" class="chart"></div>
+            </div>
+            <div class="chart-box">
+              <h3>Rejeições por categoria</h3>
+              <div id="chartGenCategories" class="chart"></div>
+            </div>
+            <div class="chart-box">
+              <h3>Rejeições por formato</h3>
+              <div id="chartGenFormats" class="chart"></div>
+            </div>
+            <div class="chart-box">
+              <h3>Por modo de jogo</h3>
+              <div id="chartGenGameModes" class="chart"></div>
+            </div>
+          </div>
+          <p style="margin:12px 0 0">
+            <button type="button" class="danger" id="clearGenTelemetryBtn">Limpar telemetria no servidor</button>
+          </p>
+        </div>
+      </div>
     </section>
   </div>
 
@@ -1170,7 +1187,6 @@
     </div>
   </div>
 
-  <script src="question-engine/telemetry.js?v=20260901-130000"></script>
   <script>
     const AUTH_KEY = 'reino_admin_reports_auth';
     const ISSUE_LABELS = {
@@ -2307,6 +2323,7 @@
     function getAutoRefreshMs() {
       if (activeAdminTab === 'rooms') return ROOMS_AUTO_REFRESH_MS;
       if (activeAdminTab === 'bank') return ROOMS_AUTO_REFRESH_MS;
+      if (activeAdminTab === 'telemetry') return ROOMS_AUTO_REFRESH_MS;
       return AUTO_REFRESH_MS;
     }
 
@@ -2427,7 +2444,6 @@
         <div class="stat stat-total"><strong>${stats.total || 0}</strong><span>Total</span></div>
         <div class="stat stat-top-issue"><strong>${topIssue ? esc(ISSUE_LABELS[topIssue[0]] || topIssue[0]) : '—'}</strong><span>Tipo mais comum</span></div>
       `;
-      renderGenTelemetry();
     }
 
     const GEN_ISSUE_LABELS = {
@@ -2447,20 +2463,26 @@
       UNSPECIFIED: 'Outro',
     };
 
-    function renderGenTelemetry() {
-      const Tel = window.QuestionEngineTelemetry;
+    const GEN_GAME_MODE_LABELS = {
+      local: 'Local',
+      multiplayer: 'Multijogador',
+      test: 'Teste',
+    };
+
+    function renderGenTelemetry(summary) {
       const statsEl = document.getElementById('genTelemetryStats');
       const issueEl = document.getElementById('chartGenIssueCodes');
       const catEl = document.getElementById('chartGenCategories');
       const fmtEl = document.getElementById('chartGenFormats');
-      if (!Tel || !statsEl || !issueEl || !catEl || !fmtEl) return;
+      const modeEl = document.getElementById('chartGenGameModes');
+      if (!statsEl || !issueEl || !catEl || !fmtEl || !modeEl) return;
 
-      const summary = Tel.getTelemetrySummary();
-      if (!summary.total) {
-        statsEl.innerHTML = '<p class="chart-empty" style="margin:0">Ainda sem eventos — joga com IA neste navegador para recolher dados.</p>';
-        issueEl.innerHTML = '';
+      if (!summary?.total) {
+        statsEl.innerHTML = '<div class="stat stat-total"><strong>0</strong><span>Sem eventos ainda</span></div>';
+        issueEl.innerHTML = '<p class="chart-empty">Ainda sem eventos — joga com IA para recolher dados.</p>';
         catEl.innerHTML = '';
         fmtEl.innerHTML = '';
+        modeEl.innerHTML = '';
         return;
       }
 
@@ -2490,6 +2512,36 @@
         .sort((a, b) => b[1] - a[1])
         .slice(0, 8);
       renderBarChart(fmtEl, fmtEntries);
+
+      const modeEntries = Object.entries(summary.byGameMode || {})
+        .map(([k, v]) => [k, v.rejected || 0])
+        .filter(([, n]) => n > 0)
+        .sort((a, b) => b[1] - a[1]);
+      renderBarChart(modeEl, modeEntries, (k) => GEN_GAME_MODE_LABELS[k] || k);
+    }
+
+    async function loadTelemetryDashboard(options = {}) {
+      const { quiet = false } = options;
+      const statusEl = document.getElementById('telemetryListStatus');
+      if (!quiet && statusEl) {
+        statusEl.textContent = 'A carregar…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/gen-telemetry-admin?stats=1');
+        renderGenTelemetry(data.stats || {});
+        const updatedEl = document.getElementById('telemetryLastUpdated');
+        if (updatedEl) updatedEl.textContent = 'Actualizado ' + new Date().toLocaleTimeString('pt-PT');
+        if (statusEl) {
+          statusEl.textContent = '';
+          statusEl.className = 'status';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao carregar telemetria.';
+          statusEl.className = 'status err';
+        }
+      }
     }
 
     function renderReports(reports) {
@@ -2664,15 +2716,19 @@
     } catch { /* ignore */ }
 
     function setAdminTab(tab) {
-      activeAdminTab = tab === 'rooms' ? 'rooms' : (tab === 'bank' ? 'bank' : 'reports');
+      activeAdminTab = tab === 'rooms' ? 'rooms'
+        : (tab === 'bank' ? 'bank' : (tab === 'telemetry' ? 'telemetry' : 'reports'));
       document.getElementById('tabReports')?.classList.toggle('active', activeAdminTab === 'reports');
       document.getElementById('tabRooms')?.classList.toggle('active', activeAdminTab === 'rooms');
       document.getElementById('tabBank')?.classList.toggle('active', activeAdminTab === 'bank');
+      document.getElementById('tabTelemetry')?.classList.toggle('active', activeAdminTab === 'telemetry');
       document.getElementById('reportsPanel')?.classList.toggle('hidden', activeAdminTab !== 'reports');
       document.getElementById('roomsPanel')?.classList.toggle('hidden', activeAdminTab !== 'rooms');
       document.getElementById('bankPanel')?.classList.toggle('hidden', activeAdminTab !== 'bank');
+      document.getElementById('telemetryPanel')?.classList.toggle('hidden', activeAdminTab !== 'telemetry');
       if (activeAdminTab === 'reports') loadDashboard({ quiet: true });
       else if (activeAdminTab === 'rooms') loadRoomsDashboard({ quiet: true });
+      else if (activeAdminTab === 'telemetry') loadTelemetryDashboard({ quiet: true });
       else loadBankDashboard({ quiet: true });
       if (!dashboard.classList.contains('hidden')) startAutoRefresh();
     }
@@ -2680,6 +2736,7 @@
     function refreshActiveTab(options = { quiet: true, keepSelection: true }) {
       if (activeAdminTab === 'rooms') loadRoomsDashboard(options);
       else if (activeAdminTab === 'bank') loadBankDashboard(options);
+      else if (activeAdminTab === 'telemetry') loadTelemetryDashboard(options);
       else loadDashboard(options);
     }
 
@@ -3474,6 +3531,7 @@
     document.getElementById('tabReports')?.addEventListener('click', () => setAdminTab('reports'));
     document.getElementById('tabRooms')?.addEventListener('click', () => setAdminTab('rooms'));
     document.getElementById('tabBank')?.addEventListener('click', () => setAdminTab('bank'));
+    document.getElementById('tabTelemetry')?.addEventListener('click', () => setAdminTab('telemetry'));
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
     document.querySelector('.bank-matrix thead')?.addEventListener('click', (e) => {
@@ -3530,11 +3588,23 @@
       closeRoomsAdmin([...selectedRoomIds]);
     });
     document.getElementById('logoutBtn').onclick = logout;
-    document.getElementById('clearGenTelemetryBtn')?.addEventListener('click', () => {
-      if (!window.QuestionEngineTelemetry) return;
-      if (!confirm('Limpar telemetria de geração IA deste navegador?')) return;
-      window.QuestionEngineTelemetry.clearTelemetry();
-      renderGenTelemetry();
+    document.getElementById('telemetryRefreshBtn')?.addEventListener('click', () => loadTelemetryDashboard());
+    document.getElementById('clearGenTelemetryBtn')?.addEventListener('click', async () => {
+      if (!confirm('Limpar toda a telemetria de geração IA no servidor?')) return;
+      const statusEl = document.getElementById('telemetryListStatus');
+      try {
+        await api('/api/gen-telemetry-admin', { method: 'DELETE' });
+        await loadTelemetryDashboard({ quiet: true });
+        if (statusEl) {
+          statusEl.textContent = 'Telemetria apagada.';
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao limpar telemetria.';
+          statusEl.className = 'status err';
+        }
+      }
     });
     document.getElementById('refreshBtn').onclick = () => { offset = 0; loadDashboard(); };
     document.getElementById('exportBtn').onclick = exportCsv;

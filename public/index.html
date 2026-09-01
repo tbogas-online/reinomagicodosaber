@@ -4584,6 +4584,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       provider: usage.provider || '',
       model: usage.model || '',
       source: fields.source || 'ai',
+      gameMode: fields.gameMode || (window.MultiplayerController?.isMultiplayer?.() ? 'multiplayer' : 'local'),
     });
   }
 

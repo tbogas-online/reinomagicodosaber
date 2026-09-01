@@ -1,14 +1,17 @@
 /**
- * Telemetria de geração de perguntas — Fase 3 (localStorage, sem chamadas externas).
+ * Telemetria de geração de perguntas — localStorage + sync servidor.
  */
 (function (global) {
   'use strict';
 
   const STORAGE_KEY = 'reino_magico_gen_telemetry_v1';
   const MAX_EVENTS = 200;
+  const SERVER_ENDPOINT = '/api/gen-telemetry';
+  const VALID_GAME_MODES = new Set(['local', 'multiplayer', 'test']);
 
   function normalizeEvent(raw) {
     const e = raw && typeof raw === 'object' ? raw : {};
+    const gameMode = VALID_GAME_MODES.has(String(e.gameMode)) ? String(e.gameMode) : 'local';
     return {
       ts: Number(e.ts) || Date.now(),
       outcome: String(e.outcome || 'unknown'),
@@ -22,7 +25,65 @@
       model: e.model ? String(e.model) : '',
       score: e.score != null ? Number(e.score) : null,
       source: e.source ? String(e.source) : 'ai',
+      gameMode,
     };
+  }
+
+  function computeSummary(events) {
+    const summary = {
+      total: events.length,
+      accepted: 0,
+      rejected: 0,
+      parseErrors: 0,
+      apiErrors: 0,
+      byIssueCode: {},
+      byCategory: {},
+      byFormat: {},
+      byGameMode: {},
+      rejectionRate: 0,
+    };
+    for (const ev of events) {
+      if (ev.outcome === 'accepted') summary.accepted += 1;
+      else if (ev.outcome === 'rejected') summary.rejected += 1;
+      else if (ev.outcome === 'parse_error') summary.parseErrors += 1;
+      else if (ev.outcome === 'api_error') summary.apiErrors += 1;
+
+      for (const code of ev.issueCodes) {
+        summary.byIssueCode[code] = (summary.byIssueCode[code] || 0) + 1;
+      }
+      if (ev.category != null) {
+        const ck = String(ev.category);
+        if (!summary.byCategory[ck]) summary.byCategory[ck] = { total: 0, rejected: 0 };
+        summary.byCategory[ck].total += 1;
+        if (ev.outcome === 'rejected') summary.byCategory[ck].rejected += 1;
+      }
+      if (ev.formatId) {
+        if (!summary.byFormat[ev.formatId]) summary.byFormat[ev.formatId] = { total: 0, rejected: 0 };
+        summary.byFormat[ev.formatId].total += 1;
+        if (ev.outcome === 'rejected') summary.byFormat[ev.formatId].rejected += 1;
+      }
+      const mode = ev.gameMode || 'local';
+      if (!summary.byGameMode[mode]) summary.byGameMode[mode] = { total: 0, rejected: 0 };
+      summary.byGameMode[mode].total += 1;
+      if (ev.outcome === 'rejected' || ev.outcome === 'parse_error' || ev.outcome === 'api_error') {
+        summary.byGameMode[mode].rejected += 1;
+      }
+    }
+    const failures = summary.rejected + summary.parseErrors + summary.apiErrors;
+    summary.rejectionRate = summary.total ? failures / summary.total : 0;
+    return summary;
+  }
+
+  function syncEventToServer(event) {
+    if (typeof fetch === 'undefined') return;
+    try {
+      fetch(SERVER_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(event),
+        keepalive: true,
+      }).catch(() => {});
+    } catch { /* ignora */ }
   }
 
   function createStore(storage) {
@@ -44,12 +105,14 @@
     }
 
     function record(event) {
-      mem.events.push(normalizeEvent(event));
+      const normalized = normalizeEvent(event);
+      mem.events.push(normalized);
       if (mem.events.length > MAX_EVENTS) {
         mem.events = mem.events.slice(-MAX_EVENTS);
       }
       save();
-      return mem.events[mem.events.length - 1];
+      syncEventToServer(normalized);
+      return normalized;
     }
 
     function getEvents() {
@@ -62,42 +125,7 @@
     }
 
     function getSummary() {
-      const events = mem.events;
-      const summary = {
-        total: events.length,
-        accepted: 0,
-        rejected: 0,
-        parseErrors: 0,
-        apiErrors: 0,
-        byIssueCode: {},
-        byCategory: {},
-        byFormat: {},
-        rejectionRate: 0,
-      };
-      for (const ev of events) {
-        if (ev.outcome === 'accepted') summary.accepted += 1;
-        else if (ev.outcome === 'rejected') summary.rejected += 1;
-        else if (ev.outcome === 'parse_error') summary.parseErrors += 1;
-        else if (ev.outcome === 'api_error') summary.apiErrors += 1;
-
-        for (const code of ev.issueCodes) {
-          summary.byIssueCode[code] = (summary.byIssueCode[code] || 0) + 1;
-        }
-        if (ev.category != null) {
-          const ck = String(ev.category);
-          if (!summary.byCategory[ck]) summary.byCategory[ck] = { total: 0, rejected: 0 };
-          summary.byCategory[ck].total += 1;
-          if (ev.outcome === 'rejected') summary.byCategory[ck].rejected += 1;
-        }
-        if (ev.formatId) {
-          if (!summary.byFormat[ev.formatId]) summary.byFormat[ev.formatId] = { total: 0, rejected: 0 };
-          summary.byFormat[ev.formatId].total += 1;
-          if (ev.outcome === 'rejected') summary.byFormat[ev.formatId].rejected += 1;
-        }
-      }
-      const failures = summary.rejected + summary.parseErrors + summary.apiErrors;
-      summary.rejectionRate = summary.total ? failures / summary.total : 0;
-      return summary;
+      return computeSummary(mem.events);
     }
 
     load();
@@ -142,7 +170,10 @@
   global.QuestionEngineTelemetry = Object.freeze({
     STORAGE_KEY,
     MAX_EVENTS,
+    SERVER_ENDPOINT,
     createStore,
+    normalizeEvent,
+    computeSummary,
     recordGenerationEvent,
     getTelemetrySummary,
     getTelemetryEvents,

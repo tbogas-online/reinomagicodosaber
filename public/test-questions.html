@@ -619,6 +619,26 @@
       return result;
     }
 
+    function recordTestTelemetry(fields) {
+      if (!QE?.recordGenerationTelemetry) return;
+      const usage = fields.aiUsage || lastAiUsage || {};
+      const codes = (fields.issueDetails || []).map((d) => d?.code).filter(Boolean);
+      QE.recordGenerationTelemetry({
+        outcome: fields.outcome || 'unknown',
+        category: fields.category,
+        formatId: fields.formatId,
+        ageBandKey: fields.ageBandKey,
+        difficulty: fields.difficulty,
+        attempt: fields.attempt,
+        issueCodes: codes.length ? codes : (fields.issueCodes || []),
+        score: fields.score ?? null,
+        provider: usage.provider || '',
+        model: usage.model || '',
+        source: 'ai',
+        gameMode: 'test',
+      });
+    }
+
     function showResult(result, parsed, resolved, aiUsage = null) {
       $('result-card').hidden = false;
       lastResolved = resolved;
@@ -823,7 +843,20 @@
         lastAttemptUsage = aiUsage;
         rememberAiUsage(aiUsage);
         const parsed = parseAiJson((data.content || []).map((b) => b.text || '').join(''));
-        if (!parsed?.q || !parsed?.a) { lastIssues = ['JSON incompleto']; continue; }
+        if (!parsed?.q || !parsed?.a) {
+          lastIssues = ['JSON incompleto'];
+          recordTestTelemetry({
+            outcome: 'parse_error',
+            category: cat.n,
+            formatId,
+            ageBandKey,
+            difficulty,
+            attempt,
+            issueCodes: [!parsed?.q ? 'STRUCTURE_MISSING_Q' : 'STRUCTURE_MISSING_A'],
+            aiUsage,
+          });
+          continue;
+        }
 
         if (isTrueFalse) parsed.q = ensureTrueFalsePrompt(parsed.q);
         if (isMC && !isTrueFalse && parsed.distractors?.length >= 3) {
@@ -842,6 +875,16 @@
         if (result.ok) {
           $('gen-status').className = 'result ok';
           $('gen-status').textContent = `Aceite na tentativa ${attempt}.${aiUsageSuffix(aiUsage)}`;
+          recordTestTelemetry({
+            outcome: 'accepted',
+            category: cat.n,
+            formatId,
+            ageBandKey,
+            difficulty,
+            attempt,
+            score: result.score,
+            aiUsage,
+          });
           showResult(result, parsed, resolved, aiUsage);
           rememberAccepted(parsed, result, { formatId, difficulty, subtopic });
           addLogEntry(parsed, result, resolved, aiUsage);
@@ -856,6 +899,17 @@
         }
         lastIssues = result.issues || ['validação falhou'];
         lastIssueDetails = result.issueDetails || [];
+        recordTestTelemetry({
+          outcome: 'rejected',
+          category: cat.n,
+          formatId,
+          ageBandKey,
+          difficulty,
+          attempt,
+          issueDetails: lastIssueDetails,
+          score: result.score,
+          aiUsage,
+        });
         showResult(result, parsed, resolved, aiUsage);
       }
 
