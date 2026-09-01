@@ -139,6 +139,7 @@
       selectedAnswer: h.getLastSelectedAnswer?.() ?? null,
       dice: extra && 'dice' in extra ? extra.dice : (h.getLastDiceRoll?.() ?? null),
       round: extra?.round ?? (GH.getCurrentGame()?.rounds?.length || 0),
+      generationHistory: getGenerationHistorySnapshot(),
       ...extra,
       sessionStartedAt: extra?.sessionStartedAt ?? getSessionStartedAt() ?? null,
     };
@@ -147,6 +148,65 @@
   let lastGameStateJson = '';
   let lastAppliedStateAt = 0;
   let remoteApplyChain = Promise.resolve();
+
+  const HISTORY_LIMITS = { questions: 150, answers: 80, knowledgeKeys: 60 };
+  let generationHistory = {};
+
+  function cloneGenerationHistory(src) {
+    const out = {};
+    Object.keys(src || {}).forEach((band) => {
+      const b = src[band] || {};
+      out[band] = {
+        questions: Array.isArray(b.questions) ? b.questions.slice() : [],
+        answers: Array.isArray(b.answers) ? b.answers.slice() : [],
+        knowledgeKeys: Array.isArray(b.knowledgeKeys) ? b.knowledgeKeys.slice() : [],
+      };
+    });
+    return out;
+  }
+
+  function resetGenerationHistory() {
+    generationHistory = {};
+  }
+
+  function mergeGenerationHistoryFromState(state) {
+    if (!state?.generationHistory || typeof state.generationHistory !== 'object') return;
+    generationHistory = cloneGenerationHistory(state.generationHistory);
+  }
+
+  function pushHistoryItem(list, value, max) {
+    const v = String(value || '').trim();
+    if (!v) return;
+    if (list.includes(v)) return;
+    list.push(v);
+    while (list.length > max) list.shift();
+  }
+
+  function recordGenerationHistory(ageBandKey, { question, answer, knowledgeKey } = {}) {
+    if (!ageBandKey) return generationHistory;
+    if (!generationHistory[ageBandKey]) {
+      generationHistory[ageBandKey] = { questions: [], answers: [], knowledgeKeys: [] };
+    }
+    const band = generationHistory[ageBandKey];
+    pushHistoryItem(band.questions, question, HISTORY_LIMITS.questions);
+    pushHistoryItem(band.answers, answer, HISTORY_LIMITS.answers);
+    pushHistoryItem(band.knowledgeKeys, knowledgeKey, HISTORY_LIMITS.knowledgeKeys);
+    return generationHistory;
+  }
+
+  function getGenerationHistorySlice(ageBandKey) {
+    const band = generationHistory[ageBandKey];
+    if (!band) return { questions: [], answers: [], knowledgeKeys: [] };
+    return {
+      questions: band.questions.slice(),
+      answers: band.answers.slice(),
+      knowledgeKeys: band.knowledgeKeys.slice(),
+    };
+  }
+
+  function getGenerationHistorySnapshot() {
+    return cloneGenerationHistory(generationHistory);
+  }
 
   function scheduleRemoteState(state, settings, options = {}) {
     remoteApplyChain = remoteApplyChain
@@ -203,6 +263,7 @@
     const remoteTs = Number(state.updatedAt) || 0;
     if (!options.resume && remoteTs && remoteTs < lastAppliedStateAt) return;
     if (remoteTs) lastAppliedStateAt = remoteTs;
+    mergeGenerationHistoryFromState(state);
     if (state.sessionStartedAt) applySessionStartedAt(state.sessionStartedAt, { resumeClock: false });
     const h = gameHooks;
     if (state.gameCategoryMap && Object.keys(state.gameCategoryMap).length > 0) {
@@ -893,6 +954,7 @@
     const now = Date.now();
     applySessionStartedAt(now, { resumeClock: false });
     gameHooks.startGameClock?.(now, true);
+    resetGenerationHistory();
     currentMatchId = global.crypto?.randomUUID?.() || 'mp-' + Date.now();
     GH.startGame('multiplayer', { roomCode: MP.getRoomCode(), roomId: MP.getRoomId() });
     const state = buildGameState({ screen: 'game', status: 'playing', sessionStartedAt: now });
@@ -1003,6 +1065,13 @@
   async function hostQuestionReady(cat, isSurprise, ageBand, question) {
     gameHooks.setCurrentQuestion?.(question);
     recordRoundFromQuestion(question, cat, ageBand);
+    if (ageBand && question?.q) {
+      recordGenerationHistory(ageBand, {
+        question: question.q,
+        answer: question.a,
+        knowledgeKey: question.knowledgeKey,
+      });
+    }
     if (isMultiplayer()) {
       await pushState({
         screen: 'question',
@@ -1014,6 +1083,7 @@
         selectedAnswer: null,
         countdownPaused: false,
         countdownRemaining: null,
+        generationHistory: getGenerationHistorySnapshot(),
       });
     }
   }
@@ -1924,6 +1994,7 @@
     hostBackToCategories,
     hostBackToDiceResult,
     recordRoundFromQuestion,
+    getGenerationHistorySlice,
     applyRemoteState,
     pushState,
     buildGameState,

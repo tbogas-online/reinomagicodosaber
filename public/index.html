@@ -4008,7 +4008,40 @@ Não uses "pergunta-resposta" factual por defeito: respeita obrigatoriamente o f
 Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano nem palavras misturadas de outro alfabeto (ex.: «延期»). Se precisares de «adiamento», escreve em português.`;
 
   function getGlobalUsedSet(ageBandKey){
-    return new Set((usedQuestions[ageBandKey] || []).map(normalizeQ));
+    return new Set(getEffectiveUsedQuestions(ageBandKey).map(normalizeQ));
+  }
+
+  function mergeUsedWithMpSession(ageBandKey, localItems, key) {
+    const mp = window.MultiplayerController;
+    if (!mp?.isMultiplayer?.()) return localItems || [];
+    const shared = mp.getGenerationHistorySlice?.(ageBandKey)?.[key] || [];
+    if (!shared.length) return localItems || [];
+    const local = localItems || [];
+    const normItem = (item) => {
+      if (key === 'answers') return normalizeQ(stripTags(item));
+      return normalizeQ(item);
+    };
+    const seen = new Set(local.map(normItem));
+    const merged = local.slice();
+    shared.forEach((item) => {
+      const n = normItem(item);
+      if (!n || seen.has(n)) return;
+      seen.add(n);
+      merged.push(item);
+    });
+    return merged;
+  }
+
+  function getEffectiveUsedQuestions(ageBandKey) {
+    return mergeUsedWithMpSession(ageBandKey, usedQuestions[ageBandKey], 'questions');
+  }
+
+  function getEffectiveUsedAnswers(ageBandKey) {
+    return mergeUsedWithMpSession(ageBandKey, usedAnswers[ageBandKey], 'answers');
+  }
+
+  function getEffectiveUsedKnowledgeKeys(ageBandKey) {
+    return mergeUsedWithMpSession(ageBandKey, usedKnowledgeKeys[ageBandKey], 'knowledgeKeys');
   }
 
   function ensureTrueFalsePrompt(str){
@@ -4121,7 +4154,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
     const usedSet = getGlobalUsedSet(ageBandKey);
     const usedAnswerSet = new Set(
-      (usedAnswers[ageBandKey] || [])
+      getEffectiveUsedAnswers(ageBandKey)
         .map(normalizeQ)
         .filter(norm => norm !== 'verdadeiro' && norm !== 'falso')
     );
@@ -4173,10 +4206,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           subtopic,
           recentDifficulties: usedDifficulties[ageBandKey],
           recentSubtopics: usedSubtopics[ageBandKey],
-          usedQuestions: usedQuestions[ageBandKey] || [],
+          usedQuestions: getEffectiveUsedQuestions(ageBandKey),
           usedFormats: usedQuestionFormats[ageBandKey] || [],
-          usedAnswers: usedAnswers[ageBandKey] || [],
-          usedKnowledgeKeys: usedKnowledgeKeys[ageBandKey] || [],
+          usedAnswers: getEffectiveUsedAnswers(ageBandKey),
+          usedKnowledgeKeys: getEffectiveUsedKnowledgeKeys(ageBandKey),
           persistentQuestions: persistent.questions,
           persistentAnswers: persistent.answers,
           persistentKnowledgeKeys: persistent.knowledgeKeys,
@@ -4288,9 +4321,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           ageBandKey,
           categoryNumber: category.n,
           difficulty,
-          usedQuestions: usedQuestions[ageBandKey] || [],
-          usedAnswers: usedAnswers[ageBandKey] || [],
-          usedKnowledgeKeys: usedKnowledgeKeys[ageBandKey] || [],
+          usedQuestions: getEffectiveUsedQuestions(ageBandKey),
+          usedAnswers: getEffectiveUsedAnswers(ageBandKey),
+          usedKnowledgeKeys: getEffectiveUsedKnowledgeKeys(ageBandKey),
           persistentKnowledgeKeys: persistent.knowledgeKeys,
           isMC,
           stripTags,
