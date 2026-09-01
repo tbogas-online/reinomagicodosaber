@@ -85,6 +85,16 @@
       font-size: 1.05rem;
       word-break: break-word;
     }
+    .stat.stat-repository {
+      border-color: #0d9488;
+      background: linear-gradient(180deg, rgba(20, 184, 166, 0.16) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .stat.stat-repository strong { color: #5eead4; }
+    .stats.telemetry-kpis { flex-wrap: wrap; }
+    .stats.telemetry-kpis .stat {
+      flex: 1 1 120px;
+      min-width: 110px;
+    }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: left; vertical-align: top; }
     th { color: var(--muted); font-weight: 600; }
@@ -1167,7 +1177,7 @@
       </div>
 
       <div id="telemetryPanel" class="hidden">
-        <div class="card stats" id="genTelemetryStats"></div>
+        <div class="card stats telemetry-kpis" id="genTelemetryStats"></div>
 
         <div class="card" id="genTelemetrySection">
           <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
@@ -1234,6 +1244,10 @@
             <div class="chart-box">
               <h3>Por modo de jogo</h3>
               <div id="chartGenGameModes" class="chart"></div>
+            </div>
+            <div class="chart-box">
+              <h3>Por fonte (aceites)</h3>
+              <div id="chartGenSources" class="chart"></div>
             </div>
           </div>
         </div>
@@ -2556,6 +2570,7 @@
       DIFFICULTY_EASIER_THAN_REQUESTED: 'Mais fácil que pedido',
       DIFFICULTY_HARDER_THAN_REQUESTED: 'Mais difícil que pedido',
       FORMAT_VIOLATION: 'Formato violado',
+      REPOSITORY_ANSWER_MISMATCH: 'Repositório — resposta incorreta',
     };
 
     function getGenFactIssueLabels() {
@@ -2618,6 +2633,16 @@
       local: 'Local',
       multiplayer: 'Multijogador',
       test: 'Teste',
+    };
+
+    const GEN_SOURCE_LABELS = {
+      ai: 'IA livre',
+      repository: 'Repositório',
+      bank: 'Banco local',
+      local: 'Local / offline',
+      'local-history': 'Histórico local',
+      'local-engine': 'Motor local v1',
+      'local-engine-v2': 'Motor local v2',
     };
 
     const GEN_OUTCOME_LABELS = {
@@ -2749,6 +2774,7 @@
       const catEl = document.getElementById('chartGenCategories');
       const fmtEl = document.getElementById('chartGenFormats');
       const modeEl = document.getElementById('chartGenGameModes');
+      const sourceEl = document.getElementById('chartGenSources');
       if (!statsEl || !issueEl || !catEl || !fmtEl || !modeEl) return;
 
       if (!summary?.total) {
@@ -2759,16 +2785,24 @@
         catEl.innerHTML = '';
         fmtEl.innerHTML = '';
         modeEl.innerHTML = '';
+        if (sourceEl) sourceEl.innerHTML = '';
         return;
       }
 
       const failures = summary.rejected + summary.parseErrors + summary.apiErrors;
-      const rejectPct = Math.round(summary.rejectionRate * 100);
+      const rejectPct = Math.round((summary.rejectionRate || 0) * 100);
+      const acceptPct = Math.round((summary.acceptanceRate || 0) * 100);
+      const repoPct = Math.round((summary.repositoryShare || 0) * 100);
+      const nonAiPct = Math.round((summary.nonAiShare || 0) * 100);
+      const techErrors = (summary.parseErrors || 0) + (summary.apiErrors || 0);
       statsEl.innerHTML = `
         <div class="stat stat-total"><strong>${summary.total}</strong><span>Tentativas</span></div>
-        <div class="stat stat-resolved"><strong>${summary.accepted}</strong><span>Aceites</span></div>
-        <div class="stat stat-open"><strong>${failures}</strong><span>Rejeitadas</span></div>
+        <div class="stat stat-resolved"><strong>${summary.accepted}</strong><span>Aceites (${acceptPct}%)</span></div>
+        <div class="stat stat-open"><strong>${summary.rejected}</strong><span>Rejeit. validação</span></div>
+        <div class="stat stat-cancelled"><strong>${techErrors}</strong><span>Erros parse/API</span></div>
         <div class="stat stat-top-issue"><strong>${rejectPct}%</strong><span>Taxa rejeição</span></div>
+        <div class="stat stat-repository"><strong>${repoPct}%</strong><span>Repositório (aceites)</span></div>
+        <div class="stat stat-total"><strong>${nonAiPct}%</strong><span>Sem IA livre (aceites)</span></div>
       `;
 
       const detailMap = summary.byIssueDetail || {};
@@ -2802,6 +2836,14 @@
         .filter(([, n]) => n > 0)
         .sort((a, b) => b[1] - a[1]);
       renderBarChart(modeEl, modeEntries, (k) => GEN_GAME_MODE_LABELS[k] || k);
+
+      if (sourceEl) {
+        const sourceEntries = Object.entries(summary.bySource || {})
+          .map(([k, v]) => [k, v.accepted || 0])
+          .filter(([, n]) => n > 0)
+          .sort((a, b) => b[1] - a[1]);
+        renderBarChart(sourceEl, sourceEntries, (k) => GEN_SOURCE_LABELS[k] || k);
+      }
     }
 
     async function loadTelemetryDashboard(options = {}) {

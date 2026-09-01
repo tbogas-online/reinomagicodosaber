@@ -160,10 +160,31 @@ function rowToItem(row) {
     formatId: row.format_id || '',
     ageBandKey: row.age_band_key || '',
     gameMode: row.game_mode || 'local',
+    source: row.source || 'ai',
     issueCodes: Array.isArray(row.issue_codes) ? row.issue_codes : [],
     issueMessages: Array.isArray(row.issue_messages) ? row.issue_messages : [],
     provider: row.provider || '',
   };
+}
+
+function accumulateSource(summary, ev) {
+  const src = clip(ev.source, 16) || 'ai';
+  if (!summary.bySource[src]) summary.bySource[src] = { total: 0, accepted: 0 };
+  summary.bySource[src].total += 1;
+  if (ev.outcome === 'accepted') summary.bySource[src].accepted += 1;
+}
+
+function finalizeSummaryRates(summary) {
+  const failures = summary.rejected + summary.parseErrors + summary.apiErrors;
+  summary.rejectionRate = summary.total ? failures / summary.total : 0;
+  summary.acceptanceRate = summary.total ? summary.accepted / summary.total : 0;
+  const repoAccepted = summary.bySource?.repository?.accepted || 0;
+  summary.repositoryShare = summary.accepted ? repoAccepted / summary.accepted : 0;
+  const nonAiAccepted = Object.entries(summary.bySource || {})
+    .filter(([key]) => key !== 'ai')
+    .reduce((sum, [, bucket]) => sum + (bucket.accepted || 0), 0);
+  summary.nonAiShare = summary.accepted ? nonAiAccepted / summary.accepted : 0;
+  return summary;
 }
 
 function computeSummaryFromItems(items) {
@@ -178,7 +199,11 @@ function computeSummaryFromItems(items) {
     byCategory: {},
     byFormat: {},
     byGameMode: {},
+    bySource: {},
     rejectionRate: 0,
+    acceptanceRate: 0,
+    repositoryShare: 0,
+    nonAiShare: 0,
   };
 
   for (const ev of items) {
@@ -208,11 +233,10 @@ function computeSummaryFromItems(items) {
     if (ev.outcome === 'rejected' || ev.outcome === 'parse_error' || ev.outcome === 'api_error') {
       summary.byGameMode[mode].rejected += 1;
     }
+    accumulateSource(summary, ev);
   }
 
-  const failures = summary.rejected + summary.parseErrors + summary.apiErrors;
-  summary.rejectionRate = summary.total ? failures / summary.total : 0;
-  return summary;
+  return finalizeSummaryRates(summary);
 }
 
 function sumByBucket(byBucket) {
@@ -344,7 +368,7 @@ async function fetchEventItems(filters = {}) {
     ? String(filters.gameMode)
     : '';
   const params = new URLSearchParams({
-    select: 'id,event_ts,outcome,category,format_id,age_band_key,game_mode,issue_codes,issue_messages,provider',
+    select: 'id,event_ts,outcome,category,format_id,age_band_key,game_mode,source,issue_codes,issue_messages,provider',
     order: 'created_at.desc',
     limit: String(MAX_EVENTS),
   });
@@ -374,4 +398,6 @@ module.exports = {
   clearAll,
   computeSummaryFromItems,
   computeTimelineFromItems,
+  finalizeSummaryRates,
+  accumulateSource,
 };

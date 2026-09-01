@@ -70,7 +70,11 @@
       byCategory: {},
       byFormat: {},
       byGameMode: {},
+      bySource: {},
       rejectionRate: 0,
+      acceptanceRate: 0,
+      repositoryShare: 0,
+      nonAiShare: 0,
     };
     for (const ev of events) {
       if (ev.outcome === 'accepted') summary.accepted += 1;
@@ -99,9 +103,20 @@
       if (ev.outcome === 'rejected' || ev.outcome === 'parse_error' || ev.outcome === 'api_error') {
         summary.byGameMode[mode].rejected += 1;
       }
+      const src = ev.source || 'ai';
+      if (!summary.bySource[src]) summary.bySource[src] = { total: 0, accepted: 0 };
+      summary.bySource[src].total += 1;
+      if (ev.outcome === 'accepted') summary.bySource[src].accepted += 1;
     }
     const failures = summary.rejected + summary.parseErrors + summary.apiErrors;
     summary.rejectionRate = summary.total ? failures / summary.total : 0;
+    summary.acceptanceRate = summary.total ? summary.accepted / summary.total : 0;
+    const repoAccepted = summary.bySource.repository?.accepted || 0;
+    summary.repositoryShare = summary.accepted ? repoAccepted / summary.accepted : 0;
+    const nonAiAccepted = Object.entries(summary.bySource)
+      .filter(([key]) => key !== 'ai')
+      .reduce((sum, [, bucket]) => sum + (bucket.accepted || 0), 0);
+    summary.nonAiShare = summary.accepted ? nonAiAccepted / summary.accepted : 0;
     return summary;
   }
 
