@@ -9,8 +9,9 @@
   const Retry = global.QuestionEngineRetry;
   const Telemetry = global.QuestionEngineTelemetry;
   const KnownFacts = global.QuestionEngineKnownFacts;
-  if (!Issues || !KnowledgeKey || !Retry || !Telemetry || !KnownFacts) {
-    throw new Error('QuestionEngine: carrega issue-codes.js, knowledge-key.js, retry-strategy.js, telemetry.js e known-facts.js antes de question-engine.js');
+  const FactualVerify = global.QuestionEngineFactualVerify;
+  if (!Issues || !KnowledgeKey || !Retry || !Telemetry || !KnownFacts || !FactualVerify) {
+    throw new Error('QuestionEngine: carrega issue-codes.js, knowledge-key.js, retry-strategy.js, telemetry.js, known-facts.js e factual-verify.js antes de question-engine.js');
   }
   const {
     mkIssue, issueMessage, issueCode, normalizeIssues, issueMessages,
@@ -1860,6 +1861,18 @@ Só json válido, sem markdown: ${jsonFormat}`;
       .filter((i) => !isConfusingFactIssue(i) && !issueMessage(i).startsWith('pergunta ambígua'));
   }
 
+  function shouldRequestFactualVerify(ctx) {
+    return FactualVerify.shouldRequestFactualVerify(ctx);
+  }
+
+  function buildFactualVerifyPrompt(parsed, ctx) {
+    return FactualVerify.buildFactualVerifyPrompt(parsed, ctx);
+  }
+
+  function parseFactualVerifyResponse(text) {
+    return FactualVerify.parseFactualVerifyResponse(text);
+  }
+
   function buildRetryHint(issues, formatId, ageBandKey) {
     return buildRetryHintFromIssues(issues, formatId, ageBandKey, { FORMAT_LABELS, getAgeLimits });
   }
@@ -2259,6 +2272,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
     validateSemanticQuality,
     validateQuestion,
     validateFactualConsistency,
+    shouldRequestFactualVerify,
+    buildFactualVerifyPrompt,
+    parseFactualVerifyResponse,
     scoreQuestion,
     computeKnowledgeKey,
     knowledgeKeysMatch,

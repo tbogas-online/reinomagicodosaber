@@ -37,6 +37,7 @@
     PT_ENGLISH_ONLY: 'Revisa português de Portugal: vocabulário, ortografia e nomes de países.',
     ANSWER_AMBIGUOUS: 'Evita respostas ambíguas. Gera uma pergunta com apenas uma resposta inequívoca.',
     ANSWER_LEAKED: 'A resposta não pode aparecer nem ser deduzível directamente da pergunta.',
+    FACT_AI_REJECT: 'Confirma o facto antes de responder — evita inventar ou confundir conceitos.',
     CATEGORY_MISMATCH: 'Mantém a pergunta estritamente dentro da categoria indicada.',
     MULTIPLE_ANSWERS: 'Evita respostas ambíguas. Gera uma pergunta com apenas uma resposta inequívoca.',
   });

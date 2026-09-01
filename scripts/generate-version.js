@@ -104,6 +104,10 @@ if (fs.existsSync(INDEX_HTML)) {
     `question-engine/known-facts.js?v=${version}`,
   );
   html = html.replace(
+    /question-engine\/factual-verify\.js\?v=[^"]+/g,
+    `question-engine/factual-verify.js?v=${version}`,
+  );
+  html = html.replace(
     /question-engine\.js\?v=[^"]+/g,
     `question-engine.js?v=${version}`,
   );
@@ -152,6 +156,10 @@ function patchTestPageHtml(filePath) {
   html = html.replace(
     /question-engine\/known-facts\.js\?v=[^"]+/g,
     `question-engine/known-facts.js?v=${version}`,
+  );
+  html = html.replace(
+    /question-engine\/factual-verify\.js\?v=[^"]+/g,
+    `question-engine/factual-verify.js?v=${version}`,
   );
   html = html.replace(
     /question-engine\.js\?v=[^"]+/g,

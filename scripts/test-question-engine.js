@@ -16,6 +16,7 @@ const engineScripts = [
   'question-engine/retry-strategy.js',
   'question-engine/telemetry.js',
   'question-engine/known-facts.js',
+  'question-engine/factual-verify.js',
   'question-engine.js',
 ];
 const memStore = {};
@@ -876,6 +877,16 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   }
   const events = sandbox.globalThis.QuestionEngineTelemetry.getTelemetryEvents();
   assert('100. telemetria ring buffer', events.length <= 200);
+}
+
+// 101–103. verificação factual IA
+{
+  assert('101. factual verify geografia', QE.shouldRequestFactualVerify({ categoryNumber: 2, formatId: 'QUEM_E', ageBandKey: '10-15' }));
+  assert('102. factual skip adivinha', !QE.shouldRequestFactualVerify({ categoryNumber: 20, formatId: 'ADIVINHA', ageBandKey: '6-9' }));
+  const ok = QE.parseFactualVerifyResponse('{"ok":true}');
+  assert('103. factual parse ok', ok.ok && !ok.issues.length);
+  const bad = QE.parseFactualVerifyResponse('{"ok":false,"issues":["capital errada"]}');
+  assert('103b. factual parse reject', !bad.ok && bad.issues[0] === 'capital errada');
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

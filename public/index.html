@@ -3391,7 +3391,8 @@
 <script src="question-engine/knowledge-key.js?v=20260901-130000"></script>
 <script src="question-engine/retry-strategy.js?v=20260901-130000"></script>
 <script src="question-engine/telemetry.js?v=20260901-130000"></script>
-<script src="question-engine/known-facts.js?v=20260901-130000"></script>
+<script src="question-engine/known-facts.js?v=20260901-140000"></script>
+<script src="question-engine/factual-verify.js?v=20260901-140000"></script>
 <script src="question-engine.js?v=20260901-130000" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>
@@ -4344,6 +4345,49 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             console.warn(`Validação falhou (tentativa ${attempt}, score ${qualityCheck.score ?? '?'}):`, lastValidationIssues, parsed.q);
           }
           continue;
+        }
+
+        if(engine.shouldRequestFactualVerify({
+          categoryNumber: category.n,
+          formatId: questionFormat,
+          ageBandKey,
+        })){
+          try {
+            const verifyPrompt = engine.buildFactualVerifyPrompt(parsed, {
+              categoryNumber: category.n,
+              categoryName: category.name,
+              formatId: questionFormat,
+              ageBandKey,
+              stripTags,
+            });
+            const verifyData = await callAiApi(
+              [{ role: 'user', content: verifyPrompt }],
+              160,
+            );
+            const verifyText = (verifyData.content || []).map((b) => b.text || '').join('');
+            const factualCheck = engine.parseFactualVerifyResponse(verifyText);
+            if(!factualCheck.ok){
+              lastValidationIssues = factualCheck.issues;
+              lastValidationIssueDetails = factualCheck.issues.map((msg) => ({
+                code: 'FACT_AI_REJECT',
+                layer: 'factual',
+                message: msg,
+              }));
+              lastAiError = 'Verificação factual: ' + factualCheck.issues.join(', ');
+              recordQuestionGenTelemetry(engine, {
+                ...telemetryBase,
+                outcome: 'rejected',
+                issueDetails: lastValidationIssueDetails,
+                score: qualityCheck.score,
+              });
+              if(DEBUG_MODE || attempt >= 4){
+                console.warn('Verificação factual IA rejeitou:', factualCheck.issues, parsed.q);
+              }
+              continue;
+            }
+          } catch (verifyErr) {
+            console.warn('Verificação factual IA indisponível — a continuar:', verifyErr?.message || verifyErr);
+          }
         }
 
         const knowledgeKey = qualityCheck.knowledgeKey || engine.computeKnowledgeKey(parsed.q, parsed.a, questionFormat, normalizeQ, {
