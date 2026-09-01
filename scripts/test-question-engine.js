@@ -926,6 +926,49 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const hint = QE.buildRetryHint([{ code: 'ADIVINHA_WHISTLE_RIDDLE', message: 'test' }], QE.FORMAT_IDS.ADIVINHA, '10-15');
   assert('110. retry hint ADIVINHA code', hint.includes('apito'));
 }
+
+// 111–115. Fase 4b — pushIssue em MC, categoria e dificuldade
+{
+  const versalhes = {
+    q: 'Que tratado pôs fim à Primeira Guerra Mundial?',
+    a: 'Tratado de Versalhes',
+    options: ['Tratado de Versalhes', 'Mahatma Gandhi', '1789', '1986'],
+  };
+  const r = QE.validateQuestion(versalhes, baseCtx({ isMC: true, formatId: QE.FORMAT_IDS.RESPOSTA_DIRETA, categoryNumber: 3, ageBandKey: '15+' }));
+  assert('111. MC_WRONG_CLASS Versalhes', !r.ok && r.issueDetails?.some((i) => i.code === 'MC_WRONG_CLASS'), r.issues?.join(', '));
+}
+{
+  const congelamento = { q: 'Completa: O processo de solidificação da água é chamado de ___.', a: 'Congelamento' };
+  const r = QE.validateQuestion(congelamento, baseCtx({ formatId: QE.FORMAT_IDS.COMPLETA, categoryNumber: 5, ageBandKey: '15+' }));
+  assert('112. CATEGORY_MISMATCH congelamento', !r.ok && r.issueDetails?.some((i) => i.code === 'CATEGORY_MISMATCH'), r.issues?.join(', '));
+}
+{
+  const div = {
+    q: 'Quanto é 144 dividido por 12?',
+    a: '12',
+    options: ['12', '144', '24', '36'],
+  };
+  const r = QE.validateQuestion(div, baseCtx({ isMC: true, categoryNumber: 7 }));
+  assert('113. MC_TRIVIAL_MATH divisão', !r.ok && r.issueDetails?.some((i) => i.code === 'MC_TRIVIAL_MATH'), r.issues?.join(', '));
+}
+{
+  const picasso = {
+    q: 'Quando nasceu o famoso pintor Pablo Picasso?',
+    a: '1881',
+    options: ['1881', '1890', '1901', '1875'],
+  };
+  const r = QE.validateQuestion(picasso, baseCtx({ formatId: QE.FORMAT_IDS.QUANDO, categoryNumber: 4, ageBandKey: '6-9', isMC: true, difficulty: 9 }));
+  assert('114. DIFFICULTY_OUT_OF_RANGE', !r.ok && r.issueDetails?.some((i) => i.code === 'DIFFICULTY_OUT_OF_RANGE'), r.issues?.join(', '));
+}
+{
+  const versalhes = {
+    q: 'Que tratado pôs fim à Primeira Guerra Mundial?',
+    a: 'Tratado de Versalhes',
+    options: ['Tratado de Versalhes', 'Mahatma Gandhi', '1789', '1986'],
+  };
+  const hint = QE.buildRetryHint(versalhes.options.map(() => ({ code: 'MC_WRONG_CLASS', message: 'test' })), QE.FORMAT_IDS.ESCOLHA_MULTIPLA, '15+');
+  assert('115. retry hint MC_WRONG_CLASS', hint.includes('mesma classe'));
+}
 {
   QE.clearGenerationTelemetry();
   for (let i = 0; i < 210; i += 1) {

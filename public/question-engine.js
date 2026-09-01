@@ -30,6 +30,18 @@
     pushIssue(issues, 'PT_BRASILISM', ISSUE_LAYER.ptPt, message);
   }
 
+  function pushMcWrongClass(issues, message) {
+    pushIssue(issues, 'MC_WRONG_CLASS', ISSUE_LAYER.mcOptions, message);
+  }
+
+  function pushCategoryMismatch(issues, message) {
+    pushIssue(issues, 'CATEGORY_MISMATCH', ISSUE_LAYER.category, message);
+  }
+
+  function pushFormatViolation(issues, message) {
+    pushIssue(issues, 'FORMAT_VIOLATION', ISSUE_LAYER.format, message);
+  }
+
   const ENGINE_CONFIG = Object.freeze({
     TRUE_FALSE_CHANCE: 0.11,
     TRUE_FALSE_MIN_GAP: 4,
@@ -1299,21 +1311,21 @@ Só json válido, sem markdown: ${jsonFormat}`;
     if (asksPerson || correctKind === 'person') {
       const badKinds = kinds.filter((k) => ['film', 'year', 'country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'].includes(k));
       if (badKinds.length) {
-        issues.push('opções incoerentes — com pessoa pedida, todas as opções devem ser nomes de pessoas (não filmes, anos, países nem provérbios)');
+        pushMcWrongClass(issues, 'opções incoerentes — com pessoa pedida, todas as opções devem ser nomes de pessoas (não filmes, anos, países nem provérbios)');
       }
     }
 
     if (/\bnarrador\b/i.test(q)) {
       const bad = kinds.filter((k) => ['literary_movement', 'film', 'year', 'country'].includes(k));
       if (bad.length) {
-        issues.push('opções incoerentes — distractores devem ser tipos de narrador, não movimentos literários nem autores soltos');
+        pushMcWrongClass(issues, 'opções incoerentes — distractores devem ser tipos de narrador, não movimentos literários nem autores soltos');
       }
     }
 
     if (/\b(feminino|masculino)\s+de\s+r[eé]u\b/i.test(q) || /\br[eé]u\b/i.test(q) && /\bfeminino\b/i.test(q)) {
       const bad = kinds.filter((k) => ['literary_movement', 'film', 'year', 'country', 'brand'].includes(k));
       if (bad.length) {
-        issues.push('opções incoerentes — distractores devem ser formas gramaticais (ré/ré), não movimentos literários nem outros temas');
+        pushMcWrongClass(issues, 'opções incoerentes — distractores devem ser formas gramaticais (ré/ré), não movimentos literários nem outros temas');
       }
     }
 
@@ -1321,21 +1333,21 @@ Só json válido, sem markdown: ${jsonFormat}`;
       const badOpts = clean.filter((o) => o.toLowerCase() !== correct.toLowerCase())
         .filter((o) => /\bilus[aã]o|óptica|optica|müller|mueller|esfinge|d[eé]j[aà]\s*vu|enigma|filosof/i.test(o));
       if (badOpts.length) {
-        issues.push('opções incoerentes — distractores devem ser quantidades ou conceitos de neurociência, não filosofia ou ilusões de ótica');
+        pushMcWrongClass(issues, 'opções incoerentes — distractores devem ser quantidades ou conceitos de neurociência, não filosofia ou ilusões de ótica');
       }
     }
 
     if (/\bmissão\b/i.test(q) && /\b(sonda|cometa|espacial|marte|lua)\b/i.test(q)) {
       const bad = kinds.filter((k) => ['country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'].includes(k));
       if (bad.length) {
-        issues.push('opções incoerentes — distractores devem ser missões ou programas espaciais');
+        pushMcWrongClass(issues, 'opções incoerentes — distractores devem ser missões ou programas espaciais');
       }
     }
 
     if (/\bunidade\s+astron[oó]mic/i.test(q) || (/\bunidade\b/i.test(q) && /\b(terra|sol|dist[aâ]ncia)\b/i.test(q))) {
       const bad = kinds.filter((k) => ['film', 'person', 'country', 'brand', 'proverb'].includes(k));
       if (bad.length) {
-        issues.push('opções incoerentes — distractores devem ser unidades ou conceitos astronómicos');
+        pushMcWrongClass(issues, 'opções incoerentes — distractores devem ser unidades ou conceitos astronómicos');
       }
     }
 
@@ -1343,25 +1355,25 @@ Só json válido, sem markdown: ${jsonFormat}`;
       const badOpts = clean.filter((o) => o.toLowerCase() !== correct.toLowerCase())
         .filter((o) => !/\b(rota[çc][ãa]o|órbita|transla[çc][ãa]o|revolu[çc][ãa]o|movimento|eixo|dia|ano|lentid)\b/i.test(o));
       if (badOpts.length >= 2) {
-        issues.push('opções incoerentes — distractores devem descrever movimentos ou rotações planetárias');
+        pushMcWrongClass(issues, 'opções incoerentes — distractores devem descrever movimentos ou rotações planetárias');
       }
     }
 
     if (!isTimeQ && kinds.includes('year') && correctKind !== 'year') {
-      issues.push('opções incoerentes — anos isolados não servem de distractores fora de perguntas QUANDO');
+      pushMcWrongClass(issues, 'opções incoerentes — anos isolados não servem de distractores fora de perguntas QUANDO');
     }
 
     if (!isGeoQ && !isTimeQ) {
       if (kinds.includes('country') && correctKind !== 'country') {
-        issues.push('opções incoerentes — países isolados não encaixam nesta pergunta');
+        pushMcWrongClass(issues, 'opções incoerentes — países isolados não encaixam nesta pergunta');
       }
       if (kinds.includes('brand') && correctKind !== 'brand' && !/\b(empresa|marca|spacex|nasa|esa)\b/i.test(q)) {
-        issues.push('opções incoerentes — marcas ou empresas genéricas (ex.: SpaceX) não encaixam nesta pergunta');
+        pushMcWrongClass(issues, 'opções incoerentes — marcas ou empresas genéricas (ex.: SpaceX) não encaixam nesta pergunta');
       }
     }
 
     if (kinds.includes('proverb')) {
-      issues.push('opções incoerentes — não uses provérbios ou frases longas como opção de escolha múltipla');
+      pushMcWrongClass(issues, 'opções incoerentes — não uses provérbios ou frases longas como opção de escolha múltipla');
     }
 
     const foreignKinds = ['film', 'year', 'country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'];
@@ -1373,7 +1385,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     if (/\b(material|tecido|fibr[ao]|sintétic|sintetic)\b/i.test(q)) {
       const wrong = clean.filter((o) => o.toLowerCase() !== correct.toLowerCase());
       if (wrong.some((o) => classifyMcOptionKind(o) === 'fashion_concept')) {
-        issues.push('distratores devem ser materiais ou tecidos, não conceitos de moda');
+        pushMcWrongClass(issues, 'distratores devem ser materiais ou tecidos, não conceitos de moda');
       }
     }
 
@@ -1391,37 +1403,38 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const correct = stripTags(correctAnswer).trim();
     const quotient = String(dividend / divisor);
     if (correct === String(divisor) || correct === m[2]) {
-      issues.push('resposta matemática incorrecta ou demasiado óbvia — confirma o quociente da divisão');
+      pushIssue(issues, 'MC_TRIVIAL_MATH', ISSUE_LAYER.mcOptions, 'resposta matemática incorrecta ou demasiado óbvia — confirma o quociente da divisão');
       return issues;
     }
     const wrong = (options || []).map((o) => stripTags(o).trim()).filter((o) => o.toLowerCase() !== correct.toLowerCase());
     if (wrong.some((o) => o === m[1]) && wrong.some((o) => o === String(divisor))) {
-      issues.push('opções de divisão demasiado óbvias — os distractores não devem incluir dividendo e divisor');
+      pushIssue(issues, 'MC_TRIVIAL_MATH', ISSUE_LAYER.mcOptions, 'opções de divisão demasiado óbvias — os distractores não devem incluir dividendo e divisor');
     }
     if (correct === quotient && wrong.every((o) => /^\d+$/.test(o))) {
       const nums = wrong.map(Number);
       if (nums.includes(dividend) || nums.includes(divisor)) {
-        issues.push('opções de divisão demasiado óbvias — evita dividendo e divisor como distractores');
+        pushIssue(issues, 'MC_TRIVIAL_MATH', ISSUE_LAYER.mcOptions, 'opções de divisão demasiado óbvias — evita dividendo e divisor como distractores');
       }
     }
     return issues;
   }
 
   function validateMcTooObvious(options, correctAnswer, stripTags) {
+    const issues = [];
     const correct = stripTags(correctAnswer).trim();
     const clean = (options || []).map((o) => stripTags(o).trim()).filter(Boolean);
-    if (clean.length < 4) return [];
+    if (clean.length < 4) return issues;
     const wrong = clean.filter((o) => o.toLowerCase() !== correct.toLowerCase());
     const cWords = correct.split(/\s+/).filter(Boolean).length;
     const isShortAcronym = cWords <= 2 && correct.length <= 8 && /^[A-Za-zÀ-ú]{2,8}$/.test(correct.replace(/\s/g, ''));
-    if (!isShortAcronym) return [];
+    if (!isShortAcronym) return issues;
     const avgWrongLen = wrong.reduce((s, o) => s + o.length, 0) / wrong.length;
     const avgWrongWords = wrong.reduce((s, o) => s + o.split(/\s+/).filter(Boolean).length, 0) / wrong.length;
     if (avgWrongWords >= 2 && avgWrongLen > correct.length * 2
       && wrong.every((o) => o.length > correct.length)) {
-      return ['demasiado óbvio — a resposta correcta destoa dos distractores; torna os errados plausíveis e do mesmo estilo'];
+      pushIssue(issues, 'MC_TOO_OBVIOUS', ISSUE_LAYER.mcOptions, 'demasiado óbvio — a resposta correcta destoa dos distractores; torna os errados plausíveis e do mesmo estilo');
     }
-    return [];
+    return issues;
   }
 
   function validateMcOptionsCoherence(q, options, stripTags) {
@@ -1442,7 +1455,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
         /\bvezes\b/i,
       ];
       if (clean.some((opt) => foreignOptionPatterns.some((pattern) => pattern.test(opt)))) {
-        issues.push('opções incoerentes — misturam temas diferentes (ex.: animal com ilusão de ótica ou números)');
+        pushMcWrongClass(issues, 'opções incoerentes — misturam temas diferentes (ex.: animal com ilusão de ótica ou números)');
       }
     }
 
@@ -1456,7 +1469,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     });
     const distinctBuckets = new Set(thematicBuckets.filter((bucket) => bucket !== 'other'));
     if (distinctBuckets.size >= 3) {
-      issues.push('opções parecem respostas de perguntas diferentes — todas devem ser do mesmo tipo');
+      pushMcWrongClass(issues, 'opções parecem respostas de perguntas diferentes — todas devem ser do mesmo tipo');
     }
 
     return issues;
@@ -1478,21 +1491,21 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const issues = [];
     const lim = getAgeLimits(ageBandKey);
     if (categoryN === 2 && /\b(homem|pessoa|astronauta).{0,40}\blua\b|\bprimeira\s+vez.{0,30}\blua\b|\bprimeiro\s+homem\b.*\blua\b/i.test(q)) {
-      issues.push('missão à Lua é Espaço/História, não Geografia');
+      pushCategoryMismatch(issues, 'missão à Lua é Espaço/História, não Geografia');
     }
     if (categoryN === 17) {
       if (RE_TECH_TRANSPORT.test(q)) {
-        issues.push('veículos/transportes são Categoria 19 (Transportes), não Tecnologia');
+        pushCategoryMismatch(issues, 'veículos/transportes são Categoria 19 (Transportes), não Tecnologia');
       }
       if (RE_TECH_SPACE.test(q)) {
-        issues.push('espaço/foguetões são Categoria 6 (Espaço), não Tecnologia');
+        pushCategoryMismatch(issues, 'espaço/foguetões são Categoria 6 (Espaço), não Tecnologia');
       }
     }
     if (lim.rejectMoonMission && /\b(homem|pessoa).{0,25}\blua\b|\bfoi\s+à\s+lua\b/i.test(q)) {
-      issues.push('missão à Lua demasiado avançada para 6–9');
+      pushAgeHardIssue(issues, 'missão à Lua demasiado avançada para 6–9');
     }
     if (categoryN === 5 && /\b(solidifica[çc][ãa]o|congelamento|fundir|derreter|evapora[çc][ãa]o|estados?\s+(f[íi]sicos?|da\s+mat[ée]ria)|l[íi]quido\s+ao\s+s[óo]lido)\b/i.test(q)) {
-      issues.push('fenómenos físicos da água/matéria são Ciência (4), não Natureza (5)');
+      pushCategoryMismatch(issues, 'fenómenos físicos da água/matéria são Ciência (4), não Natureza (5)');
     }
     return issues;
   }
@@ -1509,10 +1522,10 @@ Só json válido, sem markdown: ${jsonFormat}`;
     for (const [partA, partB] of aliasGroups) {
       const hasA = norms.some((o) => o.includes(partA));
       const hasB = norms.some((o) => o.includes(partB));
-      if (hasA && hasB) issues.push('opções ambíguas — alcunha e nome do mesmo personagem');
+      if (hasA && hasB) pushMcWrongClass(issues, 'opções ambíguas — alcunha e nome do mesmo personagem');
     }
     if (/\b(pooh|winnie)\b/i.test(a) && norms.filter((o) => /\b(pooh|winnie|ursinho)\b/i.test(o)).length >= 2) {
-      issues.push('nome ambíguo — em PT-PT usa "Ursinho Puff" de forma consistente');
+      pushMcWrongClass(issues, 'nome ambíguo — em PT-PT usa "Ursinho Puff" de forma consistente');
     }
     return issues;
   }
@@ -1595,7 +1608,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
       return words > lim.maxMcOptionWords || o.length > lim.maxMcOptionChars;
     });
     if (tooLong.length) {
-      issues.push(lim.mcOptionsTooLongMsg || 'opções demasiado longas — usa termos mais curtos');
+      pushIssue(issues, 'MC_OPTIONS_TOO_LONG', ISSUE_LAYER.mcOptions, lim.mcOptionsTooLongMsg || 'opções demasiado longas — usa termos mais curtos');
     }
     return issues;
   }
@@ -1821,17 +1834,17 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const absurdBuckets = new Set(['color', 'sport', 'food', 'place', 'number']);
     const absurdWrong = wrongBuckets.filter((b) => absurdBuckets.has(b));
     if (absurdWrong.length >= 2 && !absurdBuckets.has(correctBucket)) {
-      issues.push('distratores de classes conceptuais diferentes (ex.: cores, cidades ou desportos misturados com o tema)');
+      pushMcWrongClass(issues, 'distratores de classes conceptuais diferentes (ex.: cores, cidades ou desportos misturados com o tema)');
       return issues;
     }
     const distinctWrong = new Set(wrongBuckets.filter((b) => b !== 'entity'));
     if (distinctWrong.size >= 3 && correctBucket === 'entity') {
-      issues.push('distratores incoerentes — devem pertencer à mesma classe conceptual que a resposta');
+      pushMcWrongClass(issues, 'distratores incoerentes — devem pertencer à mesma classe conceptual que a resposta');
     }
     const foreignKinds = ['film', 'year', 'country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'];
     const foreignWrong = wrongKinds.filter((k) => foreignKinds.includes(k));
     if (foreignWrong.length >= 2 && !foreignKinds.includes(correctKind)) {
-      issues.push('distratores incoerentes — mistura tipos incompatíveis (filmes, anos, países, marcas…)');
+      pushMcWrongClass(issues, 'distratores incoerentes — mistura tipos incompatíveis (filmes, anos, países, marcas…)');
     }
     return issues;
   }
@@ -1840,7 +1853,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const norm = normalizeFn || ((s) => String(s || '').trim().toLowerCase());
     const correct = norm(correctAnswer);
     const matches = (options || []).filter((o) => norm(o) === correct);
-    if (matches.length !== 1) return ['deve haver exactamente uma opção correcta'];
+    if (matches.length !== 1) {
+      return [mkIssue('MC_MULTIPLE_CORRECT', ISSUE_LAYER.mcOptions, 'deve haver exactamente uma opção correcta')];
+    }
     return [];
   }
 
@@ -1850,18 +1865,18 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const range = DIFFICULTY_RANGE[ageBandKey] || DIFFICULTY_RANGE['15+'];
     const diff = Number(difficulty) || range.min;
     if (diff < range.min || diff > range.max) {
-      issues.push(`dificuldade ${diff} incompatível com faixa ${ageBandKey}`);
+      pushIssue(issues, 'DIFFICULTY_OUT_OF_RANGE', ISSUE_LAYER.difficulty, `dificuldade ${diff} incompatível com faixa ${ageBandKey}`);
     }
     if (lim.rejectDifficultyGte != null && diff >= lim.rejectDifficultyGte) {
-      issues.push('demasiado difícil para 6–9');
+      pushAgeHardIssue(issues, 'demasiado difícil para 6–9');
     }
     if (lim.rejectTrivialAtHighDiff && diff >= 4) {
       const tooEasy = /\b(planeta onde vivemos|cor do céu|quantos dedos|quantas pernas tem um cão)\b/i;
-      if (tooEasy.test(q)) issues.push('demasiado fácil para +15 nível exigente');
+      if (tooEasy.test(q)) pushIssue(issues, 'AGE_TOO_EASY', ISSUE_LAYER.difficulty, 'demasiado fácil para +15 nível exigente');
     }
     if (lim.rejectEasyDifficultyLte != null && diff <= lim.rejectEasyDifficultyLte) {
       const tooHard = /\b(teorema|algoritmo|revolução industrial|segunda guerra)\b/i;
-      if (tooHard.test(q)) issues.push('demasiado difícil para 6–9');
+      if (tooHard.test(q)) pushAgeHardIssue(issues, 'demasiado difícil para 6–9');
     }
     return issues;
   }
@@ -1950,7 +1965,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const q = stripTags(parsed?.q || '').trim();
     const a = stripTags(parsed?.a || '').trim();
     const options = Array.isArray(parsed?.options) ? parsed.options : [];
-    if (options.length < 2) return ['opções MC insuficientes'];
+    if (options.length < 2) {
+      return [mkIssue('MC_INSUFFICIENT_OPTIONS', ISSUE_LAYER.mcOptions, 'opções MC insuficientes')];
+    }
     const issues = [
       ...validateMcSingleCorrect(options, a, normalizeFn),
       ...validateMcConceptualClass(options, a, stripTags),
@@ -1966,13 +1983,13 @@ Só json válido, sem markdown: ${jsonFormat}`;
       const absurd = /^(banana|futebol|azul|verde|vermelho|nada|qualquer|abc|xyz|123|nenhum|desconhecido)$/i;
       const wrong = options.filter((o) => stripTags(o).trim().toLowerCase() !== a.toLowerCase());
       if (wrong.filter((o) => absurd.test(stripTags(o).trim())).length >= 2) {
-        issues.push('distratores demasiado absurdos');
+        pushIssue(issues, 'MC_ABSURD_DISTRACTORS', ISSUE_LAYER.mcOptions, 'distratores demasiado absurdos');
       }
       const qTokens = new Set(tokenize(q));
       for (const opt of wrong) {
         const ot = tokenize(opt);
         if (ot.length >= 2 && ot.every((w) => qTokens.has(w))) {
-          issues.push('opção errada contém pista da pergunta');
+          pushIssue(issues, 'MC_OPTION_LEAKS_QUESTION', ISSUE_LAYER.mcOptions, 'opção errada contém pista da pergunta');
           break;
         }
       }

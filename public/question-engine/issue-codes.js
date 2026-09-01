@@ -50,6 +50,13 @@
     PT_INVALID_SCRIPT: 'Usa apenas caracteres latinos portugueses — sem chinês, japonês ou outros alfabetos.',
     PT_MIXED_WORD: 'Evita palavras com letras misturadas de outro idioma.',
     PT_STEREOTYPE: 'Evita generalizações ou estereótipos culturais.',
+    MC_TRIVIAL_MATH: 'Em divisões MC, evita dividendo/divisor como distractores e confirma o quociente.',
+    MC_ABSURD_DISTRACTORS: 'Distratores demasiado absurdos — mantém opções plausíveis do mesmo tipo.',
+    MC_OPTION_LEAKS_QUESTION: 'Opção errada não deve repetir palavras-chave da pergunta.',
+    MC_TOO_OBVIOUS: 'Resposta correcta destoa dos distractores — torna os errados plausíveis.',
+    MC_OPTIONS_TOO_LONG: 'Opções MC demasiado longas para a faixa etária.',
+    FORMAT_VIOLATION: 'Reformula para respeitar o formato pedido.',
+    DIFFICULTY_OUT_OF_RANGE: 'Ajusta a dificuldade ao intervalo da faixa etária.',
   });
 
   /** Fallback regex → hint (issues sem code ou UNSPECIFIED). */
