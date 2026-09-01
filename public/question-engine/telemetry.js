@@ -9,6 +9,18 @@
   const SERVER_ENDPOINT = '/api/gen-telemetry';
   const VALID_GAME_MODES = new Set(['local', 'multiplayer', 'test']);
 
+  const MAX_ISSUE_MESSAGES = 6;
+  const MAX_ISSUE_MESSAGE_LEN = 200;
+
+  function clipIssueMessage(value) {
+    return String(value || '').trim().slice(0, MAX_ISSUE_MESSAGE_LEN);
+  }
+
+  function normalizeIssueMessages(raw) {
+    if (!Array.isArray(raw)) return [];
+    return raw.map((m) => clipIssueMessage(m)).filter(Boolean).slice(0, MAX_ISSUE_MESSAGES);
+  }
+
   function normalizeEvent(raw) {
     const e = raw && typeof raw === 'object' ? raw : {};
     const gameMode = VALID_GAME_MODES.has(String(e.gameMode)) ? String(e.gameMode) : 'local';
@@ -21,12 +33,29 @@
       difficulty: e.difficulty != null ? Number(e.difficulty) : null,
       attempt: e.attempt != null ? Number(e.attempt) : null,
       issueCodes: Array.isArray(e.issueCodes) ? e.issueCodes.map(String) : [],
+      issueMessages: normalizeIssueMessages(e.issueMessages),
       provider: e.provider ? String(e.provider) : '',
       model: e.model ? String(e.model) : '',
       score: e.score != null ? Number(e.score) : null,
       source: e.source ? String(e.source) : 'ai',
       gameMode,
     };
+  }
+
+  function accumulateIssueDetail(summary, ev) {
+    const codes = ev.issueCodes || [];
+    const messages = ev.issueMessages || [];
+    for (let i = 0; i < codes.length; i += 1) {
+      const code = codes[i];
+      const msg = messages[i] || messages[0] || '';
+      if (!summary.byIssueDetail[code]) {
+        summary.byIssueDetail[code] = { count: 0, sampleMessage: msg };
+      }
+      summary.byIssueDetail[code].count += 1;
+      if (msg && !summary.byIssueDetail[code].sampleMessage) {
+        summary.byIssueDetail[code].sampleMessage = msg;
+      }
+    }
   }
 
   function computeSummary(events) {
@@ -37,6 +66,7 @@
       parseErrors: 0,
       apiErrors: 0,
       byIssueCode: {},
+      byIssueDetail: {},
       byCategory: {},
       byFormat: {},
       byGameMode: {},
@@ -51,6 +81,7 @@
       for (const code of ev.issueCodes) {
         summary.byIssueCode[code] = (summary.byIssueCode[code] || 0) + 1;
       }
+      accumulateIssueDetail(summary, ev);
       if (ev.category != null) {
         const ck = String(ev.category);
         if (!summary.byCategory[ck]) summary.byCategory[ck] = { total: 0, rejected: 0 };
@@ -167,6 +198,12 @@
       .filter(Boolean);
   }
 
+  function issueMessagesFromDetails(issueDetails) {
+    return (issueDetails || [])
+      .map((d) => (d && d.message) ? clipIssueMessage(d.message) : '')
+      .filter(Boolean);
+  }
+
   global.QuestionEngineTelemetry = Object.freeze({
     STORAGE_KEY,
     MAX_EVENTS,
@@ -179,5 +216,7 @@
     getTelemetryEvents,
     clearTelemetry,
     issueCodesFromDetails,
+    issueMessagesFromDetails,
+    accumulateIssueDetail,
   });
 })(typeof window !== 'undefined' ? window : globalThis);

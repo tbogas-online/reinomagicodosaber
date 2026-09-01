@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS public.gen_telemetry_events (
   difficulty      SMALLINT,
   attempt         SMALLINT,
   issue_codes     TEXT[] NOT NULL DEFAULT '{}',
+  issue_messages  TEXT[] NOT NULL DEFAULT '{}',
   provider        TEXT,
   model           TEXT,
   score           SMALLINT,

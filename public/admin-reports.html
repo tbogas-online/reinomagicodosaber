@@ -524,6 +524,36 @@
       padding: 20px 0;
       text-align: center;
     }
+    .issue-detail-list {
+      margin-top: 12px;
+      border-top: 1px solid var(--border);
+      padding-top: 10px;
+      font-size: 11px;
+    }
+    .issue-detail-list table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    .issue-detail-list th,
+    .issue-detail-list td {
+      text-align: left;
+      padding: 4px 6px;
+      vertical-align: top;
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    }
+    .issue-detail-list th {
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .issue-detail-list .issue-code {
+      font-family: ui-monospace, monospace;
+      font-size: 10px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .issue-detail-list .issue-desc {
+      color: var(--text);
+    }
     .bar-row {
       display: grid;
       grid-template-columns: minmax(90px, 34%) 1fr auto;
@@ -1170,8 +1200,9 @@
           <p class="status" id="telemetryListStatus"></p>
           <div class="charts-grid" style="margin-top:12px">
             <div class="chart-box">
-              <h3>Rejeições por código</h3>
+              <h3>Rejeições por causa</h3>
               <div id="chartGenIssueCodes" class="chart"></div>
+              <div id="chartGenIssueDetail" class="issue-detail-list"></div>
             </div>
             <div class="chart-box">
               <h3>Rejeições por categoria</h3>
@@ -1201,6 +1232,7 @@
     </div>
   </div>
 
+  <script src="question-engine/known-facts.js?v=20260901-150000"></script>
   <script>
     const AUTH_KEY = 'reino_admin_reports_auth';
     const ISSUE_LABELS = {
@@ -1329,7 +1361,7 @@
     }
 
     function renderBarChart(el, entries, labelFn, options = {}) {
-      const { clickable = false, activeKey = '', dataAttr = 'data-filter-key', colorFn } = options;
+      const { clickable = false, activeKey = '', dataAttr = 'data-filter-key', colorFn, tooltipFn } = options;
       const resolveColor = colorFn || ((key, i) => getSecondaryChartColor(key, i));
       if (!entries.length) {
         el.innerHTML = '<div class="chart-empty">Sem dados.</div>';
@@ -1343,9 +1375,11 @@
         const attrs = clickable
           ? ` ${dataAttr}="${esc(key)}" role="button" tabindex="0" aria-pressed="${isActive ? 'true' : 'false'}" style="--bar-active-color:${barColor}"`
           : '';
+        const label = labelFn ? labelFn(key) : key;
+        const tooltip = tooltipFn ? tooltipFn(key) : label;
         return `
         <div class="${classes}"${attrs}>
-          <div class="bar-label" title="${esc(labelFn ? labelFn(key) : key)}">${esc(labelFn ? labelFn(key) : key)}</div>
+          <div class="bar-label" title="${esc(tooltip)}">${esc(label)}</div>
           <div class="bar-track"><div class="bar-fill" style="width:${(value / max) * 100}%;background:${barColor}"></div></div>
           <div class="bar-value">${value}</div>
         </div>
@@ -2478,6 +2512,62 @@
       UNSPECIFIED: 'Outro',
     };
 
+    function getGenFactIssueLabels() {
+      return window.QuestionEngineKnownFacts?.TELEMETRY_ISSUE_LABELS || {};
+    }
+
+    function formatGenIssueLabel(code, sampleMessage) {
+      if (GEN_ISSUE_LABELS[code]) return GEN_ISSUE_LABELS[code];
+      const factLabels = getGenFactIssueLabels();
+      if (factLabels[code]) return factLabels[code];
+      if (sampleMessage) {
+        const dash = sampleMessage.indexOf(' — ');
+        const short = dash >= 0 ? sampleMessage.slice(dash + 3) : sampleMessage;
+        return short.length > 64 ? `${short.slice(0, 61)}…` : short;
+      }
+      if (code?.startsWith('FACT_')) {
+        return code.replace(/^FACT_\d+_/, '').replace(/_/g, ' ').toLowerCase();
+      }
+      return code;
+    }
+
+    function genIssueTooltip(code, sampleMessage) {
+      const parts = [code];
+      const label = formatGenIssueLabel(code, sampleMessage);
+      if (label && label !== code) parts.push(label);
+      if (sampleMessage && sampleMessage !== label) parts.push(sampleMessage);
+      return parts.join('\n\n');
+    }
+
+    function renderGenIssueDetailList(summary) {
+      const el = document.getElementById('chartGenIssueDetail');
+      if (!el) return;
+      const detail = summary?.byIssueDetail || {};
+      const entries = Object.entries(detail)
+        .sort((a, b) => b[1].count - a[1].count)
+        .slice(0, 12);
+      if (!entries.length) {
+        el.innerHTML = '';
+        return;
+      }
+      el.innerHTML = `
+        <table>
+          <thead>
+            <tr><th>Código</th><th>Causa</th><th>N</th></tr>
+          </thead>
+          <tbody>
+            ${entries.map(([code, info]) => `
+              <tr title="${esc(genIssueTooltip(code, info.sampleMessage))}">
+                <td class="issue-code">${esc(code)}</td>
+                <td class="issue-desc">${esc(formatGenIssueLabel(code, info.sampleMessage))}</td>
+                <td>${info.count}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+    }
+
     const GEN_GAME_MODE_LABELS = {
       local: 'Local',
       multiplayer: 'Multijogador',
@@ -2522,6 +2612,7 @@
     function renderGenTelemetry(summary) {
       const statsEl = document.getElementById('genTelemetryStats');
       const issueEl = document.getElementById('chartGenIssueCodes');
+      const detailEl = document.getElementById('chartGenIssueDetail');
       const catEl = document.getElementById('chartGenCategories');
       const fmtEl = document.getElementById('chartGenFormats');
       const modeEl = document.getElementById('chartGenGameModes');
@@ -2530,6 +2621,7 @@
       if (!summary?.total) {
         statsEl.innerHTML = '<div class="stat stat-total"><strong>0</strong><span>Sem eventos ainda</span></div>';
         issueEl.innerHTML = '<p class="chart-empty">Ainda sem eventos — joga com IA para recolher dados.</p>';
+        if (detailEl) detailEl.innerHTML = '';
         catEl.innerHTML = '';
         fmtEl.innerHTML = '';
         modeEl.innerHTML = '';
@@ -2545,8 +2637,15 @@
         <div class="stat stat-top-issue"><strong>${rejectPct}%</strong><span>Taxa rejeição</span></div>
       `;
 
-      const issueEntries = Object.entries(summary.byIssueCode).sort((a, b) => b[1] - a[1]).slice(0, 10);
-      renderBarChart(issueEl, issueEntries, (k) => GEN_ISSUE_LABELS[k] || k);
+      const detailMap = summary.byIssueDetail || {};
+      const issueEntries = Object.entries(summary.byIssueCode).sort((a, b) => b[1] - a[1]).slice(0, 12);
+      renderBarChart(
+        issueEl,
+        issueEntries,
+        (code) => formatGenIssueLabel(code, detailMap[code]?.sampleMessage),
+        { tooltipFn: (code) => genIssueTooltip(code, detailMap[code]?.sampleMessage) },
+      );
+      renderGenIssueDetailList(summary);
 
       const catMap = Object.fromEntries(BANK_CATEGORIES.map((c) => [String(c.n), c.name]));
       const catEntries = Object.entries(summary.byCategory)

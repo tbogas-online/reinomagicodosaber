@@ -10,6 +10,34 @@ function clip(value, max) {
   return String(value || '').trim().slice(0, max);
 }
 
+const MAX_ISSUE_MESSAGES = 6;
+const MAX_ISSUE_MESSAGE_LEN = 200;
+
+function clipIssueMessage(value) {
+  return String(value || '').trim().slice(0, MAX_ISSUE_MESSAGE_LEN);
+}
+
+function normalizeIssueMessages(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.map((m) => clipIssueMessage(m)).filter(Boolean).slice(0, MAX_ISSUE_MESSAGES);
+}
+
+function accumulateIssueDetail(summary, ev) {
+  const codes = ev.issueCodes || [];
+  const messages = ev.issueMessages || [];
+  for (let i = 0; i < codes.length; i += 1) {
+    const code = codes[i];
+    const msg = messages[i] || messages[0] || '';
+    if (!summary.byIssueDetail[code]) {
+      summary.byIssueDetail[code] = { count: 0, sampleMessage: msg };
+    }
+    summary.byIssueDetail[code].count += 1;
+    if (msg && !summary.byIssueDetail[code].sampleMessage) {
+      summary.byIssueDetail[code].sampleMessage = msg;
+    }
+  }
+}
+
 async function supabaseRequest(path, options = {}) {
   const cfg = getSupabaseAdmin();
   if (!cfg) {
@@ -84,6 +112,7 @@ function normalizeEvent(raw) {
   const issueCodes = Array.isArray(e.issueCodes)
     ? e.issueCodes.map((c) => clip(c, 48)).filter(Boolean).slice(0, 12)
     : [];
+  const issueMessages = normalizeIssueMessages(e.issueMessages);
   const category = e.category != null ? Number(e.category) : null;
   return {
     ts: Number(e.ts) || Date.now(),
@@ -94,6 +123,7 @@ function normalizeEvent(raw) {
     difficulty: e.difficulty != null ? Number(e.difficulty) : null,
     attempt: e.attempt != null ? Number(e.attempt) : null,
     issueCodes,
+    issueMessages,
     provider: clip(e.provider, 24),
     model: clip(e.model, 48),
     score: e.score != null ? Number(e.score) : null,
@@ -112,6 +142,7 @@ function eventToRow(normalized) {
     difficulty: normalized.difficulty != null ? Math.round(normalized.difficulty) : null,
     attempt: normalized.attempt != null ? Math.round(normalized.attempt) : null,
     issue_codes: normalized.issueCodes,
+    issue_messages: normalized.issueMessages,
     provider: normalized.provider || null,
     model: normalized.model || null,
     score: normalized.score != null ? Math.round(normalized.score) : null,
@@ -130,6 +161,7 @@ function rowToItem(row) {
     ageBandKey: row.age_band_key || '',
     gameMode: row.game_mode || 'local',
     issueCodes: Array.isArray(row.issue_codes) ? row.issue_codes : [],
+    issueMessages: Array.isArray(row.issue_messages) ? row.issue_messages : [],
     provider: row.provider || '',
   };
 }
@@ -142,6 +174,7 @@ function computeSummaryFromItems(items) {
     parseErrors: 0,
     apiErrors: 0,
     byIssueCode: {},
+    byIssueDetail: {},
     byCategory: {},
     byFormat: {},
     byGameMode: {},
@@ -157,6 +190,7 @@ function computeSummaryFromItems(items) {
     for (const code of ev.issueCodes || []) {
       summary.byIssueCode[code] = (summary.byIssueCode[code] || 0) + 1;
     }
+    accumulateIssueDetail(summary, ev);
     if (ev.category != null) {
       const ck = String(ev.category);
       if (!summary.byCategory[ck]) summary.byCategory[ck] = { total: 0, rejected: 0 };
@@ -204,7 +238,7 @@ async function fetchEventItems(filters = {}) {
     ? String(filters.gameMode)
     : '';
   const params = new URLSearchParams({
-    select: 'id,event_ts,outcome,category,format_id,age_band_key,game_mode,issue_codes,provider',
+    select: 'id,event_ts,outcome,category,format_id,age_band_key,game_mode,issue_codes,issue_messages,provider',
     order: 'created_at.desc',
     limit: String(MAX_EVENTS),
   });

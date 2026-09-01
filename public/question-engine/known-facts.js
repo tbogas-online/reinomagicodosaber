@@ -265,6 +265,18 @@
       .map((r) => r.code),
   );
 
+  function telemetryLabelFromMessage(message) {
+    const m = String(message || '').trim();
+    if (!m) return '';
+    const dash = m.indexOf(' — ');
+    const short = dash >= 0 ? m.slice(dash + 3) : m;
+    return short.length > 72 ? `${short.slice(0, 69)}…` : short;
+  }
+
+  const TELEMETRY_ISSUE_LABELS = Object.freeze(
+    Object.fromEntries(REPORTED_FACT_RULES.map((r) => [r.code, telemetryLabelFromMessage(r.message)])),
+  );
+
   function runReportedFactRules(q, a, options, formatId, mkIssue) {
     const opts = (options || []).map((o) => String(o).toLowerCase());
     const issues = [];
@@ -280,6 +292,8 @@
     LAYER,
     REPORTED_FACT_RULES,
     CONFUSING_FACT_CODES,
+    TELEMETRY_ISSUE_LABELS,
+    telemetryLabelFromMessage,
     runReportedFactRules,
   });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -869,6 +869,16 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const summary = QE.getGenerationTelemetrySummary();
   assert('98. telemetria summary', summary.total === 2 && summary.accepted === 1 && summary.rejected === 1);
   assert('99. telemetria byIssueCode', summary.byIssueCode.MC_NEAR_DUPLICATE === 1);
+  QE.recordGenerationTelemetry({
+    outcome: 'rejected',
+    category: 2,
+    formatId: 'QUEM_E',
+    issueCodes: ['FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA'],
+    issueMessages: ['pergunta confusa — "rato que faz queijo" é o Remy (Ratatouille), não o Mickey'],
+  });
+  const summary2 = QE.getGenerationTelemetrySummary();
+  assert('104. telemetria byIssueDetail', summary2.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA?.count === 1
+    && /Remy/i.test(summary2.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA.sampleMessage));
 }
 {
   QE.clearGenerationTelemetry();

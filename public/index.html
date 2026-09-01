@@ -4649,6 +4649,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const codes = (fields.issueDetails || [])
       .map((d) => d?.code)
       .filter(Boolean);
+    const messages = (fields.issueDetails || [])
+      .map((d) => d?.message)
+      .filter(Boolean);
     engine.recordGenerationTelemetry({
       outcome: fields.outcome || 'unknown',
       category: fields.category,
@@ -4657,6 +4660,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       difficulty: fields.difficulty,
       attempt: fields.attempt,
       issueCodes: codes.length ? codes : (fields.issueCodes || []),
+      issueMessages: messages.length ? messages : (fields.issueMessages || []),
       score: fields.score ?? null,
       provider: usage.provider || '',
       model: usage.model || '',
