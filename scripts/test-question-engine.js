@@ -10,30 +10,11 @@ const path = require('path');
 const vm = require('vm');
 
 const publicDir = path.join(__dirname, '..', 'public');
-const engineScripts = [
-  'question-engine/engine-config.js',
-  'question-engine/issue-codes.js',
-  'question-engine/knowledge-key.js',
-  'question-engine/retry-strategy.js',
-  'question-engine/telemetry.js',
-  'question-engine/known-facts.js',
-  'question-engine/factual-verify.js',
-  'question-engine/adivinha-verify.js',
-  'question-engine/difficulty-estimate.js',
-  'question-engine/pt-pt-validators.js',
-  'question-engine/format-validators.js',
-  'question-engine/mc-validators.js',
-  'question-engine/age-validators.js',
-  'question-engine/category-validators.js',
-  'question-engine/semantic-validators.js',
-  'question-engine/repetition-validators.js',
-  'question-engine/knowledge-key-compute.js',
-  'question-engine/persistent-history.js',
-  'question-engine/prompt-builder.js',
-  'question-engine/mc-assembly.js',
-  'question-engine/question-scoring.js',
-  'question-engine.js',
-];
+const manifestSrc = fs.readFileSync(path.join(publicDir, 'question-engine/manifest.js'), 'utf8');
+const manifestSandbox = { globalThis: {} };
+vm.createContext(manifestSandbox);
+vm.runInContext(manifestSrc, manifestSandbox);
+const engineScripts = manifestSandbox.globalThis.QuestionEngineManifest.ENGINE_SCRIPT_PATHS;
 const memStore = {};
 const sandbox = {
   globalThis: {},
@@ -1206,6 +1187,19 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('145. knowledge-key-compute', key.includes('lisboa') || key.includes('capital'));
   assert('146. fachada question-engine linhas', typeof QE.validateQuestion === 'function' && typeof QE.assembleMcOptions === 'function');
   assert('147. scoring sem configure', !sandbox.globalThis.QuestionEngineQuestionScoring.configure);
+}
+
+// 148–149. Fases 15–16 — known-facts factual + manifest
+{
+  const KF = sandbox.globalThis.QuestionEngineKnownFacts;
+  const woody = KF.validateFactualConsistency(
+    'No Toy Story, quem usa chapéu de cowboy?',
+    'Woody',
+  );
+  assert('148. validateFactualConsistency', Array.isArray(woody));
+  const manifest = manifestSandbox.globalThis.QuestionEngineManifest;
+  assert('149. manifest ordem', manifest.ENGINE_SCRIPT_PATHS[0].endsWith('engine-config.js')
+    && manifest.ENGINE_SCRIPT_PATHS.at(-1) === 'question-engine.js');
 }
 {
   QE.clearGenerationTelemetry();

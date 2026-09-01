@@ -1,5 +1,5 @@
 /**
- * Motor de perguntas — fachada pública (modularização Fases 7–14).
+ * Motor de perguntas — fachada pública (modularização Fases 7–16).
  */
 (function (global) {
   'use strict';
@@ -77,23 +77,6 @@
     PERSISTENT_HISTORY_KEY,
   } = PersistentHistory;
 
-  function runReportedFactRules(q, a, options, formatId) {
-    return KnownFacts.runReportedFactRules(q, a, options, formatId, mkIssue);
-  }
-
-  const CONFUSING_FACT_PREFIXES = ['pergunta confusa', 'formulação', 'resposta ambígua — asfalto', 'pergunta circular'];
-
-  function isConfusingFactIssue(issue) {
-    const code = issueCode(issue);
-    if (code && KnownFacts.CONFUSING_FACT_CODES.has(code)) return true;
-    return CONFUSING_FACT_PREFIXES.some((prefix) => issueMessage(issue).startsWith(prefix));
-  }
-
-  function validateFactualConsistency(q, a) {
-    return runReportedFactRules(q, a, [], null)
-      .filter((i) => !isConfusingFactIssue(i) && !issueMessage(i).startsWith('pergunta ambígua'));
-  }
-
   function buildRetryHint(issues, formatId, ageBandKey) {
     return buildRetryHintFromIssues(issues, formatId, ageBandKey, { FORMAT_LABELS, getAgeLimits });
   }
@@ -143,7 +126,7 @@
     validateAgeAppropriate,
     validateSemanticQuality,
     validateQuestion,
-    validateFactualConsistency,
+    validateFactualConsistency: KnownFacts.validateFactualConsistency,
     shouldRequestFactualVerify: FactualVerify.shouldRequestFactualVerify,
     buildFactualVerifyPrompt: FactualVerify.buildFactualVerifyPrompt,
     parseFactualVerifyResponse: FactualVerify.parseFactualVerifyResponse,

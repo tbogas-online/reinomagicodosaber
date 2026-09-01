@@ -2,7 +2,15 @@
 (function (global) {
   'use strict';
 
+  const Issues = global.QuestionEngineIssues;
+  if (!Issues) {
+    throw new Error('known-facts: carrega issue-codes.js antes deste módulo');
+  }
+  const { mkIssue, issueMessage, issueCode } = Issues;
+
   const LAYER = Object.freeze({ semantic: 'semantic', factual: 'factual', language: 'language' });
+
+  const CONFUSING_FACT_PREFIXES = ['pergunta confusa', 'formulação', 'resposta ambígua — asfalto', 'pergunta circular'];
 
   const REPORTED_FACT_RULES = [
     {
@@ -277,23 +285,38 @@
     Object.fromEntries(REPORTED_FACT_RULES.map((r) => [r.code, telemetryLabelFromMessage(r.message)])),
   );
 
-  function runReportedFactRules(q, a, options, formatId, mkIssue) {
+  function runReportedFactRules(q, a, options, formatId, mkIssueFn) {
+    const issueFn = mkIssueFn || mkIssue;
     const opts = (options || []).map((o) => String(o).toLowerCase());
     const issues = [];
     for (const rule of REPORTED_FACT_RULES) {
       if (rule.when(q, a, opts, q.toLowerCase(), a.toLowerCase(), formatId)) {
-        issues.push(mkIssue(rule.code, rule.layer, rule.message));
+        issues.push(issueFn(rule.code, rule.layer, rule.message));
       }
     }
     return issues;
+  }
+
+  function isConfusingFactIssue(issue) {
+    const code = issueCode(issue);
+    if (code && CONFUSING_FACT_CODES.has(code)) return true;
+    return CONFUSING_FACT_PREFIXES.some((prefix) => issueMessage(issue).startsWith(prefix));
+  }
+
+  function validateFactualConsistency(q, a) {
+    return runReportedFactRules(q, a, [], null)
+      .filter((i) => !isConfusingFactIssue(i) && !issueMessage(i).startsWith('pergunta ambígua'));
   }
 
   global.QuestionEngineKnownFacts = Object.freeze({
     LAYER,
     REPORTED_FACT_RULES,
     CONFUSING_FACT_CODES,
+    CONFUSING_FACT_PREFIXES,
     TELEMETRY_ISSUE_LABELS,
     telemetryLabelFromMessage,
     runReportedFactRules,
+    isConfusingFactIssue,
+    validateFactualConsistency,
   });
 })(typeof window !== 'undefined' ? window : globalThis);
