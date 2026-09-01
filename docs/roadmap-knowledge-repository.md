@@ -197,6 +197,7 @@ Cada pergunta gerada (depois da IA + validação):
 - [x] Em `category.n === 20` + formato `ADIVINHA`: **só** `pickRecord` do repositório
 - [x] IA recebe `record` completo; gera apenas `q` + reordena `clues` + `distractors`
 - [x] Fallback: banco local de perguntas já validadas — **não** LLM livre
+- [x] Badge de fonte no rodapé (IA / Repositório / Banco)
 - [ ] Telemetria: `% perguntas com source ≠ ai`
 
 ### KR-1.4 Critérios de aceitação
@@ -230,17 +231,21 @@ Cada pergunta gerada (depois da IA + validação):
 - Em PT-PT natural  
 
 ### KR-2.1 Import curiosidades
-- [ ] Schema: `fact` + `answer` (ou `statement` + `isTrue` para V/F)
-- [ ] Flag `supportsTrueFalse: true`
+- [x] Schema: `fact` + `answer` (ou `statement` + `isTrue` para V/F) — `knowledge-repository.sql`
+- [x] Seed de amostra (`seed-knowledge-cat20-sample.sql`, fila `knowledge-import-queue.json`)
 - [ ] Meta: **≥ 150 curiosidades** MVP
 
 ### KR-2.2 Alternância 50/50
-- [ ] `chooseFormat` para cat. 20 curiosidade: 50% `CURIOSIDADE`, 50% `VERDADEIRO_FALSO` derivado do mesmo `fact`
-- [ ] V/F: gerar afirmação a partir de `record.fact`; resposta = Verdadeiro/Falso
+- [x] `chooseCuriosidadeRepoFormat()` — 50% `CURIOSIDADE`, 50% `VERDADEIRO_FALSO` no ramo curiosidades
+- [x] V/F directo a partir de `record.statement`; CURIOSIDADE via `buildPromptFromFact` (ou template offline)
 
 ### KR-2.3 Validação reforçada
-- [ ] `validateFactualConsistency` + comparar resposta IA com `record`
+- [x] `validateQuestion` + `repositoryRecord` — resposta tem de coincidir com `isTrue` / `answer`
 - [ ] Opcional: factual-verify só como **último recurso** para curiosidades Wikidata
+
+### KR-2.4 Jogo (só curiosidades)
+- [x] Em `category.n === 20` + formato `CURIOSIDADE`: **só** `pickRecord` do repositório
+- [x] Fallback: banco local — **não** LLM livre
 
 ---
 
@@ -347,6 +352,7 @@ Para cada categoria **1–19**, repetir mini-roadmap:
 
 ## Próximo passo imediato
 
-1. **Supabase SQL Editor** — executar `supabase/knowledge-repository.sql` e `supabase/seed-knowledge-cat20-sample.sql`
-2. Fornecer formato/export da primeira fonte real (MemóriaMedia ou CSV)
-3. **KR-2** — curiosidades + 50/50 V/F a partir do repositório
+1. **Supabase SQL Editor** — executar `supabase/knowledge-repository.sql` e `supabase/seed-knowledge-cat20-sample.sql` (se ainda não corrido)
+2. Fornecer formato/export da primeira fonte real (MemóriaMedia ou CSV) — meta ≥200 adivinhas + ≥150 curiosidades
+3. **KR-1.4** — telemetria `% source=repository`, desactivar `knowledgeId` após reporte
+4. **KR-4** — `knowledgeId` em `persistent-history` e repetição prioritária

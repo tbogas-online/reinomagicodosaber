@@ -319,8 +319,18 @@ Só json válido, sem markdown: ${jsonFormat}`;
   }
 
   /**
-   * Prompt restrito — IA formula a pergunta a partir de um facto verificado (KR-1).
-   * Proíbe inventar factos; a resposta "a" tem de coincidir com record.answer.
+   * Resposta esperada para validação — curiosidades V/F usam isTrue; adivinhas usam answer.
+   */
+  function getRepositoryExpectedAnswer(record) {
+    if (!record) return '';
+    if (record.isTrue === false) return 'Falso';
+    if (record.isTrue === true) return 'Verdadeiro';
+    return String(record.answer || '');
+  }
+
+  /**
+   * Prompt restrito — IA formula a pergunta a partir de um facto verificado (KR-1 / KR-2).
+   * Proíbe inventar factos; a resposta "a" tem de coincidir com o registo.
    */
   function buildPromptFromFact(record, ctx) {
     const {
@@ -328,18 +338,21 @@ Só json válido, sem markdown: ${jsonFormat}`;
       ageDifficultyExtra, openModeExtra, mcInstruction, jsonFormat, retryHint,
     } = ctx;
 
-    if (!record?.answer || !record?.fact) {
+    if (!record?.fact) {
       throw new Error('buildPromptFromFact: registo incompleto');
     }
 
     const formatLabel = FORMAT_LABELS[formatId] || formatId;
-    const cluesJson = JSON.stringify(Array.isArray(record.clues) ? record.clues : []);
     const retryBlock = retryHint ? `\n${retryHint}\n` : '';
     const sourceLine = record.sourceId
       ? `${record.source} · ${record.sourceId}`
       : String(record.source || 'repositório');
+    const expectedAnswer = getRepositoryExpectedAnswer(record);
 
-    return `Formulas UMA adivinha em português de Portugal a partir do FACTO VERIFICADO abaixo.
+    if (formatId === FORMAT_IDS.ADIVINHA) {
+      if (!record.answer) throw new Error('buildPromptFromFact: adivinha sem resposta');
+      const cluesJson = JSON.stringify(Array.isArray(record.clues) ? record.clues : []);
+      return `Formulas UMA adivinha em português de Portugal a partir do FACTO VERIFICADO abaixo.
 NÃO inventes factos, respostas nem pistas novas — usa apenas o material fornecido.
 
 FACTO VERIFICADO (fonte: ${sourceLine}):
@@ -369,6 +382,48 @@ ${openModeExtra || ''}
 ${mcInstruction || ''}
 
 Só json válido, sem markdown: ${jsonFormat}`;
+    }
+
+    if (formatId === FORMAT_IDS.CURIOSIDADE || formatId === FORMAT_IDS.VERDADEIRO_FALSO) {
+      const statementHint = record.statement
+        ? `- Afirmação de referência (podes adaptar ligeiramente em "q"): ${record.statement}`
+        : '';
+      const presentation = formatId === FORMAT_IDS.VERDADEIRO_FALSO
+        ? 'afirmação factual directa terminada em "Verdadeiro ou Falso?"'
+        : 'curiosidade surpreendente com "Sabias que…" ou "É verdade que…" e "Verdadeiro ou Falso?" no final';
+      return `Formulas UMA curiosidade em português de Portugal a partir do FACTO VERIFICADO abaixo.
+NÃO inventes factos nem alteres a verdade do registo — só reformula em PT-PT natural.
+
+FACTO VERIFICADO (fonte: ${sourceLine}):
+- Resposta correcta OBRIGATÓRIA no campo "a": ${expectedAnswer}
+- Facto/base: ${record.fact}
+${statementHint}
+
+REGRAS DO REPOSITÓRIO (obrigatórias):
+- O campo "a" tem de ser EXACTAMENTE "${expectedAnswer}" — só "Verdadeiro" ou "Falso".
+- Apresentação: ${presentation}.
+- NÃO transformes em pergunta de ano, capital ou geografia banal.
+- NÃO inventes dados novos nem contradigas o facto verificado.
+
+CATEGORIA: ${category.name} (${category.desc})
+FORMATO: ${formatLabel} (${formatId})
+IDADE: ${ageBandPromptText}
+${retryBlock}
+${buildGlobalRules()}
+
+${buildFormatRules(formatId === FORMAT_IDS.VERDADEIRO_FALSO ? FORMAT_IDS.CURIOSIDADE : formatId, { ageBandKey, isMC, isTrueFalse: true })}
+
+${buildAgeRules(ageBandKey, ageBandPromptText)}
+${ageDifficultyExtra || ''}
+
+${ptPtRules || ''}
+${openModeExtra || ''}
+${mcInstruction || ''}
+
+Só json válido, sem markdown: ${jsonFormat}`;
+    }
+
+    throw new Error(`buildPromptFromFact: formato não suportado (${formatId})`);
   }
 
   global.QuestionEnginePromptBuilder = {
@@ -384,6 +439,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     chooseFormat,
     buildPrompt,
     buildPromptFromFact,
+    getRepositoryExpectedAnswer,
     pickMusicFocus,
     pickTechFocus,
   };

@@ -59,6 +59,7 @@
     chooseFormat,
     buildPrompt,
     buildPromptFromFact,
+    getRepositoryExpectedAnswer,
   } = PromptBuilder;
   const {
     assembleMcOptions,
@@ -116,6 +117,7 @@
     chooseSubtopic,
     buildPrompt,
     buildPromptFromFact,
+    getRepositoryExpectedAnswer,
     buildRetryHint,
     buildAdaptiveRetryHint: (issues, formatId, ageBandKey, attempt, opts) => Retry.buildAdaptiveRetryHint(
       issues, formatId, ageBandKey, attempt, { FORMAT_LABELS, getAgeLimits, issueDetails: opts?.issueDetails },

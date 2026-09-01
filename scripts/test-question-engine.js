@@ -1309,5 +1309,72 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('155. cat.20 mix adivinha ~70%', ratio >= 0.62 && ratio <= 0.78, `adivinha ${(ratio * 100).toFixed(1)}%`);
 }
 
+// 156–158. KR-2 — curiosidades a partir do repositório
+{
+  assert('156. getRepositoryExpectedAnswer isTrue', QE.getRepositoryExpectedAnswer({ isTrue: true, answer: 'X' }) === 'Verdadeiro');
+  assert('157. getRepositoryExpectedAnswer isFalse', QE.getRepositoryExpectedAnswer({ isTrue: false, answer: 'X' }) === 'Falso');
+  const curRecord = {
+    knowledgeId: 'knw-cur-test',
+    fact: 'Um polvo tem três corações e sangue azul.',
+    answer: 'Verdadeiro',
+    statement: 'Um polvo tem três corações. Verdadeiro ou Falso?',
+    isTrue: true,
+    source: 'sample',
+    sourceId: 'sample:cur:001',
+  };
+  const curPrompt = QE.buildPromptFromFact(curRecord, {
+    category: QE.CATEGORIES[20],
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: QE.FORMAT_IDS.CURIOSIDADE,
+    ptPtRules: '',
+    isMC: true,
+    isTrueFalse: true,
+    mcInstruction: ' V/F',
+    jsonFormat: '{"q":"","a":"Verdadeiro","options":["Verdadeiro","Falso"]}',
+  });
+  assert('158. buildPromptFromFact curiosidade', /Sabias que|curiosidade/i.test(curPrompt) && curPrompt.includes('Verdadeiro'));
+  const vfPrompt = QE.buildPromptFromFact(curRecord, {
+    category: QE.CATEGORIES[20],
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: QE.FORMAT_IDS.VERDADEIRO_FALSO,
+    ptPtRules: '',
+    isMC: true,
+    isTrueFalse: true,
+    mcInstruction: ' V/F',
+    jsonFormat: '{"q":"","a":"Verdadeiro","options":["Verdadeiro","Falso"]}',
+  });
+  assert('158b. buildPromptFromFact V/F repo', vfPrompt.includes('Um polvo tem três corações'));
+  const okCurRepo = QE.validateQuestion({
+    q: 'Um polvo tem três corações. Verdadeiro ou Falso?',
+    a: 'Verdadeiro',
+    options: ['Verdadeiro', 'Falso'],
+  }, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.CURIOSIDADE, isMC: true }),
+    repositoryRecord: { ...curRecord, answer: 'Verdadeiro' },
+    helpers: {
+      stripTags,
+      validateTrueFalseQuestion: () => ({ ok: true, issues: [] }),
+      ageBandKey: '10-15',
+    },
+  });
+  assert('159. curiosidade repositório válida', okCurRepo.ok, okCurRepo.issues?.join(', '));
+  const badCurRepo = QE.validateQuestion({
+    q: 'Um polvo tem três corações. Verdadeiro ou Falso?',
+    a: 'Falso',
+    options: ['Verdadeiro', 'Falso'],
+  }, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.CURIOSIDADE, isMC: true }),
+    repositoryRecord: { ...curRecord, answer: 'Verdadeiro' },
+    helpers: {
+      stripTags,
+      validateTrueFalseQuestion: () => ({ ok: true, issues: [] }),
+      ageBandKey: '10-15',
+    },
+  });
+  assert('160. curiosidade repositório mismatch', !badCurRepo.ok);
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

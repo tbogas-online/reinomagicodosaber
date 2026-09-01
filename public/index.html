@@ -3441,10 +3441,10 @@
 <script src="question-engine/repetition-validators.js?v=20260901-230000"></script>
 <script src="question-engine/knowledge-key-compute.js?v=20260901-270000"></script>
 <script src="question-engine/persistent-history.js?v=20260901-280000"></script>
-<script src="question-engine/prompt-builder.js?v=20260901-180000"></script>
+<script src="question-engine/prompt-builder.js?v=20260901-184500"></script>
 <script src="question-engine/mc-assembly.js?v=20260901-270000"></script>
 <script src="question-engine/question-scoring.js?v=20260901-143500"></script>
-<script src="question-engine.js?v=20260901-160409" id="question-engine-script"></script>
+<script src="question-engine.js?v=20260901-184500" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para logs extra na consola.
@@ -4012,6 +4012,41 @@
   const usedKnowledgeIds = {};
   const REPO_ADIVINHA_TOPIC = 'adivinha tradicional';
   const REPO_ADIVINHA_MIN_CONFIDENCE = 0.90;
+  const REPO_CURIOSIDADE_TOPIC = 'curiosidade surpreendente';
+  const REPO_CURIOSIDADE_MIN_CONFIDENCE = 0.85;
+  const REPO_CURIOSIDADE_VF_CHANCE = 0.5;
+
+  function chooseCuriosidadeRepoFormat(engine){
+    return Math.random() < REPO_CURIOSIDADE_VF_CHANCE
+      ? engine.FORMAT_IDS.VERDADEIRO_FALSO
+      : engine.FORMAT_IDS.CURIOSIDADE;
+  }
+
+  function getRepositoryExpectedAnswer(record, engine){
+    if(engine?.getRepositoryExpectedAnswer){
+      return engine.getRepositoryExpectedAnswer(record);
+    }
+    if(record?.isTrue === false) return 'Falso';
+    if(record?.isTrue === true) return 'Verdadeiro';
+    return String(record?.answer || '');
+  }
+
+  function buildCuriosidadeDirectFromRecord(record, repoFormatId, engine){
+    const expected = getRepositoryExpectedAnswer(record, engine);
+    const factBody = String(record.fact || '').replace(/^curiosidade:\s*/i, '').trim();
+    let qText = '';
+    if(repoFormatId === engine.FORMAT_IDS.VERDADEIRO_FALSO && record.statement){
+      qText = record.statement;
+    } else {
+      const core = factBody.replace(/\?+\s*$/, '').replace(/[.!]\s*$/, '').trim();
+      qText = `Sabias que ${core}?`;
+    }
+    return {
+      q: formatGameText(ensureTrueFalsePrompt(qText)),
+      a: formatGameText(expected),
+      options: ['Verdadeiro', 'Falso'],
+    };
+  }
 
   function rememberGlobalKnowledgeId(ageBandKey, knowledgeId){
     if(!knowledgeId) return;
@@ -4399,6 +4434,203 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     return null;
   }
 
+  async function tryGenerateCuriosidadeFromRepository(ctx){
+    const {
+      category, ageBandKey, repoFormatId, difficulty, subtopic, engine, isMC,
+      usedSet, usedAnswerSet, persistentQSet, persistent,
+      mcInstruction, jsonFormat, ageDifficultyExtra, openModeExtra, skipAi,
+    } = ctx;
+
+    const KR = window.ReinoKnowledgeRepository;
+    if(!KR?.isConfigured?.()) return null;
+
+    const isRepoTrueFalse = repoFormatId === engine.FORMAT_IDS.VERDADEIRO_FALSO;
+    const validateFormatId = isRepoTrueFalse ? engine.FORMAT_IDS.VERDADEIRO_FALSO : engine.FORMAT_IDS.CURIOSIDADE;
+    const formatLabel = isRepoTrueFalse
+      ? (engine.FORMAT_LABELS[engine.FORMAT_IDS.VERDADEIRO_FALSO] || 'Verdadeiro/Falso')
+      : (engine.FORMAT_LABELS[engine.FORMAT_IDS.CURIOSIDADE] || 'Curiosidade');
+
+    let lastValidationIssues = [];
+    let lastValidationIssueDetails = [];
+    const triedKnowledgeIds = new Set(getEffectiveUsedKnowledgeIds(ageBandKey));
+
+    for(let attempt = 1; attempt <= 5; attempt++){
+      const record = await KR.pickRecord(category.n, ageBandKey, {
+        topic: REPO_CURIOSIDADE_TOPIC,
+        formatId: repoFormatId,
+        excludeKnowledgeIds: [...triedKnowledgeIds],
+        minConfidence: REPO_CURIOSIDADE_MIN_CONFIDENCE,
+      });
+      if(!record){
+        if(DEBUG_MODE){
+          console.info('[KnowledgeRepository] Sem curiosidades no repositório', {
+            ageBand: ageBandKey,
+            format: repoFormatId,
+            excluded: triedKnowledgeIds.size,
+            topic: REPO_CURIOSIDADE_TOPIC,
+          });
+        }
+        return null;
+      }
+      triedKnowledgeIds.add(record.knowledgeId);
+
+      const telemetryBase = {
+        category: category.n,
+        formatId: validateFormatId,
+        ageBandKey,
+        difficulty,
+        attempt,
+        knowledgeId: record.knowledgeId,
+        source: 'repository',
+      };
+
+      try {
+        let parsed = null;
+        const useDirect = skipAi || (isRepoTrueFalse && record.statement);
+        if(useDirect){
+          parsed = buildCuriosidadeDirectFromRecord(record, repoFormatId, engine);
+        } else {
+          const prompt = engine.buildPromptFromFact(record, {
+            category,
+            ageBandKey,
+            ageBandPromptText: AGE_BAND_PROMPT_TEXT[ageBandKey],
+            formatId: repoFormatId,
+            ptPtRules: PT_PT_RULES,
+            isMC,
+            isTrueFalse: true,
+            ageDifficultyExtra,
+            openModeExtra,
+            mcInstruction,
+            jsonFormat,
+            retryHint: attempt > 1
+              ? engine.buildAdaptiveRetryHint(lastValidationIssues, validateFormatId, ageBandKey, attempt, {
+                issueDetails: lastValidationIssueDetails,
+              })
+              : '',
+          }).slice(0, 11000);
+
+          const data = await callAiApi(
+            [{ role: 'user', content: prompt }],
+            ageBandKey === '15+' ? 320 : 280,
+          );
+
+          const text = (data.content || []).map((b) => b.text || '').join('');
+          if(!text.trim()){
+            recordQuestionGenTelemetry(engine, { ...telemetryBase, outcome: 'api_error', issueCodes: ['API_EMPTY'] });
+            continue;
+          }
+
+          parsed = parseAiJson(text);
+          if(!parsed?.q || !parsed?.a){
+            recordQuestionGenTelemetry(engine, {
+              ...telemetryBase,
+              outcome: 'parse_error',
+              issueCodes: [!parsed?.q ? 'STRUCTURE_MISSING_Q' : 'STRUCTURE_MISSING_A'],
+            });
+            continue;
+          }
+
+          parsed.q = formatGameText(ensureTrueFalsePrompt(parsed.q));
+          parsed.a = formatGameText(parsed.a);
+          if(Array.isArray(parsed.options)){
+            parsed.options = parsed.options.map(formatGameText);
+          } else {
+            parsed.options = ['Verdadeiro', 'Falso'];
+          }
+          recordAiUsage(data);
+          setOnlineStatus(true);
+        }
+
+        if(!parsed?.options || parsed.options.length !== 2){
+          parsed.options = ['Verdadeiro', 'Falso'];
+        }
+
+        const qualityCheck = engine.validateQuestion(parsed, {
+          formatId: validateFormatId,
+          ageBandKey,
+          categoryNumber: category.n,
+          difficulty,
+          usedQuestions: getEffectiveUsedQuestions(ageBandKey),
+          usedAnswers: getEffectiveUsedAnswers(ageBandKey),
+          usedKnowledgeKeys: getEffectiveUsedKnowledgeKeys(ageBandKey),
+          persistentKnowledgeKeys: persistent.knowledgeKeys,
+          repositoryRecord: {
+            ...record,
+            answer: getRepositoryExpectedAnswer(record, engine),
+          },
+          isMC,
+          stripTags,
+          normalizeFn: normalizeQ,
+          helpers: { stripTags, validateTrueFalseQuestion, ageBandKey },
+        });
+        if(!qualityCheck.ok){
+          lastValidationIssues = qualityCheck.issues || [];
+          lastValidationIssueDetails = qualityCheck.issueDetails || [];
+          recordQuestionGenTelemetry(engine, {
+            ...telemetryBase,
+            outcome: 'rejected',
+            issueDetails: qualityCheck.issueDetails,
+            score: qualityCheck.score,
+          });
+          continue;
+        }
+
+        const knowledgeKey = qualityCheck.knowledgeKey || engine.computeKnowledgeKey(parsed.q, parsed.a, validateFormatId, normalizeQ, {
+          categoryNumber: category.n,
+        });
+        const normQ = normalizeQ(parsed.q);
+        if(usedSet.has(normQ) || persistentQSet.has(normQ)) continue;
+
+        rememberGlobalQuestion(ageBandKey, parsed.q);
+        rememberGlobalKnowledgeKey(ageBandKey, knowledgeKey);
+        rememberGlobalKnowledgeId(ageBandKey, record.knowledgeId);
+        engine.persistQuestion(ageBandKey, parsed.q, parsed.a, normalizeQ, {
+          category: category.n,
+          format: validateFormatId,
+          knowledgeKey,
+          difficulty,
+          subtopic: REPO_CURIOSIDADE_TOPIC,
+        });
+        recordQuestionGenTelemetry(engine, { ...telemetryBase, outcome: 'accepted', score: qualityCheck.score });
+
+        const questionHash = hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a));
+        if(window.QuestionBank?.isConfigured?.() && hasValidMcOptions(parsed.options, validateFormatId, parsed.a)){
+          window.QuestionBank.save({
+            categoryN: category.n,
+            ageBand: ageBandKey,
+            question: parsed.q,
+            correctAnswer: parsed.a,
+            options: parsed.options || null,
+            format: validateFormatId,
+            knowledgeKey,
+            questionHash,
+            source: 'repository',
+            knowledgeId: record.knowledgeId,
+            sourceId: record.sourceId,
+            confidence: record.confidence,
+          }).catch(() => {});
+        }
+
+        return finalizeQuestion({
+          ...parsed,
+          source: 'repository',
+          format: validateFormatId,
+          formatLabel,
+          difficulty,
+          subtopic: REPO_CURIOSIDADE_TOPIC,
+          knowledgeKey,
+          knowledgeId: record.knowledgeId,
+          sourceId: record.sourceId,
+          confidence: record.confidence,
+        });
+      } catch (err) {
+        if(DEBUG_MODE) console.warn('[KnowledgeRepository] curiosidade falhou:', err?.message || err);
+      }
+    }
+
+    return null;
+  }
+
   async function generateQuestion(category, ageBandKey){
     if(!category?.n){
       category = Object.values(gameCategoryMap).find((c) => c?.n) || CATEGORIES[0];
@@ -4499,6 +4731,40 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine);
     }
 
+    // KR-2: curiosidades (cat. 20) — só factos do repositório; sem geração livre pelo LLM.
+    if(category.n === 20 && questionFormat === engine.FORMAT_IDS.CURIOSIDADE){
+      subtopic = REPO_CURIOSIDADE_TOPIC;
+      const repoFormatId = chooseCuriosidadeRepoFormat(engine);
+      let skipAiForRepo = !aiStatusOnline;
+      if(!skipAiForRepo){
+        try {
+          const quota = lastAiQuotaSnapshot || await fetchAiQuotaSnapshot();
+          const availability = getAiAvailabilityFromQuota(quota, aiProviderChoice);
+          if(!availability.online) skipAiForRepo = true;
+        } catch { /* tenta na mesma */ }
+      }
+      const repoQuestion = await tryGenerateCuriosidadeFromRepository({
+        category,
+        ageBandKey,
+        repoFormatId,
+        difficulty,
+        subtopic,
+        engine,
+        isMC,
+        usedSet,
+        usedAnswerSet,
+        persistentQSet,
+        persistent,
+        mcInstruction,
+        jsonFormat,
+        ageDifficultyExtra,
+        openModeExtra,
+        skipAi: skipAiForRepo,
+      });
+      if(repoQuestion) return repoQuestion;
+      return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine);
+    }
+
     let aiWasAttempted = false;
     let aiApiReached = false;
     let lastAiError = '';
@@ -4517,8 +4783,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       } catch { /* ignora — tenta na mesma */ }
     }
     for(let attempt = 1; attempt <= 5 && !skipAi; attempt++){
-      // KR-1: adivinhas cat. 20 nunca pelo LLM livre (só repositório ou banco).
-      if(category.n === 20 && questionFormat === engine.FORMAT_IDS.ADIVINHA){
+      // KR-1/KR-2: cat. 20 nunca pelo LLM livre (só repositório ou banco).
+      if(category.n === 20 && (
+        questionFormat === engine.FORMAT_IDS.ADIVINHA
+        || questionFormat === engine.FORMAT_IDS.CURIOSIDADE
+      )){
         break;
       }
       const telemetryBase = {
