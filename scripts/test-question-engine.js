@@ -24,6 +24,8 @@ const engineScripts = [
   'question-engine/format-validators.js',
   'question-engine/mc-validators.js',
   'question-engine/age-validators.js',
+  'question-engine/category-validators.js',
+  'question-engine/semantic-validators.js',
   'question-engine.js',
 ];
 const memStore = {};
@@ -1117,6 +1119,20 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const issues = Age.validateObscureCharacter('Quem é o rato da Cinderela?', 'Jaquim', '6-9');
   assert('135. age-validators obscure character', issues.some((i) => i.code === 'AGE_TOO_HARD'),
     issues.map((i) => i.message).join(', '));
+}
+
+// 136. Fase 7f — category-validators modular
+{
+  const Cat = sandbox.globalThis.QuestionEngineCategoryValidators;
+  const issues = Cat.validateCategoryTopicFit('O que é o congelamento da água?', 5, '10-15');
+  assert('136. category-validators congelamento', issues.some((i) => i.code === 'CATEGORY_MISMATCH'),
+    issues.map((i) => i.message).join(', '));
+}
+
+// 137. Fase 7f — semantic-validators modular
+{
+  const Sem = sandbox.globalThis.QuestionEngineSemanticValidators;
+  assert('137. semantic-validators stereotype', Sem.hasCulturalStereotype('Os japoneses são muito educados'));
 }
 {
   QE.clearGenerationTelemetry();

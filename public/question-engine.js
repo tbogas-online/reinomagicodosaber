@@ -33,9 +33,6 @@
   }
 
 
-  function pushCategoryMismatch(issues, message) {
-    pushIssue(issues, 'CATEGORY_MISMATCH', ISSUE_LAYER.category, message);
-  }
 
   function pushFormatViolation(issues, message) {
     pushIssue(issues, 'FORMAT_VIOLATION', ISSUE_LAYER.format, message);
@@ -119,6 +116,29 @@
     validateAgeAppropriate,
     validateObscureCharacter,
   } = AgeValidators;
+
+  const CategoryValidators = global.QuestionEngineCategoryValidators;
+  if (!CategoryValidators) {
+    throw new Error('QuestionEngine: carrega category-validators.js antes de question-engine.js');
+  }
+  const { validateCategoryTopicFit } = CategoryValidators;
+
+  const SemanticValidators = global.QuestionEngineSemanticValidators;
+  if (!SemanticValidators) {
+    throw new Error('QuestionEngine: carrega semantic-validators.js antes de question-engine.js');
+  }
+  const {
+    validateAdivinhaMcAmbiguity,
+    collectSemanticIssues: collectSemanticIssuesCore,
+  } = SemanticValidators;
+
+  function collectSemanticIssues(parsed, ctx) {
+    return collectSemanticIssuesCore(parsed, {
+      ...ctx,
+      runReportedFactRules,
+      validateObscureCharacter,
+    });
+  }
 
   function collectMcIssues(parsed, ctx) {
     return collectMcIssuesCore(parsed, {
@@ -557,19 +577,6 @@ Só json válido, sem markdown: ${jsonFormat}`;
     return norm(stripTrueFalsePromptSuffix(norm(key)));
   }
 
-  function answerLeakedInQuestion(q, a) {
-    const al = String(a || '').trim().toLowerCase();
-    if (!al || al.length < 3) return false;
-    if (isGenericTrueFalseAnswer(a)) return false;
-
-    const ql = stripTrueFalsePromptSuffix(q).trim().toLowerCase();
-    if (!ql) return false;
-    if (ql.includes(al)) return true;
-    const aWords = tokenize(a).filter((w) => w.length >= 4);
-    if (aWords.length >= 2 && ql.includes(aWords.join(' '))) return true;
-    const hits = aWords.filter((w) => ql.includes(w));
-    return aWords.length >= 2 && hits.length >= Math.ceil(aWords.length * 0.7);
-  }
 
 
   const MUSIC_FOCUS_AREAS = [
@@ -602,36 +609,6 @@ Só json válido, sem markdown: ${jsonFormat}`;
   }
 
 
-  function hasCulturalStereotype(q) {
-    return /\b(os|as)\s+(portugueses|portuguesas|japoneses|japonesas|chineses|chinesas|franceses|francesas|alemães|alemãs|alemoes|alemas|italianos|italianas|brasileiros|brasileiras|ingleses|britânicos|britânicas|árabes|africanos|africanas|americanos|americanas|homens|mulheres|crianças|miúdos|miúdas|rapazes|raparigas)\s+são\b/i.test(q)
-      || /\btodos\s+os\s+(portugueses|japoneses|franceses|alemães|homens|mulheres|crianças|miúdos)\s+(gostam|são|fazem)\b/i.test(q);
-  }
-
-
-
-  function validateAdivinhaMcAmbiguity(q, a, options, stripTags, formatId) {
-    const issues = [];
-    if (formatId !== FORMAT_IDS.ADIVINHA) return issues;
-    const clean = (options || []).map((o) => stripTags(o).trim()).filter(Boolean);
-    if (clean.length < 2) return issues;
-
-    const mapGlobeRiddle = /\bcidades\b/i.test(q) && /\bn[aã]o\s+casas\b/i.test(q)
-      && /\bmontanhas\b/i.test(q) && /\bn[aã]o\s+(árvores|arvores)\b/i.test(q)
-      && /\b(água|agua)\b/i.test(q) && /\bn[aã]o\s+peixes\b/i.test(q);
-    const hasMapa = clean.some((o) => /\bmapa\b/i.test(o));
-    const hasGlobo = clean.some((o) => /\bglobo\b/i.test(o));
-    if (mapGlobeRiddle && hasMapa && hasGlobo) {
-      pushIssue(issues, 'ADIVINHA_MAP_GLOBE_AMBIGUOUS', ISSUE_LAYER.semantic, 'pergunta ambígua — mapa e globo terráqueo respondem às mesmas pistas; reformula ou usa distractores claramente errados');
-    }
-
-    const geoRepRiddle = /\b(tenho|tem)\b/i.test(q) && /\b(cidades|montanhas)\b/i.test(q)
-      && /\bn[aã]o\s+(casas|árvores|arvores|peixes)\b/i.test(q);
-    if (geoRepRiddle && hasMapa && hasGlobo && !mapGlobeRiddle) {
-      pushIssue(issues, 'ADIVINHA_MAP_GLOBE_AMBIGUOUS', ISSUE_LAYER.semantic, 'pergunta ambígua — mapa e globo terráqueo são ambas defensáveis nesta adivinha');
-    }
-
-    return issues;
-  }
 
 
   /** Factos reportados — ver question-engine/known-facts.js */
@@ -646,28 +623,6 @@ Só json válido, sem markdown: ${jsonFormat}`;
     return CONFUSING_FACT_PREFIXES.some((prefix) => issueMessage(issue).startsWith(prefix));
   }
 
-  function validateCategoryTopicFit(q, categoryN, ageBandKey) {
-    const issues = [];
-    const lim = getAgeLimits(ageBandKey);
-    if (categoryN === 2 && /\b(homem|pessoa|astronauta).{0,40}\blua\b|\bprimeira\s+vez.{0,30}\blua\b|\bprimeiro\s+homem\b.*\blua\b/i.test(q)) {
-      pushCategoryMismatch(issues, 'missão à Lua é Espaço/História, não Geografia');
-    }
-    if (categoryN === 17) {
-      if (RE_TECH_TRANSPORT.test(q)) {
-        pushCategoryMismatch(issues, 'veículos/transportes são Categoria 19 (Transportes), não Tecnologia');
-      }
-      if (RE_TECH_SPACE.test(q)) {
-        pushCategoryMismatch(issues, 'espaço/foguetões são Categoria 6 (Espaço), não Tecnologia');
-      }
-    }
-    if (lim.rejectMoonMission && /\b(homem|pessoa).{0,25}\blua\b|\bfoi\s+à\s+lua\b/i.test(q)) {
-      pushAgeHardIssue(issues, 'missão à Lua demasiado avançada para 6–9');
-    }
-    if (categoryN === 5 && /\b(solidifica[çc][ãa]o|congelamento|fundir|derreter|evapora[çc][ãa]o|estados?\s+(f[íi]sicos?|da\s+mat[ée]ria)|l[íi]quido\s+ao\s+s[óo]lido)\b/i.test(q)) {
-      pushCategoryMismatch(issues, 'fenómenos físicos da água/matéria são Ciência (4), não Natureza (5)');
-    }
-    return issues;
-  }
 
 
 
@@ -773,29 +728,6 @@ Só json válido, sem markdown: ${jsonFormat}`;
   }
 
 
-  function collectSemanticIssues(parsed, ctx) {
-    const {
-      ageBandKey, stripTags, normalizeFn, formatId, isMC,
-    } = ctx;
-    const q = stripTags(parsed?.q || '').trim();
-    const a = stripTags(parsed?.a || '').trim();
-    const options = Array.isArray(parsed?.options) ? parsed.options : [];
-    const issues = runReportedFactRules(q, a, options, formatId);
-    issues.push(...validateObscureCharacter(q, a, ageBandKey));
-
-    if (formatId !== FORMAT_IDS.VERDADEIRO_FALSO && !isGenericTrueFalseAnswer(a, normalizeFn)) {
-      if (answerLeakedInQuestion(q, a)) {
-        pushIssue(issues, 'ANSWER_LEAKED', ISSUE_LAYER.semantic, 'resposta revelada na pergunta');
-      }
-    }
-    if (hasCulturalStereotype(q)) {
-      pushIssue(issues, 'PT_STEREOTYPE', ISSUE_LAYER.semantic, 'estereótipo cultural');
-    }
-    if (/\b(pode ser|podem ser|várias respostas|duas respostas|tanto .+ como)\b/i.test(`${q} ${a}`)) {
-      pushIssue(issues, 'MULTIPLE_ANSWERS', ISSUE_LAYER.semantic, 'possíveis múltiplas respostas');
-    }
-    return issues;
-  }
 
 
   function collectRepetitionIssues(q, a, formatId, ctx, normalizeFn) {
