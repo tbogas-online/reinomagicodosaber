@@ -21,6 +21,7 @@ const engineScripts = [
   'question-engine/adivinha-verify.js',
   'question-engine/difficulty-estimate.js',
   'question-engine/pt-pt-validators.js',
+  'question-engine/format-validators.js',
   'question-engine.js',
 ];
 const memStore = {};
@@ -1082,6 +1083,17 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const issues = PtPt.collectPtPtIssues('Qual cor tem a camiseta?', 'camiseta', [], '10-15');
   assert('132. pt-pt-validators collectPtPtIssues', issues.some((i) => i.code === 'PT_BRASILISM'),
     issues.map((i) => i.message).join(', '));
+}
+
+// 133. Fase 7c — format-validators modular
+{
+  const Fmt = sandbox.globalThis.QuestionEngineFormatValidators;
+  const r = Fmt.validateByFormat(
+    { q: 'O que é a fotossíntese?', a: 'Processo das plantas' },
+    'O_QUE_E',
+    { stripTags: (s) => String(s || ''), ageBandKey: '15+' },
+  );
+  assert('133. format-validators validateByFormat O_QUE_E', r.ok, r.issues?.map((i) => i.message || i).join(', '));
 }
 {
   QE.clearGenerationTelemetry();
