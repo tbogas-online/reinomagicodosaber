@@ -20,6 +20,7 @@ const engineScripts = [
   'question-engine/factual-verify.js',
   'question-engine/adivinha-verify.js',
   'question-engine/difficulty-estimate.js',
+  'question-engine/pt-pt-validators.js',
   'question-engine.js',
 ];
 const memStore = {};
@@ -1073,6 +1074,14 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 {
   assert('131. engine-config partilhado', QE.DIFFICULTY_RANGE['15+'].max === 5
     && QE.estimateDifficulty('Qual é o planeta onde vivemos?', 'Terra', { ageBandKey: '15+' }).estimatedDifficulty <= 2);
+}
+
+// 132. Fase 7b — pt-pt-validators modular
+{
+  const PtPt = sandbox.globalThis.QuestionEnginePtPt;
+  const issues = PtPt.collectPtPtIssues('Qual cor tem a camiseta?', 'camiseta', [], '10-15');
+  assert('132. pt-pt-validators collectPtPtIssues', issues.some((i) => i.code === 'PT_BRASILISM'),
+    issues.map((i) => i.message).join(', '));
 }
 {
   QE.clearGenerationTelemetry();
