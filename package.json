@@ -4,6 +4,8 @@
   "scripts": {
     "build": "node scripts/generate-version.js",
     "test": "node scripts/test-question-engine.js",
+    "import:knowledge": "node scripts/daily-knowledge-import.js",
+    "import:knowledge:dry": "node scripts/daily-knowledge-import.js --dry-run",
     "zip": "node scripts/generate-version.js && node scripts/create-zip.js"
   },
   "dependencies": {

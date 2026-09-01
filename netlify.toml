@@ -31,6 +31,10 @@
 [functions."gen-telemetry-admin"]
   node_bundler = "esbuild"
 
+[functions."knowledge-import-admin"]
+  node_bundler = "esbuild"
+  included_files = ["data/knowledge-import-queue.json"]
+
 [[redirects]]
   from = "/api/generate"
   to = "/.netlify/functions/generate"
@@ -69,6 +73,11 @@
 [[redirects]]
   from = "/api/gen-telemetry-admin"
   to = "/.netlify/functions/gen-telemetry-admin"
+  status = 200
+
+[[redirects]]
+  from = "/api/knowledge-import-admin"
+  to = "/.netlify/functions/knowledge-import-admin"
   status = 200
 
 [[redirects]]

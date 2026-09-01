@@ -95,6 +95,25 @@
       flex: 1 1 120px;
       min-width: 110px;
     }
+    .knowledge-queue-preview {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      font-size: 13px;
+    }
+    .knowledge-queue-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px 12px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: #0b1220;
+    }
+    .knowledge-queue-row .meta {
+      color: var(--muted);
+      font-size: 12px;
+    }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: left; vertical-align: top; }
     th { color: var(--muted); font-weight: 600; }
@@ -891,6 +910,7 @@
         <button type="button" id="tabReports" class="active">Reportes</button>
         <button type="button" id="tabRooms" class="secondary">Salas multijogador</button>
         <button type="button" id="tabBank" class="secondary">Banco de perguntas</button>
+        <button type="button" id="tabKnowledge" class="secondary">Repositório</button>
         <button type="button" id="tabTelemetry" class="secondary">Telemetria IA</button>
         <span class="spacer"></span>
         <button type="button" id="logoutBtn" class="secondary">Sair</button>
@@ -1174,6 +1194,35 @@
         <p class="bank-footer-link-wrap">
           <a class="bank-footer-link" href="/test-questions.html">🧪 Teste de perguntas</a>
         </p>
+      </div>
+
+      <div id="knowledgePanel" class="hidden">
+        <div class="card stats" id="knowledgeStatsRow"></div>
+
+        <div class="card" id="knowledgeImportSection">
+          <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
+            <div>
+              <h2 class="charts-title" style="margin:0;">Importação diária</h2>
+              <p class="chart-filter-note" style="margin:6px 0 0">Importa até 1 facto verificado por faixa etária (6–9, 10–15, 15+) para o Knowledge Repository no Supabase.</p>
+            </div>
+            <div class="rooms-refresh-wrap">
+              <span id="knowledgeLastUpdated" class="rooms-last-updated"></span>
+            </div>
+          </div>
+
+          <div class="bulk-bar" style="flex-wrap:wrap; gap:8px;">
+            <button type="button" class="primary" id="knowledgeRefreshBtn">↻ Actualizar estado</button>
+            <button type="button" class="secondary" id="knowledgeDryRunBtn" title="Simular sem gravar no Supabase">🧪 Simular</button>
+            <button type="button" class="secondary" id="knowledgeImportBtn" title="Importar 1 registo por faixa etária">📥 Importar agora</button>
+            <button type="button" class="danger" id="knowledgeForceImportBtn" title="Repetir mesmo que já tenha corrido hoje">⚡ Forçar importação</button>
+          </div>
+
+          <p class="status" id="knowledgeImportStatus"></p>
+          <p class="sub" style="margin-top:0;">A fila vem de <code>data/knowledge-import-queue.json</code> no deploy. O estado das importações manuais fica guardado no servidor (Netlify Blobs).</p>
+
+          <h3 style="margin:16px 0 8px; font-size:0.95rem;">Próximos na fila</h3>
+          <div id="knowledgeQueuePreview" class="knowledge-queue-preview"></div>
+        </div>
       </div>
 
       <div id="telemetryPanel" class="hidden">
@@ -2405,6 +2454,7 @@
     function getAutoRefreshMs() {
       if (activeAdminTab === 'rooms') return ROOMS_AUTO_REFRESH_MS;
       if (activeAdminTab === 'bank') return ROOMS_AUTO_REFRESH_MS;
+      if (activeAdminTab === 'knowledge') return ROOMS_AUTO_REFRESH_MS;
       if (activeAdminTab === 'telemetry') return ROOMS_AUTO_REFRESH_MS;
       return AUTO_REFRESH_MS;
     }
@@ -3052,18 +3102,23 @@
 
     function setAdminTab(tab) {
       activeAdminTab = tab === 'rooms' ? 'rooms'
-        : (tab === 'bank' ? 'bank' : (tab === 'telemetry' ? 'telemetry' : 'reports'));
+        : (tab === 'bank' ? 'bank'
+          : (tab === 'knowledge' ? 'knowledge'
+            : (tab === 'telemetry' ? 'telemetry' : 'reports')));
       document.getElementById('tabReports')?.classList.toggle('active', activeAdminTab === 'reports');
       document.getElementById('tabRooms')?.classList.toggle('active', activeAdminTab === 'rooms');
       document.getElementById('tabBank')?.classList.toggle('active', activeAdminTab === 'bank');
+      document.getElementById('tabKnowledge')?.classList.toggle('active', activeAdminTab === 'knowledge');
       document.getElementById('tabTelemetry')?.classList.toggle('active', activeAdminTab === 'telemetry');
       document.getElementById('reportsPanel')?.classList.toggle('hidden', activeAdminTab !== 'reports');
       document.getElementById('roomsPanel')?.classList.toggle('hidden', activeAdminTab !== 'rooms');
       document.getElementById('bankPanel')?.classList.toggle('hidden', activeAdminTab !== 'bank');
+      document.getElementById('knowledgePanel')?.classList.toggle('hidden', activeAdminTab !== 'knowledge');
       document.getElementById('telemetryPanel')?.classList.toggle('hidden', activeAdminTab !== 'telemetry');
       if (activeAdminTab === 'reports') loadDashboard({ quiet: true });
       else if (activeAdminTab === 'rooms') loadRoomsDashboard({ quiet: true });
       else if (activeAdminTab === 'telemetry') loadTelemetryDashboard({ quiet: true });
+      else if (activeAdminTab === 'knowledge') loadKnowledgeDashboard({ quiet: true });
       else loadBankDashboard({ quiet: true });
       if (!dashboard.classList.contains('hidden')) startAutoRefresh();
     }
@@ -3071,6 +3126,7 @@
     function refreshActiveTab(options = { quiet: true, keepSelection: true }) {
       if (activeAdminTab === 'rooms') loadRoomsDashboard(options);
       else if (activeAdminTab === 'bank') loadBankDashboard(options);
+      else if (activeAdminTab === 'knowledge') loadKnowledgeDashboard(options);
       else if (activeAdminTab === 'telemetry') loadTelemetryDashboard(options);
       else loadDashboard(options);
     }
@@ -3369,6 +3425,115 @@
             <div class="bar-value">${row.total}</div>
           </div>`;
       }).join('');
+    }
+
+    let knowledgeLoading = false;
+    let lastKnowledgePayload = null;
+
+    function renderKnowledgeStats(data) {
+      const row = document.getElementById('knowledgeStatsRow');
+      if (!row) return;
+      const summary = data?.summary || {};
+      const repo = data?.repository || {};
+      const lastRun = data?.lastRun;
+      row.innerHTML = `
+        <div class="stat stat-total"><strong>${summary.pending ?? '—'}</strong><span>Pendentes na fila</span></div>
+        <div class="stat stat-resolved"><strong>${summary.imported ?? '—'}</strong><span>Já importados</span></div>
+        <div class="stat stat-repository"><strong>${repo.active ?? repo.total ?? '—'}</strong><span>Activos no Supabase</span></div>
+        <div class="stat stat-open"><strong>${data?.state?.lastRunDate || '—'}</strong><span>Última importação</span></div>
+        <div class="stat stat-top-issue"><strong>${lastRun?.upserted ?? '—'}</strong><span>Último lote (upserted)</span></div>
+      `;
+    }
+
+    function renderKnowledgeQueuePreview(data) {
+      const el = document.getElementById('knowledgeQueuePreview');
+      if (!el) return;
+      const items = data?.pendingPreview || [];
+      if (!items.length) {
+        el.innerHTML = '<p class="chart-empty">Sem registos pendentes — adiciona entradas à fila no repositório Git.</p>';
+        return;
+      }
+      el.innerHTML = items.map((item) => `
+        <div class="knowledge-queue-row">
+          <div>
+            <strong>${esc(item.knowledgeId || '—')}</strong>
+            <div class="meta">${esc(item.topic || '')}</div>
+          </div>
+          <div class="meta">${esc((item.ageBands || []).join(', '))}</div>
+        </div>
+      `).join('');
+    }
+
+    function formatKnowledgeImportResult(data) {
+      if (data?.dryRun && data?.plan?.length) {
+        return `Simulação: ${data.plan.map((p) => `${p.band} → ${p.knowledgeId}`).join(' · ')}`;
+      }
+      if (data?.skipped && data?.message) return data.message;
+      if (data?.imported && data?.plan?.length) {
+        const ids = data.plan.map((p) => p.knowledgeId).join(', ');
+        return `Importados ${data.plan.length} registo(s): ${ids}`;
+      }
+      return data?.message || 'Operação concluída.';
+    }
+
+    async function loadKnowledgeDashboard(options = {}) {
+      const { quiet = false } = options;
+      if (knowledgeLoading) return;
+      knowledgeLoading = true;
+      const statusEl = document.getElementById('knowledgeImportStatus');
+      if (!quiet && statusEl) {
+        statusEl.textContent = 'A carregar…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/knowledge-import-admin');
+        lastKnowledgePayload = data;
+        renderKnowledgeStats(data);
+        renderKnowledgeQueuePreview(data);
+        const updatedEl = document.getElementById('knowledgeLastUpdated');
+        if (updatedEl) updatedEl.textContent = `Actualizado às ${formatPortugalDateTime(new Date())}`;
+        if (!quiet && statusEl) statusEl.textContent = '';
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao carregar repositório.';
+          statusEl.className = 'status err';
+        }
+        if (String(err.message || '').includes('incorretos')) logout();
+      } finally {
+        knowledgeLoading = false;
+      }
+    }
+
+    async function runKnowledgeImport({ dryRun = false, force = false } = {}) {
+      const statusEl = document.getElementById('knowledgeImportStatus');
+      if (statusEl) {
+        statusEl.textContent = dryRun ? 'A simular importação…' : 'A importar…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/knowledge-import-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: dryRun ? 'dry-run' : 'run',
+            force,
+            dryRun,
+          }),
+        });
+        lastKnowledgePayload = data;
+        renderKnowledgeStats(data);
+        renderKnowledgeQueuePreview(data);
+        if (statusEl) {
+          statusEl.textContent = formatKnowledgeImportResult(data);
+          statusEl.className = data?.imported || data?.dryRun ? 'status ok' : 'status';
+        }
+        await loadKnowledgeDashboard({ quiet: true });
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro na importação.';
+          statusEl.className = 'status err';
+        }
+        if (String(err.message || '').includes('incorretos')) logout();
+      }
     }
 
     async function loadBankDashboard(options = {}) {
@@ -3866,9 +4031,14 @@
     document.getElementById('tabReports')?.addEventListener('click', () => setAdminTab('reports'));
     document.getElementById('tabRooms')?.addEventListener('click', () => setAdminTab('rooms'));
     document.getElementById('tabBank')?.addEventListener('click', () => setAdminTab('bank'));
+    document.getElementById('tabKnowledge')?.addEventListener('click', () => setAdminTab('knowledge'));
     document.getElementById('tabTelemetry')?.addEventListener('click', () => setAdminTab('telemetry'));
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
+    document.getElementById('knowledgeRefreshBtn')?.addEventListener('click', () => loadKnowledgeDashboard());
+    document.getElementById('knowledgeDryRunBtn')?.addEventListener('click', () => runKnowledgeImport({ dryRun: true }));
+    document.getElementById('knowledgeImportBtn')?.addEventListener('click', () => runKnowledgeImport());
+    document.getElementById('knowledgeForceImportBtn')?.addEventListener('click', () => runKnowledgeImport({ force: true }));
     document.querySelector('.bank-matrix thead')?.addEventListener('click', (e) => {
       const th = e.target.closest('th[data-bank-sort]');
       if (!th) return;

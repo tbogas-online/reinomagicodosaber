@@ -1,0 +1,188 @@
+{
+  "description": "Fila de factos para importação diária (1 por faixa etária). Adiciona entradas com status pending.",
+  "items": [
+    {
+      "queueId": "q-adv-001",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-adv-daily-001",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "objectos",
+        "fact": "Adivinha: quanto mais se tira, maior fica.",
+        "answer": "Buraco",
+        "clues": ["cava-se", "fica maior", "não se vê"],
+        "source": "manual",
+        "source_id": "manual:adivinha:daily-001",
+        "confidence": 0.99,
+        "priority_pt": 95,
+        "age_bands": ["6-9", "10-15", "15+"],
+        "allowed_formats": ["ADIVINHA"],
+        "tags": ["folclore", "portugal"]
+      }
+    },
+    {
+      "queueId": "q-adv-002",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-adv-daily-002",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "animais",
+        "fact": "Adivinha: tem asas mas não voa, tem barba mas não é homem.",
+        "answer": "Milho",
+        "clues": ["planta", "espigas", "barba amarela"],
+        "source": "manual",
+        "source_id": "manual:adivinha:daily-002",
+        "confidence": 0.98,
+        "priority_pt": 94,
+        "age_bands": ["6-9", "10-15"],
+        "allowed_formats": ["ADIVINHA"],
+        "tags": ["folclore"]
+      }
+    },
+    {
+      "queueId": "q-adv-003",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-adv-daily-003",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "objectos",
+        "fact": "Adivinha: o rei mandou parar e ela não parou.",
+        "answer": "Relógio",
+        "clues": ["dá as horas", "tic-tac", "ponteiro"],
+        "source": "manual",
+        "source_id": "manual:adivinha:daily-003",
+        "confidence": 0.97,
+        "priority_pt": 93,
+        "age_bands": ["10-15", "15+"],
+        "allowed_formats": ["ADIVINHA"],
+        "tags": ["folclore"]
+      }
+    },
+    {
+      "queueId": "q-cur-001",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-001",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "natureza",
+        "fact": "As girafas só dormem alguns minutos de cada vez, muitas vezes em pé.",
+        "answer": "Verdadeiro",
+        "statement": "As girafas só dormem alguns minutos de cada vez. Verdadeiro ou Falso?",
+        "is_true": true,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-001",
+        "confidence": 0.96,
+        "priority_pt": 70,
+        "age_bands": ["6-9", "10-15", "15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["animais"]
+      }
+    },
+    {
+      "queueId": "q-cur-002",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-002",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "corpo humano",
+        "fact": "O estômago humano produz ácido forte o suficiente para dissolver alguns metais leves.",
+        "answer": "Verdadeiro",
+        "statement": "O estômago humano pode dissolver alguns metais leves. Verdadeiro ou Falso?",
+        "is_true": true,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-002",
+        "confidence": 0.95,
+        "priority_pt": 68,
+        "age_bands": ["10-15", "15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["ciência"]
+      }
+    },
+    {
+      "queueId": "q-cur-003",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-cur-daily-003",
+        "category_n": 20,
+        "topic": "curiosidade surpreendente",
+        "subtopic": "espaço",
+        "fact": "Um dia em Vénus dura mais tempo que um ano em Vénus.",
+        "answer": "Verdadeiro",
+        "statement": "Um dia em Vénus dura mais tempo que um ano em Vénus. Verdadeiro ou Falso?",
+        "is_true": true,
+        "source": "manual",
+        "source_id": "manual:curiosidade:daily-003",
+        "confidence": 0.97,
+        "priority_pt": 72,
+        "age_bands": ["15+"],
+        "allowed_formats": ["CURIOSIDADE", "VERDADEIRO_FALSO"],
+        "tags": ["astronomia"]
+      }
+    },
+    {
+      "queueId": "q-adv-004",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-adv-daily-004",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "animais",
+        "fact": "Adivinha: corre sem pés e voa sem asas.",
+        "answer": "Nuvem",
+        "clues": ["no céu", "chove", "branca ou cinzenta"],
+        "source": "manual",
+        "source_id": "manual:adivinha:daily-004",
+        "confidence": 0.98,
+        "priority_pt": 92,
+        "age_bands": ["6-9"],
+        "allowed_formats": ["ADIVINHA"],
+        "tags": ["natureza"]
+      }
+    },
+    {
+      "queueId": "q-adv-005",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-adv-daily-005",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "objectos",
+        "fact": "Adivinha: quanto mais quente está, mais molhada fica.",
+        "answer": "Toalha",
+        "clues": ["secar", "banho", "absorve água"],
+        "source": "manual",
+        "source_id": "manual:adivinha:daily-005",
+        "confidence": 0.96,
+        "priority_pt": 91,
+        "age_bands": ["10-15"],
+        "allowed_formats": ["ADIVINHA"],
+        "tags": ["quotidiano"]
+      }
+    },
+    {
+      "queueId": "q-adv-006",
+      "status": "pending",
+      "record": {
+        "knowledge_id": "knw-cat20-adv-daily-006",
+        "category_n": 20,
+        "topic": "adivinha tradicional",
+        "subtopic": "objectos",
+        "fact": "Adivinha: tem cabeça e não é gente, tem corpo e não é animal.",
+        "answer": "Alfinete",
+        "clues": ["costura", "pontiagudo", "metal"],
+        "source": "manual",
+        "source_id": "manual:adivinha:daily-006",
+        "confidence": 0.97,
+        "priority_pt": 90,
+        "age_bands": ["15+"],
+        "allowed_formats": ["ADIVINHA"],
+        "tags": ["folclore"]
+      }
+    }
+  ]
+}

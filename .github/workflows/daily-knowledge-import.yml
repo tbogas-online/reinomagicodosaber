@@ -1,0 +1,40 @@
+name: Daily knowledge import
+
+on:
+  schedule:
+    # 06:00 UTC todos os dias (~07:00/08:00 em Portugal conforme horário de verão)
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Import 1 registo por faixa etária
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: node scripts/daily-knowledge-import.js
+
+      - name: Commit fila e estado actualizados
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/knowledge-import-queue.json data/knowledge-import-state.json
+          if git diff --staged --quiet; then
+            echo "Sem alterações na fila."
+          else
+            git commit -m "chore: importação diária knowledge repository"
+            git push
+          fi
