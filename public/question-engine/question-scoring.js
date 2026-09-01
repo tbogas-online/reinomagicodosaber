@@ -24,7 +24,7 @@
   }
 
   const {
-    mkIssue, issueMessage, normalizeIssues, issueMessages, ISSUE_LAYER,
+    mkIssue, issueMessage, issueCode, normalizeIssues, issueMessages, ISSUE_LAYER,
   } = Issues;
   const { LAYER_WEIGHTS, DIFFICULTY_RANGE, getAgeLimits } = Config;
   const { computeKnowledgeKey, knowledgeKeysMatch } = KnowledgeKeyCompute;
@@ -126,7 +126,22 @@
       };
     }
 
-    layers.structural = LAYER_WEIGHTS.structural;
+    if (ctx.repositoryRecord?.answer) {
+      const norm = normalizeFn || ((s) => String(s || '').toLowerCase());
+      const expected = norm(stripTags(ctx.repositoryRecord.answer));
+      const got = norm(stripTags(a));
+      if (expected !== got) {
+        pushIssue(
+          issues,
+          'REPOSITORY_ANSWER_MISMATCH',
+          ISSUE_LAYER.structural,
+          'resposta deve coincidir exactamente com o registo verificado do repositório',
+        );
+      }
+    }
+
+    const structuralRepoIssues = issues.filter((i) => issueCode(i) === 'REPOSITORY_ANSWER_MISMATCH');
+    layers.structural = layerScore(LAYER_WEIGHTS.structural, structuralRepoIssues);
 
     const formatCheck = validateByFormat(parsed, formatId, {
       ...(helpers || {}),

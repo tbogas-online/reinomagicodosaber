@@ -58,6 +58,7 @@
     getAllowedFormats,
     chooseFormat,
     buildPrompt,
+    buildPromptFromFact,
   } = PromptBuilder;
   const {
     assembleMcOptions,
@@ -114,6 +115,7 @@
     chooseDifficulty,
     chooseSubtopic,
     buildPrompt,
+    buildPromptFromFact,
     buildRetryHint,
     buildAdaptiveRetryHint: (issues, formatId, ageBandKey, attempt, opts) => Retry.buildAdaptiveRetryHint(
       issues, formatId, ageBandKey, attempt, { FORMAT_LABELS, getAgeLimits, issueDetails: opts?.issueDetails },

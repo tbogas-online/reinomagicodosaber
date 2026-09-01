@@ -161,9 +161,9 @@ Cada pergunta gerada (depois da IA + validação):
 - [ ] Campo `blocked` / `supersededBy` para correcções
 
 ### KR-0.4 Contrato IA
-- [ ] Novo prompt: `buildPromptFromFact(record, formatId, ageBandKey)` — **facto fornecido no prompt**
-- [ ] Proibir no system: «inventa um facto», «cria uma curiosidade»
-- [ ] Validador: resposta IA não pode contradizer `record.answer` / `record.fact`
+- [x] Novo prompt: `buildPromptFromFact(record, formatId, ageBandKey)` — **facto fornecido no prompt**
+- [x] Proibir no system: «inventa um facto», «cria uma curiosidade»
+- [x] Validador: resposta IA não pode contradizer `record.answer` / `record.fact`
 
 ---
 
@@ -194,9 +194,9 @@ Cada pergunta gerada (depois da IA + validação):
 - [ ] Rejeitar adivinhas ambíguas (regras `known-facts` + heurísticas)
 
 ### KR-1.3 Jogo (só adivinhas)
-- [ ] Em `category.n === 20` + `subtopic === 'adivinha tradicional'`: **só** `pickRecord` do repositório
-- [ ] IA recebe `record` completo; gera apenas `q` + reordena `clues` + `distractors`
-- [ ] Fallback: banco local de perguntas já validadas — **não** LLM livre
+- [x] Em `category.n === 20` + formato `ADIVINHA`: **só** `pickRecord` do repositório
+- [x] IA recebe `record` completo; gera apenas `q` + reordena `clues` + `distractors`
+- [x] Fallback: banco local de perguntas já validadas — **não** LLM livre
 - [ ] Telemetria: `% perguntas com source ≠ ai`
 
 ### KR-1.4 Critérios de aceitação
@@ -349,4 +349,4 @@ Para cada categoria **1–19**, repetir mini-roadmap:
 
 1. **Supabase SQL Editor** — executar `supabase/knowledge-repository.sql` e `supabase/seed-knowledge-cat20-sample.sql`
 2. Fornecer formato/export da primeira fonte real (MemóriaMedia ou CSV)
-3. **KR-1** — import em massa + integrar `pickRecord` em `generateQuestion` (cat. 20 adivinhas)
+3. **KR-2** — curiosidades + 50/50 V/F a partir do repositório

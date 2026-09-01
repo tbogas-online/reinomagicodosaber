@@ -3406,10 +3406,10 @@
 <script src="question-engine/repetition-validators.js?v=20260901-230000"></script>
 <script src="question-engine/knowledge-key-compute.js?v=20260901-270000"></script>
 <script src="question-engine/persistent-history.js?v=20260901-280000"></script>
-<script src="question-engine/prompt-builder.js?v=20260901-250000"></script>
+<script src="question-engine/prompt-builder.js?v=20260901-143500"></script>
 <script src="question-engine/mc-assembly.js?v=20260901-270000"></script>
-<script src="question-engine/question-scoring.js?v=20260901-290000"></script>
-<script src="question-engine.js?v=20260901-130000" id="question-engine-script"></script>
+<script src="question-engine/question-scoring.js?v=20260901-143500"></script>
+<script src="question-engine.js?v=20260901-143500" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260830-195800"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para ver a fonte da pergunta (IA / banco local).
@@ -3418,6 +3418,7 @@
 
   const QUESTION_SOURCE_LABELS = {
     ai: 'IA',
+    repository: 'Repositório verificado',
     bank: 'Banco Supabase',
     local: 'Banco local (código)',
     'local-repeat': 'Banco local (repetida)',
@@ -3974,6 +3975,23 @@
     if(usedKnowledgeKeys[ageBandKey].length > 60) usedKnowledgeKeys[ageBandKey].shift();
   }
 
+  const usedKnowledgeIds = {};
+  const REPO_ADIVINHA_TOPIC = 'adivinha tradicional';
+  const REPO_ADIVINHA_MIN_CONFIDENCE = 0.90;
+
+  function rememberGlobalKnowledgeId(ageBandKey, knowledgeId){
+    if(!knowledgeId) return;
+    if(!usedKnowledgeIds[ageBandKey]) usedKnowledgeIds[ageBandKey] = [];
+    const id = String(knowledgeId).trim();
+    if(!id) return;
+    if(!usedKnowledgeIds[ageBandKey].includes(id)) usedKnowledgeIds[ageBandKey].push(id);
+    if(usedKnowledgeIds[ageBandKey].length > 80) usedKnowledgeIds[ageBandKey].shift();
+  }
+
+  function getEffectiveUsedKnowledgeIds(ageBandKey){
+    return usedKnowledgeIds[ageBandKey] || [];
+  }
+
   function isGenericTrueFalseAnswerLocal(answer){
     const norm = normalizeQ(stripTags(answer));
     if(norm === 'verdadeiro' || norm === 'falso') return true;
@@ -4127,6 +4145,218 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
   }
 
+  async function tryGenerateAdivinhaFromRepository(ctx){
+    const {
+      category, ageBandKey, questionFormat, difficulty, subtopic, engine, isMC,
+      usedSet, usedAnswerSet, persistentQSet, persistent,
+      mcInstruction, jsonFormat, ageDifficultyExtra, openModeExtra, skipAi,
+    } = ctx;
+
+    const KR = window.ReinoKnowledgeRepository;
+    if(!KR?.isConfigured?.() || skipAi) return null;
+
+    let lastValidationIssues = [];
+    let lastValidationIssueDetails = [];
+    const triedKnowledgeIds = new Set(getEffectiveUsedKnowledgeIds(ageBandKey));
+
+    for(let attempt = 1; attempt <= 5; attempt++){
+      const record = await KR.pickRecord(category.n, ageBandKey, {
+        topic: REPO_ADIVINHA_TOPIC,
+        formatId: questionFormat,
+        excludeKnowledgeIds: [...triedKnowledgeIds],
+        minConfidence: REPO_ADIVINHA_MIN_CONFIDENCE,
+      });
+      if(!record){
+        if(DEBUG_MODE) console.info('[KnowledgeRepository] Sem adivinhas disponíveis no repositório');
+        return null;
+      }
+      triedKnowledgeIds.add(record.knowledgeId);
+
+      const telemetryBase = {
+        category: category.n,
+        formatId: questionFormat,
+        ageBandKey,
+        difficulty,
+        attempt,
+        knowledgeId: record.knowledgeId,
+        source: 'repository',
+      };
+
+      try {
+        const prompt = engine.buildPromptFromFact(record, {
+          category,
+          ageBandKey,
+          ageBandPromptText: AGE_BAND_PROMPT_TEXT[ageBandKey],
+          formatId: questionFormat,
+          ptPtRules: PT_PT_RULES,
+          isMC,
+          isTrueFalse: false,
+          ageDifficultyExtra,
+          openModeExtra,
+          mcInstruction,
+          jsonFormat,
+          retryHint: attempt > 1
+            ? engine.buildAdaptiveRetryHint(lastValidationIssues, questionFormat, ageBandKey, attempt, {
+              issueDetails: lastValidationIssueDetails,
+            })
+            : '',
+        }).slice(0, 11000);
+
+        const data = await callAiApi(
+          [{ role: 'user', content: prompt }],
+          ageBandKey === '15+' ? 360 : 320,
+        );
+
+        const text = (data.content || []).map((b) => b.text || '').join('');
+        if(!text.trim()){
+          recordQuestionGenTelemetry(engine, { ...telemetryBase, outcome: 'api_error', issueCodes: ['API_EMPTY'] });
+          continue;
+        }
+
+        const parsed = parseAiJson(text);
+        if(!parsed?.q || !parsed?.a){
+          recordQuestionGenTelemetry(engine, {
+            ...telemetryBase,
+            outcome: 'parse_error',
+            issueCodes: [!parsed?.q ? 'STRUCTURE_MISSING_Q' : 'STRUCTURE_MISSING_A'],
+          });
+          continue;
+        }
+
+        parsed.q = formatGameText(parsed.q);
+        parsed.a = formatGameText(parsed.a);
+
+        if(Array.isArray(parsed.distractors) && parsed.distractors.length >= 3){
+          parsed.options = engine.assembleMcOptions(parsed.a, parsed.distractors.map(formatGameText));
+          delete parsed.distractors;
+        } else if(Array.isArray(parsed.options)){
+          parsed.options = parsed.options.map(formatGameText);
+          if(!repairMcOptions(parsed, 4)) continue;
+        } else {
+          continue;
+        }
+
+        if(!recentMcPositions[ageBandKey]) recentMcPositions[ageBandKey] = [];
+        parsed.options = engine.shuffleMcOptions(parsed.options, parsed.a, normalizeQ, recentMcPositions[ageBandKey]);
+
+        const qualityCheck = engine.validateQuestion(parsed, {
+          formatId: questionFormat,
+          ageBandKey,
+          categoryNumber: category.n,
+          difficulty,
+          usedQuestions: getEffectiveUsedQuestions(ageBandKey),
+          usedAnswers: getEffectiveUsedAnswers(ageBandKey),
+          usedKnowledgeKeys: getEffectiveUsedKnowledgeKeys(ageBandKey),
+          persistentKnowledgeKeys: persistent.knowledgeKeys,
+          repositoryRecord: record,
+          isMC,
+          stripTags,
+          normalizeFn: normalizeQ,
+          helpers: { stripTags, validateTrueFalseQuestion, ageBandKey },
+        });
+        if(!qualityCheck.ok){
+          lastValidationIssues = qualityCheck.issues || [];
+          lastValidationIssueDetails = qualityCheck.issueDetails || [];
+          recordQuestionGenTelemetry(engine, {
+            ...telemetryBase,
+            outcome: 'rejected',
+            issueDetails: qualityCheck.issueDetails,
+            score: qualityCheck.score,
+          });
+          continue;
+        }
+
+        if(engine.shouldRequestAdivinhaVerify({ formatId: questionFormat, ageBandKey })){
+          try {
+            const adivinhaPrompt = engine.buildAdivinhaVerifyPrompt(parsed, {
+              formatId: questionFormat,
+              ageBandKey,
+              stripTags,
+            });
+            const adivinhaData = await callAiApi([{ role: 'user', content: adivinhaPrompt }], 160);
+            const adivinhaText = (adivinhaData.content || []).map((b) => b.text || '').join('');
+            const adivinhaCheck = engine.parseAdivinhaVerifyResponse(adivinhaText);
+            if(!adivinhaCheck.ok){
+              lastValidationIssues = adivinhaCheck.issues;
+              lastValidationIssueDetails = adivinhaCheck.issues.map((msg) => ({
+                code: 'ADIVINHA_SEMANTIC_REJECT',
+                layer: 'semantic',
+                message: msg,
+              }));
+              recordQuestionGenTelemetry(engine, {
+                ...telemetryBase,
+                outcome: 'rejected',
+                issueDetails: lastValidationIssueDetails,
+                score: qualityCheck.score,
+              });
+              continue;
+            }
+          } catch (adivinhaErr) {
+            console.warn('Verificação semântica ADIVINHA (repositório) indisponível:', adivinhaErr?.message || adivinhaErr);
+          }
+        }
+
+        const knowledgeKey = qualityCheck.knowledgeKey || engine.computeKnowledgeKey(parsed.q, parsed.a, questionFormat, normalizeQ, {
+          categoryNumber: category.n,
+        });
+        const normQ = normalizeQ(parsed.q);
+        const normA = normalizeQ(parsed.a);
+        if(usedSet.has(normQ) || persistentQSet.has(normQ)) continue;
+        if(usedAnswerSet.has(normA)) continue;
+
+        recordAiUsage(data);
+        setOnlineStatus(true);
+        rememberGlobalQuestion(ageBandKey, parsed.q);
+        rememberGlobalAnswer(ageBandKey, parsed.a);
+        rememberGlobalKnowledgeKey(ageBandKey, knowledgeKey);
+        rememberGlobalKnowledgeId(ageBandKey, record.knowledgeId);
+        engine.persistQuestion(ageBandKey, parsed.q, parsed.a, normalizeQ, {
+          category: category.n,
+          format: questionFormat,
+          knowledgeKey,
+          difficulty,
+          subtopic: REPO_ADIVINHA_TOPIC,
+        });
+        recordQuestionGenTelemetry(engine, { ...telemetryBase, outcome: 'accepted', score: qualityCheck.score });
+
+        const questionHash = hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a));
+        if(window.QuestionBank?.isConfigured?.() && hasValidMcOptions(parsed.options, questionFormat, parsed.a)){
+          window.QuestionBank.save({
+            categoryN: category.n,
+            ageBand: ageBandKey,
+            question: parsed.q,
+            correctAnswer: parsed.a,
+            options: parsed.options || null,
+            format: questionFormat,
+            knowledgeKey,
+            questionHash,
+            source: 'repository',
+            knowledgeId: record.knowledgeId,
+            sourceId: record.sourceId,
+            confidence: record.confidence,
+          }).catch(() => {});
+        }
+
+        return finalizeQuestion({
+          ...parsed,
+          source: 'repository',
+          format: questionFormat,
+          formatLabel: engine.FORMAT_LABELS[questionFormat] || questionFormat,
+          difficulty,
+          subtopic: REPO_ADIVINHA_TOPIC,
+          knowledgeKey,
+          knowledgeId: record.knowledgeId,
+          sourceId: record.sourceId,
+          confidence: record.confidence,
+        });
+      } catch (err) {
+        if(DEBUG_MODE) console.warn('[KnowledgeRepository] tentativa falhou:', err?.message || err);
+      }
+    }
+
+    return null;
+  }
+
   async function generateQuestion(category, ageBandKey){
     if(!category?.n){
       category = Object.values(gameCategoryMap).find((c) => c?.n) || CATEGORIES[0];
@@ -4183,6 +4413,39 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const persistentQSet = new Set((persistent.questions || []).map(normalizeQ));
 
     if(localOnly){
+      return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine);
+    }
+
+    // KR-1: adivinhas (cat. 20) — só factos do repositório; sem geração livre pelo LLM.
+    if(category.n === 20 && questionFormat === engine.FORMAT_IDS.ADIVINHA){
+      subtopic = REPO_ADIVINHA_TOPIC;
+      let skipAiForRepo = !aiStatusOnline;
+      if(!skipAiForRepo){
+        try {
+          const quota = lastAiQuotaSnapshot || await fetchAiQuotaSnapshot();
+          const availability = getAiAvailabilityFromQuota(quota, aiProviderChoice);
+          if(!availability.online) skipAiForRepo = true;
+        } catch { /* tenta na mesma */ }
+      }
+      const repoQuestion = await tryGenerateAdivinhaFromRepository({
+        category,
+        ageBandKey,
+        questionFormat,
+        difficulty,
+        subtopic,
+        engine,
+        isMC,
+        usedSet,
+        usedAnswerSet,
+        persistentQSet,
+        persistent,
+        mcInstruction,
+        jsonFormat,
+        ageDifficultyExtra,
+        openModeExtra,
+        skipAi: skipAiForRepo,
+      });
+      if(repoQuestion) return repoQuestion;
       return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine);
     }
 
@@ -5444,6 +5707,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     Object.keys(usedQuestionFormats).forEach((key) => { delete usedQuestionFormats[key]; });
     Object.keys(usedAnswers).forEach((key) => { delete usedAnswers[key]; });
     Object.keys(usedKnowledgeKeys).forEach((key) => { delete usedKnowledgeKeys[key]; });
+    Object.keys(usedKnowledgeIds).forEach((key) => { delete usedKnowledgeIds[key]; });
     Object.keys(usedDifficulties).forEach((key) => { delete usedDifficulties[key]; });
     Object.keys(usedSubtopics).forEach((key) => { delete usedSubtopics[key]; });
     Object.keys(recentMcPositions).forEach((key) => {

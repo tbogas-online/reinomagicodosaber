@@ -1220,5 +1220,46 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('103b. factual parse reject', !bad.ok && bad.issues[0] === 'capital errada');
 }
 
+// 150–152. KR-1 — buildPromptFromFact + validação repositório
+{
+  const record = {
+    knowledgeId: 'knw-test',
+    answer: 'Pente',
+    fact: 'Tem dentes mas não morde.',
+    clues: ['tem dentes', 'não morde'],
+    source: 'sample',
+    sourceId: 'sample:001',
+  };
+  const cat = QE.CATEGORIES[20];
+  const factPrompt = QE.buildPromptFromFact(record, {
+    category: cat,
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: 'ADIVINHA',
+    ptPtRules: '',
+    isMC: true,
+    isTrueFalse: false,
+    mcInstruction: ' inclui clues',
+    jsonFormat: '{"q":"","a":"Pente","clues":[],"distractors":[]}',
+  });
+  assert('150. buildPromptFromFact inclui resposta', factPrompt.includes('Pente') && factPrompt.includes('NÃO inventes'));
+  const adivinha = {
+    q: 'Tenho dentes mas não mordo. O que sou?',
+    a: 'Pente',
+    clues: ['tem dentes', 'não morde'],
+    options: ['Pente', 'Garfo', 'Colher', 'Faca'],
+  };
+  const okRepo = QE.validateQuestion(adivinha, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.ADIVINHA, isMC: true }),
+    repositoryRecord: record,
+  });
+  assert('151. repository answer ok', okRepo.ok, okRepo.issues?.join(', '));
+  const badRepo = QE.validateQuestion({ ...adivinha, a: 'Garfo' }, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.ADIVINHA, isMC: true }),
+    repositoryRecord: record,
+  });
+  assert('152. repository answer mismatch', !badRepo.ok && badRepo.issues.some((i) => /repositório/i.test(i)));
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

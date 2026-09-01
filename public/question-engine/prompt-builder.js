@@ -309,6 +309,59 @@ ${mcInstruction || ''}
 Só json válido, sem markdown: ${jsonFormat}`;
   }
 
+  /**
+   * Prompt restrito — IA formula a pergunta a partir de um facto verificado (KR-1).
+   * Proíbe inventar factos; a resposta "a" tem de coincidir com record.answer.
+   */
+  function buildPromptFromFact(record, ctx) {
+    const {
+      category, ageBandKey, ageBandPromptText, formatId, ptPtRules, isMC, isTrueFalse,
+      ageDifficultyExtra, openModeExtra, mcInstruction, jsonFormat, retryHint,
+    } = ctx;
+
+    if (!record?.answer || !record?.fact) {
+      throw new Error('buildPromptFromFact: registo incompleto');
+    }
+
+    const formatLabel = FORMAT_LABELS[formatId] || formatId;
+    const cluesJson = JSON.stringify(Array.isArray(record.clues) ? record.clues : []);
+    const retryBlock = retryHint ? `\n${retryHint}\n` : '';
+    const sourceLine = record.sourceId
+      ? `${record.source} · ${record.sourceId}`
+      : String(record.source || 'repositório');
+
+    return `Formulas UMA adivinha em português de Portugal a partir do FACTO VERIFICADO abaixo.
+NÃO inventes factos, respostas nem pistas novas — usa apenas o material fornecido.
+
+FACTO VERIFICADO (fonte: ${sourceLine}):
+- Resposta correcta OBRIGATÓRIA no campo "a": ${record.answer}
+- Base/facto: ${record.fact}
+- Pistas oficiais (podes reordenar em "clues", sem inventar nem alterar o sentido): ${cluesJson}
+
+REGRAS DO REPOSITÓRIO (obrigatórias):
+- O campo "a" tem de ser EXACTAMENTE "${record.answer}" — sem sinónimos nem variantes.
+- Reformula apenas "q" como charada natural em PT-PT; podes reordenar as pistas oficiais em "clues" (2–5 entradas).
+- NÃO mudes a resposta nem o significado do facto.
+- NÃO cries curiosidades factuais nem perguntas directas de cultura geral.
+
+CATEGORIA: ${category.name} (${category.desc})
+FORMATO: ${formatLabel} (${formatId})
+IDADE: ${ageBandPromptText}
+${retryBlock}
+${buildGlobalRules()}
+
+${buildFormatRules(formatId, { ageBandKey, isMC, isTrueFalse })}
+
+${buildAgeRules(ageBandKey, ageBandPromptText)}
+${ageDifficultyExtra || ''}
+
+${ptPtRules || ''}
+${openModeExtra || ''}
+${mcInstruction || ''}
+
+Só json válido, sem markdown: ${jsonFormat}`;
+  }
+
   global.QuestionEnginePromptBuilder = {
     buildGlobalRules,
     buildFormatRules,
@@ -321,6 +374,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     getAllowedFormats,
     chooseFormat,
     buildPrompt,
+    buildPromptFromFact,
     pickMusicFocus,
     pickTechFocus,
   };
