@@ -40,6 +40,16 @@
     FACT_AI_REJECT: 'Confirma o facto antes de responder — evita inventar ou confundir conceitos.',
     CATEGORY_MISMATCH: 'Mantém a pergunta estritamente dentro da categoria indicada.',
     MULTIPLE_ANSWERS: 'Evita respostas ambíguas. Gera uma pergunta com apenas uma resposta inequívoca.',
+    ADIVINHA_ANIMAL_PHRASING: 'Em adivinhas de animais usa "Que animal…" em vez de "Quem é o animal".',
+    ADIVINHA_PERCUSSION: 'Se a pista fala em "canta quando é batido", a resposta deve ser um instrumento de percussão.',
+    ADIVINHA_WEAK_RIDDLE: 'A resposta deve encaixar claramente nas pistas da charada.',
+    ADIVINHA_WHISTLE_RIDDLE: 'Na charada clássica do apito, a resposta não deve ser um animal.',
+    ADIVINHA_MAP_GLOBE_AMBIGUOUS: 'Mapa e globo não podem ser ambas defensáveis — reformula ou usa distractores claramente errados.',
+    ADIVINHA_FACTUAL_DIRECT: 'ADIVINHA não deve ser pergunta factual directa (capital, descobridor, etc.).',
+    PT_COUNTRY_NAME: 'Usa nomes de países em português de Portugal.',
+    PT_INVALID_SCRIPT: 'Usa apenas caracteres latinos portugueses — sem chinês, japonês ou outros alfabetos.',
+    PT_MIXED_WORD: 'Evita palavras com letras misturadas de outro idioma.',
+    PT_STEREOTYPE: 'Evita generalizações ou estereótipos culturais.',
   });
 
   /** Fallback regex → hint (issues sem code ou UNSPECIFIED). */

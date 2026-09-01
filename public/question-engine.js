@@ -22,6 +22,14 @@
     arr.push(mkIssue(code, layer, message));
   }
 
+  function pushAgeHardIssue(issues, message) {
+    pushIssue(issues, 'AGE_TOO_HARD', ISSUE_LAYER.age, message);
+  }
+
+  function pushPtBrIssue(issues, message) {
+    pushIssue(issues, 'PT_BRASILISM', ISSUE_LAYER.ptPt, message);
+  }
+
   const ENGINE_CONFIG = Object.freeze({
     TRUE_FALSE_CHANCE: 0.11,
     TRUE_FALSE_MIN_GAP: 4,
@@ -942,7 +950,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const issues = [];
     for (const { re, correct } of COUNTRY_PT_ERRORS) {
       if (re.test(blob)) {
-        issues.push(`nome de país incorrecto — em PT-PT usa "${correct}"`);
+        pushIssue(issues, 'PT_COUNTRY_NAME', ISSUE_LAYER.ptPt, `nome de país incorrecto — em PT-PT usa "${correct}"`);
         break;
       }
     }
@@ -956,7 +964,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
       const t = String(part || '').trim();
       if (!t || isGenericTrueFalseAnswer(t)) continue;
       if (looksPredominantlyEnglish(t)) {
-        issues.push('resposta ou opção só em inglês — usa português de Portugal');
+        pushIssue(issues, 'PT_ENGLISH_ONLY', ISSUE_LAYER.ptPt, 'resposta ou opção só em inglês — usa português de Portugal');
         break;
       }
     }
@@ -969,24 +977,24 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const lim = getAgeLimits(ageBandKey);
     if (lim.maxQuestionWordsTopic != null) {
       const adultTopics = /\b(tratado|imperialismo|dodecafonismo|mitocôndria|algoritmo|quântico|burocracia|constituição|epistemologia|hegel|nietzsche|versalhes|holocausto|genocídio)\b/i;
-      if (adultTopics.test(blob)) issues.push('tema inadequado para 6–9');
+      if (adultTopics.test(blob)) pushAgeHardIssue(issues, 'tema inadequado para 6–9');
       if (/\b(apesar de|embora|contudo|por conseguinte|outrossim|consequentemente)\b/i.test(q)) {
-        issues.push('linguagem demasiado complexa para 6–9');
+        pushAgeHardIssue(issues, 'linguagem demasiado complexa para 6–9');
       }
       const qWords = q.split(/\s+/).filter(Boolean).length;
       if (qWords > lim.maxQuestionWordsTopic && !/completa/i.test(q)) {
-        issues.push('pergunta demasiado complexa para 6–9');
+        pushAgeHardIssue(issues, 'pergunta demasiado complexa para 6–9');
       }
     }
     if (lim.maxAnswerWordsTopic != null) {
       const gradTopics = /\b(epistemologia|fenomenologia|dialética materialista|dodecafonismo|hegeliano|nietzscheano)\b/i;
-      if (gradTopics.test(blob)) issues.push('tema inadequado para 10–15');
+      if (gradTopics.test(blob)) pushAgeHardIssue(issues, 'tema inadequado para 10–15');
       const qWords = q.split(/\s+/).filter(Boolean).length;
       if (lim.maxQuestionWords != null && qWords > lim.maxQuestionWords) {
-        issues.push('pergunta demasiado complexa para 10–15');
+        pushAgeHardIssue(issues, 'pergunta demasiado complexa para 10–15');
       }
       const answerWords = a.split(/\s+/).filter(Boolean).length;
-      if (answerWords > lim.maxAnswerWordsTopic) issues.push('resposta demasiado longa para 10–15');
+      if (answerWords > lim.maxAnswerWordsTopic) pushAgeHardIssue(issues, 'resposta demasiado longa para 10–15');
     }
     return issues;
   }
@@ -1019,41 +1027,41 @@ Só json válido, sem markdown: ${jsonFormat}`;
       [/\barremessos?\b/i, 'pontapé'],
     ];
     for (const [re, pt] of alwaysBr) {
-      if (re.test(blob)) issues.push(`termo de futebol brasileiro — em PT-PT usa "${pt}"`);
+      if (re.test(blob)) pushPtBrIssue(issues, `termo de futebol brasileiro — em PT-PT usa "${pt}"`);
     }
 
     if (/\bmeia[s]?\b/i.test(blob) && /\bfutebol\b/i.test(blob)) {
-      issues.push('termo de futebol brasileiro — em PT-PT usa "médio" (não "meia")');
+      pushPtBrIssue(issues, 'termo de futebol brasileiro — em PT-PT usa "médio" (não "meia")');
     }
     if (/\bt[eé]cnicos?\b/i.test(blob) && /\bfutebol\b/i.test(blob)) {
-      issues.push('termo de futebol brasileiro — em PT-PT usa "treinador"');
+      pushPtBrIssue(issues, 'termo de futebol brasileiro — em PT-PT usa "treinador"');
     }
     if (/\btime\b/i.test(blob)) {
-      issues.push('termo de futebol brasileiro — em PT-PT usa "equipa" (não "time")');
+      pushPtBrIssue(issues, 'termo de futebol brasileiro — em PT-PT usa "equipa" (não "time")');
     }
     if (/\bju[ií]zes?\b/i.test(blob)) {
-      issues.push('termo de futebol brasileiro — em PT-PT usa "árbitro"');
+      pushPtBrIssue(issues, 'termo de futebol brasileiro — em PT-PT usa "árbitro"');
     }
     if (/\bcamisas?\b/i.test(blob) && /\b(futebol|jogador|equipa|clube|baliza|guarda.?redes)\b/i.test(blob)) {
-      issues.push('termo de futebol brasileiro — em PT-PT usa "camisola" (não "camisa")');
+      pushPtBrIssue(issues, 'termo de futebol brasileiro — em PT-PT usa "camisola" (não "camisa")');
     }
     if (/\buniformes?\b/i.test(blob) && /\bfutebol\b/i.test(blob)) {
-      issues.push('termo de futebol brasileiro — em PT-PT usa "equipamento"');
+      pushPtBrIssue(issues, 'termo de futebol brasileiro — em PT-PT usa "equipamento"');
     }
     if (/\bpartidas?\b/i.test(blob) && /\bfutebol\b/i.test(blob)) {
-      issues.push('termo de futebol brasileiro — em PT-PT usa "jogo"');
+      pushPtBrIssue(issues, 'termo de futebol brasileiro — em PT-PT usa "jogo"');
     }
     if (/(?:^|[^\w])gols?(?:[^\w]|$)/i.test(blob) && !/\bgolfe\b/i.test(blob)) {
-      issues.push('termo de futebol brasileiro — em PT-PT usa "golo"');
+      pushPtBrIssue(issues, 'termo de futebol brasileiro — em PT-PT usa "golo"');
     }
     if (/\bcampo de grama\b/i.test(blob)) {
-      issues.push('termo de futebol brasileiro — em PT-PT usa "relvado" ou "campo de relva"');
+      pushPtBrIssue(issues, 'termo de futebol brasileiro — em PT-PT usa "relvado" ou "campo de relva"');
     }
     if (/\bgolead[ao]\b/i.test(blob) && /(?:^|[^\w])gols?(?:[^\w]|$)/i.test(blob) && !/\bgolfe\b/i.test(blob)) {
-      issues.push('em PT-PT usa "golo/golos" (não "gol/gols"), mesmo com "goleada" ou "golear"');
+      pushPtBrIssue(issues, 'em PT-PT usa "golo/golos" (não "gol/gols"), mesmo com "goleada" ou "golear"');
     }
     if (/\bgolead[ao]\b/i.test(blob) && /\b(Brasileirão|Brasileirao|Campeonato Brasileiro|Série [AB] do Brasil)\b/i.test(blob)) {
-      issues.push('goleada/golear em contexto de campeonato português — evita referências ao futebol brasileiro');
+      pushPtBrIssue(issues, 'goleada/golear em contexto de campeonato português — evita referências ao futebol brasileiro');
     }
 
     return issues;
@@ -1061,39 +1069,41 @@ Só json válido, sem markdown: ${jsonFormat}`;
 
   function validatePortugueseText(blob) {
     const issues = [];
-    if (hasInvalidScript(blob)) issues.push('texto com caracteres não portugueses (ex.: chinês ou outro alfabeto)');
+    if (hasInvalidScript(blob)) {
+      pushIssue(issues, 'PT_INVALID_SCRIPT', ISSUE_LAYER.ptPt, 'texto com caracteres não portugueses (ex.: chinês ou outro alfabeto)');
+    }
     if (RE_MIXED_WORD.test(blob)) {
-      issues.push('palavra com letras misturadas de outro idioma');
+      pushIssue(issues, 'PT_MIXED_WORD', ISSUE_LAYER.ptPt, 'palavra com letras misturadas de outro idioma');
     }
     if (/\bestilo\s+borboleta\b/i.test(blob)) {
-      issues.push('vocabulário de natação brasileiro — em PT-PT usa "estilo mariposa"');
+      pushPtBrIssue(issues, 'vocabulário de natação brasileiro — em PT-PT usa "estilo mariposa"');
     }
     if (/\bvira\s+vapor\b/i.test(blob)) {
-      issues.push('colquialismo brasileiro — em PT-PT diz "transforma-se em vapor" (não "vira vapor")');
+      pushPtBrIssue(issues, 'colquialismo brasileiro — em PT-PT diz "transforma-se em vapor" (não "vira vapor")');
     }
     if (/\btrem-baleiro\b/i.test(blob)) {
-      issues.push('brasileirismo — em PT-PT usa "comboio maglev" ou "comboio de levitação magnética"');
+      pushPtBrIssue(issues, 'brasileirismo — em PT-PT usa "comboio maglev" ou "comboio de levitação magnética"');
     }
     if (/\btrem\b/i.test(blob) && /\b(carris|propulsão|propulsao|magnétic|magnetic|levita|veículo|veiculo|transporte)\b/i.test(blob)) {
-      issues.push('brasileirismo — em PT-PT usa "comboio" (não "trem")');
+      pushPtBrIssue(issues, 'brasileirismo — em PT-PT usa "comboio" (não "trem")');
     }
     if (/\bcomboio\b/i.test(blob) && /\btrilhos?\b/i.test(blob)) {
-      issues.push('em PT-PT diz "carris" (não "trilhos") para o comboio');
+      pushPtBrIssue(issues, 'em PT-PT diz "carris" (não "trilhos") para o comboio');
     }
     if (/\bviés\b/i.test(blob)) {
-      issues.push('brasileirismo — em PT-PT usa "enviesamento" ou "tendência de negatividade" (não "viés")');
+      pushPtBrIssue(issues, 'brasileirismo — em PT-PT usa "enviesamento" ou "tendência de negatividade" (não "viés")');
     }
     if (/\bbolseiro\b/i.test(blob) && /\b(frodo|senhor dos an[eé]is|um anel|tolkien)\b/i.test(blob)) {
-      issues.push('nome de personagem — em PT-PT usa "Sacova" ou mantém "Baggins" (não a tradução brasileira Bolseiro)');
+      pushPtBrIssue(issues, 'nome de personagem — em PT-PT usa "Sacova" ou mantém "Baggins" (não a tradução brasileira Bolseiro)');
     }
     if (/\bavoando\b/i.test(blob)) {
-      issues.push('erro ortográfico — escreve "a voar" (não "avoando")');
+      pushPtBrIssue(issues, 'erro ortográfico — escreve "a voar" (não "avoando")');
     }
     if (/\bcamisetas?\b/i.test(blob)) {
-      issues.push('brasileirismo — em PT-PT usa "camisola" (não "camiseta")');
+      pushPtBrIssue(issues, 'brasileirismo — em PT-PT usa "camisola" (não "camiseta")');
     }
     if (RE_BRASILEIRISMO.test(blob)) {
-      issues.push('brasileirismo detectado — usa português de Portugal');
+      pushPtBrIssue(issues, 'brasileirismo detectado — usa português de Portugal');
     }
     issues.push(...validateFootballPtPt([blob]));
     return issues;
@@ -1185,19 +1195,19 @@ Só json válido, sem markdown: ${jsonFormat}`;
   function validateAdivinhaQuality(q, a) {
     const issues = [];
     if (/\bquem\s+é\s+o\s+(animal|bicho|pássaro|passaro|peixe|insecto|inseto)\b/i.test(q)) {
-      issues.push('ADIVINHA: usa "Que animal…" em vez de "Quem é o animal"');
+      pushIssue(issues, 'ADIVINHA_ANIMAL_PHRASING', ISSUE_LAYER.format, 'ADIVINHA: usa "Que animal…" em vez de "Quem é o animal"');
     }
     if (/\b(canta|som)\b.*\b(batid|bate)\b|\b(batid|bate).*\b(canta|som)\b/i.test(q)) {
       if (!/\b(tambor|caixa|pandeiro|instrumento|musical)\b/i.test(a)) {
-        issues.push('ADIVINHA: objecto que "canta quando é batido" deve ser instrumento de percussão');
+        pushIssue(issues, 'ADIVINHA_PERCUSSION', ISSUE_LAYER.format, 'ADIVINHA: objecto que "canta quando é batido" deve ser instrumento de percussão');
       }
     }
     if (/\bpernas\b.*\bnão\s+anda\b/i.test(q) && /\b(bola|cadeira|mesa)\b/i.test(a)) {
-      issues.push('ADIVINHA: charada fraca — a resposta não encaixa bem nas pistas');
+      pushIssue(issues, 'ADIVINHA_WEAK_RIDDLE', ISSUE_LAYER.format, 'ADIVINHA: charada fraca — a resposta não encaixa bem nas pistas');
     }
     if (/\b(faz|fazem)\s+barulho\b/i.test(q) && /\bcorre\b/i.test(q) && /\b(cala|calou)\b/i.test(q)) {
       if (/\b(cavalo|cabra|vaca|ovelha|carneiro|porco|rato)\b/i.test(a) && !/\b(apito|pião|piao|flauta|corneta|reco-reco)\b/i.test(a)) {
-        issues.push('ADIVINHA: charada clássica do apito — a resposta não deve ser um animal');
+        pushIssue(issues, 'ADIVINHA_WHISTLE_RIDDLE', ISSUE_LAYER.format, 'ADIVINHA: charada clássica do apito — a resposta não deve ser um animal');
       }
     }
     return issues;
@@ -1215,13 +1225,13 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const hasMapa = clean.some((o) => /\bmapa\b/i.test(o));
     const hasGlobo = clean.some((o) => /\bglobo\b/i.test(o));
     if (mapGlobeRiddle && hasMapa && hasGlobo) {
-      issues.push('pergunta ambígua — mapa e globo terráqueo respondem às mesmas pistas; reformula ou usa distractores claramente errados');
+      pushIssue(issues, 'ADIVINHA_MAP_GLOBE_AMBIGUOUS', ISSUE_LAYER.semantic, 'pergunta ambígua — mapa e globo terráqueo respondem às mesmas pistas; reformula ou usa distractores claramente errados');
     }
 
     const geoRepRiddle = /\b(tenho|tem)\b/i.test(q) && /\b(cidades|montanhas)\b/i.test(q)
       && /\bn[aã]o\s+(casas|árvores|arvores|peixes)\b/i.test(q);
     if (geoRepRiddle && hasMapa && hasGlobo && !mapGlobeRiddle) {
-      issues.push('pergunta ambígua — mapa e globo terráqueo são ambas defensáveis nesta adivinha');
+      pushIssue(issues, 'ADIVINHA_MAP_GLOBE_AMBIGUOUS', ISSUE_LAYER.semantic, 'pergunta ambígua — mapa e globo terráqueo são ambas defensáveis nesta adivinha');
     }
 
     return issues;
@@ -1687,11 +1697,11 @@ Só json válido, sem markdown: ${jsonFormat}`;
     }
     if (formatId === FORMAT_IDS.QUANDO && getAgeLimits(ageBandKey).rejectHardHistoricalWhen
       && isHardHistoricalWhenQuestion(q)) {
-      issues.push('data histórica demasiado difícil para 6–9');
+      pushAgeHardIssue(issues, 'data histórica demasiado difícil para 6–9');
     }
 
     if (formatId === FORMAT_IDS.ADIVINHA && /^qual\s+é\s+a\s+capital\b|^quem\s+descobriu\b/i.test(q)) {
-      issues.push('ADIVINHA não deve ser pergunta factual directa');
+      pushIssue(issues, 'ADIVINHA_FACTUAL_DIRECT', ISSUE_LAYER.format, 'ADIVINHA não deve ser pergunta factual directa');
     }
     if (formatId === FORMAT_IDS.ADIVINHA) {
       issues.push(...validateAdivinhaQuality(q, a));
@@ -1735,40 +1745,40 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const isCompleta = formatId === FORMAT_IDS.COMPLETA || /_{2,}|…|\.{3}/.test(q);
 
     if (lim.maxQuestionChars != null && q.length > lim.maxQuestionChars) {
-      issues.push('pergunta demasiado longa');
+      pushAgeHardIssue(issues, 'pergunta demasiado longa');
     }
     if (lim.maxQuestionWords != null) {
       const qWordCount = q.split(/\s+/).filter(Boolean).length;
-      if (qWordCount > lim.maxQuestionWords) issues.push('pergunta demasiado longa');
+      if (qWordCount > lim.maxQuestionWords) pushAgeHardIssue(issues, 'pergunta demasiado longa');
     }
     if (lim.maxAnswerWords != null) {
       const maxAnswerWords = isCompleta && lim.maxCompletaAnswerWords
         ? lim.maxCompletaAnswerWords
         : lim.maxAnswerWords;
       if (a.split(/\s+/).filter(Boolean).length > maxAnswerWords) {
-        issues.push(isCompleta
+        pushAgeHardIssue(issues, isCompleta
           ? 'resposta COMPLETA demasiado longa para 6–9 (máx. 2 palavras)'
           : 'resposta demasiado longa');
       }
     }
     if (lim.rejectHardHistoricalWhen && formatId === FORMAT_IDS.QUANDO && isHardHistoricalWhenQuestion(q)) {
-      issues.push('data histórica demasiado difícil para 6–9');
+      pushAgeHardIssue(issues, 'data histórica demasiado difícil para 6–9');
     }
     if (lim.maxQuestionWordsTopic != null) {
-      if (abstractMath.test(blob)) issues.push('conceito matemático abstrato');
-      if (veryTechnical.test(blob)) issues.push('vocabulário técnico');
-      if (youngestTooHard.test(blob)) issues.push('tema avançado demais');
+      if (abstractMath.test(blob)) pushAgeHardIssue(issues, 'conceito matemático abstrato');
+      if (veryTechnical.test(blob)) pushAgeHardIssue(issues, 'vocabulário técnico');
+      if (youngestTooHard.test(blob)) pushAgeHardIssue(issues, 'tema avançado demais');
       issues.push(...validateYoungAgeContent(q, a, options, formatId));
       issues.push(...validateAgeTopicFit(q, a, options, ageBandKey));
       issues.push(...validatePortugueseNotEnglish([a, ...options], ageBandKey));
       if (lim.maxWordLength != null) {
         const longWords = q.split(/\s+/).filter((w) => w.replace(/[^a-zàáâãäåèéêëìíîïòóôõöùúûüçñ-]/gi, '').length > lim.maxWordLength);
-        if (longWords.length) issues.push('palavras demasiado complexas');
+        if (longWords.length) pushAgeHardIssue(issues, 'palavras demasiado complexas');
       }
     }
     if (lim.maxAnswerWordsTopic != null) {
       if (veryTechnical.test(a) && a.split(/\s+/).filter(Boolean).length > (lim.maxTechnicalAnswerWords || 8)) {
-        issues.push('resposta demasiado técnica');
+        pushAgeHardIssue(issues, 'resposta demasiado técnica');
       }
       issues.push(...validateAgeTopicFit(q, a, options, ageBandKey));
       issues.push(...validatePortugueseNotEnglish([a, ...options], ageBandKey));
@@ -1921,11 +1931,15 @@ Só json válido, sem markdown: ${jsonFormat}`;
     issues.push(...validateObscureCharacter(q, a, ageBandKey));
 
     if (formatId !== FORMAT_IDS.VERDADEIRO_FALSO && !isGenericTrueFalseAnswer(a, normalizeFn)) {
-      if (answerLeakedInQuestion(q, a)) issues.push('resposta revelada na pergunta');
+      if (answerLeakedInQuestion(q, a)) {
+        pushIssue(issues, 'ANSWER_LEAKED', ISSUE_LAYER.semantic, 'resposta revelada na pergunta');
+      }
     }
-    if (hasCulturalStereotype(q)) issues.push('estereótipo cultural');
+    if (hasCulturalStereotype(q)) {
+      pushIssue(issues, 'PT_STEREOTYPE', ISSUE_LAYER.semantic, 'estereótipo cultural');
+    }
     if (/\b(pode ser|podem ser|várias respostas|duas respostas|tanto .+ como)\b/i.test(`${q} ${a}`)) {
-      issues.push('possíveis múltiplas respostas');
+      pushIssue(issues, 'MULTIPLE_ANSWERS', ISSUE_LAYER.semantic, 'possíveis múltiplas respostas');
     }
     return issues;
   }
@@ -2066,7 +2080,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     layers.mcOptions = isMC ? layerScore(LAYER_WEIGHTS.mcOptions, mcIssues) : LAYER_WEIGHTS.mcOptions;
     issues.push(...mcIssues);
 
-    const factualOnly = semanticIssues.filter((i) => /facto|factual|errad|incorret|ortográfico/i.test(i));
+    const factualOnly = semanticIssues.filter((i) => /facto|factual|errad|incorret|ortográfico/i.test(issueMessage(i)));
     layers.factual = layerScore(LAYER_WEIGHTS.semantic, factualOnly);
 
     const score = Object.keys(LAYER_WEIGHTS).reduce((sum, key) => sum + (Number(layers[key]) || 0), 0);

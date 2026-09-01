@@ -880,6 +880,52 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('104. telemetria byIssueDetail', summary2.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA?.count === 1
     && /Remy/i.test(summary2.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA.sampleMessage));
 }
+
+// 105–110. Fase 4 — pushIssue em ADIVINHA, PT-PT e idade
+{
+  const apito = {
+    q: 'Tenho cabeça sem cérebro, corpo sem coração e rabo sem osso. Quando corre, faz barulho, mas quando para, cala a boca. O que é?',
+    a: 'Cavalo',
+  };
+  const r = QE.validateQuestion(apito, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '15+' }));
+  assert('105. ADIVINHA_WHISTLE code', !r.ok && r.issueDetails?.some((i) => i.code === 'ADIVINHA_WHISTLE_RIDDLE'), r.issues?.join(', '));
+}
+{
+  const mapa = {
+    q: 'Tenho cidades mas não casas, montanhas mas não árvores, água mas não peixes. O que sou?',
+    a: 'Um mapa',
+    options: ['Um globo terráqueo', 'Uma fotografia aérea', 'Um mapa', 'Um quadro de paisagem'],
+  };
+  const r = QE.validateQuestion(mapa, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '10-15', isMC: true }));
+  assert('106. ADIVINHA_MAP_GLOBE code', !r.ok && r.issueDetails?.some((i) => i.code === 'ADIVINHA_MAP_GLOBE_AMBIGUOUS'), r.issues?.join(', '));
+}
+{
+  const camiseta = { q: 'Que peça de roupa usam os jogadores de futebol?', a: 'Camiseta' };
+  const r = QE.validateQuestion(camiseta, baseCtx({ categoryNumber: 18, ageBandKey: '10-15' }));
+  assert('107. PT_BRASILISM camiseta code', !r.ok && r.issueDetails?.some((i) => i.code === 'PT_BRASILISM'), r.issues?.join(', '));
+}
+{
+  const vies = {
+    q: 'Como se chama o efeito que faz recordar informações negativas com mais intensidade?',
+    a: 'Viés de negatividade',
+    options: ['Viés de negatividade', 'Efeito placebo', 'Memória fotográfica', 'Déjà vu'],
+  };
+  const r = QE.validateQuestion(vies, baseCtx({ isMC: true, categoryNumber: 5, ageBandKey: '15+' }));
+  assert('108. PT_BRASILISM viés code', !r.ok && r.issueDetails?.some((i) => i.code === 'PT_BRASILISM'), r.issues?.join(', '));
+}
+{
+  const picasso = {
+    q: 'Quando nasceu o famoso pintor Pablo Picasso?',
+    a: '1881',
+    options: ['1881', '1890', '1901', '1875'],
+  };
+  const r = QE.validateQuestion(picasso, baseCtx({ formatId: QE.FORMAT_IDS.QUANDO, categoryNumber: 4, ageBandKey: '6-9', isMC: true }));
+  assert('109. AGE_TOO_HARD code', !r.ok && r.issueDetails?.some((i) => i.code === 'AGE_TOO_HARD'), r.issues?.join(', '));
+}
+{
+  const hint = QE.buildRetryHint([{ code: 'ADIVINHA_WHISTLE_RIDDLE', message: 'test' }], QE.FORMAT_IDS.ADIVINHA, '10-15');
+  assert('110. retry hint ADIVINHA code', hint.includes('apito'));
+}
 {
   QE.clearGenerationTelemetry();
   for (let i = 0; i < 210; i += 1) {
