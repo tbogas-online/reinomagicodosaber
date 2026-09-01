@@ -217,6 +217,14 @@ ${ageRulesText}`;
     const allowed = getAllowedFormats(categoryNumber, ageBandKey, answerMode);
     if (!allowed.length) return defaultFormatForAnswerMode(answerMode);
 
+    const formatMix = getCategoryDef(categoryNumber).formatMix;
+    if (formatMix) {
+      const mixPool = allowed.filter((f) => (formatMix[f] || 0) > 0);
+      const pickFrom = mixPool.length ? mixPool : allowed;
+      const weights = pickFrom.map((f) => formatMix[f] || 0);
+      return weightedPick(pickFrom, weights);
+    }
+
     const recent = recentFormats || [];
     const vfRecentlyUsed = recent.slice(-TRUE_FALSE_MIN_GAP).includes(FORMAT_IDS.VERDADEIRO_FALSO);
 

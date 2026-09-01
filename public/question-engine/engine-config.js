@@ -330,7 +330,7 @@
       formats: ["ADIVINHA","CURIOSIDADE"],
       rules: "Categoria ESPECIAL — experiência diferente do resto do jogo. ADIVINHA: charadas/adivinhas tradicionais portuguesas, tom lúdico. CURIOSIDADE: factos surpreendentes (\"Não sabia disso!\"). NÃO uses perguntas normais de cultura geral aqui.",
       subtopics: ["adivinha tradicional","curiosidade surpreendente"],
-      weightBoost: {"ADIVINHA":1.6,"CURIOSIDADE":1.4},
+      formatMix: {"ADIVINHA":0.7,"CURIOSIDADE":0.3},
     },
   };
 
@@ -343,6 +343,7 @@
         subtopics: Object.freeze(def.subtopics.slice()),
       };
       if (def.weightBoost) entry.weightBoost = Object.freeze({ ...def.weightBoost });
+      if (def.formatMix) entry.formatMix = Object.freeze({ ...def.formatMix });
       registry[Number(n)] = Object.freeze(entry);
     }
     return Object.freeze(registry);

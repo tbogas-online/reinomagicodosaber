@@ -1294,5 +1294,20 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('154. curiosidade V/F válida', okCur.ok, okCur.issues?.join(', '));
 }
 
+// 155. cat. 20 — mix ~70% adivinha / 30% curiosidade
+{
+  const recent = [];
+  let adivinhaCount = 0;
+  const trials = 2000;
+  for (let i = 0; i < trials; i += 1) {
+    const f = QE.chooseFormat(20, '10-15', 'mc', recent);
+    if (f === QE.FORMAT_IDS.ADIVINHA) adivinhaCount += 1;
+    recent.push(f);
+    if (recent.length > 40) recent.shift();
+  }
+  const ratio = adivinhaCount / trials;
+  assert('155. cat.20 mix adivinha ~70%', ratio >= 0.62 && ratio <= 0.78, `adivinha ${(ratio * 100).toFixed(1)}%`);
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);
