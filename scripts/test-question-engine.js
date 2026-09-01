@@ -28,6 +28,7 @@ const engineScripts = [
   'question-engine/semantic-validators.js',
   'question-engine/repetition-validators.js',
   'question-engine/persistent-history.js',
+  'question-engine/prompt-builder.js',
   'question-engine.js',
 ];
 const memStore = {};
@@ -1148,6 +1149,28 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 {
   const slice = QE.getPersistentSlice('6-9');
   assert('139. persistent-history slice shape', Array.isArray(slice.questions) && Array.isArray(slice.entries));
+}
+
+// 140–141. Fase 9 — prompt-builder modular
+{
+  const PB = sandbox.globalThis.QuestionEnginePromptBuilder;
+  const globalRules = PB.buildGlobalRules();
+  assert('140. prompt-builder global rules', globalRules.includes('REGRAS GLOBAIS') && globalRules.includes('PT-PT'));
+  const fmtRules = PB.buildFormatRules('QUEM_E', { ageBandKey: '10-15', isMC: false, isTrueFalse: false });
+  assert('140b. prompt-builder format rules', fmtRules.includes('QUEM_E'));
+  const cat = QE.CATEGORIES[2];
+  const prompt = QE.buildPrompt({
+    category: cat,
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: 'RESPOSTA_DIRETA',
+    ptPtRules: '',
+    isMC: false,
+    isTrueFalse: false,
+    jsonFormat: '{"q":"","a":""}',
+    normalizeFn: (s) => String(s || '').trim().toLowerCase(),
+  });
+  assert('141. buildPrompt estrutura', prompt.includes(cat.name) && prompt.includes('RESPOSTA_DIRETA') && prompt.includes('REGRAS GLOBAIS'));
 }
 {
   QE.clearGenerationTelemetry();
