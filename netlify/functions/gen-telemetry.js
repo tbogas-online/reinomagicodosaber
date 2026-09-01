@@ -1,6 +1,7 @@
 // POST /api/gen-telemetry — regista eventos de geração IA (todos os jogos/dispositivos).
 
 const { json, getClientKey } = require('./lib/report-utils');
+const { getSupabaseAdmin } = require('./lib/rooms-store');
 const { recordEvent, normalizeEvent } = require('./lib/gen-telemetry-store');
 
 const MAX_BODY_CHARS = 4000;
@@ -39,6 +40,10 @@ exports.handler = async (event) => {
       return json(405, { error: 'Método não permitido' });
     }
 
+    if (!getSupabaseAdmin()) {
+      return json(503, { error: 'Supabase não configurado para telemetria (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).' });
+    }
+
     const raw = event.body || '';
     if (raw.length > MAX_BODY_CHARS) {
       return json(413, { error: 'Evento demasiado grande.' });
@@ -63,10 +68,13 @@ exports.handler = async (event) => {
     }
 
     try {
-      const saved = await recordEvent(validation.event, event);
+      const saved = await recordEvent(validation.event);
       return json(200, { ok: true, id: saved.id });
     } catch (err) {
       console.error('[gen-telemetry] save failed:', err);
+      if (err.code === 'NOT_CONFIGURED') {
+        return json(503, { error: 'Supabase não configurado para telemetria.' });
+      }
       return json(503, { error: 'Não foi possível guardar o evento.' });
     }
   } catch (err) {

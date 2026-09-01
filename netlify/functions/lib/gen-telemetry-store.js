@@ -1,8 +1,7 @@
-const { connectLambda, getStore } = require('@netlify/blobs');
+const { getSupabaseAdmin } = require('./rooms-store');
 
-const STORE_NAME = 'gen-telemetry';
-const INDEX_KEY = 'events-index';
 const MAX_EVENTS = 10000;
+const TABLE = 'gen_telemetry_events';
 
 const VALID_OUTCOMES = new Set(['accepted', 'rejected', 'parse_error', 'api_error', 'unknown']);
 const VALID_GAME_MODES = new Set(['local', 'multiplayer', 'test']);
@@ -11,19 +10,71 @@ function clip(value, max) {
   return String(value || '').trim().slice(0, max);
 }
 
-function getTelemetryStore(event) {
-  connectLambda(event);
-  return getStore(STORE_NAME);
+async function supabaseRequest(path, options = {}) {
+  const cfg = getSupabaseAdmin();
+  if (!cfg) {
+    const err = new Error('Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).');
+    err.code = 'NOT_CONFIGURED';
+    throw err;
+  }
+
+  const headers = {
+    apikey: cfg.key,
+    Authorization: `Bearer ${cfg.key}`,
+    'Content-Type': 'application/json',
+    ...(options.headers || {}),
+  };
+  if (!options.headers?.Prefer && options.method !== 'GET') {
+    headers.Prefer = options.prefer || 'return=minimal';
+  }
+
+  const response = await fetch(`${cfg.url}/rest/v1${path}`, {
+    method: options.method || 'GET',
+    headers,
+    body: options.body,
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    const err = new Error(text || `Supabase HTTP ${response.status}`);
+    err.status = response.status;
+    throw err;
+  }
+
+  if (response.status === 204) return null;
+  const text = await response.text();
+  if (!text) return null;
+  return JSON.parse(text);
 }
 
-async function readIndex(store) {
-  try {
-    const index = await store.get(INDEX_KEY, { type: 'json' });
-    return index && Array.isArray(index.items) ? index : { items: [], total: 0 };
-  } catch (err) {
-    console.error('[gen-telemetry-store] readIndex failed:', err);
-    return { items: [], total: 0 };
+async function supabaseRpc(functionName, body = {}) {
+  const cfg = getSupabaseAdmin();
+  if (!cfg) {
+    const err = new Error('Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).');
+    err.code = 'NOT_CONFIGURED';
+    throw err;
   }
+
+  const response = await fetch(`${cfg.url}/rest/v1/rpc/${functionName}`, {
+    method: 'POST',
+    headers: {
+      apikey: cfg.key,
+      Authorization: `Bearer ${cfg.key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    const err = new Error(text || `Supabase RPC HTTP ${response.status}`);
+    err.status = response.status;
+    throw err;
+  }
+
+  const text = await response.text();
+  if (!text) return null;
+  return JSON.parse(text);
 }
 
 function normalizeEvent(raw) {
@@ -48,6 +99,38 @@ function normalizeEvent(raw) {
     score: e.score != null ? Number(e.score) : null,
     source: clip(e.source, 16) || 'ai',
     gameMode,
+  };
+}
+
+function eventToRow(normalized) {
+  return {
+    event_ts: normalized.ts,
+    outcome: normalized.outcome,
+    category: normalized.category,
+    format_id: normalized.formatId || null,
+    age_band_key: normalized.ageBandKey || null,
+    difficulty: normalized.difficulty != null ? Math.round(normalized.difficulty) : null,
+    attempt: normalized.attempt != null ? Math.round(normalized.attempt) : null,
+    issue_codes: normalized.issueCodes,
+    provider: normalized.provider || null,
+    model: normalized.model || null,
+    score: normalized.score != null ? Math.round(normalized.score) : null,
+    source: normalized.source,
+    game_mode: normalized.gameMode,
+  };
+}
+
+function rowToItem(row) {
+  return {
+    id: row.id,
+    ts: row.event_ts,
+    outcome: row.outcome,
+    category: row.category,
+    formatId: row.format_id || '',
+    ageBandKey: row.age_band_key || '',
+    gameMode: row.game_mode || 'local',
+    issueCodes: Array.isArray(row.issue_codes) ? row.issue_codes : [],
+    provider: row.provider || '',
   };
 }
 
@@ -98,45 +181,46 @@ function computeSummaryFromItems(items) {
   return summary;
 }
 
-async function recordEvent(payload, event) {
+async function recordEvent(payload) {
   const normalized = normalizeEvent(payload);
-  const store = getTelemetryStore(event);
-  const id = `evt-${normalized.ts}-${Math.random().toString(36).slice(2, 10)}`;
-  await store.setJSON(`event:${id}`, normalized);
-
-  const index = await readIndex(store);
-  index.items.push({
-    id,
-    ts: normalized.ts,
-    outcome: normalized.outcome,
-    category: normalized.category,
-    formatId: normalized.formatId,
-    ageBandKey: normalized.ageBandKey,
-    gameMode: normalized.gameMode,
-    issueCodes: normalized.issueCodes,
-    provider: normalized.provider,
+  const inserted = await supabaseRequest(`/${TABLE}`, {
+    method: 'POST',
+    body: JSON.stringify(eventToRow(normalized)),
+    headers: { Prefer: 'return=representation' },
   });
-  if (index.items.length > MAX_EVENTS) {
-    const removed = index.items.splice(0, index.items.length - MAX_EVENTS);
-    await Promise.all(removed.map((item) => store.delete(`event:${item.id}`).catch(() => {})));
+  const id = Array.isArray(inserted) && inserted[0]?.id
+    ? inserted[0].id
+    : null;
+  try {
+    await supabaseRpc('trim_gen_telemetry_events', { p_max: MAX_EVENTS });
+  } catch (err) {
+    console.warn('[gen-telemetry-store] trim failed:', err.message || err);
   }
-  index.total = index.items.length;
-  await store.setJSON(INDEX_KEY, index);
   return { id, event: normalized };
 }
 
-async function getStats(event) {
-  const store = getTelemetryStore(event);
-  const index = await readIndex(store);
-  return computeSummaryFromItems(index.items);
+async function fetchEventItems(filters = {}) {
+  const gameMode = filters.gameMode && VALID_GAME_MODES.has(String(filters.gameMode))
+    ? String(filters.gameMode)
+    : '';
+  const params = new URLSearchParams({
+    select: 'id,event_ts,outcome,category,format_id,age_band_key,game_mode,issue_codes,provider',
+    order: 'created_at.desc',
+    limit: String(MAX_EVENTS),
+  });
+  if (gameMode) params.set('game_mode', `eq.${gameMode}`);
+  const rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+  return (rows || []).map(rowToItem);
 }
 
-async function clearAll(event) {
-  const store = getTelemetryStore(event);
-  const index = await readIndex(store);
-  await Promise.all(index.items.map((item) => store.delete(`event:${item.id}`).catch(() => {})));
-  await store.setJSON(INDEX_KEY, { items: [], total: 0 });
-  return { cleared: index.items.length };
+async function getStats(_event, filters = {}) {
+  const items = await fetchEventItems(filters);
+  return computeSummaryFromItems(items);
+}
+
+async function clearAll() {
+  const cleared = await supabaseRpc('clear_gen_telemetry_events');
+  return { cleared: Number(cleared) || 0 };
 }
 
 module.exports = {

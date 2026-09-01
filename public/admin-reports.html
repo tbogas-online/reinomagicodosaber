@@ -1143,13 +1143,30 @@
           <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
             <div>
               <h2 class="charts-title" style="margin:0;">Geração IA</h2>
-              <p class="chart-filter-note" style="margin:6px 0 0">Eventos de todos os dispositivos, jogos locais e multijogador.</p>
+              <p class="chart-filter-note" style="margin:6px 0 0">Eventos guardados no Supabase — todos os dispositivos, jogos locais e multijogador.</p>
             </div>
             <div class="rooms-refresh-wrap">
-              <button type="button" class="secondary" id="telemetryRefreshBtn">↻ Actualizar</button>
               <span id="telemetryLastUpdated" class="rooms-last-updated"></span>
             </div>
           </div>
+
+          <div class="bulk-bar" style="flex-wrap:wrap; gap:8px;">
+            <button type="button" class="primary" id="telemetryLoadStatsBtn" title="GET /api/gen-telemetry-admin?stats=1">📊 Carregar estatísticas</button>
+            <button type="button" class="secondary" id="telemetryRefreshBtn" title="Recarregar com o filtro actual">↻ Actualizar</button>
+            <button type="button" class="secondary" id="telemetryExportBtn" title="Exportar JSON das estatísticas visíveis">⬇ Exportar JSON</button>
+            <button type="button" class="danger" id="clearGenTelemetryBtn" title="DELETE /api/gen-telemetry-admin">🗑 Limpar no servidor</button>
+          </div>
+
+          <div class="chart-head" style="margin-top:12px;">
+            <h3 style="margin:0;font-size:0.95rem;">Modo de jogo</h3>
+            <div class="timeline-filters" id="telemetryModeFilters" role="group" aria-label="Filtrar por modo de jogo">
+              <button type="button" class="secondary active" data-telemetry-mode="">Todos</button>
+              <button type="button" class="secondary" data-telemetry-mode="local">Local</button>
+              <button type="button" class="secondary" data-telemetry-mode="multiplayer">Multijogador</button>
+              <button type="button" class="secondary" data-telemetry-mode="test">Teste</button>
+            </div>
+          </div>
+
           <p class="status" id="telemetryListStatus"></p>
           <div class="charts-grid" style="margin-top:12px">
             <div class="chart-box">
@@ -1169,9 +1186,6 @@
               <div id="chartGenGameModes" class="chart"></div>
             </div>
           </div>
-          <p style="margin:12px 0 0">
-            <button type="button" class="danger" id="clearGenTelemetryBtn">Limpar telemetria no servidor</button>
-          </p>
         </div>
       </div>
     </section>
@@ -2469,6 +2483,41 @@
       test: 'Teste',
     };
 
+    let lastTelemetryPayload = null;
+    let telemetryGameModeFilter = '';
+
+    function telemetryStatsQuery() {
+      const params = new URLSearchParams({ stats: '1' });
+      if (telemetryGameModeFilter) params.set('gameMode', telemetryGameModeFilter);
+      return params.toString();
+    }
+
+    function updateTelemetryModeFilterUi() {
+      document.querySelectorAll('#telemetryModeFilters [data-telemetry-mode]').forEach((btn) => {
+        const mode = btn.getAttribute('data-telemetry-mode') || '';
+        btn.classList.toggle('active', mode === telemetryGameModeFilter);
+      });
+    }
+
+    function exportTelemetryJson() {
+      if (!lastTelemetryPayload) {
+        const statusEl = document.getElementById('telemetryListStatus');
+        if (statusEl) {
+          statusEl.textContent = 'Carrega as estatísticas antes de exportar.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      const blob = new Blob([JSON.stringify(lastTelemetryPayload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const suffix = telemetryGameModeFilter || 'todos';
+      a.href = url;
+      a.download = `telemetria-ia-${suffix}-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
     function renderGenTelemetry(summary) {
       const statsEl = document.getElementById('genTelemetryStats');
       const issueEl = document.getElementById('chartGenIssueCodes');
@@ -2524,17 +2573,26 @@
       const { quiet = false } = options;
       const statusEl = document.getElementById('telemetryListStatus');
       if (!quiet && statusEl) {
-        statusEl.textContent = 'A carregar…';
+        statusEl.textContent = 'A carregar estatísticas…';
         statusEl.className = 'status';
       }
       try {
-        const data = await api('/api/gen-telemetry-admin?stats=1');
+        const data = await api(`/api/gen-telemetry-admin?${telemetryStatsQuery()}`);
+        lastTelemetryPayload = data;
         renderGenTelemetry(data.stats || {});
+        updateTelemetryModeFilterUi();
         const updatedEl = document.getElementById('telemetryLastUpdated');
-        if (updatedEl) updatedEl.textContent = 'Actualizado ' + new Date().toLocaleTimeString('pt-PT');
+        const modeLabel = telemetryGameModeFilter
+          ? (GEN_GAME_MODE_LABELS[telemetryGameModeFilter] || telemetryGameModeFilter)
+          : 'todos os modos';
+        if (updatedEl) {
+          updatedEl.textContent = `Actualizado ${new Date().toLocaleTimeString('pt-PT')} · ${modeLabel}`;
+        }
         if (statusEl) {
-          statusEl.textContent = '';
-          statusEl.className = 'status';
+          statusEl.textContent = data.stats?.total
+            ? `${data.stats.total} evento(s) no filtro actual.`
+            : 'Sem eventos para este filtro.';
+          statusEl.className = data.stats?.total ? 'status ok' : 'status';
         }
       } catch (err) {
         if (statusEl) {
@@ -3588,7 +3646,15 @@
       closeRoomsAdmin([...selectedRoomIds]);
     });
     document.getElementById('logoutBtn').onclick = logout;
+    document.getElementById('telemetryLoadStatsBtn')?.addEventListener('click', () => loadTelemetryDashboard());
     document.getElementById('telemetryRefreshBtn')?.addEventListener('click', () => loadTelemetryDashboard());
+    document.getElementById('telemetryExportBtn')?.addEventListener('click', exportTelemetryJson);
+    document.getElementById('telemetryModeFilters')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-telemetry-mode]');
+      if (!btn) return;
+      telemetryGameModeFilter = btn.getAttribute('data-telemetry-mode') || '';
+      loadTelemetryDashboard();
+    });
     document.getElementById('clearGenTelemetryBtn')?.addEventListener('click', async () => {
       if (!confirm('Limpar toda a telemetria de geração IA no servidor?')) return;
       const statusEl = document.getElementById('telemetryListStatus');

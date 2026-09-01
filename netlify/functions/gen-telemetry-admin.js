@@ -1,6 +1,7 @@
 // GET/DELETE /api/gen-telemetry-admin — estatísticas agregadas (Basic Auth).
 
 const { json, validateAdminAuth } = require('./lib/report-utils');
+const { getSupabaseAdmin } = require('./lib/rooms-store');
 const { getStats, clearAll } = require('./lib/gen-telemetry-store');
 
 exports.handler = async (event) => {
@@ -14,14 +15,20 @@ exports.handler = async (event) => {
       return json(auth.status, { error: auth.error });
     }
 
+    if (!getSupabaseAdmin()) {
+      return json(503, { error: 'Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).' });
+    }
+
     if (event.httpMethod === 'GET') {
       const params = event.queryStringParameters || {};
       if (params.stats !== '1') {
         return json(400, { error: 'Usa stats=1.' });
       }
       try {
-        const stats = await getStats(event);
-        return json(200, { ok: true, stats });
+        const stats = await getStats(null, {
+          gameMode: params.gameMode,
+        });
+        return json(200, { ok: true, stats, filters: { gameMode: params.gameMode || '' } });
       } catch (err) {
         console.error('[gen-telemetry-admin] stats failed:', err);
         return json(503, { error: 'Não foi possível ler telemetria.' });
@@ -30,7 +37,7 @@ exports.handler = async (event) => {
 
     if (event.httpMethod === 'DELETE') {
       try {
-        const result = await clearAll(event);
+        const result = await clearAll();
         return json(200, { ok: true, ...result });
       } catch (err) {
         console.error('[gen-telemetry-admin] clear failed:', err);
