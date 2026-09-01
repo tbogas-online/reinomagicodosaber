@@ -740,6 +740,28 @@
     background: linear-gradient(180deg, var(--teal), #237a5c);
     color: #fff;
   }
+  .cat-picker-actions{
+    display:flex; justify-content:center;
+    margin-bottom: 2px;
+  }
+  .cat-picker-fill-btn{
+    font-family:'Cinzel', serif; font-size:0.78rem; font-weight:600;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(var(--gold-rgb),0.45);
+    background: rgba(var(--gold-rgb),0.12);
+    color: var(--gold-bright);
+    cursor:pointer;
+    transition: background .12s ease, border-color .12s ease, opacity .12s ease;
+  }
+  .cat-picker-fill-btn:hover:not(:disabled){
+    background: rgba(var(--gold-rgb),0.22);
+    border-color: var(--gold-bright);
+  }
+  .cat-picker-fill-btn:disabled{
+    opacity: .4;
+    cursor: not-allowed;
+  }
   .cat-picker-list{
     display:flex; flex-direction:column; gap:6px;
   }
@@ -3211,6 +3233,9 @@
         </div>
         <div class="cat-picker" id="cat-picker">
           <div class="cat-picker-counter" id="cat-picker-counter">0 / 10</div>
+          <div class="cat-picker-actions">
+            <button type="button" class="cat-picker-fill-btn" id="cat-picker-fill" title="Preenche as restantes com categorias aleatórias">🎲 Completar aleatoriamente</button>
+          </div>
           <div class="cat-picker-list" id="cat-picker-list"></div>
         </div>
         <p class="cat-picker-hint" id="cat-picker-hint"></p>
@@ -6264,7 +6289,20 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   const catPickerEl = document.getElementById('cat-picker');
   const catPickerListEl = document.getElementById('cat-picker-list');
   const catPickerCounterEl = document.getElementById('cat-picker-counter');
+  const catPickerFillBtn = document.getElementById('cat-picker-fill');
   const catPickerHintEl = document.getElementById('cat-picker-hint');
+
+  function fillDraftCategoriesRandomly(){
+    if(draftCategoryMode !== 'manual') return;
+    const need = CATEGORY_PICK_TARGET - draftSelectedCategoryIds.size;
+    if(need <= 0) return;
+    const pool = CATEGORIES.filter(cat => !draftSelectedCategoryIds.has(cat.n));
+    for(const cat of shuffled(pool).slice(0, need)){
+      draftSelectedCategoryIds.add(cat.n);
+    }
+    updateCatPickerUI();
+  }
+  catPickerFillBtn.addEventListener('click', fillDraftCategoriesRandomly);
 
   CATEGORIES.forEach(cat => {
     const row = document.createElement('div');
@@ -6317,6 +6355,13 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
     catPickerCounterEl.textContent = `${count} / ${CATEGORY_PICK_TARGET}`;
     catPickerCounterEl.classList.toggle('complete', atTarget);
+    if(catPickerFillBtn){
+      catPickerFillBtn.disabled = !isManual || atTarget;
+      const remaining = CATEGORY_PICK_TARGET - count;
+      catPickerFillBtn.textContent = count === 0
+        ? '🎲 Escolher 10 aleatoriamente'
+        : `🎲 Completar ${remaining} aleatoriamente`;
+    }
 
     catPickerHintEl.classList.remove('warn');
     if(!isManual){
@@ -6324,12 +6369,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     } else if(showSaveWarning && !atTarget){
       catPickerHintEl.classList.add('warn');
       catPickerHintEl.textContent = count < CATEGORY_PICK_TARGET
-        ? `Escolhe mais ${CATEGORY_PICK_TARGET - count} categoria(s) para poderes gravar.`
+        ? `Escolhe mais ${CATEGORY_PICK_TARGET - count} categoria(s) para poderes gravar — ou usa «Completar aleatoriamente».`
         : 'Só podes escolher 10 categorias — tira algumas antes de gravar.';
     } else if(atTarget){
       catPickerHintEl.textContent = '10 categorias escolhidas — prontas a usar! As outras 10 ficam para a Categoria Surpresa.';
     } else {
-      catPickerHintEl.textContent = `Escolhe mais ${CATEGORY_PICK_TARGET - count} categoria(s). Estas vão para as somas 2 a 11.`;
+      catPickerHintEl.textContent = `Escolhe mais ${CATEGORY_PICK_TARGET - count} categoria(s), ou carrega em «Completar aleatoriamente». Vão para as somas 2 a 11.`;
     }
   }
 
