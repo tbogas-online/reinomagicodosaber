@@ -22,6 +22,7 @@ const engineScripts = [
   'question-engine/difficulty-estimate.js',
   'question-engine/pt-pt-validators.js',
   'question-engine/format-validators.js',
+  'question-engine/mc-validators.js',
   'question-engine.js',
 ];
 const memStore = {};
@@ -1094,6 +1095,19 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     { stripTags: (s) => String(s || ''), ageBandKey: '15+' },
   );
   assert('133. format-validators validateByFormat O_QUE_E', r.ok, r.issues?.map((i) => i.message || i).join(', '));
+}
+
+// 134. Fase 7d — mc-validators modular
+{
+  const Mc = sandbox.globalThis.QuestionEngineMcValidators;
+  const issues = Mc.validateMcTrivialMath(
+    'Quanto é 144 dividido por 12?',
+    ['144', '12', '24', '36'],
+    '24',
+    (s) => String(s || ''),
+  );
+  assert('134. mc-validators validateMcTrivialMath', issues.some((i) => i.code === 'MC_TRIVIAL_MATH'),
+    issues.map((i) => i.message).join(', '));
 }
 {
   QE.clearGenerationTelemetry();
