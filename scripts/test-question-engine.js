@@ -733,6 +733,13 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const lim15 = QE.getAgeLimits('15+');
   assert('84. AGE_LIMITS 15+', lim15.maxQuestionChars === 240 && lim15.promptDiffExtraHard?.includes('exigente'));
 }
+{
+  const keys69 = Object.keys(QE.getAgeLimits('6-9')).sort();
+  const keys1015 = Object.keys(QE.getAgeLimits('10-15')).sort();
+  const keys15 = Object.keys(QE.getAgeLimits('15+')).sort();
+  assert('85. AGE_LIMITS shape igual', JSON.stringify(keys69) === JSON.stringify(keys1015)
+    && JSON.stringify(keys69) === JSON.stringify(keys15));
+}
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

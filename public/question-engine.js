@@ -12,12 +12,12 @@
     MAX_RECENT_QUESTIONS: 30,
     MAX_RECENT_KNOWLEDGE_KEYS: 40,
     MAX_RECENT_FORMATS: 40,
-    MAX_RETRIES: 5,
+    MAX_RETRIES: 5, // usado por test-questions.html (retry ao gerar); não lido dentro deste módulo
     QUESTION_JACCARD_THRESHOLD: 0.55,
     KNOWLEDGE_JACCARD_THRESHOLD: 0.42,
   });
 
-  /** Pesos das camadas — somam exactamente 100. Gate de aprovação = zero issues (binário). */
+  /** Pesos das camadas — somam exactamente 100. Apenas diagnóstico/UI em scoreQuestion; validateQuestion reprova se issues.length > 0 (gate binário). */
   const LAYER_WEIGHTS = Object.freeze({
     structural: 10,
     format: 12,
@@ -109,8 +109,43 @@
     5: 'muito difícil (especialista)',
   };
 
+  const AGE_LIMITS_BASE = Object.freeze({
+    shortQ: '',
+    completaYoung: '',
+    completaOral: '',
+    mcYoung: '',
+    mcConcise: '',
+    quemEExtra: '',
+    oQueEExtra: '',
+    maxCausaConsequenciaChars: 200,
+    maxQuestionChars: 240,
+    maxQuestionWords: null,
+    maxQuestionWordsTopic: null,
+    maxAnswerWords: null,
+    maxCompletaAnswerWords: null,
+    maxAnswerWordsTopic: null,
+    maxTechnicalAnswerWords: null,
+    maxMcOptionWords: 8,
+    maxMcOptionChars: 72,
+    maxWordLength: null,
+    mcOptionsTooLongMsg: 'opções demasiado longas — usa termos mais curtos',
+    rejectDifficultyGte: null,
+    rejectEasyDifficultyLte: null,
+    rejectMoonMission: false,
+    rejectHardHistoricalWhen: false,
+    rejectTrivialAtHighDiff: false,
+    retryHintSuffix: '',
+    promptDiffExtraEasy: '',
+    promptDiffExtraHard: '',
+    ageRulesText: '',
+  });
+
+  function defineAgeLimits(overrides) {
+    return Object.freeze({ ...AGE_LIMITS_BASE, ...overrides });
+  }
+
   const AGE_LIMITS = Object.freeze({
-    '6-9': Object.freeze({
+    '6-9': defineAgeLimits({
       shortQ: ' Frase MUITO curta (máx. 110 caracteres).',
       completaYoung: ' BOM 6–9: "Completa: A água da chuva vem das ___." (nuvens) / "Completa: As plantas precisam de ___." (água). UMA frase, máx. 12 palavras antes da lacuna, resposta de 1 palavra.',
       completaOral: ' Máx. 105 caracteres no total. Máx. 12 palavras antes de ___. Resposta: 1 palavra.',
@@ -141,7 +176,7 @@
 - ADEQUAÇÃO: só temas que uma criança de 7 anos reconheça (escola, animais, festas, desenhos animados, desporto básico). Se duvidares, simplifica.
 - Tudo em português — nunca respostas só em inglês.`,
     }),
-    '10-15': Object.freeze({
+    '10-15': defineAgeLimits({
       shortQ: '',
       completaYoung: '',
       completaOral: ' Máx. 120 caracteres antes da lacuna. Máx. 14 palavras antes de ___.',
@@ -163,7 +198,7 @@
 - ADEQUAÇÃO: dificuldade intermédia — nem infantil nem universitária. Evita teoria avançada ou nomes obscuros.
 - Opções MC curtas e directas (máx. 6 palavras).`,
     }),
-    '15+': Object.freeze({
+    '15+': defineAgeLimits({
       shortQ: '',
       completaYoung: '',
       completaOral: ' Máx. 140 caracteres antes da lacuna. Máx. 16 palavras antes de ___.',
@@ -344,8 +379,18 @@
   function getLocalStorage() {
     try {
       if (typeof localStorage !== 'undefined') return localStorage;
-    } catch { /* ignore */ }
+    } catch (err) {
+      warnHistoryStorage('localStorage indisponível', err);
+    }
     return null;
+  }
+
+  function warnHistoryStorage(context, err) {
+    try {
+      if (typeof console !== 'undefined' && console.warn) {
+        console.warn(`[QuestionEngine] ${context}`, err || '');
+      }
+    } catch { /* ignore */ }
   }
 
   function buildGlobalRules() {
@@ -642,6 +687,13 @@ ${ageRulesText}`;
     return weightedPick(pool, weights);
   }
 
+  /**
+   * Contexto partilhado por buildPrompt, scoreQuestion e validateQuestion.
+   * Campos principais: formatId, ageBandKey, categoryNumber, isMC, difficulty,
+   * stripTags, normalizeFn, usedQuestions, usedAnswers, usedKnowledgeKeys,
+   * persistentQuestions, persistentAnswers, recentFormats, recentDifficulties,
+   * recentSubtopics, answerMode, category, ageBandPromptText, helpers.
+   */
   function buildPrompt(ctx) {
     const {
       category, ageBandKey, ageBandPromptText, formatId, ptPtRules, isMC, isTrueFalse,
@@ -905,7 +957,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
       const gradTopics = /\b(epistemologia|fenomenologia|dialética materialista|dodecafonismo|hegeliano|nietzscheano)\b/i;
       if (gradTopics.test(blob)) issues.push('tema inadequado para 10–15');
       const qWords = q.split(/\s+/).filter(Boolean).length;
-      if (lim.maxQuestionWords && qWords > lim.maxQuestionWords) {
+      if (lim.maxQuestionWords != null && qWords > lim.maxQuestionWords) {
         issues.push('pergunta demasiado complexa para 10–15');
       }
       const answerWords = a.split(/\s+/).filter(Boolean).length;
@@ -1726,14 +1778,14 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const youngestTooHard = /\b(imperialismo|algoritmo|programador|programadora|engenheir|máquina analítica|maquina analitica|babbage|tratado de versalhes|segunda guerra mundial|primeira guerra mundial)\b/i;
     const isCompleta = formatId === FORMAT_IDS.COMPLETA || /_{2,}|…|\.{3}/.test(q);
 
-    if (lim.maxQuestionChars && q.length > lim.maxQuestionChars) {
+    if (lim.maxQuestionChars != null && q.length > lim.maxQuestionChars) {
       issues.push('pergunta demasiado longa');
     }
-    if (lim.maxQuestionWords) {
+    if (lim.maxQuestionWords != null) {
       const qWordCount = q.split(/\s+/).filter(Boolean).length;
       if (qWordCount > lim.maxQuestionWords) issues.push('pergunta demasiado longa');
     }
-    if (lim.maxAnswerWords) {
+    if (lim.maxAnswerWords != null) {
       const maxAnswerWords = isCompleta && lim.maxCompletaAnswerWords
         ? lim.maxCompletaAnswerWords
         : lim.maxAnswerWords;
@@ -1753,7 +1805,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
       issues.push(...validateYoungAgeContent(q, a, options, formatId));
       issues.push(...validateAgeTopicFit(q, a, options, ageBandKey));
       issues.push(...validatePortugueseNotEnglish([a, ...options], ageBandKey));
-      if (lim.maxWordLength) {
+      if (lim.maxWordLength != null) {
         const longWords = q.split(/\s+/).filter((w) => w.replace(/[^a-zàáâãäåèéêëìíîïòóôõöùúûüçñ-]/gi, '').length > lim.maxWordLength);
         if (longWords.length) issues.push('palavras demasiado complexas');
       }
@@ -2095,7 +2147,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
         v3[age] = { entries };
       }
       storage.setItem(PERSISTENT_HISTORY_KEY, JSON.stringify(v3));
-    } catch { /* ignore */ }
+    } catch (err) {
+      warnHistoryStorage('migração de histórico persistente falhou', err);
+    }
   }
 
   function loadPersistentHistory() {
@@ -2103,7 +2157,10 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const storage = getLocalStorage();
     if (!storage) return {};
     try { return JSON.parse(storage.getItem(PERSISTENT_HISTORY_KEY) || '{}'); }
-    catch { return {}; }
+    catch (err) {
+      warnHistoryStorage('histórico persistente corrompido ou ilegível', err);
+      return {};
+    }
   }
 
   function trimHistoryEntries(entries) {
@@ -2152,7 +2209,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
       if (!dup) entries.push(entry);
       store[ageBandKey].entries = trimHistoryEntries(entries);
       storage.setItem(PERSISTENT_HISTORY_KEY, JSON.stringify(store));
-    } catch { /* ignore */ }
+    } catch (err) {
+      warnHistoryStorage('persistência de pergunta falhou (quota ou storage cheio?)', err);
+    }
   }
 
   global.QuestionEngine = {
