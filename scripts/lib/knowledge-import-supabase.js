@@ -181,7 +181,7 @@ async function getDashboard(cfg, { autoSync = true } = {}) {
   }
 
   const repository = await fetchRepositoryStats(cfg);
-  const quarantine = await supa.fetchQuarantineStats(cfg);
+  const quarantine = await fetchQuarantineStats(cfg);
   const seed = loadSeedQueueFile();
   return {
     ok: true,
