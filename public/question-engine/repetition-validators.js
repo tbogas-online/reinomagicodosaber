@@ -73,6 +73,13 @@ function collectRepetitionIssues(q, a, formatId, ctx, normalizeFn) {
   if (typeof ctx.knowledgeKeysMatch === 'function' && recentKeys.some((k) => ctx.knowledgeKeysMatch(k, knowledgeKey, normalizeFn))) {
     pushIssue(issues, 'KNOWLEDGE_REPEATED', ISSUE_LAYER.repetition, 'conhecimento já testado recentemente (knowledgeKey)');
   }
+  const recentKnowledgeIds = [...(ctx.usedKnowledgeIds || []), ...(ctx.persistentKnowledgeIds || [])]
+    .map((id) => String(id || '').trim())
+    .filter(Boolean);
+  const recordId = String(ctx.repositoryRecord?.knowledgeId || ctx.parsed?.knowledgeId || '').trim();
+  if (recordId && recentKnowledgeIds.includes(recordId)) {
+    pushIssue(issues, 'KNOWLEDGE_ID_REPEATED', ISSUE_LAYER.repetition, 'facto do repositório já usado recentemente (knowledgeId)');
+  }
   for (const prev of (ctx.usedQuestions || []).slice(-8)) {
     const qNorm = normalizeForRepetitionCheck(q, formatId);
     const prevNorm = normalizeForRepetitionCheck(prev, formatId);

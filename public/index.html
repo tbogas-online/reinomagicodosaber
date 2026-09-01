@@ -930,6 +930,9 @@
     text-align: center;
   }
   .q-source-foot.visible{
+    display:none;
+  }
+  body.question-screen-active.question-ready .q-source-foot.visible{
     display:block;
   }
   .q-source-foot.source-ai{ border-color: rgba(var(--teal-rgb),0.55); color: var(--teal); }
@@ -3438,14 +3441,14 @@
 <script src="question-engine/age-validators.js?v=20260901-210000"></script>
 <script src="question-engine/category-validators.js?v=20260901-220000"></script>
 <script src="question-engine/semantic-validators.js?v=20260901-220000"></script>
-<script src="question-engine/repetition-validators.js?v=20260901-230000"></script>
+<script src="question-engine/repetition-validators.js?v=20260901-190000"></script>
 <script src="question-engine/knowledge-key-compute.js?v=20260901-270000"></script>
-<script src="question-engine/persistent-history.js?v=20260901-280000"></script>
+<script src="question-engine/persistent-history.js?v=20260901-190000"></script>
 <script src="question-engine/prompt-builder.js?v=20260901-184500"></script>
 <script src="question-engine/mc-assembly.js?v=20260901-270000"></script>
 <script src="question-engine/question-scoring.js?v=20260901-143500"></script>
 <script src="question-engine.js?v=20260901-184500" id="question-engine-script"></script>
-<script src="question-bank.js?v=20260830-195800"></script>
+<script src="question-bank.js?v=20260901-190000"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para logs extra na consola.
   const DEBUG_MODE = new URLSearchParams(location.search).has('debug');
@@ -3842,25 +3845,27 @@
     return pool[Math.floor(Math.random()*pool.length)];
   }
 
-  async function tryPickFromQuestionBank(categoryN, ageBandKey, usedSet, maxAttempts = 6){
+  async function tryPickFromQuestionBank(categoryN, ageBandKey, reuseCtx, maxAttempts = 12){
     const QB = window.QuestionBank;
     if(!QB?.isConfigured?.()){
       if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: não configurado — a usar código local');
       return null;
     }
     const excludeHashes = [];
+    const excludeKnowledgeIds = [...(reuseCtx?.knowledgeIds || new Set())];
     let lastError = '';
     for(let attempt = 0; attempt < maxAttempts; attempt++){
       try {
-        const row = await QB.pick(categoryN, ageBandKey, excludeHashes);
+        const row = await QB.pick(categoryN, ageBandKey, excludeHashes, excludeKnowledgeIds);
         if(!row?.q){
           if(DEBUG_MODE && attempt === 0){
             console.info(`[Reino debug] Banco Supabase: vazio para categoria ${categoryN}, faixa ${ageBandKey} — a usar código local`);
           }
           break;
         }
-        if(usedSet.has(normalizeQ(row.q))){
+        if(isBankRowAlreadyUsed(row, reuseCtx)){
           if(row.question_hash) excludeHashes.push(row.question_hash);
+          if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: pergunta ignorada (reuse)', row.question_hash, row.knowledge_id || '');
           continue;
         }
         const withOpts = ensureMcOptionsForQuestion(
@@ -3888,12 +3893,19 @@
     return null;
   }
 
-  async function finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine){
-    const bankRow = await tryPickFromQuestionBank(category.n, ageBandKey, usedSet);
+  async function finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine){
+    const bankRow = await tryPickFromQuestionBank(category.n, ageBandKey, reuseCtx);
     if(bankRow){
       rememberGlobalQuestion(ageBandKey, bankRow.q);
       rememberGlobalAnswer(ageBandKey, bankRow.a);
       if(bankRow.knowledge_key) rememberGlobalKnowledgeKey(ageBandKey, bankRow.knowledge_key);
+      if(bankRow.knowledge_id) rememberGlobalKnowledgeId(ageBandKey, bankRow.knowledge_id);
+      engine.persistQuestion(ageBandKey, bankRow.q, bankRow.a, normalizeQ, {
+        category: category.n,
+        format: bankRow.format || engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
+        knowledgeKey: bankRow.knowledge_key || undefined,
+        knowledgeId: bankRow.knowledge_id || undefined,
+      });
       const withOpts = ensureMcOptionsForQuestion(
         { q: bankRow.q, a: bankRow.a, options: bankRow.options },
         category.n,
@@ -3913,9 +3925,9 @@
         return finalizeQuestion(out);
       }
     }
-    const fallback = pickQuestionWithMcOptions(category.n, ageBandKey, usedSet);
+    const fallback = pickQuestionWithMcOptions(category.n, ageBandKey, reuseCtx?.questionNorms);
     if(fallback){
-      const isRepeat = usedSet.has(normalizeQ(fallback.q));
+      const isRepeat = reuseCtx?.questionNorms?.has(normalizeQ(fallback.q));
       rememberGlobalQuestion(ageBandKey, fallback.q);
       rememberGlobalAnswer(ageBandKey, fallback.a);
       return finalizeQuestion({
@@ -4057,8 +4069,46 @@
     if(usedKnowledgeIds[ageBandKey].length > 80) usedKnowledgeIds[ageBandKey].shift();
   }
 
-  function getEffectiveUsedKnowledgeIds(ageBandKey){
-    return usedKnowledgeIds[ageBandKey] || [];
+  function getEffectiveUsedKnowledgeIds(ageBandKey, persistent){
+    const ids = [...(usedKnowledgeIds[ageBandKey] || [])];
+    for(const id of (persistent?.knowledgeIds || [])){
+      const s = String(id || '').trim();
+      if(s && !ids.includes(s)) ids.push(s);
+    }
+    return ids;
+  }
+
+  function buildQuestionReuseContext(ageBandKey, persistent, engine){
+    const questionNorms = new Set(getEffectiveUsedQuestions(ageBandKey).map(normalizeQ));
+    for(const q of (persistent?.questions || [])){
+      const n = normalizeQ(q);
+      if(n) questionNorms.add(n);
+    }
+    const knowledgeIds = new Set(getEffectiveUsedKnowledgeIds(ageBandKey, persistent));
+    const knowledgeKeys = new Set(getEffectiveUsedKnowledgeKeys(ageBandKey));
+    for(const k of (persistent?.knowledgeKeys || [])){
+      const n = normalizeQ(k);
+      if(n) knowledgeKeys.add(n);
+    }
+    return { questionNorms, knowledgeIds, knowledgeKeys, engine };
+  }
+
+  function isBankRowAlreadyUsed(row, reuseCtx){
+    if(!row?.q) return true;
+    const questionNorms = reuseCtx?.questionNorms || new Set();
+    const knowledgeIds = reuseCtx?.knowledgeIds || new Set();
+    const knowledgeKeys = reuseCtx?.knowledgeKeys || new Set();
+    const engine = reuseCtx?.engine;
+    if(questionNorms.has(normalizeQ(row.q))) return true;
+    const kid = String(row.knowledge_id || row.knowledgeId || '').trim();
+    if(kid && knowledgeIds.has(kid)) return true;
+    const kkey = String(row.knowledge_key || row.knowledgeKey || '').trim();
+    if(kkey && engine?.knowledgeKeysMatch){
+      for(const prev of knowledgeKeys){
+        if(engine.knowledgeKeysMatch(prev, kkey, normalizeQ)) return true;
+      }
+    }
+    return false;
   }
 
   function isGenericTrueFalseAnswerLocal(answer){
@@ -4111,8 +4161,8 @@ Nomes de países em PT-PT: "Irão" (nunca "Irã" nem "Iran"), "Catar" (nunca "Qa
 Não uses "pergunta-resposta" factual por defeito: respeita obrigatoriamente o formato indicado.
 Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano nem palavras misturadas de outro alfabeto (ex.: «延期»). Se precisares de «adiamento», escreve em português.`;
 
-  function getGlobalUsedSet(ageBandKey){
-    return new Set(getEffectiveUsedQuestions(ageBandKey).map(normalizeQ));
+  function getGlobalUsedSet(ageBandKey, persistent){
+    return buildQuestionReuseContext(ageBandKey, persistent || QE().getPersistentSlice(ageBandKey)).questionNorms;
   }
 
   function mergeUsedWithMpSession(ageBandKey, localItems, key) {
@@ -4226,7 +4276,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
     let lastValidationIssues = [];
     let lastValidationIssueDetails = [];
-    const triedKnowledgeIds = new Set(getEffectiveUsedKnowledgeIds(ageBandKey));
+    const triedKnowledgeIds = new Set(getEffectiveUsedKnowledgeIds(ageBandKey, persistent));
 
     for(let attempt = 1; attempt <= 5; attempt++){
       const record = await KR.pickRecord(category.n, ageBandKey, {
@@ -4324,6 +4374,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           usedQuestions: getEffectiveUsedQuestions(ageBandKey),
           usedAnswers: getEffectiveUsedAnswers(ageBandKey),
           usedKnowledgeKeys: getEffectiveUsedKnowledgeKeys(ageBandKey),
+          usedKnowledgeIds: getEffectiveUsedKnowledgeIds(ageBandKey, persistent),
+          persistentKnowledgeIds: persistent.knowledgeIds || [],
           persistentKnowledgeKeys: persistent.knowledgeKeys,
           repositoryRecord: record,
           isMC,
@@ -4452,7 +4504,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
     let lastValidationIssues = [];
     let lastValidationIssueDetails = [];
-    const triedKnowledgeIds = new Set(getEffectiveUsedKnowledgeIds(ageBandKey));
+    const triedKnowledgeIds = new Set(getEffectiveUsedKnowledgeIds(ageBandKey, persistent));
 
     for(let attempt = 1; attempt <= 5; attempt++){
       const record = await KR.pickRecord(category.n, ageBandKey, {
@@ -4553,6 +4605,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           usedQuestions: getEffectiveUsedQuestions(ageBandKey),
           usedAnswers: getEffectiveUsedAnswers(ageBandKey),
           usedKnowledgeKeys: getEffectiveUsedKnowledgeKeys(ageBandKey),
+          usedKnowledgeIds: getEffectiveUsedKnowledgeIds(ageBandKey, persistent),
+          persistentKnowledgeIds: persistent.knowledgeIds || [],
           persistentKnowledgeKeys: persistent.knowledgeKeys,
           repositoryRecord: {
             ...record,
@@ -4647,6 +4701,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const isCuriosidade = questionFormat === engine.FORMAT_IDS.CURIOSIDADE;
     const isTrueFalse = questionFormat === engine.FORMAT_IDS.VERDADEIRO_FALSO || isCuriosidade;
     const persistent = engine.getPersistentSlice(ageBandKey);
+    const reuseCtx = buildQuestionReuseContext(ageBandKey, persistent, engine);
+    const usedSet = reuseCtx.questionNorms;
     const difficulty = engine.chooseDifficulty(ageBandKey, usedDifficulties[ageBandKey] || persistent.difficulties);
     let subtopic = engine.chooseSubtopic(category.n, usedSubtopics[ageBandKey] || persistent.subtopics);
     if(category.n === 20){
@@ -4686,7 +4742,6 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         ? `{"q":"Tenho dentes mas não mordo. O que sou?","a":"Pente","clues":["tem dentes","não morde"],"distractors":["Garfo","Colher","Faca"]${knowledgeHint}}`
         : `{"q":"pergunta","a":"resposta correta","distractors":["errada1","errada2","errada3"]${knowledgeHint}}`);
 
-    const usedSet = getGlobalUsedSet(ageBandKey);
     const usedAnswerSet = new Set(
       getEffectiveUsedAnswers(ageBandKey)
         .map(normalizeQ)
@@ -4695,7 +4750,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const persistentQSet = new Set((persistent.questions || []).map(normalizeQ));
 
     if(localOnly){
-      return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine);
+      return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine);
     }
 
     // KR-1: adivinhas (cat. 20) — só factos do repositório; sem geração livre pelo LLM.
@@ -4728,7 +4783,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         skipAi: skipAiForRepo,
       });
       if(repoQuestion) return repoQuestion;
-      return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine);
+      return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine);
     }
 
     // KR-2: curiosidades (cat. 20) — só factos do repositório; sem geração livre pelo LLM.
@@ -4762,7 +4817,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         skipAi: skipAiForRepo,
       });
       if(repoQuestion) return repoQuestion;
-      return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine);
+      return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine);
     }
 
     let aiWasAttempted = false;
@@ -4818,6 +4873,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           usedFormats: usedQuestionFormats[ageBandKey] || [],
           usedAnswers: getEffectiveUsedAnswers(ageBandKey),
           usedKnowledgeKeys: getEffectiveUsedKnowledgeKeys(ageBandKey),
+          usedKnowledgeIds: getEffectiveUsedKnowledgeIds(ageBandKey, persistent),
+          persistentKnowledgeIds: persistent.knowledgeIds || [],
           persistentQuestions: persistent.questions,
           persistentAnswers: persistent.answers,
           persistentKnowledgeKeys: persistent.knowledgeKeys,
@@ -4931,6 +4988,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           usedQuestions: getEffectiveUsedQuestions(ageBandKey),
           usedAnswers: getEffectiveUsedAnswers(ageBandKey),
           usedKnowledgeKeys: getEffectiveUsedKnowledgeKeys(ageBandKey),
+          usedKnowledgeIds: getEffectiveUsedKnowledgeIds(ageBandKey, persistent),
+          persistentKnowledgeIds: persistent.knowledgeIds || [],
           persistentKnowledgeKeys: persistent.knowledgeKeys,
           isMC,
           stripTags,
@@ -5129,7 +5188,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       }
     }
 
-    return finalizeBankOrLocalFallback(category, ageBandKey, usedSet, engine);
+    return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine);
   }
 
   const AI_PROVIDER_LABELS = {
@@ -6178,6 +6237,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     document.body.classList.toggle('settings-screen-active', isSettingsLike);
     document.body.classList.toggle('scroll-screen-active', isScrollScreen);
     document.body.classList.toggle('question-screen-active', id === 'question');
+    if(id !== 'question'){
+      document.body.classList.remove('question-ready');
+      updateQuestionSourceDebug(null);
+    }
     document.body.classList.toggle('category-bar-active', showCategoryBar);
     const categoryBar = document.getElementById('question-category-bar');
     if(categoryBar){
@@ -6793,6 +6856,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     countdownRemaining = null;
     applyingAnswerRemote = false;
     applyingCountdownRemote = false;
+    updateQuestionSourceDebug(null);
   }
 
   async function displayQuestionFromState(cat, isSurprise, ageBand, question){
@@ -7218,6 +7282,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       el.textContent = '';
       el.hidden = true;
       el.setAttribute('aria-hidden', 'true');
+      document.body.classList.remove('question-ready');
       return;
     }
     const label = QUESTION_SOURCE_LABELS[question.source] || question.source;
@@ -7230,6 +7295,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     el.classList.toggle('source-local', question.source === 'local' || question.source === 'local-repeat');
     el.hidden = false;
     el.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('question-ready');
     if(DEBUG_MODE) console.info('[Reino debug] Fonte da pergunta:', label, question);
     if(question.source === 'local' || question.source === 'local-repeat'){
       const mode = aiProviderChoice === 'local' ? 'fornecedor offline' : (aiStatusOnline ? 'IA não usada nesta ronda' : 'IA indisponível');

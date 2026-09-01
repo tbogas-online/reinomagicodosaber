@@ -92,6 +92,7 @@
       questions: entries.map((e) => e.q).filter(Boolean),
       answers: entries.map((e) => e.a).filter(Boolean),
       knowledgeKeys: entries.map((e) => e.knowledgeKey).filter(Boolean).slice(-ENGINE_CONFIG.MAX_RECENT_KNOWLEDGE_KEYS),
+      knowledgeIds: entries.map((e) => e.knowledgeId).filter(Boolean).slice(-ENGINE_CONFIG.MAX_RECENT_KNOWLEDGE_KEYS),
       formats: entries.map((e) => e.format).filter(Boolean).slice(-ENGINE_CONFIG.MAX_RECENT_FORMATS),
       categories: entries.map((e) => e.category).filter((c) => c > 0),
       subtopics: entries.map((e) => e.subtopic).filter(Boolean),
@@ -117,17 +118,17 @@
           knowledgeMeta: meta?.knowledge,
           categoryNumber: meta?.category,
         }),
+        knowledgeId: meta?.knowledgeId ? String(meta.knowledgeId) : '',
         difficulty: meta?.difficulty || 2,
         subtopic: meta?.subtopic || '',
         ts: Date.now(),
       };
       const entries = store[ageBandKey].entries || [];
-      const kKey = meta?.knowledgeKey || computeKnowledgeKey(question, answer, formatId, normalizeFn, {
-        knowledgeMeta: meta?.knowledge,
-        categoryNumber: meta?.category,
-      });
+      const kKey = entry.knowledgeKey;
+      const kId = entry.knowledgeId;
       const dup = entries.some((e) => normalizeFn(e.q) === normQ)
-        || entries.some((e) => e.knowledgeKey && knowledgeKeysMatch(e.knowledgeKey, kKey, normalizeFn));
+        || entries.some((e) => e.knowledgeKey && knowledgeKeysMatch(e.knowledgeKey, kKey, normalizeFn))
+        || (kId && entries.some((e) => e.knowledgeId && e.knowledgeId === kId));
       if (!dup) entries.push(entry);
       store[ageBandKey].entries = trimHistoryEntries(entries);
       storage.setItem(PERSISTENT_HISTORY_KEY, JSON.stringify(store));

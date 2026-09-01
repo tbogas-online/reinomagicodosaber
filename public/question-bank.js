@@ -217,14 +217,17 @@
 
   /**
    * Escolhe uma pergunta do banco Supabase (não reportada).
+   * @param {string[]} excludeHashes — question_hash já vistos nesta ronda
+   * @param {string[]} excludeKnowledgeIds — knowledgeId já usados (sessão + histórico)
    */
-  async function pick(categoryN, ageBand, excludeHashes) {
+  async function pick(categoryN, ageBand, excludeHashes, excludeKnowledgeIds) {
     const c = await ensureClient();
     if (!c) return null;
     const { data, error } = await c.rpc('pick_question_from_bank', {
       p_category_n: categoryN,
       p_age_band: ageBand,
       p_exclude_hashes: Array.isArray(excludeHashes) ? excludeHashes : [],
+      p_exclude_knowledge_ids: Array.isArray(excludeKnowledgeIds) ? excludeKnowledgeIds : [],
     });
     if (error) {
       console.warn('[QuestionBank] pick falhou:', error.message);

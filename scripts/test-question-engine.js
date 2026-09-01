@@ -1376,5 +1376,26 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('160. curiosidade repositório mismatch', !badCurRepo.ok);
 }
 
+// 161–162. KR-4 — reuse por knowledgeId
+{
+  const r = QE.validateQuestion({
+    q: 'Um polvo tem três corações. Verdadeiro ou Falso?',
+    a: 'Verdadeiro',
+    options: ['Verdadeiro', 'Falso'],
+  }, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.CURIOSIDADE, isMC: true }),
+    usedKnowledgeIds: ['knw-cat20-cur-sample-001'],
+    repositoryRecord: { knowledgeId: 'knw-cat20-cur-sample-001', answer: 'Verdadeiro' },
+    helpers: {
+      stripTags,
+      validateTrueFalseQuestion: () => ({ ok: true, issues: [] }),
+      ageBandKey: '10-15',
+    },
+  });
+  assert('161. knowledgeId repetido rejeitado', !r.ok && r.issues.some((i) => /knowledgeId|repositório/i.test(i)));
+  const slice = QE.getPersistentSlice('10-15');
+  assert('162. persistent slice knowledgeIds', Array.isArray(slice.knowledgeIds));
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

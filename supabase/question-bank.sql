@@ -76,7 +76,8 @@ $$;
 CREATE OR REPLACE FUNCTION public.pick_question_from_bank(
   p_category_n INT,
   p_age_band TEXT,
-  p_exclude_hashes TEXT[] DEFAULT '{}'::TEXT[]
+  p_exclude_hashes TEXT[] DEFAULT '{}'::TEXT[],
+  p_exclude_knowledge_ids TEXT[] DEFAULT '{}'::TEXT[]
 )
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -100,6 +101,13 @@ BEGIN
       SELECT 1 FROM public.question_bank_blocked b WHERE b.question_hash = qb.question_hash
     )
     AND (p_exclude_hashes IS NULL OR cardinality(p_exclude_hashes) = 0 OR qb.question_hash <> ALL(p_exclude_hashes))
+    AND (
+      p_exclude_knowledge_ids IS NULL
+      OR cardinality(p_exclude_knowledge_ids) = 0
+      OR qb.knowledge_id IS NULL
+      OR qb.knowledge_id = ''
+      OR qb.knowledge_id <> ALL(p_exclude_knowledge_ids)
+    )
     AND public.reino_has_valid_mc_options(qb.options, qb.format, qb.correct_answer)
   ORDER BY random()
   LIMIT 1;
@@ -114,6 +122,7 @@ BEGIN
     'options', v_row.options,
     'format', v_row.format,
     'knowledge_key', v_row.knowledge_key,
+    'knowledge_id', v_row.knowledge_id,
     'question_hash', v_row.question_hash,
     'source', 'bank'
   );
@@ -406,7 +415,7 @@ GRANT EXECUTE ON FUNCTION public.get_question_bank_stats() TO service_role;
 REVOKE ALL ON FUNCTION public.purge_question_bank_without_options() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.purge_question_bank_without_options() TO service_role;
 
-GRANT EXECUTE ON FUNCTION public.pick_question_from_bank(INT, TEXT, TEXT[]) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.pick_question_from_bank(INT, TEXT, TEXT[], TEXT[]) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.save_question_to_bank(INT, TEXT, TEXT, TEXT, TEXT, JSONB, TEXT, TEXT, TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.mark_question_reported(TEXT) TO anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.import_questions_batch(JSONB) TO anon, authenticated;
