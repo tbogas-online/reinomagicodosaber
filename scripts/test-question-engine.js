@@ -26,6 +26,8 @@ const engineScripts = [
   'question-engine/age-validators.js',
   'question-engine/category-validators.js',
   'question-engine/semantic-validators.js',
+  'question-engine/repetition-validators.js',
+  'question-engine/persistent-history.js',
   'question-engine.js',
 ];
 const memStore = {};
@@ -1133,6 +1135,19 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 {
   const Sem = sandbox.globalThis.QuestionEngineSemanticValidators;
   assert('137. semantic-validators stereotype', Sem.hasCulturalStereotype('Os japoneses são muito educados'));
+}
+
+// 138. Fase 7g — repetition-validators modular
+{
+  const Rep = sandbox.globalThis.QuestionEngineRepetitionValidators;
+  const sim = Rep.jaccardSimilarity('qual a capital de portugal', 'capital de portugal');
+  assert('138. repetition jaccard', sim >= 0.3 && !Number.isNaN(sim), String(sim));
+}
+
+// 139. Fase 8 — persistent-history modular
+{
+  const slice = QE.getPersistentSlice('6-9');
+  assert('139. persistent-history slice shape', Array.isArray(slice.questions) && Array.isArray(slice.entries));
 }
 {
   QE.clearGenerationTelemetry();
