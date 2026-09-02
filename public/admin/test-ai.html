@@ -376,8 +376,30 @@
     }
     .admin-login-status { font-size: 0.9rem; margin: 10px 0 0; min-height: 1.2em; }
     .admin-login-status.err { color: var(--err); }
-    .admin-nav { margin-bottom: 14px; font-size: 0.9rem; }
-    .admin-nav a { color: #7dd3fc; margin-right: 12px; }
+    .admin-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+    .admin-nav a {
+      display: inline-flex;
+      align-items: center;
+      padding: 8px 14px;
+      border-radius: 10px;
+      border: 1px solid rgba(201,162,39,0.5);
+      background: rgba(201,162,39,0.18);
+      color: var(--gold-bright);
+      text-decoration: none;
+      font-size: 0.88rem;
+      font-weight: 600;
+    }
+    .admin-nav a:hover { background: rgba(201,162,39,0.32); }
+    :root[data-theme="day"] .admin-nav a {
+      background: rgba(154,114,24,0.12);
+      border-color: rgba(154,114,24,0.35);
+      color: var(--gold);
+    }
   </style>
 </head>
 <body>
@@ -390,14 +412,17 @@
     <input id="adminPass" type="password" autocomplete="current-password">
     <p style="margin-top:14px;"><button type="button" class="btn" id="adminLoginBtn">Entrar</button></p>
     <p class="admin-login-status" id="adminLoginStatus"></p>
-    <p class="admin-nav" style="margin-top:16px;"><a href="/">← Jogo</a> · <a href="/admin-reports.html">Painel admin</a></p>
+    <nav class="admin-nav" aria-label="Navegação" style="margin-top:16px;">
+      <a href="/">← Jogo</a>
+      <a href="/admin-reports.html">Painel admin</a>
+    </nav>
   </section>
   <div class="wrap" id="adminApp" hidden>
-    <div class="admin-nav">
+    <nav class="admin-nav" aria-label="Navegação">
       <a href="/">← Jogo</a>
       <a href="/admin-reports.html">Painel admin</a>
       <a href="/admin/test-questions.html">Teste de perguntas</a>
-    </div>
+    </nav>
     <div class="page-head">
       <h1>🔌 Teste de IA</h1>
       <div class="theme-toggle" aria-label="Tema">
@@ -488,7 +513,11 @@
         <li><strong>500 sem chave</strong> — falta <code>GROQ_API_KEY</code> (ou outra) em Environment variables.</li>
         <li><strong>404</strong> — deploy sem <code>netlify/functions</code> ou sem redirect para <code>/api/generate</code>.</li>
       </ul>
-      <p><a href="/admin-reports.html">← Painel admin</a> · <a href="/">Jogo</a> · <a href="/version.json" target="_blank" rel="noopener">version.json</a></p>
+      <nav class="admin-nav" aria-label="Navegação" style="margin-top:12px;">
+        <a href="/admin-reports.html">← Painel admin</a>
+        <a href="/">Jogo</a>
+        <a href="/version.json" target="_blank" rel="noopener">version.json</a>
+      </nav>
     </div>
   </div>
 

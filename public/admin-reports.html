@@ -54,6 +54,43 @@
     button.danger { background: #991b1b; border-color: #991b1b; }
     button.success { background: #047857; border-color: #047857; }
     button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .admin-top-nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin: 0 0 20px;
+      align-items: center;
+    }
+    .admin-nav-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1px solid #3b82f6;
+      background: #1d4ed8;
+      color: #fff;
+      text-decoration: none;
+      font-size: 0.9rem;
+      font-weight: 600;
+      line-height: 1.2;
+    }
+    .admin-nav-btn:hover { background: #2563eb; border-color: #60a5fa; }
+    .admin-nav-btn.secondary {
+      background: var(--card);
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .admin-nav-btn.secondary:hover {
+      background: #334155;
+      border-color: #64748b;
+    }
+    .admin-top-nav-tools {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .admin-top-nav-tools.hidden { display: none; }
     .stat strong { display: block; font-size: 1.2rem; line-height: 1.2; }
     .stat span { color: var(--muted); font-size: 10px; line-height: 1.25; }
     .stat.stat-open {
@@ -942,11 +979,13 @@
   <div class="wrap">
     <h1>Painel admin</h1>
     <p class="sub">Reportes, salas multijogador e banco de perguntas. Acesso com utilizador e palavra-passe.</p>
-    <p class="sub"><a href="/">← Voltar ao jogo</a></p>
-    <p class="sub admin-tools-links hidden" id="adminToolsLinks">
-      <a href="/admin/test-ai.html">🧪 Teste IA</a> ·
-      <a href="/admin/test-questions.html">🧪 Teste perguntas</a>
-    </p>
+    <nav class="admin-top-nav" aria-label="Navegação">
+      <a class="admin-nav-btn" href="/">← Voltar ao jogo</a>
+      <span class="admin-top-nav-tools hidden" id="adminToolsLinks">
+        <a class="admin-nav-btn secondary" href="/admin/test-ai.html">🧪 Teste IA</a>
+        <a class="admin-nav-btn secondary" href="/admin/test-questions.html">🧪 Teste perguntas</a>
+      </span>
+    </nav>
 
     <section class="card" id="loginCard">
       <div class="row">
