@@ -164,8 +164,46 @@
     }
     #bulkCount { font-size: 12px; color: var(--muted); min-width: 110px; }
     .row-check { width: 18px; height: 18px; cursor: pointer; }
-    .actions-cell { white-space: nowrap; }
-    .actions-cell button { font-size: 12px; padding: 6px 8px; margin: 0 2px 2px 0; }
+    .actions-cell { white-space: normal; min-width: 168px; }
+    .actions-cell button { font-size: 12px; padding: 6px 8px; margin: 0 2px 4px 0; }
+    .reports-table-wrap {
+      overflow-x: auto;
+      max-width: 100%;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -16px;
+      padding: 0 16px;
+    }
+    .reports-table {
+      width: 100%;
+      min-width: 1080px;
+      border-collapse: collapse;
+      font-size: 13px;
+    }
+    .reports-table .col-question {
+      max-width: 300px;
+      min-width: 180px;
+      word-break: break-word;
+      white-space: normal;
+    }
+    .reports-table .col-device {
+      white-space: nowrap;
+      font-size: 12px;
+    }
+    .reports-table .col-date,
+    .reports-table .col-resolved {
+      white-space: nowrap;
+      font-size: 12px;
+    }
+    .reports-table .col-actions {
+      position: sticky;
+      right: 0;
+      z-index: 1;
+      background: var(--card);
+      box-shadow: -8px 0 12px rgba(15, 23, 42, 0.35);
+    }
+    .reports-table thead .col-actions {
+      z-index: 2;
+    }
     .detail { display: none; margin-top: 8px; font-size: 12px; color: var(--muted); user-select: text; }
     tr.open .detail { display: block; }
     .detail-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; }
@@ -884,11 +922,13 @@
       .stat:nth-child(2n) { border-right: none; }
       .stat:nth-last-child(-n+2) { border-bottom: none; }
       .stat:last-child:nth-child(odd) { border-right: none; grid-column: 1 / -1; }
-      table, thead, tbody, th, td, tr { display: block; }
-      thead { display: none; }
-      tr { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; padding: 8px; }
-      td { border: 0; padding: 4px 0; }
-      td::before {
+      table:not(.reports-table):not(.bank-matrix), table:not(.reports-table):not(.bank-matrix) thead,
+      table:not(.reports-table):not(.bank-matrix) tbody, table:not(.reports-table):not(.bank-matrix) th,
+      table:not(.reports-table):not(.bank-matrix) td, table:not(.reports-table):not(.bank-matrix) tr { display: block; }
+      table:not(.reports-table):not(.bank-matrix) thead { display: none; }
+      table:not(.reports-table):not(.bank-matrix) tr { border: 1px solid var(--border); border-radius: 10px; margin-bottom: 10px; padding: 8px; }
+      table:not(.reports-table):not(.bank-matrix) td { border: 0; padding: 4px 0; }
+      table:not(.reports-table):not(.bank-matrix) td::before {
         content: attr(data-label);
         display: block;
         color: var(--muted);
@@ -1045,7 +1085,7 @@
         <p class="status" id="listStatus"></p>
       </div>
 
-      <div class="card" style="overflow-x:auto;">
+      <div class="card">
         <div class="bulk-bar">
           <label><input type="checkbox" id="selectAllReports" class="row-check"> Selecionar página</label>
           <span id="bulkCount">0 selecionados</span>
@@ -1054,24 +1094,26 @@
           <button type="button" id="bulkReopen" class="secondary" disabled>↩ Reabrir</button>
           <button type="button" id="bulkDelete" class="danger" disabled>🗑 Apagar</button>
         </div>
-        <table>
+        <div class="reports-table-wrap">
+        <table class="reports-table">
           <thead>
             <tr>
               <th style="width:28px;"></th>
-              <th>Data</th>
+              <th class="col-date">Data</th>
               <th>Estado</th>
-              <th>Resolvido em</th>
+              <th class="col-resolved">Resolvido em</th>
               <th>Problema</th>
-              <th>Pergunta</th>
+              <th class="col-question">Pergunta</th>
               <th>Categoria</th>
               <th>Idade</th>
-              <th>Dispositivo</th>
+              <th class="col-device">Dispositivo</th>
               <th>Jogador</th>
-              <th></th>
+              <th class="col-actions"></th>
             </tr>
           </thead>
           <tbody id="reportsBody"></tbody>
         </table>
+        </div>
         <div class="pager">
           <button id="prevBtn" type="button" class="secondary">← Anterior</button>
           <span id="pagerInfo"></span>
@@ -3130,11 +3172,11 @@
           : (r.question || '—');
         return `<tr data-id="${esc(r.reportId)}" class="${status === 'resolved' ? 'is-resolved' : ''}${status === 'cancelled' ? ' is-cancelled' : ''}">
           <td data-label="Selecionar"><input type="checkbox" class="row-check report-select" data-id="${esc(r.reportId)}" ${checked} aria-label="Selecionar reporte"></td>
-          <td data-label="Data">${esc(r.createdAtPortugal || r.receivedAt || '')}</td>
+          <td data-label="Data" class="col-date">${esc(r.createdAtPortugal || r.receivedAt || '')}</td>
           <td data-label="Estado">${statusPill(r)}</td>
-          <td data-label="Resolvido em">${status === 'resolved' ? esc(formatResolvidoEm(r) || '—') : '—'}</td>
+          <td data-label="Resolvido em" class="col-resolved">${status === 'resolved' ? esc(formatResolvidoEm(r) || '—') : '—'}</td>
           <td data-label="Problema"><span class="pill">${esc(r.issueLabel || ISSUE_LABELS[r.issueType] || r.issueType)}</span></td>
-          <td data-label="Pergunta">${esc(summary)}
+          <td data-label="Pergunta" class="col-question">${esc(summary)}
             <div class="detail">
               ${isSite ? `<div><strong>Página:</strong> ${esc(r.page || 'about')} · <strong>Origem:</strong> site</div>` : `
               <div><strong>Correta:</strong> ${esc(r.correctAnswer || '—')}</div>
@@ -3160,9 +3202,9 @@
           </td>
           <td data-label="Categoria">${isSite ? 'Site/app' : esc(r.category?.name || '—')}</td>
           <td data-label="Idade">${esc(r.ageBand || '—')}</td>
-          <td data-label="Dispositivo">${esc(deviceSummary)}</td>
+          <td data-label="Dispositivo" class="col-device">${esc(deviceSummary)}</td>
           <td data-label="Jogador"><code>${esc((r.reporterId || '—').slice(0, 12))}</code></td>
-          <td data-label="Ações" class="actions-cell">
+          <td data-label="Ações" class="actions-cell col-actions">
             <button type="button" class="secondary toggle-detail">Detalhe</button>
             ${status !== 'resolved' ? `<button type="button" class="success resolve-report">Resolver</button>` : ''}
             ${status !== 'cancelled' ? `<button type="button" class="secondary cancel-report">Cancelar</button>` : ''}

@@ -386,8 +386,34 @@ async function getStats(_event, filters = {}) {
 }
 
 async function clearAll() {
-  const cleared = await supabaseRpc('clear_gen_telemetry_events');
-  return { cleared: Number(cleared) || 0 };
+  try {
+    const cleared = await supabaseRpc('clear_gen_telemetry_events');
+    return { cleared: Number(cleared) || 0 };
+  } catch (rpcErr) {
+    console.warn('[gen-telemetry-store] RPC clear_gen_telemetry_events indisponível, fallback REST:', rpcErr.message);
+    const cfg = getSupabaseAdmin();
+    if (!cfg) throw rpcErr;
+
+    const response = await fetch(`${cfg.url}/rest/v1/${TABLE}?event_ts=gte.0`, {
+      method: 'DELETE',
+      headers: {
+        apikey: cfg.key,
+        Authorization: `Bearer ${cfg.key}`,
+        Prefer: 'count=exact',
+      },
+    });
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      const err = new Error(text || `Supabase DELETE HTTP ${response.status}`);
+      err.status = response.status;
+      throw err;
+    }
+
+    const range = response.headers.get('content-range') || '';
+    const match = range.match(/\/(\d+)$/);
+    return { cleared: match ? Number(match[1]) : 0, fallback: true };
+  }
 }
 
 module.exports = {
