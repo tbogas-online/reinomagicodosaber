@@ -3,7 +3,6 @@
   publish = "public"
 
 [dev]
-  command = "node scripts/generate-version.js"
   publish = "public"
   port = 8888
   framework = "#static"
