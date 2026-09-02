@@ -17,7 +17,8 @@ function isKiteRiddleContext(text) {
 
 /** «Pipa» = kite em PT-BR; em Portugal é papagaio de papel. */
 function normalizeAdivinhaAnswerPt(question, answer) {
-  const a = String(answer || '').trim();
+  let a = String(answer || '').trim();
+  if (/^uma\s+pulga\b/i.test(a)) return 'Pulga';
   if (!/^pipa$/i.test(a)) return a;
   if (isKiteRiddleContext(question)) return 'Papagaio de papel';
   return a;

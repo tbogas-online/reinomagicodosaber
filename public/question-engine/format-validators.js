@@ -56,6 +56,10 @@ function validateCuriosidade(q) {
   const surpriseFrame = /\b(sabias que|sabias|é verdade que|curiosamente|surpreendentemente|incrível|poucas pessoas sabem)\b/i.test(body)
     || /verdadeiro\s+ou\s+falso/i.test(body);
 
+  if (surpriseFrame && !/verdadeiro\s+ou\s+falso/i.test(body)) {
+    pushFormatViolation(issues, 'CURIOSIDADE: inclui "Verdadeiro ou Falso?" no final da pergunta');
+  }
+
   if (/^em que ano\b|^qual é o ano\b|^em que ano foram\b|^quando foram realizados\b/i.test(body) && !surpriseFrame) {
     pushFormatViolation(issues, 'CURIOSIDADE não deve ser pergunta simples de ano/data');
   }
@@ -163,6 +167,13 @@ function validateOndeFica(q, options, stripTags) {
 
 function validateAdivinhaQuality(q, a) {
   const issues = [];
+  const answer = String(a || '').trim();
+  if (!answer || /^sem\s+resposta$/i.test(answer)) {
+    pushIssue(issues, 'ADIVINHA_NO_ANSWER', ISSUE_LAYER.format, 'ADIVINHA sem solução registada');
+  }
+  if (answer.split(/\s+/).filter(Boolean).length > 5) {
+    pushIssue(issues, 'ADIVINHA_VERBOSE_ANSWER', ISSUE_LAYER.format, 'ADIVINHA: resposta demasiado longa — usa uma palavra ou expressão curta');
+  }
   if (/\bquem\s+é\s+o\s+(animal|bicho|pássaro|passaro|peixe|insecto|inseto)\b/i.test(q)) {
     pushIssue(issues, 'ADIVINHA_ANIMAL_PHRASING', ISSUE_LAYER.format, 'ADIVINHA: usa "Que animal…" em vez de "Quem é o animal"');
   }

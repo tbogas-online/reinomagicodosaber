@@ -265,6 +265,66 @@
       return term && answerFirst && term === answerFirst;
     },
     },
+    {
+      code: "FACT_39_ADIVINHA_SEM_RESPOSTA",
+      layer: LAYER.format,
+      message: "adivinha sem solução registada — não publicar",
+      when: (_q, a) => /^sem\s+resposta$/i.test(String(a || '').trim()),
+    },
+    {
+      code: "FACT_40_AVIÃO_COM_PENAS",
+      layer: LAYER.semantic,
+      message: "adivinha incoerente — avião não tem penas; reformula ou muda a resposta",
+      when: (q, a) => /\bpenas\b/i.test(q) && /\bn[aã]o\s+[eé]\s+um\s+p[aá]ssaro\b/i.test(q) && /\bavi[aã]o\b/i.test(a),
+    },
+    {
+      code: "FACT_41_RELOGIO_DENTES",
+      layer: LAYER.semantic,
+      message: "adivinha clássica dos dentes — resposta correcta é pente, não relógio",
+      when: (q, a) => /\bdentes\b/i.test(q) && /\bn[aã]o\s+morde?\b/i.test(q) && /\brel[oó]gio\b/i.test(a) && !/\bpente\b/i.test(a),
+    },
+    {
+      code: "FACT_42_CAO_NAO_E_BURRO",
+      layer: LAYER.semantic,
+      message: "pergunta errada — Burro/Donkey não é um cão; reformula",
+      when: (q, a) => /\bc[aã]o\b/i.test(q) && /\b(shrek|donkey|burro)\b/i.test(a),
+    },
+    {
+      code: "FACT_43_CRAVOS_LIDER_AMBIGUO",
+      layer: LAYER.semantic,
+      message: "pergunta ambígua — vários intervenientes no 25 de Abril; especifica o papel (ex.: comandante operacional)",
+      when: (q, a) => /\brevolu[cç][aã]o\s+dos\s+cravos\b/i.test(q) && /\bl[ií]der\b/i.test(q) && /\botelo\b/i.test(a),
+    },
+    {
+      code: "FACT_44_COSTAS_ALFINETE",
+      layer: LAYER.semantic,
+      message: "resposta errada — cadeira tem costas; alfinete não encaixa nas pistas",
+      when: (q, a) => /\bcostas\b/i.test(q) && /\bn[aã]o\s+tenho\s+corpo\b/i.test(q) && /\balfinete\b/i.test(a),
+    },
+    {
+      code: "FACT_45_FUTRE_FINAL_1998",
+      layer: LAYER.factual,
+      message: "facto incorrecto — na final da Champions 1998 marcou Predrag Mijatović, não Paulo Futre",
+      when: (q, a) => /\b1998\b/.test(q) && /\bliga\s+dos\s+campe[oõ]es\b/i.test(q) && /\bfinal\b/i.test(q) && /\bpaulo\s+futre\b/i.test(a),
+    },
+    {
+      code: "FACT_46_PADRAO_VAGO",
+      layer: LAYER.semantic,
+      message: "pergunta vaga — especifica o objecto (ex.: pilha, barber pole, pastilha elástica)",
+      when: (q) => /\bpadr[aã]o\s+vermelho,\s*branco,\s*vermelho\b/i.test(q),
+    },
+    {
+      code: "FACT_47_MOZART_HAYDN_OBSCURO",
+      layer: LAYER.semantic,
+      message: "pergunta demasiado obscura — simplifica ou escolhe outro tema musical",
+      when: (q) => /\bromper\s+com\s+haydn\b/i.test(q) && /\b1781\b/.test(q),
+    },
+    {
+      code: "FACT_48_CABRA_MILHO_ADIVINHA",
+      layer: LAYER.semantic,
+      message: "resposta folclórica ambígua (brincadeira oral) — não adequada ao jogo",
+      when: (q, a) => /\bcomer\s+me\s+qu.*rias\b/i.test(q) && /\bcabra\b.*\b(milho|centeio|trigo)\b/i.test(a),
+    },
   ];
 
   const CONFUSING_FACT_CODES = new Set(

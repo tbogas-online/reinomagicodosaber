@@ -1556,5 +1556,88 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('183b. adivinha pipa rejeitada', !rPipa.ok && rPipa.issueDetails?.some((i) => i.code === 'PT_BRASILISM'), rPipa.issues?.join(', '));
 }
 
+// 184–195. Reportes abertos — regras e PT-PT
+{
+  const reject = (label, parsed, ctx) => {
+    const r = QE.validateQuestion(parsed, {
+      ...baseCtx(ctx),
+      helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: ctx.ageBandKey || '10-15' },
+    });
+    assert(label, !r.ok, r.issues?.join(', '));
+  };
+  reject('184. chiclete → PT_BRASILISM', {
+    q: 'Entra duro, mas ao mastigar fica mole, elástico e doce. O que é?',
+    a: 'Chiclete',
+    options: ['Chiclete', 'Pastilha elástica', 'Caramelo', 'Goma'],
+  }, { categoryNumber: 1, formatId: QE.FORMAT_IDS.O_QUE_E, isMC: true, ageBandKey: '10-15' });
+  reject('185. bananadas → PT_BRASILISM', {
+    q: 'Sabias que as bananadas são tecnicamente ervas? Verdadeiro ou Falso?',
+    a: 'Verdadeiro',
+    options: ['Verdadeiro', 'Falso'],
+  }, { categoryNumber: 20, formatId: QE.FORMAT_IDS.CURIOSIDADE, isMC: true, ageBandKey: '10-15' });
+  reject('186. avião com penas', {
+    q: 'O que é que tem penas e pode voar, mas não é um pássaro?',
+    a: 'Um avião',
+    options: ['Um avião', 'Um pássaro', 'Uma pena', 'Um papagaio'],
+  }, { categoryNumber: 20, formatId: QE.FORMAT_IDS.ADIVINHA, isMC: true, ageBandKey: '6-9' });
+  reject('187. relógio com dentes', {
+    q: 'Tenho dentes mas não mordo, faço barulho a cada manhã. O que sou?',
+    a: 'Relógio',
+    options: ['Relógio', 'Pente', 'Serra', 'Faca'],
+  }, { categoryNumber: 20, formatId: QE.FORMAT_IDS.ADIVINHA, isMC: true, ageBandKey: '6-9' });
+  reject('188. Donkey não é cão', {
+    q: 'Quem é o cão que fala e vive com o Shrek?',
+    a: 'Donkey',
+    options: ['Donkey', 'Burro', 'Fiona', 'Gato'],
+  }, { categoryNumber: 8, formatId: QE.FORMAT_IDS.QUEM_E, isMC: true, ageBandKey: '6-9' });
+  reject('189. alfinete com costas', {
+    q: 'Tenho costas mas não tenho corpo. O que sou?',
+    a: 'Alfinete',
+    options: ['Alfinete', 'Cadeira', 'Livro', 'Espelho'],
+  }, { categoryNumber: 20, formatId: QE.FORMAT_IDS.ADIVINHA, isMC: true, ageBandKey: '6-9' });
+  reject('190. Paulo Futre 1998', {
+    q: 'Quem marcou o único golo na final da Liga dos Campeões de 1998 contra o Real Madrid?',
+    a: 'Paulo Futre',
+    options: ['Paulo Futre', 'Zidane', 'Mijatović', 'Ronaldo'],
+  }, { categoryNumber: 9, formatId: QE.FORMAT_IDS.QUEM_E, isMC: true, ageBandKey: '15+' });
+  reject('191. adivinha sem resposta', {
+    q: 'Ontem fui ramo verde. O que sou?',
+    a: 'Sem resposta',
+    clues: ['ramo verde', 'vassoura'],
+  }, { categoryNumber: 20, formatId: QE.FORMAT_IDS.ADIVINHA, isMC: false, ageBandKey: '15+' });
+  const pulgaNorm = sandbox.globalThis.QuestionEnginePtPt?.normalizeAdivinhaAnswerPt?.(
+    'Gado miúdo, Terra mimosa, Onde se poisa Deixa uma rosa.',
+    'Uma pulga a morder uma pessoa',
+  );
+  assert('192. pulga verbose → Pulga', pulgaNorm === 'Pulga');
+  const vanGogh = QE.validateQuestion({
+    q: 'Em que ano pintou Van Gogh a Noite Estrelada?',
+    a: '1889',
+    options: ['1889', '1890', '1888', '1891'],
+  }, {
+    ...baseCtx({ categoryNumber: 1, formatId: QE.FORMAT_IDS.QUANDO, isMC: true, ageBandKey: '6-9' }),
+    helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '6-9' },
+  });
+  assert('193. Van Gogh demasiado difícil para 6–9', !vanGogh.ok);
+  const curiosidade = QE.validateQuestion({
+    q: 'CURIOSIDADE: Sabias que o mel nunca estraga?',
+    a: 'Verdadeiro',
+    options: ['Verdadeiro', 'Falso'],
+  }, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.CURIOSIDADE, isMC: true, ageBandKey: '10-15' }),
+    helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '10-15' },
+  });
+  assert('194. curiosidade exige V/F na pergunta', !curiosidade.ok);
+  const cabra = QE.validateQuestion({
+    q: "Comer me qu'rias. Mas, tu morrerás E eu ficarei E dentro de ti me terei. O que sou?",
+    a: 'Uma cabra a olhar para um campo de milho ou de centeio',
+    clues: ['comer', 'morrerás'],
+  }, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.ADIVINHA, isMC: false, ageBandKey: '15+' }),
+    helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '15+' },
+  });
+  assert('195. cabra/milho adivinha ambígua rejeitada', !cabra.ok);
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

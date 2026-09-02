@@ -10,6 +10,7 @@ const MALICIOUS_CLASS_IDS = new Set(['6']);
 const PLACEHOLDER_ANSWERS = [
   /^devido ao tamanho da resposta/i,
   /^sem informa/i,
+  /^sem resposta$/i,
   /^ver na transcri/i,
 ];
 

@@ -208,6 +208,18 @@ function validatePortugueseText(blob) {
   if (/\bcamisetas?\b/i.test(blob)) {
     pushPtBrIssue(issues, 'brasileirismo — em PT-PT usa "camisola" (não "camiseta")');
   }
+  if (/\bchiclete\b/i.test(blob)) {
+    pushPtBrIssue(issues, 'brasileirismo — em PT-PT usa "pastilha elástica" (não "chiclete")');
+  }
+  if (/\bbananadas\b/i.test(blob)) {
+    pushPtBrIssue(issues, 'erro de vocabulário — em PT-PT usa "bananeiras" (planta), não "bananadas"');
+  }
+  if (/\b(marinheiro|marinha|listras\s+horizontais)\b/i.test(blob) && /\br[eé]gatas?\b/i.test(blob)) {
+    pushPtBrIssue(issues, 'em PT-PT diz "camisa às riscas" ou "camisa de marinheiro" (não "régatas")');
+  }
+  if (/\bmas\s+n[aã]o\s+voar\b/i.test(blob)) {
+    pushPtBrIssue(issues, 'erro gramatical — escreve "não voa" (não "não voar")');
+  }
   if (RE_BRASILEIRISMO.test(blob)) {
     pushPtBrIssue(issues, 'brasileirismo detectado — usa português de Portugal');
   }
@@ -222,7 +234,8 @@ function isKiteRiddleContext(text) {
 }
 
 function normalizeAdivinhaAnswerPt(question, answer) {
-  const a = String(answer || '').trim();
+  let a = String(answer || '').trim();
+  if (/^uma\s+pulga\b/i.test(a)) return 'Pulga';
   if (!/^pipa$/i.test(a)) return a;
   if (isKiteRiddleContext(question)) return 'Papagaio de papel';
   return a;

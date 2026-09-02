@@ -80,6 +80,12 @@ function validateYoungAgeContent(q, a, options, formatId) {
   if (formatId === FORMAT_IDS.QUEM_E && /\b(inventou|criou|descobriu)\s+o\s+(piano|violino|gramofone|telefone)\b/i.test(q)) {
     pushAgeHardIssue(issues, 'inventor de instrumento demasiado avançado para 6–9');
   }
+  if (/\bvan\s+gogh\b/i.test(blob) && /\bem\s+que\s+ano\b/i.test(q)) {
+    pushAgeHardIssue(issues, 'data de obra pictórica demasiado avançada para 6–9');
+  }
+  if (/\bvan\s+gogh\b/i.test(blob) && /\bnoite\s+estrelada\b/i.test(blob)) {
+    pushAgeHardIssue(issues, 'obra de arte histórica demasiado avançada para 6–9');
+  }
   if (formatId === FORMAT_IDS.QUEM_E && /\b(escreveu|escreve|autor|autora)\b/i.test(q)) {
     pushAgeHardIssue(issues, 'para 6–9 prefere personagem, não autor (ex.: "Quem é o menino de Harry Potter?")');
   }

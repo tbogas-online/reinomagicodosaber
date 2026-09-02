@@ -4262,6 +4262,8 @@
   }
 
   function buildAdivinhaDirectFromRecord(record, engine, categoryNumber, ageBandKey){
+    const rawAnswer = String(record.answer || '').trim();
+    if(!rawAnswer || /^sem\s+resposta$/i.test(rawAnswer)) return null;
     const clues = Array.isArray(record.clues) ? record.clues.map((c) => String(c).trim()).filter(Boolean) : [];
     let qText = clues.length >= 2 ? clues.join(' ') : String(record.fact || '').trim();
     qText = qText.replace(/^[«"']?\s*[^.!?]{1,40}[.!?]\s+/u, '').trim() || qText;
