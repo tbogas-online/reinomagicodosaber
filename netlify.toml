@@ -1,6 +1,8 @@
 [build]
   command = "node scripts/generate-version.js"
   publish = "public"
+  # Só faz deploy automático se o commit tiver [deploy] ou [live] — ver scripts/should-netlify-build.js
+  ignore = "node scripts/should-netlify-build.js"
 
 [dev]
   publish = "public"

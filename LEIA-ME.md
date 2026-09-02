@@ -63,7 +63,7 @@ Em qualquer uma delas, o jogo chama sempre `/api/generate` e podes configurar **
 
 ## Opção A — GitHub + Netlify (recomendado)
 
-O código fica no **GitHub**; cada `push` para `main` dispara o deploy automático no **Netlify** (liga o repositório em *Site configuration → Build & deploy → Link repository*).
+O código fica no **GitHub**; o repositório pode continuar ligado ao Netlify, mas **por defeito o `git push` já não publica em live** (poupa créditos). Testa primeiro em local (`npm run dev`); publica só quando quiseres.
 
 - **Estático:** pasta `public/`
 - **API serverless:** `netlify/functions/`
@@ -110,13 +110,31 @@ SUPABASE_SERVICE_ROLE_KEY
 
 `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` são necessários para os separadores **Salas multijogador** e **Banco de perguntas** no painel admin (`/admin-reports.html`). A service role **nunca** vai para o browser — só nas Netlify Functions.
 
-### 4. Deploy
+### 4. Fluxo: dev local → live (recomendado)
 
-Cada `git push origin main` publica automaticamente. Ou manualmente:
+| Passo | Comando | Netlify |
+|-------|---------|---------|
+| 1. Desenvolver e testar | `npm run dev` → http://localhost:8888 | Zero créditos |
+| 2. Guardar no Git | `git push origin main` | **Build ignorado** (sem tag) |
+| 3. Publicar em live | `npm run deploy:live` | Deploy manual (pede confirmação) |
+
+**Deploy automático via Git** (opcional): inclui `[deploy]` ou `[live]` na mensagem de commit:
 
 ```powershell
-.\scripts\deploy-netlify.ps1
+git commit -m "Corrigir validação COMPLETA [deploy]"
+git push origin main
 ```
+
+O ficheiro `scripts/should-netlify-build.js` (em `netlify.toml` → `[build].ignore`) decide se o Netlify constrói ou ignora o push.
+
+**Deploy manual** (não depende do Git):
+
+```powershell
+npm run deploy:live
+# ou: .\scripts\deploy-netlify.ps1
+```
+
+Na **primeira vez** após activar o ignore, publica esta alteração com `npm run deploy:live` ou um commit com `[deploy]`.
 
 ### Testar após deploy
 
@@ -415,7 +433,8 @@ Página interactiva: `/admin/test-questions.html` (credenciais admin; requer IA 
 | Script | Uso |
 |--------|-----|
 | `scripts/deploy-github.ps1` | Testes + push para GitHub (dispara Actions → Cloudflare Pages) |
-| `scripts/deploy-netlify.ps1` | Deploy produção Netlify (legado) |
+| `scripts/deploy-netlify.ps1` | Deploy produção Netlify (manual) |
+| `npm run deploy:live` | Igual, com confirmação interactiva |
 | `scripts/generate-version.js` | Versão, changelog, cache bust |
 | `scripts/test-question-engine.js` | Testes unitários do motor (57 casos) |
 | `scripts/resolve-reports-from-csv.js` | Marcar reportes como resolvidos na API |
