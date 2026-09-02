@@ -3922,6 +3922,10 @@
           if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: pergunta ignorada (reuse)', row.question_hash, row.knowledge_id || '');
           continue;
         }
+        if(isAdivinhaOpenAnswer(ageBandKey, row.format)){
+          if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: adivinha 15+ (resposta aberta)', row.question_hash);
+          return { ...row, options: null };
+        }
         const withOpts = ensureMcOptionsForQuestion(
           { q: row.q, a: row.a, options: row.options, format: row.format },
           categoryN,
@@ -3963,6 +3967,22 @@
       sourceId: bankRow.source_id || '',
       questionHash: bankRow.question_hash || hashQuestionKey(stripTags(bankRow.q) + '|' + stripTags(bankRow.a)),
     });
+    if(isAdivinhaOpenAnswer(ageBandKey, bankRow.format)){
+      return finalizeQuestion(applyAdivinhaAnswerMode({
+        q: bankRow.q,
+        a: bankRow.a,
+        source: 'bank',
+        format: bankRow.format || engine.FORMAT_IDS.ADIVINHA,
+        formatLabel: engine.FORMAT_LABELS[bankRow.format] || 'Adivinha',
+        knowledgeKey: bankRow.knowledge_key || undefined,
+        knowledgeId: bankRow.knowledge_id || undefined,
+        sourceId: bankRow.source_id || undefined,
+        sourceOrigin: bankRow.fact_source || undefined,
+        sourceUrl: bankRow.source_url || undefined,
+        bankOrigin: bankRow.bank_origin || undefined,
+        dbAddedAt: bankRow.dbCreatedAt || bankRow.db_created_at || undefined,
+      }, ageBandKey, bankRow.format));
+    }
     const withOpts = ensureMcOptionsForQuestion(
       { q: bankRow.q, a: bankRow.a, options: bankRow.options },
       category.n,
@@ -3970,7 +3990,7 @@
       bankRow.format
     );
     if(!withOpts) return null;
-    return finalizeQuestion({
+    return finalizeQuestion(applyAdivinhaAnswerMode({
       q: withOpts.q,
       a: withOpts.a,
       options: withOpts.options,
@@ -3984,7 +4004,7 @@
       sourceUrl: bankRow.source_url || undefined,
       bankOrigin: bankRow.bank_origin || undefined,
       dbAddedAt: bankRow.dbCreatedAt || bankRow.db_created_at || undefined,
-    });
+    }, ageBandKey, bankRow.format));
   }
 
   async function finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal = true } = {}){
@@ -4111,6 +4131,19 @@
   const usedKnowledgeIds = {};
   const REPO_ADIVINHA_TOPIC = 'adivinha tradicional';
   const REPO_ADIVINHA_MIN_CONFIDENCE = 0.90;
+
+  function isAdivinhaOpenAnswer(ageBandKey, formatId){
+    return ageBandKey === '15+' && String(formatId || '') === 'ADIVINHA';
+  }
+
+  function applyAdivinhaAnswerMode(item, ageBandKey, formatId){
+    if(!isAdivinhaOpenAnswer(ageBandKey, formatId || item?.format)) return item;
+    const out = { ...item };
+    delete out.options;
+    delete out.distractors;
+    return out;
+  }
+
   const CAT20_LOW_STOCK_THRESHOLD = 30;
   const CAT20_REPLENISH_BATCH = 40;
   const cat20ReplenishInflight = {};
@@ -4236,6 +4269,13 @@
       qText = qText.replace(/[.!]\s*$/, '').trim() + '. O que sou?';
     }
     const answer = formatGameText(String(record.answer || '').trim());
+    if(isAdivinhaOpenAnswer(ageBandKey, 'ADIVINHA')){
+      return {
+        q: formatGameText(qText),
+        a: answer,
+        clues: clues.slice(0, 6),
+      };
+    }
     const distractors = buildAdivinhaRepoDistractors(answer, categoryNumber, ageBandKey);
     if(!distractors) return null;
     const options = engine.assembleMcOptions(answer, distractors.map(formatGameText));
@@ -4561,8 +4601,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         if(useDirect){
           parsed = buildAdivinhaDirectFromRecord(record, engine, category.n, ageBandKey);
           if(!parsed) continue;
-          if(!recentMcPositions[ageBandKey]) recentMcPositions[ageBandKey] = [];
-          parsed.options = engine.shuffleMcOptions(parsed.options, parsed.a, normalizeQ, recentMcPositions[ageBandKey]);
+          if(!isAdivinhaOpenAnswer(ageBandKey, questionFormat)){
+            if(!recentMcPositions[ageBandKey]) recentMcPositions[ageBandKey] = [];
+            parsed.options = engine.shuffleMcOptions(parsed.options, parsed.a, normalizeQ, recentMcPositions[ageBandKey]);
+          }
         } else if(skipAi){
           continue;
         } else {
@@ -4609,7 +4651,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         parsed.q = formatGameText(parsed.q);
         parsed.a = formatGameText(parsed.a);
 
-        if(Array.isArray(parsed.distractors) && parsed.distractors.length >= 3){
+        if(isAdivinhaOpenAnswer(ageBandKey, questionFormat)){
+          if(!Array.isArray(parsed.clues) || parsed.clues.length < 2) continue;
+          delete parsed.options;
+          delete parsed.distractors;
+        } else if(Array.isArray(parsed.distractors) && parsed.distractors.length >= 3){
           parsed.options = engine.assembleMcOptions(parsed.a, parsed.distractors.map(formatGameText));
           delete parsed.distractors;
         } else if(Array.isArray(parsed.options)){
@@ -4619,8 +4665,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           continue;
         }
 
-        if(!recentMcPositions[ageBandKey]) recentMcPositions[ageBandKey] = [];
-        parsed.options = engine.shuffleMcOptions(parsed.options, parsed.a, normalizeQ, recentMcPositions[ageBandKey]);
+        if(!isAdivinhaOpenAnswer(ageBandKey, questionFormat)){
+          if(!recentMcPositions[ageBandKey]) recentMcPositions[ageBandKey] = [];
+          parsed.options = engine.shuffleMcOptions(parsed.options, parsed.a, normalizeQ, recentMcPositions[ageBandKey]);
+        }
         }
 
         const qualityCheck = engine.validateQuestion(parsed, buildQuestionValidationCtx(engine, {
@@ -4731,7 +4779,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           }).catch(() => {});
         }
 
-        return finalizeQuestion({
+        return finalizeQuestion(applyAdivinhaAnswerMode({
           ...parsed,
           source: 'repository',
           format: questionFormat,
@@ -4745,7 +4793,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           sourceUrl: record.sourceUrl,
           dbAddedAt: record.createdAt || undefined,
           confidence: record.confidence,
-        });
+        }, ageBandKey, questionFormat));
       } catch (err) {
         if(DEBUG_MODE) console.warn('[KnowledgeRepository] tentativa falhou:', err?.message || err);
       }
@@ -4986,9 +5034,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
     const localOnly = aiProviderChoice === 'local';
     if(!localOnly && !isCat20 && !aiStatusOnline) await tryRestoreAiOnline();
-    const isMC = true;
     const remember = (qText) => rememberGlobalQuestion(ageBandKey, qText);
     const questionFormat = chooseQuestionFormat(category.n, ageBandKey);
+    const isOpenAdivinha = isAdivinhaOpenAnswer(ageBandKey, questionFormat);
+    const isMC = !isOpenAdivinha;
     const isCuriosidade = questionFormat === engine.FORMAT_IDS.CURIOSIDADE;
     const isTrueFalse = questionFormat === engine.FORMAT_IDS.VERDADEIRO_FALSO || isCuriosidade;
     const persistent = engine.getPersistentSlice(ageBandKey);
@@ -5022,7 +5071,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const mcInstruction = isTrueFalse
       ? ` Inclui também um array "options" com EXATAMENTE 2 opções: ["Verdadeiro","Falso"] (nesta ordem), sendo "a" igual a "Verdadeiro" ou "Falso" consoante a resposta correta. PROIBIDO: "Não sei", "Às vezes", "Talvez" ou outras opções.`
       : (questionFormat === 'ADIVINHA'
-        ? ` Inclui "a", "clues" (array com 2–5 pistas curtas que apontam unicamente para a resposta) e "distractors" (3 opções erradas plausíveis). Campos OBRIGATÓRIOS: "q", "a", "clues", "distractors".${mcDifficultyExtra}`
+        ? (isOpenAdivinha
+          ? ` Resposta ABERTA (sem escolha múltipla): inclui "q", "a" e "clues" (array com 2–5 pistas curtas). NÃO incluas "options" nem "distractors".`
+          : ` Inclui "a", "clues" (array com 2–5 pistas curtas que apontam unicamente para a resposta) e "distractors" (3 opções erradas plausíveis). Campos OBRIGATÓRIOS: "q", "a", "clues", "distractors".${mcDifficultyExtra}`)
         : ` Inclui "a" com a resposta correcta e um array "distractors" com EXACTAMENTE 3 opções erradas plausíveis da mesma classe conceptual (nomes/termos curtos). O JavaScript baralhará as opções — NÃO envies "options" completo. Campos OBRIGATÓRIOS: "q" (pergunta completa), "a" (resposta), "distractors" (3 strings) — nunca omitas "q".${mcDifficultyExtra}`);
     const knowledgeHint = engine.KNOWLEDGE_JSON_HINT || '';
     const jsonFormat = isTrueFalse
@@ -5030,7 +5081,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         ? `{"q":"Sabias que um polvo tem três corações? Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]${knowledgeHint}}`
         : `{"q":"A Lua orbita a Terra. Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]${knowledgeHint}}`)
       : (questionFormat === 'ADIVINHA'
-        ? `{"q":"Tenho dentes mas não mordo. O que sou?","a":"Pente","clues":["tem dentes","não morde"],"distractors":["Garfo","Colher","Faca"]${knowledgeHint}}`
+        ? (isOpenAdivinha
+          ? `{"q":"Tenho dentes mas não mordo. O que sou?","a":"Pente","clues":["tem dentes","não morde"]${knowledgeHint}}`
+          : `{"q":"Tenho dentes mas não mordo. O que sou?","a":"Pente","clues":["tem dentes","não morde"],"distractors":["Garfo","Colher","Faca"]${knowledgeHint}}`)
         : `{"q":"pergunta","a":"resposta correta","distractors":["errada1","errada2","errada3"]${knowledgeHint}}`);
 
     const usedAnswerSet = new Set(
@@ -5326,7 +5379,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           persistentKnowledgeIds: persistent.knowledgeIds || [],
           persistentKnowledgeKeys: persistent.knowledgeKeys,
           questionHash: hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a)),
-          isMC,
+          isMC: !isAdivinhaOpenAnswer(ageBandKey, questionFormat),
           stripTags,
           normalizeFn: normalizeQ,
           helpers: { stripTags, validateTrueFalseQuestion, ageBandKey },
@@ -6642,6 +6695,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function questionUsesMcOptions(question){
+    if(isAdivinhaOpenAnswer(selectedAgeBand, question?.format)) return false;
     return Array.isArray(question?.options) && question.options.length >= 2;
   }
   const TIME_OPTIONS = [15, 30, 45, 60, 90];

@@ -114,9 +114,11 @@ Em matemática, calcula internamente a resposta.${mcNote}`,
       ADIVINHA: (ageBandKey === '6-9' || ageBandKey === '10-15')
         ? `FORMATO: ADIVINHA — adivinha tradicional portuguesa de cultura popular (ditados, brincadeiras de infância). Tom lúdico; podes usar linguagem e imagens poéticas típicas das adivinhas clássicas, mesmo que a frase seja mais longa ou a resposta seja uma palavra menos óbvia para quem não conhece o ditado.
 NÃO transformes um facto escolar directo numa adivinha forçada. Inclui array "clues" com 2–5 pistas curtas.`
-        : `FORMATO: ADIVINHA — adivinha tradicional portuguesa, tom lúdico, adequada à idade. NÃO transformes um facto directo numa adivinha forçada.
+        : (ageBandKey === '15+'
+          ? `FORMATO: ADIVINHA — adivinha tradicional portuguesa, tom lúdico. Resposta ABERTA (o jogador escreve/pensa a resposta — sem opções de escolha múltipla). Inclui array "clues" com 2–5 pistas curtas validadas semanticamente.`
+          : `FORMATO: ADIVINHA — adivinha tradicional portuguesa, tom lúdico, adequada à idade. NÃO transformes um facto directo numa adivinha forçada.
 Usa "Que animal…" / "O que é…" — NÃO "Quem é o animal". A resposta tem de encaixar claramente nas pistas (ex.: instrumento batido → tambor, não bola).
-Inclui array "clues" com 2–5 pistas curtas (frases ou fragmentos) que apontam unicamente para a resposta — serão validadas semanticamente.`,
+Inclui array "clues" com 2–5 pistas curtas (frases ou fragmentos) que apontam unicamente para a resposta — serão validadas semanticamente.`),
       CURIOSIDADE: `FORMATO OBRIGATÓRIO: CURIOSIDADE — facto surpreendente em PT-PT claro, que provoque "Não sabia disso!". Frase curta e natural em voz alta.
 SEMPRE Verdadeiro ou Falso: afirmação + "Verdadeiro ou Falso?" no final. Campo "a" = exactamente "Verdadeiro" ou "Falso". Opções: ["Verdadeiro","Falso"] — PROIBIDO "Não sei", "Às vezes", distractores de escolha múltipla.
 BOM: "Sabias que os Jogos Olímpicos de Tóquio de 2020 só se realizaram em 2021 por causa da pandemia? Verdadeiro ou Falso?" / "É verdade que um polvo tem três corações? Verdadeiro ou Falso?"
