@@ -4292,26 +4292,26 @@
     };
 
     const BANK_CATEGORIES = [
-      { n: 1, name: 'Conhecimentos Gerais' },
-      { n: 2, name: 'Geografia' },
-      { n: 3, name: 'História' },
-      { n: 4, name: 'Ciência' },
-      { n: 5, name: 'Natureza' },
-      { n: 6, name: 'Espaço' },
-      { n: 7, name: 'Matemática e Lógica' },
-      { n: 8, name: 'Literatura' },
-      { n: 9, name: 'Português' },
-      { n: 10, name: 'Arte' },
-      { n: 11, name: 'Cinema e Séries' },
-      { n: 12, name: 'Música' },
-      { n: 13, name: 'Moda' },
-      { n: 14, name: 'Gastronomia' },
-      { n: 15, name: 'Desporto' },
-      { n: 16, name: 'Jogos' },
-      { n: 17, name: 'Tecnologia' },
-      { n: 18, name: 'Culturas do Mundo' },
-      { n: 19, name: 'Transportes' },
-      { n: 20, name: 'Adivinhas e Curiosidades' },
+      { n: 1, e: '🧠', name: 'Conhecimentos Gerais' },
+      { n: 2, e: '🌍', name: 'Geografia' },
+      { n: 3, e: '📜', name: 'História' },
+      { n: 4, e: '🔬', name: 'Ciência' },
+      { n: 5, e: '🌿', name: 'Natureza' },
+      { n: 6, e: '🌌', name: 'Espaço' },
+      { n: 7, e: '➗', name: 'Matemática e Lógica' },
+      { n: 8, e: '📖', name: 'Literatura' },
+      { n: 9, e: '✍️', name: 'Português' },
+      { n: 10, e: '🎨', name: 'Arte' },
+      { n: 11, e: '🎭', name: 'Cinema e Séries' },
+      { n: 12, e: '🎵', name: 'Música' },
+      { n: 13, e: '👗', name: 'Moda' },
+      { n: 14, e: '🍽️', name: 'Gastronomia' },
+      { n: 15, e: '⚽', name: 'Desporto' },
+      { n: 16, e: '🎮', name: 'Jogos' },
+      { n: 17, e: '💻', name: 'Tecnologia' },
+      { n: 18, e: '🌎', name: 'Culturas do Mundo' },
+      { n: 19, e: '🚗', name: 'Transportes' },
+      { n: 20, e: '🤔', name: 'Adivinhas e Curiosidades' },
     ];
     const BANK_AGE_BANDS = ['6-9', '10-15', '15+'];
     const BANK_AGE_CHART_LABELS = {
@@ -5014,11 +5014,29 @@
       return '📊';
     }
 
-    function formatGameStatsCategoryIcon(categoryN) {
-      const icons = ['🌍', '🏛️', '🔬', '🎨', '⚽', '🎵', '📐', '🌿', '🚀', '🎭', '🍳', '💡', '📖', '🎬', '🧪', '🏺', '🎮', '🧵', '🦁', '✨'];
-      const n = Number(categoryN);
-      if (!Number.isFinite(n) || n < 1) return '📚';
-      return icons[(n - 1) % icons.length];
+    function formatGameStatsCategoryLabel(c) {
+      const n = Number(c?.categoryN);
+      if (Number.isFinite(n)) {
+        const known = BANK_CATEGORIES.find((cat) => cat.n === n);
+        if (known) return known.name;
+      }
+      return c?.category || (Number.isFinite(n) ? `Categoria ${n}` : '—');
+    }
+
+    function formatGameStatsCategoryIcon(categoryN, categoryName) {
+      const byN = BANK_CATEGORIES.find((c) => c.n === Number(categoryN));
+      if (byN?.e) return byN.e;
+      const name = String(categoryName || '').trim().toLowerCase();
+      if (name) {
+        const byName = BANK_CATEGORIES.find((c) => c.name.toLowerCase() === name);
+        if (byName?.e) return byName.e;
+        const m = name.match(/^categoria\s+(\d+)$/i);
+        if (m) {
+          const byParsed = BANK_CATEGORIES.find((c) => c.n === Number(m[1]));
+          if (byParsed?.e) return byParsed.e;
+        }
+      }
+      return '📚';
     }
 
     function formatGameStatsDifficultyBadge(value) {
@@ -5336,12 +5354,12 @@
         return;
       }
       body.innerHTML = cats.map((c) => {
-        const label = c.category || (c.categoryN != null ? `Categoria ${c.categoryN}` : '—');
+        const label = formatGameStatsCategoryLabel(c);
         return `
         <tr>
           <td>
             <span class="game-stats-cat-label">
-              <span class="game-stats-cat-icon" aria-hidden="true">${formatGameStatsCategoryIcon(c.categoryN)}</span>
+              <span class="game-stats-cat-icon" aria-hidden="true">${formatGameStatsCategoryIcon(c.categoryN, label)}</span>
               ${esc(label)}
             </span>
           </td>
