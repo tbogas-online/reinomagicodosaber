@@ -1,14 +1,27 @@
 {
   "current": [
-    "Painel admin — Banco de perguntas: gráficos temporais (1 h a total) e por categoria/faixa etária; matriz com destaque de lacunas (≤2 por faixa, ≤5 por categoria).",
-    "Painel admin — Salas e jogos: estatísticas e gráfico separados para multijogador e jogos locais.",
-    "Jogos locais (single-player) sincronizados com o Supabase ao terminar partida (tabela game_matches).",
-    "Selo IA no rodapé mostra o fornecedor e modelo reais da última chamada com sucesso; o jogo abre em modo Automática por defeito.",
-    "Normalização JSON da IA: aceita chaves em português (pergunta, opções, resposta) e remove prefixos A)/B) das opções.",
-    "OpenAI: correcção do modo json_object (palavra «json» obrigatória na conversa).",
-    "Página de teste de perguntas: indica fornecedor/modelo por pergunta; prioriza categoria e faixa com menos perguntas no Supabase."
+    "Ferramentas de teste em /admin/ (test-ai, test-questions) — credenciais admin obrigatórias; sessão partilhada com o painel.",
+    "/api/generate protegida: o jogo usa a mesma origem; chamadas externas exigem Basic Auth (REPORTS_ADMIN_*).",
+    "RLS Supabase: só o anfitrião (host_player_id) pode actualizar salas — política rooms_update_host.",
+    "Definições: secção Administração (painel, testes); selector de modelo IA só com fornecedor manual (Groq/Anthropic/OpenAI).",
+    "URLs antigas /test-ai.html e /test-questions.html devolvem 404.",
+    "schema.sql: adição idempotente de tabelas ao Realtime (reexecução sem erro)."
   ],
   "history": [
+    {
+      "date": "02/09/2026",
+      "version": "20260902-122117",
+      "title": "02/09/2026 · dashboard e telemetria",
+      "items": [
+        "Painel admin — Banco de perguntas: gráficos temporais (1 h a total) e por categoria/faixa etária; matriz com destaque de lacunas (≤2 por faixa, ≤5 por categoria).",
+        "Painel admin — Salas e jogos: estatísticas e gráfico separados para multijogador e jogos locais.",
+        "Jogos locais (single-player) sincronizados com o Supabase ao terminar partida (tabela game_matches).",
+        "Selo IA no rodapé mostra o fornecedor e modelo reais da última chamada com sucesso; o jogo abre em modo Automática por defeito.",
+        "Normalização JSON da IA: aceita chaves em português (pergunta, opções, resposta) e remove prefixos A)/B) das opções.",
+        "OpenAI: correcção do modo json_object (palavra «json» obrigatória na conversa).",
+        "Página de teste de perguntas: indica fornecedor/modelo por pergunta; prioriza categoria e faixa com menos perguntas no Supabase."
+      ]
+    },
     {
       "date": "29/08/2026",
       "version": "20260829-174108",

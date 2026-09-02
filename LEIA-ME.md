@@ -50,6 +50,7 @@ Em qualquer uma delas, o jogo chama sempre `/api/generate` e podes configurar **
      - `supabase/update-multiplayer-players.sql`
      - `supabase/get-room-players.sql`
      - `supabase/fix-host-authority.sql` *(corrige coroa/anfitrião)*
+     - `supabase/rooms-host-only-update.sql` *(RLS: só o anfitrião actualiza `rooms`)*
      - `supabase/expire-rooms-24h.sql` *(expira salas inactivas após 24h)*
      - `supabase/question-bank.sql`
      - `supabase/knowledge-repository.sql` *(repositório de factos verificados — Knowledge Repository)*
@@ -121,8 +122,10 @@ Cada `git push origin main` publica automaticamente. Ou manualmente:
 
 ```text
 GET  https://reinomagicodosaber.netlify.app/api/ai-status
-POST https://reinomagicodosaber.netlify.app/api/generate
+POST https://reinomagicodosaber.netlify.app/api/generate   # requer Basic Auth fora do jogo
 ```
+
+Ferramentas admin e testes: `/admin-reports.html`, `/admin/test-ai.html`, `/admin/test-questions.html`.
 
 ---
 
@@ -154,7 +157,10 @@ No jogo: **Definições → Inteligência Artificial**
 | Modo | Comportamento |
 |------|----------------|
 | **Automática** | Ordem `AI_PROVIDER_ORDER` ou `groq → openai → anthropic` por defeito |
-| **Groq / Anthropic / OpenAI** | Força um único fornecedor (se a chave existir) |
+| **Groq / Anthropic / OpenAI** | Força um único fornecedor (se a chave existir); mostra selector de **modelo** |
+| **Banco local** | Sem chamadas à IA; selector de modelo oculto |
+
+O selector de **modelo** nas Definições só aparece com fornecedor manual (Groq, Anthropic ou OpenAI), não em Automática nem Banco local.
 
 ```text
 AI_PROVIDER          -> "groq", "anthropic" ou "openai" (força um; desliga fallback)
@@ -164,13 +170,18 @@ ANTHROPIC_MODEL      -> default: claude-haiku-4-5-20251001
 OPENAI_MODEL         -> default: gpt-4o-mini
 ```
 
-### Página de teste de IA
+### Páginas de teste (admin)
 
-URL: **`/test-ai.html`** (também em Definições → Página de teste de IA).
+URLs: **`/admin/test-ai.html`** e **`/admin/test-questions.html`** (ligação em **Definições → Administração**).
 
-- Testa ligação JSON simples, pergunta trivia e as 3 faixas etárias.
-- Mostra quotas, chaves configuradas e modelo em uso.
-- Documentação de utilização: secção 9 do [manual](public/manual.html).
+- Requerem as mesmas credenciais do painel admin (`REPORTS_ADMIN_USER` / `REPORTS_ADMIN_PASS`); sessão partilhada via `public/admin-auth.js`.
+- **`/api/generate`** aceita pedidos do jogo (mesma origem) ou com cabeçalho `Authorization: Basic …` (ferramentas admin). Sem credenciais válidas → 403.
+- Em desenvolvimento local sem login: `GENERATE_ALLOW_PUBLIC=true` no `.env.local` (nunca em produção).
+- URLs antigas `/test-ai.html` e `/test-questions.html` devolvem **404** (`public/_redirects`).
+
+**Teste de IA** — ligação JSON simples, pergunta trivia e as 3 faixas etárias; quotas, chaves configuradas e modelo em uso.
+
+Documentação de utilização: secções 9 e 10 do [manual](public/manual.html).
 
 ---
 
@@ -178,7 +189,7 @@ URL: **`/test-ai.html`** (também em Definições → Página de teste de IA).
 
 ```text
 Browser
-   ↓ POST /api/generate
+   ↓ POST /api/generate  (mesma origem no jogo, ou Basic Auth nas ferramentas /admin/)
 Netlify Function  OU  Cloudflare Pages Function
    ↓ fornecedor preferido + fallback automático
 Groq API  /  Anthropic API  /  OpenAI API
@@ -192,11 +203,12 @@ Ficheiros principais:
 |----------|--------|
 | `public/index.html` | Jogo, definições, Sobre, reportes |
 | `public/question-engine.js` | Formatos, prompts e validação de perguntas |
-| `public/test-questions.html` | Gerar, validar e dar feedback ao motor (mostra fornecedor/modelo IA) |
+| `public/admin-auth.js` | Basic Auth partilhada (painel admin e `/admin/*`) |
+| `public/admin/test-questions.html` | Gerar, validar e dar feedback ao motor (credenciais admin) |
 | `scripts/test-question-engine.js` | 57 testes unitários do motor (`node scripts/test-question-engine.js`) |
 | `scripts/list-open-reports.js` | Lista reportes por tratar no servidor (requer credenciais admin) |
 | `public/manual.html` | Manual do utilizador |
-| `public/test-ai.html` | Diagnóstico de IA |
+| `public/admin/test-ai.html` | Diagnóstico de IA (credenciais admin) |
 | `public/admin-reports.html` | Painel admin (reportes, salas, banco de perguntas) |
 | `netlify/functions/lib/question-bank-store.js` | Estatísticas do banco Supabase para o admin |
 | `netlify/functions/lib/rooms-store.js` | Salas abertas e estatísticas de jogos (MP + locais) |
@@ -254,7 +266,7 @@ Guia completo em português (PT-PT) para:
 - Definições (tempo, sons, tema, categorias, IA)
 - Ecrã Sobre e reportes (pergunta vs site)
 - Teste de IA, teste de perguntas e painel admin (reportes, salas, banco)
-- Teste de perguntas (`/test-questions.html`)
+- Teste de IA e teste de perguntas (`/admin/test-ai.html`, `/admin/test-questions.html`) — credenciais admin
 
 **Acesso:** [manual.html](public/manual.html) ou **ⓘ Sobre → Manual completo do site** no jogo.
 
@@ -322,6 +334,7 @@ Regra detalhada: `.cursor/rules/reportes-ia.mdc`.
 
 | Endpoint | Método | Uso |
 |----------|--------|-----|
+| `/api/generate` | POST | Geração IA — jogo (mesma origem) ou Basic Auth admin |
 | `/api/report` | POST | Jogador envia reporte |
 | `/api/report-status` | GET | Sobre — estado dos reportes do jogador |
 | `/api/report-attachment` | POST/GET | Imagem anexada (reportes do site) |
@@ -350,7 +363,7 @@ Armazenamento Netlify: **Netlify Blobs** (`question-reports`). Cloudflare: **KV*
 node scripts/test-question-engine.js
 ```
 
-Página interactiva: `/test-questions.html` (requer IA online para gerar; revalidação manual funciona offline).
+Página interactiva: `/admin/test-questions.html` (credenciais admin; requer IA online para gerar; revalidação manual funciona offline).
 
 ---
 
@@ -376,6 +389,7 @@ Página interactiva: `/test-questions.html` (requer IA online para gerar; revali
 | Escolha múltipla indisponível | IA offline; jogo usa resposta aberta temporariamente |
 | Site antigo após deploy | Ctrl+Shift+R; verificar banner de actualização (SW) |
 | Admin sem reportes | `REPORTS_ADMIN_*` em falta ou Blobs/KV não configurado |
+| `/api/generate` 403 | Chamada externa sem Basic Auth; em local usar `GENERATE_ALLOW_PUBLIC=true` |
 | Export CSV não resolve | Comportamento correcto — usar `resolve-reports-from-csv.js` |
 
 Para utilização do jogo e testes passo a passo, consulta o **[manual](public/manual.html)**.

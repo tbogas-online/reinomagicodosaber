@@ -65,13 +65,15 @@
    * Mostra formulário de login até credenciais válidas; depois revela #appEl.
    * gateEl: { user, pass, btn, status } ou ids como strings.
    */
-  async function initGate({ gateEl, appEl }) {
-    const gate = typeof gateEl === 'object' ? gateEl : {};
-    const userInput = gate.user || document.getElementById(gateEl.userId || 'adminUser');
-    const passInput = gate.pass || document.getElementById(gateEl.passId || 'adminPass');
-    const loginBtn = gate.btn || document.getElementById(gateEl.btnId || 'adminLoginBtn');
-    const statusEl = gate.status || document.getElementById(gateEl.statusId || 'adminLoginStatus');
-    const gateSection = gate.section || document.getElementById(gateEl.sectionId || 'adminLoginGate');
+  async function initGate(opts = {}) {
+    const gateEl = opts.gateEl;
+    const appEl = opts.appEl;
+    const gate = gateEl && typeof gateEl === 'object' ? gateEl : {};
+    const userInput = gate.user || document.getElementById(gate.userId || 'adminUser');
+    const passInput = gate.pass || document.getElementById(gate.passId || 'adminPass');
+    const loginBtn = gate.btn || document.getElementById(gate.btnId || 'adminLoginBtn');
+    const statusEl = gate.status || document.getElementById(gate.statusId || 'adminLoginStatus');
+    const gateSection = gate.section || document.getElementById(gate.sectionId || 'adminLoginGate');
     const app = typeof appEl === 'string' ? document.getElementById(appEl) : appEl;
 
     async function showApp() {

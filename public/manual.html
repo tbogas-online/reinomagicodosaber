@@ -304,13 +304,16 @@
       </table>
 
       <h3>Modelo</h3>
-      <p>Lista de modelos disponíveis conforme o fornecedor escolhido. «Automático» deixa o servidor escolher o modelo por defeito.</p>
+      <p>Selector visível apenas quando escolhes um fornecedor manual (<strong>Groq</strong>, <strong>Anthropic</strong> ou <strong>OpenAI</strong>). Em <strong>Automática</strong> ou <strong>Banco local</strong> fica oculto — o servidor escolhe o modelo ou não há chamada à IA.</p>
+
+      <h3>Administração</h3>
+      <p>Secção com ligações ao <strong>painel admin</strong>, <strong>teste de IA</strong> e <strong>teste de perguntas</strong> (todas em <code>/admin/</code>, com credenciais).</p>
 
       <h3>Selo no rodapé</h3>
       <p><strong>IA Online</strong> ou <strong>IA Offline</strong>, com o <strong>fornecedor e modelo reais</strong> da última pergunta gerada com sucesso (cores distintas por Groq, OpenAI, Anthropic ou banco local). Clicar no selo <em>actualiza o estado</em> sem abrir as Definições. Passar o rato sobre «Offline» pode mostrar o motivo da última falha.</p>
       <p>O jogo abre em modo <strong>Automática</strong> por defeito; podes forçar um fornecedor nas Definições.</p>
 
-      <p><a href="/admin/test-ai.html">🔌 Página de teste de IA</a> — ligação directa para diagnóstico (ver secção 9).</p>
+      <p><a href="/admin/test-ai.html">🔌 Página de teste de IA</a> — requer credenciais admin (ver secção 9).</p>
     </section>
 
     <section id="sobre">
@@ -355,7 +358,7 @@
 
     <section id="teste-ia">
       <h2>9. Página de teste de IA</h2>
-      <p>URL: <a href="/admin/test-ai.html">/admin/test-ai.html</a> — requer credenciais admin.</p>
+      <p>URL: <a href="/admin/test-ai.html">/admin/test-ai.html</a> — requer as mesmas credenciais do painel admin (<code>REPORTS_ADMIN_USER</code> / <code>REPORTS_ADMIN_PASS</code>). A sessão é partilhada com <a href="/admin-reports.html">/admin-reports.html</a> até <strong>Sair</strong>.</p>
       <p>Serve para testar a API <code>/api/generate</code> sem jogar uma partida completa.</p>
 
       <h3>Painel de estado</h3>
@@ -388,7 +391,7 @@
 
     <section id="teste-perguntas">
       <h2>10. Página de teste de perguntas</h2>
-      <p>URL: <a href="/admin/test-questions.html">/admin/test-questions.html</a> — ferramenta para testadores (credenciais admin).</p>
+      <p>URL: <a href="/admin/test-questions.html">/admin/test-questions.html</a> — ferramenta para testadores; mesmas credenciais admin que o painel.</p>
       <p>Gera perguntas com a IA, valida com o mesmo motor do jogo e regista feedback estruturado (aceite/rejeitado, tags, comentário).</p>
 
       <h3>Funcionalidades</h3>
@@ -407,7 +410,7 @@
 
     <section id="admin">
       <h2>11. Painel admin</h2>
-      <p>URL: <a href="/admin-reports.html">/admin-reports.html</a> — acesso restrito com <strong>utilizador e palavra-passe</strong> configurados no alojamento (Netlify / Cloudflare). Três separadores: <strong>Reportes</strong>, <strong>Salas multijogador</strong> e <strong>Banco de perguntas</strong>.</p>
+      <p>URL: <a href="/admin-reports.html">/admin-reports.html</a> — acesso restrito com <strong>utilizador e palavra-passe</strong> configurados no alojamento (Netlify / Cloudflare). Também acessível em <strong>Definições → Administração</strong>. Três separadores: <strong>Reportes</strong>, <strong>Salas multijogador</strong> e <strong>Banco de perguntas</strong>.</p>
 
       <h3>Entrada</h3>
       <p>Introduz credenciais e <strong>Entrar</strong>. A sessão fica no browser até <strong>Sair</strong>.</p>
