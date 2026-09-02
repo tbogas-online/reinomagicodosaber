@@ -942,6 +942,10 @@
   <div class="wrap">
     <h1>Painel admin</h1>
     <p class="sub">Reportes, salas multijogador e banco de perguntas. Acesso com utilizador e palavra-passe.</p>
+    <p class="sub admin-tools-links hidden" id="adminToolsLinks">
+      <a href="/admin/test-ai.html">🧪 Teste IA</a> ·
+      <a href="/admin/test-questions.html">🧪 Teste perguntas</a>
+    </p>
 
     <section class="card" id="loginCard">
       <div class="row">
@@ -1342,9 +1346,6 @@
             </table>
           </div>
         </div>
-        <p class="bank-footer-link-wrap">
-          <a class="bank-footer-link" href="/test-questions.html">🧪 Teste de perguntas</a>
-        </p>
       </div>
 
       <div id="knowledgePanel" class="hidden">
@@ -3450,6 +3451,7 @@
     function showDashboard() {
       loginCard.classList.add('hidden');
       dashboard.classList.remove('hidden');
+      document.getElementById('adminToolsLinks')?.classList.remove('hidden');
       setAdminTab('reports');
       startAutoRefresh();
     }
@@ -5315,6 +5317,7 @@
       authHeader = '';
       sessionStorage.removeItem(AUTH_KEY);
       dashboard.classList.add('hidden');
+      document.getElementById('adminToolsLinks')?.classList.add('hidden');
       loginCard.classList.remove('hidden');
       loginStatus.textContent = '';
       document.getElementById('adminPass').value = '';

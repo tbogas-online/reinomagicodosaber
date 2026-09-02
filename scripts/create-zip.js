@@ -66,10 +66,9 @@ if (!fs.existsSync(indexPath)) {
 }
 const indexHtml = fs.readFileSync(indexPath, 'utf8');
 const indexKb = (Buffer.byteLength(indexHtml, 'utf8') / 1024).toFixed(0);
-const hasAiTest = indexHtml.includes('btn-ai-test-page');
 const hasAiBlock = indexHtml.includes('settings-ai-block');
-console.log(`index.html: ${indexKb} KB · teste IA: ${hasAiTest ? 'sim' : 'NÃO'} · bloco IA: ${hasAiBlock ? 'sim' : 'NÃO'}`);
-if (!hasAiTest || !hasAiBlock) {
+console.log(`index.html: ${indexKb} KB · bloco IA: ${hasAiBlock ? 'sim' : 'NÃO'}`);
+if (!hasAiBlock) {
   console.error('ERRO: index.html no zip não contém as definições de IA. Corre npm run build antes do zip.');
   process.exit(1);
 }
@@ -84,7 +83,7 @@ if (!gen.includes('provider_strict')) {
   console.error('ERRO: netlify/functions/generate.js sem provider_strict.');
   process.exit(1);
 }
-const testAiPath = path.join(tempDir, 'test-ai.html');
+const testAiPath = path.join(ROOT, 'public', 'admin', 'test-ai.html');
 if (fs.existsSync(testAiPath)) {
   const testAi = fs.readFileSync(testAiPath, 'utf8');
   if (!testAi.includes('provider_strict')) {

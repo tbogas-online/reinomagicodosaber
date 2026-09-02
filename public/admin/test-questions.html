@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260902-114119">
+  <meta name="app-build" content="20260902-122117">
   <title>Teste de Perguntas — Reino Mágico do Saber</title>
   <link rel="icon" href="/favicon.ico">
   <style>
@@ -118,15 +118,44 @@
       border: 1px solid rgba(201,162,39,0.2);
     }
     .ai-usage-line strong { color: var(--gold-bright); }
+    .admin-login-card {
+      max-width: 420px; margin: 40px auto; padding: 20px;
+      border: 1px solid rgba(201,162,39,0.35); border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+    }
+    .admin-login-card label { display: block; font-size: 0.75rem; color: var(--gold); margin: 10px 0 4px; }
+    .admin-login-card input {
+      width: 100%; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.25); color: var(--parchment);
+    }
+    .admin-login-status { font-size: 0.9rem; margin: 10px 0 0; min-height: 1.2em; }
+    .admin-login-status.err { color: var(--err); }
+    .admin-nav { margin-bottom: 14px; font-size: 0.9rem; }
+    .admin-nav a { color: var(--link); margin-right: 12px; }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <section class="admin-login-card" id="adminLoginGate">
+    <h1 style="margin:0 0 8px; font-size:1.3rem; color:var(--gold-bright);">🧪 Teste de perguntas</h1>
+    <p class="sub" style="margin:0 0 12px;">Acesso reservado — mesmas credenciais do painel admin.</p>
+    <label for="adminUser">Utilizador</label>
+    <input id="adminUser" type="text" autocomplete="username">
+    <label for="adminPass">Palavra-passe</label>
+    <input id="adminPass" type="password" autocomplete="current-password">
+    <p style="margin-top:14px;"><button type="button" class="btn" id="adminLoginBtn">Entrar</button></p>
+    <p class="admin-login-status" id="adminLoginStatus"></p>
+    <p class="admin-nav" style="margin-top:16px;"><a href="/admin-reports.html">← Painel admin</a></p>
+  </section>
+  <div class="wrap" id="adminApp" hidden>
+    <div class="admin-nav">
+      <a href="/admin-reports.html">← Painel admin</a>
+      <a href="/admin/test-ai.html">Teste de IA</a>
+    </div>
     <h1>🧪 Teste de Perguntas</h1>
-    <p class="sub">Gera com IA, valida com o motor, alimenta o banco Supabase e dá feedback para melhorar regras.</p>
+    <p class="sub">Ferramenta interna (admin): gera com IA, valida com o motor e dá feedback. Chamadas à API usam credenciais admin.</p>
     <div class="nav-links">
       <a href="/">← Jogo</a>
-      <a href="/test-ai.html">Teste IA</a>
+      <a href="/admin/test-ai.html">Teste IA</a>
     </div>
 
     <div class="stats">
@@ -268,33 +297,34 @@
     </details>
   </div>
 
+  <script src="/admin-auth.js?v=20260902-122117"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="supabase-config.js?v=20260902-114119"></script>
-  <script src="supabase-client.js?v=20260902-114119"></script>
-  <script src="knowledge-repository.js?v=20260902-114119"></script>
-  <script src="question-bank.js?v=20260902-114119"></script>
-  <script src="question-engine/engine-config.js?v=20260902-114119"></script>
-  <script src="question-engine/issue-codes.js?v=20260902-114119"></script>
-  <script src="question-engine/knowledge-key.js?v=20260902-114119"></script>
-  <script src="question-engine/retry-strategy.js?v=20260902-114119"></script>
-  <script src="question-engine/telemetry.js?v=20260902-114119"></script>
-  <script src="question-engine/known-facts.js?v=20260902-114119"></script>
-  <script src="question-engine/factual-verify.js?v=20260902-114119"></script>
-  <script src="question-engine/adivinha-verify.js?v=20260902-114119"></script>
-  <script src="question-engine/difficulty-estimate.js?v=20260902-114119"></script>
-  <script src="question-engine/pt-pt-validators.js?v=20260902-114119"></script>
-  <script src="question-engine/format-validators.js?v=20260902-114119"></script>
-  <script src="question-engine/mc-validators.js?v=20260902-114119"></script>
-  <script src="question-engine/age-validators.js?v=20260902-114119"></script>
-  <script src="question-engine/category-validators.js?v=20260902-114119"></script>
-  <script src="question-engine/semantic-validators.js?v=20260902-114119"></script>
-  <script src="question-engine/repetition-validators.js?v=20260902-114119"></script>
-  <script src="question-engine/knowledge-key-compute.js?v=20260902-114119"></script>
-  <script src="question-engine/persistent-history.js?v=20260902-114119"></script>
-  <script src="question-engine/prompt-builder.js?v=20260902-114119"></script>
-  <script src="question-engine/mc-assembly.js?v=20260902-114119"></script>
-  <script src="question-engine/question-scoring.js?v=20260902-114119"></script>
-  <script src="question-engine.js?v=20260902-114119"></script>
+  <script src="/supabase-config.js?v=20260902-122117"></script>
+  <script src="/supabase-client.js?v=20260902-122117"></script>
+  <script src="/knowledge-repository.js?v=20260902-122117"></script>
+  <script src="/question-bank.js?v=20260902-122117"></script>
+  <script src="/question-engine/engine-config.js?v=20260902-122117"></script>
+  <script src="/question-engine/issue-codes.js?v=20260902-122117"></script>
+  <script src="/question-engine/knowledge-key.js?v=20260902-122117"></script>
+  <script src="/question-engine/retry-strategy.js?v=20260902-122117"></script>
+  <script src="/question-engine/telemetry.js?v=20260902-122117"></script>
+  <script src="/question-engine/known-facts.js?v=20260902-122117"></script>
+  <script src="/question-engine/factual-verify.js?v=20260902-122117"></script>
+  <script src="/question-engine/adivinha-verify.js?v=20260902-122117"></script>
+  <script src="/question-engine/difficulty-estimate.js?v=20260902-122117"></script>
+  <script src="/question-engine/pt-pt-validators.js?v=20260902-122117"></script>
+  <script src="/question-engine/format-validators.js?v=20260902-122117"></script>
+  <script src="/question-engine/mc-validators.js?v=20260902-122117"></script>
+  <script src="/question-engine/age-validators.js?v=20260902-122117"></script>
+  <script src="/question-engine/category-validators.js?v=20260902-122117"></script>
+  <script src="/question-engine/semantic-validators.js?v=20260902-122117"></script>
+  <script src="/question-engine/repetition-validators.js?v=20260902-122117"></script>
+  <script src="/question-engine/knowledge-key-compute.js?v=20260902-122117"></script>
+  <script src="/question-engine/persistent-history.js?v=20260902-122117"></script>
+  <script src="/question-engine/prompt-builder.js?v=20260902-122117"></script>
+  <script src="/question-engine/mc-assembly.js?v=20260902-122117"></script>
+  <script src="/question-engine/question-scoring.js?v=20260902-122117"></script>
+  <script src="/question-engine.js?v=20260902-122117"></script>
   <script>
   (function () {
     'use strict';
@@ -860,7 +890,8 @@
 
         const response = await fetch('/api/generate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: window.ReinoAdminAuth?.headers({ 'Content-Type': 'application/json' })
+            || { 'Content-Type': 'application/json' },
           body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], max_tokens: isMC ? 340 : 220 }),
         });
         if (!response.ok) throw new Error(`API ${response.status}`);
@@ -1061,8 +1092,9 @@
     onConfigChange();
     renderFeedbackList();
     updateStats();
+    ReinoAdminAuth.initGate({ appEl: document.getElementById('adminApp') });
   })();
   </script>
-  <script src="app-update.js?v=20260902-114119" defer></script>
+  <script src="/app-update.js?v=20260902-122117" defer></script>
 </body>
 </html>

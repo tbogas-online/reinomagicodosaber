@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e1c15">
-<meta name="app-build" content="20260902-114119">
+<meta name="app-build" content="20260902-122117">
 <title>O Reino Mágico do Saber</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -3267,13 +3267,19 @@
           <button type="button" class="time-option ai-option" data-ai-provider="openai">OpenAI · GPT</button>
           <button type="button" class="time-option ai-option" data-ai-provider="local">📦 Banco local / offline</button>
         </div>
-        <span class="settings-label" style="margin-top:6px; font-size:13px;">Modelo</span>
-        <div class="ai-model-bar" id="ai-model-bar"></div>
-        <div class="settings-ai-actions">
-          <a class="btn secondary" id="btn-ai-test-page" href="/test-ai.html">🔌 🧪 Página de teste de IA</a>
-          <a class="btn secondary" id="btn-questions-test-page" href="/test-questions.html">🧪 Teste de perguntas</a>
+        <div id="ai-model-section" hidden>
+          <span class="settings-label" style="margin-top:6px; font-size:13px;">Modelo</span>
+          <div class="ai-model-bar" id="ai-model-bar"></div>
         </div>
         <p class="settings-ai-error" id="settings-ai-last-error" hidden></p>
+      </div>
+      <div class="settings-row settings-row-column settings-row-wide">
+        <span class="settings-label">🛡️ Administração</span>
+        <div class="settings-ai-actions">
+          <a class="btn secondary" id="btn-admin-panel" href="/admin-reports.html">📊 Painel admin</a>
+          <a class="btn secondary" href="/admin/test-ai.html">🧪 Teste IA</a>
+          <a class="btn secondary" href="/admin/test-questions.html">🧪 Teste perguntas</a>
+        </div>
       </div>
     </div>
     <div class="row" style="margin-top:26px; gap:14px;">
@@ -3420,42 +3426,42 @@
 <span class="mp-share-toast" id="mp-share-toast" hidden>Link copiado!</span>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="supabase-config.js?v=20260902-114119"></script>
-<script src="supabase-client.js?v=20260902-114119"></script>
-<script src="knowledge-repository.js?v=20260902-114119"></script>
-<script src="html-escape.js?v=20260902-114119"></script>
-<script src="game-history.js?v=20260902-114119"></script>
-<script src="player-names.js?v=20260902-114119"></script>
-<script src="multiplayer-sync.js?v=20260902-114119"></script>
-<script src="multiplayer-controller.js?v=20260902-114119"></script>
-<script src="question-engine/engine-config.js?v=20260902-114119"></script>
-<script src="question-engine/issue-codes.js?v=20260902-114119"></script>
-<script src="question-engine/knowledge-key.js?v=20260902-114119"></script>
-<script src="question-engine/retry-strategy.js?v=20260902-114119"></script>
-<script src="question-engine/telemetry.js?v=20260902-114119"></script>
-<script src="question-engine/known-facts.js?v=20260902-114119"></script>
-<script src="question-engine/factual-verify.js?v=20260902-114119"></script>
-<script src="question-engine/adivinha-verify.js?v=20260902-114119"></script>
-<script src="question-engine/adivinha-answer-pool.js?v=20260902-114119"></script>
-<script src="question-engine/content-safety-data.js?v=20260902-114119"></script>
-<script src="question-engine/content-safety.js?v=20260902-114119"></script>
-<script src="question-engine/adivinha-distractors.js?v=20260902-114119"></script>
-<script src="question-engine/difficulty-estimate.js?v=20260902-114119"></script>
-<script src="question-engine/pt-pt-validators.js?v=20260902-114119"></script>
-<script src="question-engine/format-validators.js?v=20260902-114119"></script>
-<script src="question-engine/mc-validators.js?v=20260902-114119"></script>
-<script src="question-engine/age-validators.js?v=20260902-114119"></script>
-<script src="question-engine/category-validators.js?v=20260902-114119"></script>
-<script src="question-engine/semantic-validators.js?v=20260902-114119"></script>
-<script src="question-engine/reported-content.js?v=20260902-114119"></script>
-<script src="question-engine/repetition-validators.js?v=20260902-114119"></script>
-<script src="question-engine/knowledge-key-compute.js?v=20260902-114119"></script>
-<script src="question-engine/persistent-history.js?v=20260902-114119"></script>
-<script src="question-engine/prompt-builder.js?v=20260902-114119"></script>
-<script src="question-engine/mc-assembly.js?v=20260902-114119"></script>
-<script src="question-engine/question-scoring.js?v=20260902-114119"></script>
-<script src="question-engine.js?v=20260902-114119" id="question-engine-script"></script>
-<script src="question-bank.js?v=20260902-114119"></script>
+<script src="supabase-config.js?v=20260902-122117"></script>
+<script src="supabase-client.js?v=20260902-122117"></script>
+<script src="knowledge-repository.js?v=20260902-122117"></script>
+<script src="html-escape.js?v=20260902-122117"></script>
+<script src="game-history.js?v=20260902-122117"></script>
+<script src="player-names.js?v=20260902-122117"></script>
+<script src="multiplayer-sync.js?v=20260902-122117"></script>
+<script src="multiplayer-controller.js?v=20260902-122117"></script>
+<script src="question-engine/engine-config.js?v=20260902-122117"></script>
+<script src="question-engine/issue-codes.js?v=20260902-122117"></script>
+<script src="question-engine/knowledge-key.js?v=20260902-122117"></script>
+<script src="question-engine/retry-strategy.js?v=20260902-122117"></script>
+<script src="question-engine/telemetry.js?v=20260902-122117"></script>
+<script src="question-engine/known-facts.js?v=20260902-122117"></script>
+<script src="question-engine/factual-verify.js?v=20260902-122117"></script>
+<script src="question-engine/adivinha-verify.js?v=20260902-122117"></script>
+<script src="question-engine/adivinha-answer-pool.js?v=20260902-122117"></script>
+<script src="question-engine/content-safety-data.js?v=20260902-122117"></script>
+<script src="question-engine/content-safety.js?v=20260902-122117"></script>
+<script src="question-engine/adivinha-distractors.js?v=20260902-122117"></script>
+<script src="question-engine/difficulty-estimate.js?v=20260902-122117"></script>
+<script src="question-engine/pt-pt-validators.js?v=20260902-122117"></script>
+<script src="question-engine/format-validators.js?v=20260902-122117"></script>
+<script src="question-engine/mc-validators.js?v=20260902-122117"></script>
+<script src="question-engine/age-validators.js?v=20260902-122117"></script>
+<script src="question-engine/category-validators.js?v=20260902-122117"></script>
+<script src="question-engine/semantic-validators.js?v=20260902-122117"></script>
+<script src="question-engine/reported-content.js?v=20260902-122117"></script>
+<script src="question-engine/repetition-validators.js?v=20260902-122117"></script>
+<script src="question-engine/knowledge-key-compute.js?v=20260902-122117"></script>
+<script src="question-engine/persistent-history.js?v=20260902-122117"></script>
+<script src="question-engine/prompt-builder.js?v=20260902-122117"></script>
+<script src="question-engine/mc-assembly.js?v=20260902-122117"></script>
+<script src="question-engine/question-scoring.js?v=20260902-122117"></script>
+<script src="question-engine.js?v=20260902-122117" id="question-engine-script"></script>
+<script src="question-bank.js?v=20260902-122117"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para logs extra na consola.
   const DEBUG_MODE = new URLSearchParams(location.search).has('debug');
@@ -7060,8 +7066,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     btn.onclick = () => {
       if(btn.hidden || btn.disabled) return;
       draftAiProviderChoice = btn.dataset.aiProvider;
-      const models = AI_MODEL_OPTIONS[draftAiProviderChoice] || AI_MODEL_OPTIONS.auto;
-      if(!models.some(m => m.id === draftAiModelChoice)) draftAiModelChoice = 'auto';
+      if(!isManualAiProvider(draftAiProviderChoice)) draftAiModelChoice = 'auto';
+      else {
+        const models = AI_MODEL_OPTIONS[draftAiProviderChoice] || AI_MODEL_OPTIONS.auto;
+        if(!models.some(m => m.id === draftAiModelChoice)) draftAiModelChoice = 'auto';
+      }
       updateAiProviderBar();
       updateAiModelBar();
       updateAiPlannedUI();
@@ -7073,13 +7082,21 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     return AI_MODEL_OPTIONS[provider] || AI_MODEL_OPTIONS.auto;
   }
 
+  function isManualAiProvider(provider){
+    return provider === 'groq' || provider === 'anthropic' || provider === 'openai';
+  }
+
   function updateAiModelBar(){
     const bar = document.getElementById('ai-model-bar');
+    const section = document.getElementById('ai-model-section');
     if(!bar) return;
-    if(draftAiProviderChoice === 'local'){
-      bar.innerHTML = '<p class="settings-ai-planned" style="margin:0;">Sem modelo de IA neste modo.</p>';
+    if(!isManualAiProvider(draftAiProviderChoice)){
+      if(section) section.hidden = true;
+      bar.innerHTML = '';
+      draftAiModelChoice = 'auto';
       return;
     }
+    if(section) section.hidden = false;
     const models = getModelOptionsForProvider(draftAiProviderChoice);
     bar.innerHTML = '';
     models.forEach(model => {
@@ -9664,7 +9681,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     <button type="button" id="app-update-btn" hidden>Tentar</button>
   </div>
 </div>
-<script src="app-update.js?v=20260902-114119" defer></script>
+<script src="app-update.js?v=20260902-122117" defer></script>
 
 </body>
 </html>

@@ -148,8 +148,9 @@ if (fs.existsSync(INDEX_HTML)) {
   fs.writeFileSync(SW_FILE, sw, 'utf8');
 }
 
-const TEST_AI = path.join(PUBLIC, 'test-ai.html');
-const TEST_QUESTIONS = path.join(PUBLIC, 'test-questions.html');
+const ADMIN_DIR = path.join(PUBLIC, 'admin');
+const TEST_AI = path.join(ADMIN_DIR, 'test-ai.html');
+const TEST_QUESTIONS = path.join(ADMIN_DIR, 'test-questions.html');
 
 function patchTestPageHtml(filePath) {
   if (!fs.existsSync(filePath)) return;
@@ -162,7 +163,7 @@ function patchTestPageHtml(filePath) {
   if (!html.includes('app-update.js')) {
     html = html.replace(
       '</body>',
-      `  <script src="app-update.js?v=${version}" defer></script>\n</body>`,
+      `  <script src="/app-update.js?v=${version}" defer></script>\n</body>`,
     );
   }
   fs.writeFileSync(filePath, html, 'utf8');

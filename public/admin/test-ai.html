@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260902-114119">
+  <meta name="app-build" content="20260902-122117">
   <title>Teste de IA — Reino Mágico do Saber</title>
   <link rel="icon" href="/favicon.ico">
   <style>
@@ -364,10 +364,39 @@
       border-color:rgba(30,35,20,0.18);
       background:rgba(255,255,255,0.55);
     }
+    .admin-login-card {
+      max-width: 420px; margin: 40px auto; padding: 20px;
+      border: 1px solid rgba(201,162,39,0.35); border-radius: 14px;
+      background: rgba(255,255,255,0.04);
+    }
+    .admin-login-card label { display: block; font-size: 0.75rem; color: var(--gold); margin: 10px 0 4px; }
+    .admin-login-card input {
+      width: 100%; padding: 10px 12px; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.25); color: var(--parchment);
+    }
+    .admin-login-status { font-size: 0.9rem; margin: 10px 0 0; min-height: 1.2em; }
+    .admin-login-status.err { color: var(--err); }
+    .admin-nav { margin-bottom: 14px; font-size: 0.9rem; }
+    .admin-nav a { color: #7dd3fc; margin-right: 12px; }
   </style>
 </head>
 <body>
-  <div class="wrap">
+  <section class="admin-login-card" id="adminLoginGate">
+    <h1 style="margin:0 0 8px; font-size:1.3rem; color:var(--gold-bright);">🔌 Teste de IA</h1>
+    <p class="sub" style="margin:0 0 12px;">Acesso reservado — mesmas credenciais do painel admin.</p>
+    <label for="adminUser">Utilizador</label>
+    <input id="adminUser" type="text" autocomplete="username">
+    <label for="adminPass">Palavra-passe</label>
+    <input id="adminPass" type="password" autocomplete="current-password">
+    <p style="margin-top:14px;"><button type="button" class="btn" id="adminLoginBtn">Entrar</button></p>
+    <p class="admin-login-status" id="adminLoginStatus"></p>
+    <p class="admin-nav" style="margin-top:16px;"><a href="/admin-reports.html">← Painel admin</a></p>
+  </section>
+  <div class="wrap" id="adminApp" hidden>
+    <div class="admin-nav">
+      <a href="/admin-reports.html">← Painel admin</a>
+      <a href="/admin/test-questions.html">Teste de perguntas</a>
+    </div>
     <div class="page-head">
       <h1>🔌 Teste de IA</h1>
       <div class="theme-toggle" aria-label="Tema">
@@ -376,8 +405,8 @@
       </div>
     </div>
     <p class="sub">
-      Página independente do jogo para verificar se <code>/api/generate</code> responde.
-      Acede pelas <strong>Definições → Página de teste de IA</strong>.
+      Ferramenta interna (admin) para verificar se <code>/api/generate</code> responde.
+      Requer credenciais admin — as chamadas à API usam a mesma autenticação.
     </p>
 
     <div class="card usage-card" id="usage-card">
@@ -458,11 +487,17 @@
         <li><strong>500 sem chave</strong> — falta <code>GROQ_API_KEY</code> (ou outra) em Environment variables.</li>
         <li><strong>404</strong> — deploy sem <code>netlify/functions</code> ou sem redirect para <code>/api/generate</code>.</li>
       </ul>
-      <p><a href="/" id="test-ai-back-settings">← Voltar às definições</a> · <a href="/">Jogo</a> · <a href="/version.json" target="_blank" rel="noopener">version.json</a></p>
+      <p><a href="/admin-reports.html">← Painel admin</a> · <a href="/">Jogo</a> · <a href="/version.json" target="_blank" rel="noopener">version.json</a></p>
     </div>
   </div>
 
+  <script src="/admin-auth.js?v=20260902-122117"></script>
   <script>
+    function adminApiHeaders(extra = {}) {
+      return window.ReinoAdminAuth?.headers({ 'Content-Type': 'application/json', ...extra })
+        || { 'Content-Type': 'application/json' };
+    }
+
     const THEME_STORAGE_KEY = 'reino_magico_theme';
     let themeChoice = 'night';
     try {
@@ -911,7 +946,7 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
       try {
         const response = await fetch('/api/generate', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: adminApiHeaders(),
           body: JSON.stringify(buildBody(prompt, maxTokens)),
         });
 
@@ -990,7 +1025,7 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
         try {
           const response = await fetch('/api/generate', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: adminApiHeaders(),
             body: JSON.stringify(buildBody(prompt, 280)),
           });
           const elapsed = Math.round(performance.now() - started);
@@ -1253,14 +1288,9 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
         });
       })
       .catch(() => loadServerQuotas());
+
+    ReinoAdminAuth.initGate({ appEl: document.getElementById('adminApp') });
   </script>
-  <script src="app-update.js?v=20260902-114119" defer></script>
-  <script>
-    document.getElementById('test-ai-back-settings')?.addEventListener('click', (event) => {
-      event.preventDefault();
-      try { sessionStorage.setItem('reino_open_ai_settings', '1'); } catch { /* ignore */ }
-      location.href = '/';
-    });
-  </script>
+  <script src="/app-update.js?v=20260902-122117" defer></script>
 </body>
 </html>

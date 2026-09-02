@@ -199,9 +199,10 @@ function validateAdminAuth(event) {
 
 function validateGameClient(event) {
   if (process.env.GENERATE_ALLOW_PUBLIC === 'true') return { ok: true };
-  const headers = event.headers || {};
-  if (headers['x-reino-client'] === 'reino-magico-game') return { ok: true };
 
+  if (validateAdminAuth(event).ok) return { ok: true };
+
+  const headers = event.headers || {};
   const allowedOrigins = new Set();
   const siteCandidates = [
     process.env.URL,
@@ -228,7 +229,7 @@ function validateGameClient(event) {
   return {
     ok: false,
     status: 403,
-    error: 'Pedido não autorizado. Usa a app do jogo ou define GENERATE_ALLOW_PUBLIC=true em desenvolvimento.',
+    error: 'Pedido não autorizado. Usa a app do jogo, credenciais admin ou define GENERATE_ALLOW_PUBLIC=true em desenvolvimento.',
   };
 }
 

@@ -476,12 +476,12 @@ CREATE POLICY rooms_select_member ON public.rooms
   FOR SELECT TO authenticated, anon
   USING (public.is_room_member(id));
 
-DROP POLICY IF EXISTS rooms_update_host ON public.rooms;
 DROP POLICY IF EXISTS rooms_update_member ON public.rooms;
-CREATE POLICY rooms_update_member ON public.rooms
+DROP POLICY IF EXISTS rooms_update_host ON public.rooms;
+CREATE POLICY rooms_update_host ON public.rooms
   FOR UPDATE TO authenticated, anon
-  USING (public.is_room_member(id))
-  WITH CHECK (public.is_room_member(id));
+  USING (host_player_id = auth.uid())
+  WITH CHECK (host_player_id = auth.uid());
 
 -- room_players
 DROP POLICY IF EXISTS players_select_room ON public.room_players;
