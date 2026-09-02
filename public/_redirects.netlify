@@ -1,0 +1,13 @@
+/api/generate  /.netlify/functions/generate  200
+/api/ai-status  /.netlify/functions/ai-status  200
+/api/report  /.netlify/functions/report  200
+/api/reports-admin  /.netlify/functions/reports-admin  200
+/api/rooms-admin  /.netlify/functions/rooms-admin  200
+/api/question-bank-admin  /.netlify/functions/question-bank-admin  200
+/api/knowledge-import-admin  /.netlify/functions/knowledge-import-admin  200
+/api/report-status  /.netlify/functions/report-status  200
+/api/report-attachment  /.netlify/functions/report-attachment  200
+/test-ai.html  /index.html  404
+/test-questions.html  /index.html  404
+/admin/test-ai  /admin/test-ai.html  200
+/admin/test-questions  /admin/test-questions.html  200

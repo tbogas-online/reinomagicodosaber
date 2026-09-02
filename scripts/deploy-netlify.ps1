@@ -7,7 +7,13 @@ Write-Host "Gerar versão..." -ForegroundColor Cyan
 node scripts/generate-version.js
 
 Write-Host "Redirects Netlify..." -ForegroundColor Cyan
-Copy-Item -Force (Join-Path $PSScriptRoot "..\public\_redirects.netlify") (Join-Path $PSScriptRoot "..\public\_redirects")
+$redirectsNetlify = Join-Path $PSScriptRoot "..\public\_redirects.netlify"
+$redirectsDest = Join-Path $PSScriptRoot "..\public\_redirects"
+if (Test-Path $redirectsNetlify) {
+  Copy-Item -Force $redirectsNetlify $redirectsDest
+} else {
+  Write-Host "  (aviso: _redirects.netlify em falta, mantem public\_redirects)" -ForegroundColor Yellow
+}
 
 Write-Host "Instalar dependências (functions)..." -ForegroundColor Cyan
 npm install --no-fund --no-audit
