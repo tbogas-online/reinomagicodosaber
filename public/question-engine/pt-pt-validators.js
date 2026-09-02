@@ -215,8 +215,25 @@ function validatePortugueseText(blob) {
   return issues;
 }
 
+function isKiteRiddleContext(text) {
+  const t = String(text || '').toLowerCase();
+  if (/\b(uva|vinho|barril|durmo|escuras|nasço da uva)\b/i.test(t)) return false;
+  return /\b(voar|vento|asas?|cauda|solt|brincar|papagaio)\b/i.test(t);
+}
+
+function normalizeAdivinhaAnswerPt(question, answer) {
+  const a = String(answer || '').trim();
+  if (!/^pipa$/i.test(a)) return a;
+  if (isKiteRiddleContext(question)) return 'Papagaio de papel';
+  return a;
+}
+
   function collectPtPtIssues(q, a, options, ageBandKey, clues = []) {
     const blob = [q, a, ...options].join(' ');
+    const issues = [];
+    if (/^pipa$/i.test(String(a || '').trim()) && isKiteRiddleContext([q, ...(clues || [])].join(' '))) {
+      pushPtBrIssue(issues, 'brasileirismo — em PT-PT o papagaio de papel não se chama "pipa"');
+    }
     const contentSafety = global.QuestionEngineContentSafety || global.QuestionEngineFamilySafeWords;
     const safetyIssues = contentSafety?.collectContentSafetyIssues
       ? contentSafety.collectContentSafetyIssues(q, a, options, clues).map((item) => mkIssue(item.code, ISSUE_LAYER.ptPt, item.message))
@@ -224,6 +241,7 @@ function validatePortugueseText(blob) {
         ? contentSafety.collectFamilySafeIssues(q, a, options, clues).map((item) => mkIssue(item.code, ISSUE_LAYER.ptPt, item.message))
         : []);
     return [
+      ...issues,
       ...validatePortugueseText(blob),
       ...validateCountryNamesPt(blob),
       ...validatePortugueseNotEnglish([q, a, ...options], ageBandKey),
@@ -239,5 +257,7 @@ function validatePortugueseText(blob) {
     validatePortugueseText,
     collectPtPtIssues,
     looksPredominantlyEnglish,
+    isKiteRiddleContext,
+    normalizeAdivinhaAnswerPt,
   });
 })(typeof window !== 'undefined' ? window : globalThis);

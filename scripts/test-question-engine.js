@@ -1544,6 +1544,16 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     ...baseCtx({ categoryNumber: 1, formatId: QE.FORMAT_IDS.O_QUE_E, isMC: true }),
     helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '15+' },
   }).ok);
+  const pipa = {
+    q: 'Tem cauda mas não é bicho, não tem asas mas sabe voar, se soltam não sobe mais e sai ao vento para brincar?',
+    a: 'Pipa',
+    clues: ['tem cauda', 'sabe voar', 'sai ao vento'],
+    options: ['Pipa', 'Papagaio de papel', 'Balão', 'Avião'],
+  };
+  const pipaNorm = sandbox.globalThis.QuestionEnginePtPt?.normalizeAdivinhaAnswerPt?.(pipa.q, pipa.a) || pipa.a;
+  assert('183. pipa kite → papagaio de papel', pipaNorm === 'Papagaio de papel');
+  const rPipa = QE.validateQuestion(pipa, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '10-15' }));
+  assert('183b. adivinha pipa rejeitada', !rPipa.ok && rPipa.issueDetails?.some((i) => i.code === 'PT_BRASILISM'), rPipa.issues?.join(', '));
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

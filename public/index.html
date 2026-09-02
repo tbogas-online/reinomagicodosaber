@@ -4268,7 +4268,11 @@
     if(!/\?\s*$/.test(qText)){
       qText = qText.replace(/[.!]\s*$/, '').trim() + '. O que sou?';
     }
-    const answer = formatGameText(String(record.answer || '').trim());
+    const answer = formatGameText(
+      (window.QuestionEnginePtPt?.normalizeAdivinhaAnswerPt
+        ? window.QuestionEnginePtPt.normalizeAdivinhaAnswerPt(`${qText} ${clues.join(' ')}`, record.answer)
+        : String(record.answer || '').trim())
+    );
     if(isAdivinhaOpenAnswer(ageBandKey, 'ADIVINHA')){
       return {
         q: formatGameText(qText),

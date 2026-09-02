@@ -9,6 +9,20 @@ const { collectContentSafetyIssues } = require('./content-safety-node');
 
 const RE_BRASILEIRISMO = /\b(você|voce|ônibus|onibus|trem\b|suco\b|banheiro\b|celular\b|abacaxi\b|ventilador\b|camiseta\b|vocês)\b/i;
 
+function isKiteRiddleContext(text) {
+  const t = String(text || '').toLowerCase();
+  if (/\b(uva|vinho|barril|durmo|escuras|nasço da uva)\b/i.test(t)) return false;
+  return /\b(voar|vento|asas?|cauda|solt|brincar|papagaio)\b/i.test(t);
+}
+
+/** «Pipa» = kite em PT-BR; em Portugal é papagaio de papel. */
+function normalizeAdivinhaAnswerPt(question, answer) {
+  const a = String(answer || '').trim();
+  if (!/^pipa$/i.test(a)) return a;
+  if (isKiteRiddleContext(question)) return 'Papagaio de papel';
+  return a;
+}
+
 function cleanQuestion(text) {
   let q = String(text || '')
     .replace(/\s+/g, ' ')
@@ -78,7 +92,8 @@ function buildFact(question) {
 function validateWebItem(item, options = {}) {
   const issues = [];
   const question = cleanQuestion(item.question);
-  const answer = capitalizeAnswer(cleanAnswer(item.answer));
+  let answer = capitalizeAnswer(cleanAnswer(item.answer));
+  answer = capitalizeAnswer(normalizeAdivinhaAnswerPt(question, answer));
 
   if (!question || question.length < 12) issues.push('question_too_short');
   if (!answer || answer.length < 2) issues.push('missing_answer');
@@ -169,6 +184,8 @@ function dedupeAgainstExisting(items, existingRecords = []) {
 
 module.exports = {
   RE_BRASILEIRISMO,
+  isKiteRiddleContext,
+  normalizeAdivinhaAnswerPt,
   cleanQuestion,
   cleanAnswer,
   splitClues,
