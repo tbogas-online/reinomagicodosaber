@@ -528,10 +528,27 @@ CREATE POLICY matches_insert_host ON public.game_matches
   );
 
 -- ---------------------------------------------------------------------------
--- Realtime
+-- Realtime (ignora se já estiver na publicação)
 -- ---------------------------------------------------------------------------
-ALTER PUBLICATION supabase_realtime ADD TABLE public.rooms;
-ALTER PUBLICATION supabase_realtime ADD TABLE public.room_players;
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'rooms'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.rooms;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_publication_tables
+    WHERE pubname = 'supabase_realtime'
+      AND schemaname = 'public'
+      AND tablename = 'room_players'
+  ) THEN
+    ALTER PUBLICATION supabase_realtime ADD TABLE public.room_players;
+  END IF;
+END $$;
 
 -- ---------------------------------------------------------------------------
 -- Grants
