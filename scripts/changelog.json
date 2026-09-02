@@ -1,13 +1,25 @@
 {
   "current": [
-    "Ferramentas de teste em /admin/ (test-ai, test-questions) — credenciais admin obrigatórias; sessão partilhada com o painel.",
-    "/api/generate protegida: o jogo usa a mesma origem; chamadas externas exigem Basic Auth (REPORTS_ADMIN_*).",
-    "RLS Supabase: só o anfitrião (host_player_id) pode actualizar salas — política rooms_update_host.",
-    "Definições: secção Administração (painel, testes); selector de modelo IA só com fornecedor manual (Groq/Anthropic/OpenAI).",
-    "URLs antigas /test-ai.html e /test-questions.html devolvem 404.",
-    "schema.sql: adição idempotente de tabelas ao Realtime (reexecução sem erro)."
+    "Estatísticas de jogo no Supabase: respostas registadas por partida (game_answer_events); painel admin — separador «Estatísticas jogo».",
+    "Adivinhas 15+: resposta aberta com botões Acertei/Errei; timeout conta como erro com feedback breve.",
+    "Timeout unificado em todas as categorias: «⏱ Tempo esgotado — resposta errada.»",
+    "Repositório de conhecimento (KR-0.2/0.3): API cliente, política de confiança e pick com superseded_by.",
+    "Admin — Banco: botão «Libertar» só em perguntas efectivamente em quarentena (30 dias)."
   ],
   "history": [
+    {
+      "date": "02/09/2026",
+      "version": "20260902-123822",
+      "title": "02/09/2026 · segurança admin e RLS",
+      "items": [
+        "Ferramentas de teste em /admin/ (test-ai, test-questions) — credenciais admin obrigatórias; sessão partilhada com o painel.",
+        "/api/generate protegida: o jogo usa a mesma origem; chamadas externas exigem Basic Auth (REPORTS_ADMIN_*).",
+        "RLS Supabase: só o anfitrião (host_player_id) pode actualizar salas — política rooms_update_host.",
+        "Definições: secção Administração (painel, testes); selector de modelo IA só com fornecedor manual (Groq/Anthropic/OpenAI).",
+        "URLs antigas /test-ai.html e /test-questions.html devolvem 404.",
+        "schema.sql: adição idempotente de tabelas ao Realtime (reexecução sem erro)."
+      ]
+    },
     {
       "date": "02/09/2026",
       "version": "20260902-122117",
