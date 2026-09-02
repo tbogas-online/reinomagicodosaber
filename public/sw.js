@@ -61,7 +61,9 @@ function isNetworkOnly(url) {
     || url.pathname === '/version.json'
     || url.pathname === '/changelog.json'
     || url.pathname === '/sw.js'
-    || url.pathname === '/app-update.js';
+    || url.pathname === '/app-update.js'
+    || url.pathname.startsWith('/admin/')
+    || url.pathname === '/admin-reports.html';
 }
 
 function isStaticAsset(pathname) {
@@ -88,7 +90,7 @@ async function networkFirst(request) {
   } catch {
     const cached = await cacheMatchFlexible(request);
     if (cached) return cached;
-    throw new Error('offline');
+    return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
   }
 }
 
@@ -105,7 +107,7 @@ async function staleWhileRevalidate(request) {
   }
   const response = await networkPromise;
   if (response) return response;
-  throw new Error('offline');
+  return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
 }
 
 self.addEventListener('install', (event) => {

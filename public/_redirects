@@ -9,3 +9,5 @@
 /api/report-attachment  /.netlify/functions/report-attachment  200
 /test-ai.html  /index.html  404
 /test-questions.html  /index.html  404
+/admin/test-ai  /admin/test-ai.html  200
+/admin/test-questions  /admin/test-questions.html  200

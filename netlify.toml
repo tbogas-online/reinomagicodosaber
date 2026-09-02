@@ -118,6 +118,16 @@
   status = 404
   force = true
 
+[[redirects]]
+  from = "/admin/test-ai"
+  to = "/admin/test-ai.html"
+  status = 200
+
+[[redirects]]
+  from = "/admin/test-questions"
+  to = "/admin/test-questions.html"
+  status = 200
+
 # A versão deve refletir imediatamente cada novo deploy.
 [[headers]]
   for = "/version.json"
