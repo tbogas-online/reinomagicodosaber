@@ -129,6 +129,46 @@ Ferramentas admin e testes: `/admin-reports.html`, `/admin/test-ai.html`, `/admi
 
 ---
 
+## Desenvolvimento local (sem créditos Netlify)
+
+Para testar **todas as funcionalidades** (jogo, IA, admin, reportes, telemetria, repositório) **sem deploy** e **sem gastar invocações** no Netlify em produção:
+
+```powershell
+# 1. Copiar credenciais (uma vez)
+copy .env.example .env.local
+# Preenche GROQ_API_KEY, SUPABASE_*, REPORTS_ADMIN_*, etc.
+
+# 2. Arrancar servidor local
+npm run dev
+# ou: .\scripts\dev-local.ps1
+```
+
+Abre **http://localhost:8888** (porta configurável com `DEV_PORT` no `.env.local`).
+
+| URL local | Equivalente produção |
+|-----------|----------------------|
+| `/` | Jogo |
+| `/admin-reports.html` | Painel admin |
+| `/admin/test-ai.html` | Teste de IA |
+| `/admin/test-questions.html` | Teste do motor |
+| `/api/*` | Netlify Functions (correm na tua máquina) |
+
+**Como funciona:** `netlify dev --offline` serve a pasta `public/` e executa `netlify/functions/` localmente. Nada é enviado para o Netlify em produção — logo **não consome créditos** de Functions.
+
+**Dados locais:**
+
+- **Reportes** (Netlify Blobs) → pasta `.netlify/` no projeto (gitignored).
+- **Supabase** (salas, banco, telemetria, repositório) → usa o projecto configurado em `.env.local` (podes usar o mesmo de produção ou um projecto de teste).
+- **IA** (Groq/OpenAI/Anthropic) → chamadas directas às APIs dos fornecedores (quotas próprias, não Netlify).
+
+`GENERATE_ALLOW_PUBLIC=true` é activado automaticamente em local para facilitar testes sem Basic Auth.
+
+**Opcional:** `DEV_LIVE=1` no `.env.local` liga o CLI ao site Netlify para herdar variáveis remotas; as functions continuam locais.
+
+**Produção vs local:** `public/version.json` inclui `"environment": "local"` quando corres `npm run dev`.
+
+---
+
 ## Opção B — Cloudflare Pages (alternativa)
 
 1. **Build command:** `node scripts/generate-version.js`

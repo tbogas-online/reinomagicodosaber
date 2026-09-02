@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "build": "node scripts/generate-version.js",
+    "dev": "node scripts/dev-local.js",
     "test": "node scripts/test-question-engine.js",
     "import:knowledge": "node scripts/daily-knowledge-import.js",
     "import:knowledge:dry": "node scripts/daily-knowledge-import.js --dry-run",

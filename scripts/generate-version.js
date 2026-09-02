@@ -33,6 +33,9 @@ const versionInfo = {
   updatedAtPortugal,
   timezone: 'Europe/Lisbon',
 };
+if (process.env.DEV_LOCAL === '1') {
+  versionInfo.environment = 'local';
+}
 
 function bumpLocalAssetVersions(html, build) {
   let next = html.replace(

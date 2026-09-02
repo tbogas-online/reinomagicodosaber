@@ -2,6 +2,13 @@
   command = "node scripts/generate-version.js"
   publish = "public"
 
+[dev]
+  command = "node scripts/generate-version.js"
+  publish = "public"
+  port = 8888
+  framework = "#static"
+  autoLaunch = false
+
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
