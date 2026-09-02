@@ -7,6 +7,7 @@
   port = 8888
   framework = "#static"
   autoLaunch = false
+  envFiles = [".env.local", ".env"]
 
 [functions]
   directory = "netlify/functions"

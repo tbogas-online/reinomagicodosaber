@@ -162,7 +162,7 @@ Abre **http://localhost:8888** (porta configurável com `DEV_PORT` no `.env.loca
 - **Supabase** (salas, banco, telemetria, repositório) → usa o projecto configurado em `.env.local` (podes usar o mesmo de produção ou um projecto de teste).
 - **IA** (quotas) → chamadas directas às APIs dos fornecedores (quotas próprias, não Netlify).
 
-**Alternativa sem copiar chaves:** `netlify link` (uma vez) + `DEV_LIVE=1` no `.env.local` — o CLI herda as variáveis do site Netlify; as functions continuam a correr na máquina.
+**Alternativa sem copiar chaves:** `netlify link` (uma vez) + `DEV_LIVE=1` no `.env.local` **sem** chaves de IA locais — o CLI usa `--context production`. Se tiveres chaves em `.env.local`, o `npm run dev` ignora `DEV_LIVE` e corre em `--offline` para não sobrescrever valores válidos.
 
 `GENERATE_ALLOW_PUBLIC=true` é activado automaticamente em local para facilitar testes sem Basic Auth.
 

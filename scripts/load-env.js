@@ -24,7 +24,7 @@ function loadEnvLocal() {
     ) {
       val = val.slice(1, -1);
     }
-    if (!process.env[key]) process.env[key] = val;
+    if (!process.env[key]) process.env[key] = val.trim();
   }
 }
 

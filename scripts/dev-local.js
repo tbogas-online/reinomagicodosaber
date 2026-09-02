@@ -41,20 +41,30 @@ const gen = spawnSync(process.execPath, ['scripts/generate-version.js'], {
 if (gen.status !== 0) process.exit(gen.status || 1);
 
 const port = process.env.DEV_PORT || '8888';
-const offline = process.env.DEV_LIVE !== '1';
+const wantsLive = process.env.DEV_LIVE === '1';
+// Com chaves em .env.local, offline garante que as functions usam esses valores
+// (DEV_LIVE=1 injecta o contexto «dev» do Netlify e pode sobrescrever chaves válidas).
+const useOffline = hasAiKey || !wantsLive;
 
 const npxArgs = ['--yes', 'netlify-cli', 'dev', '--port', port];
-if (offline) npxArgs.push('--offline');
+if (useOffline) {
+  npxArgs.push('--offline');
+} else {
+  npxArgs.push('--context', 'production');
+}
 
 console.log('');
 console.log('=== Reino Mágico — desenvolvimento local ===');
 console.log(`  Jogo:      http://localhost:${port}/`);
 console.log(`  Admin:     http://localhost:${port}/admin-reports.html`);
 console.log(`  Teste IA:  http://localhost:${port}/admin/test-ai.html`);
-if (offline) {
-  console.log('  Modo:      offline (zero invocações Netlify em produção).');
+if (useOffline) {
+  console.log('  Modo:      offline (.env.local → functions; zero invocações Netlify).');
+  if (wantsLive && hasAiKey) {
+    console.log('  Nota:      DEV_LIVE=1 ignorado — já tens chaves de IA em .env.local.');
+  }
 } else {
-  console.log('  Modo:      live (env do site Netlify; functions ainda locais).');
+  console.log('  Modo:      live (--context production; requer netlify link).');
 }
 console.log('  Parar:     Ctrl+C');
 console.log('');
