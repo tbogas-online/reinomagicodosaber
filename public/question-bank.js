@@ -429,6 +429,40 @@
     return tied[Math.floor(Math.random() * tied.length)];
   }
 
+  async function countPlayable(categoryN, ageBand) {
+    const c = await ensureClient();
+    if (!c) return null;
+    const { data, error } = await c.rpc('count_playable_bank_questions', {
+      p_category_n: categoryN,
+      p_age_band: ageBand,
+    });
+    if (error) {
+      if (typeof console !== 'undefined' && console.debug) {
+        console.debug('[QuestionBank] countPlayable:', error.message);
+      }
+      return null;
+    }
+    return Number(data) || 0;
+  }
+
+  async function replenishFromKnowledge({ categoryN = 20, ageBand, limit = 40, force = false } = {}) {
+    if (!VALID_AGE_BANDS.has(ageBand)) return { ok: false, reason: 'invalid_age_band' };
+    try {
+      const response = await fetch('/api/bank-replenish', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categoryN, ageBand, limit, force }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        return { ok: false, error: data.error || `HTTP ${response.status}` };
+      }
+      return data;
+    } catch (err) {
+      return { ok: false, error: err?.message || String(err) };
+    }
+  }
+
   global.QuestionBank = {
     isConfigured,
     stripTags,
@@ -439,6 +473,8 @@
     pickSparseTarget,
     collectLocalStorageQuestions,
     importFromLocalStorage,
+    countPlayable,
+    replenishFromKnowledge,
     pick,
     save,
     markReported,

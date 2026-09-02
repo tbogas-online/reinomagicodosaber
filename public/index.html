@@ -3898,13 +3898,20 @@
       if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: não configurado — a usar código local');
       return null;
     }
+    if(categoryN === 20) await ensureCat20Stock(categoryN, ageBandKey);
     const excludeHashes = [...(reuseCtx?.questionHashes || new Set())];
     const excludeKnowledgeIds = [...(reuseCtx?.knowledgeIds || new Set())];
     let lastError = '';
+    let replenished = false;
     for(let attempt = 0; attempt < maxAttempts; attempt++){
       try {
         const row = await QB.pick(categoryN, ageBandKey, excludeHashes, excludeKnowledgeIds);
         if(!row?.q){
+          if(categoryN === 20 && !replenished){
+            replenished = true;
+            await ensureCat20Stock(categoryN, ageBandKey, { force: true });
+            continue;
+          }
           if(DEBUG_MODE && attempt === 0){
             console.info(`[Reino debug] Banco Supabase: vazio para categoria ${categoryN}, faixa ${ageBandKey} — a usar código local`);
           }
@@ -4104,6 +4111,46 @@
   const usedKnowledgeIds = {};
   const REPO_ADIVINHA_TOPIC = 'adivinha tradicional';
   const REPO_ADIVINHA_MIN_CONFIDENCE = 0.90;
+  const CAT20_LOW_STOCK_THRESHOLD = 30;
+  const CAT20_REPLENISH_BATCH = 40;
+  const cat20ReplenishInflight = {};
+
+  async function ensureCat20Stock(categoryN, ageBandKey, { force = false } = {}){
+    if(categoryN !== 20) return null;
+    const QB = window.QuestionBank;
+    if(!QB?.isConfigured?.() || !QB.replenishFromKnowledge) return null;
+    const cacheKey = `${categoryN}|${ageBandKey}`;
+    if(!force && cat20ReplenishInflight[cacheKey]) return cat20ReplenishInflight[cacheKey];
+
+    const run = (async () => {
+      try {
+        const playable = typeof QB.countPlayable === 'function'
+          ? await QB.countPlayable(categoryN, ageBandKey)
+          : null;
+        if(!force && playable != null && playable >= CAT20_LOW_STOCK_THRESHOLD){
+          if(DEBUG_MODE) console.info('[Reino debug] Stock cat.20 OK', { ageBand: ageBandKey, playable });
+          return { ok: true, skipped: true, playable };
+        }
+        const result = await QB.replenishFromKnowledge({
+          categoryN,
+          ageBand: ageBandKey,
+          limit: CAT20_REPLENISH_BATCH,
+          force,
+        });
+        if(DEBUG_MODE) console.info('[Reino debug] Reabastecimento cat.20', { ageBand: ageBandKey, ...result });
+        return result;
+      } catch(err) {
+        if(DEBUG_MODE) console.warn('[Reino debug] Reabastecimento cat.20 falhou:', err?.message || err);
+        return { ok: false };
+      } finally {
+        delete cat20ReplenishInflight[cacheKey];
+      }
+    })();
+
+    cat20ReplenishInflight[cacheKey] = run;
+    return run;
+  }
+
   const REPO_CURIOSIDADE_TOPIC = 'curiosidade surpreendente';
   const REPO_CURIOSIDADE_MIN_CONFIDENCE = 0.85;
   const REPO_CURIOSIDADE_VF_CHANCE = 0.5;
@@ -4159,6 +4206,7 @@
   function isRepositoryTrustedRecord(record){
     const src = String(record?.source || '').toLowerCase();
     if(src.includes('memóriamedia') || src.includes('memoriamedia') || src === 'manual') return true;
+    if(/pumpkin|santander|brinca|ditos\.pt|ditos|quero bolsa/.test(src)) return true;
     return (Number(record?.confidence) || 0) >= 0.92;
   }
 
@@ -4479,6 +4527,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         minConfidence: REPO_ADIVINHA_MIN_CONFIDENCE,
       });
       if(!record){
+        if(attempt === 1 && category.n === 20){
+          await ensureCat20Stock(category.n, ageBandKey, { force: true });
+        }
         if(DEBUG_MODE){
           console.info('[KnowledgeRepository] Sem adivinhas no repositório', {
             ageBand: ageBandKey,
@@ -4990,10 +5041,62 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const persistentQSet = new Set((persistent.questions || []).map(normalizeQ));
 
     if(localOnly){
+      if(isCat20){
+        const bankQuestion = await tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine);
+        if(bankQuestion) return bankQuestion;
+        if(questionFormat === engine.FORMAT_IDS.ADIVINHA){
+          const repoQuestion = await tryGenerateAdivinhaFromRepository({
+            category,
+            ageBandKey,
+            questionFormat,
+            difficulty,
+            subtopic: REPO_ADIVINHA_TOPIC,
+            engine,
+            isMC,
+            usedSet,
+            usedAnswerSet,
+            persistentQSet,
+            persistent,
+            reuseCtx,
+            mcInstruction,
+            jsonFormat,
+            ageDifficultyExtra,
+            openModeExtra,
+            skipAi: true,
+          });
+          if(repoQuestion) return repoQuestion;
+        }
+        if(questionFormat === engine.FORMAT_IDS.CURIOSIDADE || questionFormat === engine.FORMAT_IDS.VERDADEIRO_FALSO){
+          const repoFormatId = questionFormat === engine.FORMAT_IDS.VERDADEIRO_FALSO
+            ? engine.FORMAT_IDS.VERDADEIRO_FALSO
+            : engine.FORMAT_IDS.CURIOSIDADE;
+          const repoQuestion = await tryGenerateCuriosidadeFromRepository({
+            category,
+            ageBandKey,
+            repoFormatId,
+            difficulty,
+            subtopic: REPO_CURIOSIDADE_TOPIC,
+            engine,
+            isMC,
+            usedSet,
+            usedAnswerSet,
+            persistentQSet,
+            persistent,
+            reuseCtx,
+            mcInstruction,
+            jsonFormat,
+            ageDifficultyExtra,
+            openModeExtra,
+            skipAi: true,
+          });
+          if(repoQuestion) return repoQuestion;
+        }
+      }
       return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal: category.n !== 20 });
     }
 
     if(isCat20){
+      await ensureCat20Stock(category.n, ageBandKey);
       const bankQuestion = await tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine);
       if(bankQuestion) return bankQuestion;
     }

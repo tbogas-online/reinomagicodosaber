@@ -111,7 +111,10 @@ Em física do quotidiano, especifica o referencial: "em relação a ti", "visto 
 BOM: "Num avião a voar em linha recta a velocidade constante, largas uma moeda. Em relação a ti, cai na vertical ou afasta-se para trás?" → resposta: "Na vertical" (ou V/F).
 MAU: "Para onde cai a moeda?" (ambíguo — depende se medes em relação ao chão ou ao avião). MAU: "avoando" — escreve "a voar".
 Em matemática, calcula internamente a resposta.${mcNote}`,
-      ADIVINHA: `FORMATO: ADIVINHA — adivinha tradicional portuguesa, tom lúdico, adequada à idade. NÃO transformes um facto directo numa adivinha forçada.
+      ADIVINHA: (ageBandKey === '6-9' || ageBandKey === '10-15')
+        ? `FORMATO: ADIVINHA — adivinha tradicional portuguesa de cultura popular (ditados, brincadeiras de infância). Tom lúdico; podes usar linguagem e imagens poéticas típicas das adivinhas clássicas, mesmo que a frase seja mais longa ou a resposta seja uma palavra menos óbvia para quem não conhece o ditado.
+NÃO transformes um facto escolar directo numa adivinha forçada. Inclui array "clues" com 2–5 pistas curtas.`
+        : `FORMATO: ADIVINHA — adivinha tradicional portuguesa, tom lúdico, adequada à idade. NÃO transformes um facto directo numa adivinha forçada.
 Usa "Que animal…" / "O que é…" — NÃO "Quem é o animal". A resposta tem de encaixar claramente nas pistas (ex.: instrumento batido → tambor, não bola).
 Inclui array "clues" com 2–5 pistas curtas (frases ou fragmentos) que apontam unicamente para a resposta — serão validadas semanticamente.`,
       CURIOSIDADE: `FORMATO OBRIGATÓRIO: CURIOSIDADE — facto surpreendente em PT-PT claro, que provoque "Não sabia disso!". Frase curta e natural em voz alta.

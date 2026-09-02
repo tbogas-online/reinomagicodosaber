@@ -126,7 +126,7 @@ function toKnowledgeRecord(item, validated, seq) {
     source_id: `web:${sourceSlug}:${String(seq).padStart(3, '0')}:${idPart}`,
     source_url: item.sourceUrl,
     license: item.license || 'uso educativo — ver URL de origem',
-    confidence: item.locale === 'pt-BR' ? 0.78 : 0.88,
+    confidence: item.locale === 'pt-BR' ? 0.78 : 0.90,
     priority_pt: item.locale === 'pt-BR' ? 70 : 82,
     age_bands: ['6-9', '10-15', '15+'],
     allowed_formats: ['ADIVINHA'],

@@ -12,6 +12,8 @@
     "import:adivinhas-web": "node scripts/import-knowledge-adivinhas-web.js --write-queue",
     "import:adivinhas-web:dry": "node scripts/import-knowledge-adivinhas-web.js --dry-run",
     "import:adivinhas-web:import": "node scripts/import-knowledge-adivinhas-web.js --write-queue --import",
+    "seed:bank-adivinhas": "node scripts/seed-question-bank-from-knowledge.js",
+    "seed:bank-adivinhas:dry": "node scripts/seed-question-bank-from-knowledge.js --dry-run",
     "import:curiosidades": "node scripts/import-knowledge-curiosidades.js",
     "import:curiosidades:batch50": "node scripts/import-knowledge-curiosidades.js --batch-50",
     "import:curiosidades:batch50:dry": "node scripts/import-knowledge-curiosidades.js --batch-50 --dry-run",

@@ -223,6 +223,11 @@
     return AGE_LIMITS[ageBandKey] || AGE_LIMITS['15+'];
   }
 
+  /** Adivinhas tradicionais (6–9, 10–15): cultura popular — validação de dificuldade mais permissiva. */
+  function isRelaxedAdivinhaAge(ageBandKey) {
+    return ageBandKey === '6-9' || ageBandKey === '10-15';
+  }
+
   function isHardHistoricalWhenQuestion(q) {
     return /\b(nasceu|nascimento|subiram|escalada|primeira\s+vez)\b/i.test(q)
       && /\b(picasso|einstein|shakespeare|beethoven|mozart|darwin|galileu|newton|everest|monte\s+everest)\b/i.test(q);
@@ -386,6 +391,7 @@
     AGE_LIMITS_BASE,
     AGE_LIMITS,
     getAgeLimits,
+    isRelaxedAdivinhaAge,
     isHardHistoricalWhenQuestion,
     CATEGORIES_RAW,
     CATEGORIES,

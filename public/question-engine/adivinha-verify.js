@@ -17,7 +17,10 @@
 
   function shouldRequestAdivinhaVerify(ctx) {
     if (!ctx || ctx.enabled === false) return false;
-    return String(ctx.formatId || '') === 'ADIVINHA';
+    if (String(ctx.formatId || '') !== 'ADIVINHA') return false;
+    const age = String(ctx.ageBandKey || '');
+    if (age === '6-9' || age === '10-15') return false;
+    return true;
   }
 
   function buildAdivinhaVerifyPrompt(parsed, ctx) {

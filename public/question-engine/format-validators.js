@@ -11,7 +11,7 @@
     throw new Error('format-validators: carrega issue-codes.js, engine-config.js e adivinha-verify.js antes deste módulo');
   }
   const { mkIssue, ISSUE_LAYER } = Issues;
-  const { FORMAT_IDS, getAgeLimits, isHardHistoricalWhenQuestion } = Config;
+  const { FORMAT_IDS, getAgeLimits, isHardHistoricalWhenQuestion, isRelaxedAdivinhaAge } = Config;
   const { parseAdivinhaClues: parseAdivinhaCluesFromVerify } = AdivinhaVerify;
 
   function pushIssue(issues, code, layer, message) {
@@ -270,7 +270,9 @@ function validateByFormat(parsed, formatId, helpers) {
     pushIssue(issues, 'ADIVINHA_FACTUAL_DIRECT', ISSUE_LAYER.format, 'ADIVINHA não deve ser pergunta factual directa');
   }
   if (formatId === FORMAT_IDS.ADIVINHA) {
-    issues.push(...validateAdivinhaQuality(q, a));
+    if (!isRelaxedAdivinhaAge(ageBandKey || '')) {
+      issues.push(...validateAdivinhaQuality(q, a));
+    }
     issues.push(...validateAdivinhaClues(parsed, stripTags));
   }
 

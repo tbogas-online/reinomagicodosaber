@@ -38,6 +38,9 @@
 [functions."quarantine-admin"]
   node_bundler = "esbuild"
 
+[functions."bank-replenish"]
+  node_bundler = "esbuild"
+
 [[redirects]]
   from = "/api/generate"
   to = "/.netlify/functions/generate"
@@ -86,6 +89,11 @@
 [[redirects]]
   from = "/api/quarantine-admin"
   to = "/.netlify/functions/quarantine-admin"
+  status = 200
+
+[[redirects]]
+  from = "/api/bank-replenish"
+  to = "/.netlify/functions/bank-replenish"
   status = 200
 
 [[redirects]]

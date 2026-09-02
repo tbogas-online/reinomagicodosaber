@@ -1019,8 +1019,10 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('122. ADIVINHA_CLUE_LEAKS_ANSWER', !r.ok && r.issueDetails?.some((i) => i.code === 'ADIVINHA_CLUE_LEAKS_ANSWER'), r.issues?.join(', '));
 }
 {
-  assert('123. shouldRequestAdivinhaVerify', QE.shouldRequestAdivinhaVerify({ formatId: 'ADIVINHA', ageBandKey: '10-15' }));
-  assert('123b. skip adivinha verify outros formatos', !QE.shouldRequestAdivinhaVerify({ formatId: 'QUEM_E', ageBandKey: '10-15' }));
+  assert('123. skip adivinha verify 6-9', !QE.shouldRequestAdivinhaVerify({ formatId: 'ADIVINHA', ageBandKey: '6-9' }));
+  assert('123b. skip adivinha verify 10-15', !QE.shouldRequestAdivinhaVerify({ formatId: 'ADIVINHA', ageBandKey: '10-15' }));
+  assert('123c. adivinha verify 15+', QE.shouldRequestAdivinhaVerify({ formatId: 'ADIVINHA', ageBandKey: '15+' }));
+  assert('123d. skip adivinha verify outros formatos', !QE.shouldRequestAdivinhaVerify({ formatId: 'QUEM_E', ageBandKey: '10-15' }));
 }
 {
   const ok = QE.parseAdivinhaVerifyResponse('{"ok":true}');
@@ -1035,6 +1037,21 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   };
   const r = QE.validateQuestion(pente, baseCtx({ formatId: QE.FORMAT_IDS.ADIVINHA, categoryNumber: 20, ageBandKey: '10-15' }));
   assert('125. ADIVINHA válida com clues', r.ok, r.issues?.join(', '));
+}
+{
+  const tradicional = {
+    q: 'Tenho dentes mas não mordo. O que sou?',
+    a: 'Pente',
+    clues: ['tem dentes', 'não morde'],
+    options: ['Pente', 'Escova', 'Garfo', 'Pente fino'],
+  };
+  const r = QE.validateQuestion(tradicional, baseCtx({
+    formatId: QE.FORMAT_IDS.ADIVINHA,
+    categoryNumber: 20,
+    ageBandKey: '6-9',
+    difficulty: 5,
+  }));
+  assert('125b. ADIVINHA 6-9 ignora dificuldade pedida', r.ok, r.issues?.join(', '));
 }
 
 // 126–130. Fase 6 — dificuldade pedida vs estimada

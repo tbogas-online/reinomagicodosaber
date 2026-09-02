@@ -26,7 +26,7 @@
   const {
     mkIssue, issueMessage, issueCode, normalizeIssues, issueMessages, ISSUE_LAYER,
   } = Issues;
-  const { LAYER_WEIGHTS, DIFFICULTY_RANGE, getAgeLimits } = Config;
+  const { LAYER_WEIGHTS, DIFFICULTY_RANGE, getAgeLimits, FORMAT_IDS, isRelaxedAdivinhaAge } = Config;
   const { computeKnowledgeKey, knowledgeKeysMatch } = KnowledgeKeyCompute;
   const { validateByFormat } = FormatValidators;
   const { validateAgeAppropriate, validateObscureCharacter } = AgeValidators;
@@ -74,7 +74,10 @@
     });
   }
 
-  function validateDifficultyFit(difficulty, ageBandKey, q, a) {
+  function validateDifficultyFit(difficulty, ageBandKey, q, a, formatId) {
+    if (formatId === FORMAT_IDS.ADIVINHA && isRelaxedAdivinhaAge(ageBandKey)) {
+      return [];
+    }
     const issues = [];
     const lim = getAgeLimits(ageBandKey);
     const range = DIFFICULTY_RANGE[ageBandKey] || DIFFICULTY_RANGE['15+'];
@@ -156,7 +159,7 @@
     layers.age = layerScore(LAYER_WEIGHTS.age, ageCheck.issues);
     issues.push(...ageCheck.issues);
 
-    const diffIssues = validateDifficultyFit(difficulty, ageBandKey, q, a);
+    const diffIssues = validateDifficultyFit(difficulty, ageBandKey, q, a, formatId);
     layers.difficulty = layerScore(LAYER_WEIGHTS.difficulty, diffIssues);
     issues.push(...diffIssues);
 

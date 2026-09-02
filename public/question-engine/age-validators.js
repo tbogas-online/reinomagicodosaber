@@ -12,7 +12,7 @@
     throw new Error('age-validators: carrega issue-codes.js, engine-config.js, pt-pt-validators.js e mc-validators.js antes deste módulo');
   }
   const { mkIssue, ISSUE_LAYER } = Issues;
-  const { FORMAT_IDS, getAgeLimits, isHardHistoricalWhenQuestion } = Config;
+  const { FORMAT_IDS, getAgeLimits, isHardHistoricalWhenQuestion, isRelaxedAdivinhaAge } = Config;
   const { validatePortugueseNotEnglish } = PtPt;
   const { validateMcOptionsQuality, collapseOptionKey } = McValidators;
 
@@ -112,8 +112,14 @@ function validateAgeAppropriate(parsed, ageBandKey, stripTags, formatId) {
   const q = stripTags(parsed?.q || '').trim();
   const a = stripTags(parsed?.a || '').trim();
   const options = Array.isArray(parsed?.options) ? parsed.options : [];
-  const blob = (q + ' ' + a + ' ' + options.join(' ')).toLowerCase();
   const issues = [];
+
+  if (formatId === FORMAT_IDS.ADIVINHA && isRelaxedAdivinhaAge(ageBandKey)) {
+    issues.push(...validatePortugueseNotEnglish([a, ...options], ageBandKey));
+    return { ok: !issues.length, issues };
+  }
+
+  const blob = (q + ' ' + a + ' ' + options.join(' ')).toLowerCase();
   const lim = getAgeLimits(ageBandKey);
   const abstractMath = /(\d+\s*%|\bpercentagem\b|\bprobabilidade\b|\bfraç[ãõ]o\b|\bmédia\b)/i;
   const veryTechnical = /\b(mitocôndria|fotossíntese|condensação|eletromagnético|metamorfose celular)\b/i;
