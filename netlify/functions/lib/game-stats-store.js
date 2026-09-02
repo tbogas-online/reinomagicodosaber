@@ -68,15 +68,101 @@ async function fetchGameStatsPayload({ limit = 200 } = {}) {
     ? await supabaseRequest(`/room_players?select=*&room_id=${roomFilter}`) || []
     : [];
 
+  const rooms = roomFilter
+    ? await supabaseRequest(`/rooms?select=id,code&id=${roomFilter}`) || []
+    : [];
+
   return {
     matches,
     historyRows,
     answerEvents,
     players,
+    rooms,
     fetchedAt: new Date().toISOString(),
+  };
+}
+
+async function deleteAllRows(table, filter = 'id=not.is.null') {
+  const cfg = getSupabaseAdmin();
+  if (!cfg) {
+    const err = new Error('Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).');
+    err.code = 'NOT_CONFIGURED';
+    throw err;
+  }
+
+  const response = await fetch(`${cfg.url}/rest/v1/${table}?${filter}`, {
+    method: 'DELETE',
+    headers: {
+      apikey: cfg.key,
+      Authorization: `Bearer ${cfg.key}`,
+      Prefer: 'count=exact',
+    },
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    const err = new Error(text || `Supabase DELETE HTTP ${response.status}`);
+    err.status = response.status;
+    throw err;
+  }
+
+  const range = response.headers.get('content-range') || '';
+  const match = range.match(/\/(\d+)$/);
+  return match ? Number(match[1]) : 0;
+}
+
+async function clearHistoryAnswers() {
+  const cfg = getSupabaseAdmin();
+  if (!cfg) {
+    const err = new Error('Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).');
+    err.code = 'NOT_CONFIGURED';
+    throw err;
+  }
+
+  const response = await fetch(`${cfg.url}/rest/v1/game_history?answers=not.eq.%5B%5D`, {
+    method: 'PATCH',
+    headers: {
+      apikey: cfg.key,
+      Authorization: `Bearer ${cfg.key}`,
+      'Content-Type': 'application/json',
+      Prefer: 'count=exact',
+    },
+    body: JSON.stringify({ answers: [] }),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    const err = new Error(text || `Supabase PATCH HTTP ${response.status}`);
+    err.status = response.status;
+    throw err;
+  }
+
+  const range = response.headers.get('content-range') || '';
+  const match = range.match(/\/(\d+)$/);
+  return match ? Number(match[1]) : 0;
+}
+
+async function clearAllGameStats() {
+  const answerEvents = await deleteAllRows('game_answer_events');
+  const matches = await deleteAllRows('game_matches');
+  let historyAnswersCleared = 0;
+  try {
+    historyAnswersCleared = await clearHistoryAnswers();
+  } catch (err) {
+    if (!/answers|column|PGRST/i.test(err.message || '')) throw err;
+    console.warn('[game-stats-store] limpar answers em game_history ignorado:', err.message);
+  }
+  return {
+    cleared: {
+      answerEvents,
+      matches,
+      historyAnswersCleared,
+    },
+    clearedAt: new Date().toISOString(),
   };
 }
 
 module.exports = {
   fetchGameStatsPayload,
+  clearAllGameStats,
 };

@@ -39,15 +39,23 @@
     return 'gh-' + Date.now() + '-' + Math.random().toString(36).slice(2, 9);
   }
 
+  function buildLocalSessionName(startedAtIso) {
+    const ts = Date.parse(startedAtIso || '');
+    return `localGame-${Number.isFinite(ts) ? ts : Date.now()}`;
+  }
+
   function startGame(mode, meta) {
     if (currentGame && !currentGame.finishedAt) {
       finishGame();
     }
+    const startedAt = meta?.startedAt || new Date().toISOString();
+    const isSingle = mode !== 'multiplayer';
     currentGame = {
       id: newId(),
-      mode: mode === 'multiplayer' ? 'multiplayer' : 'single',
-      startedAt: new Date().toISOString(),
+      mode: isSingle ? 'single' : 'multiplayer',
+      startedAt,
       finishedAt: null,
+      sessionName: meta?.sessionName || (isSingle ? buildLocalSessionName(startedAt) : null),
       roomCode: meta?.roomCode || null,
       roomId: meta?.roomId || null,
       rounds: [],
@@ -107,7 +115,7 @@
         started_at: game.startedAt,
         finished_at: game.finishedAt,
         rounds_count: Array.isArray(game.rounds) ? game.rounds.length : 0,
-        metadata: { source: 'local', gameId: game.id || null },
+        metadata: { source: 'local', gameId: game.id || null, sessionName: game.sessionName || null },
       };
       if (typeof game.id === 'string' && /^[0-9a-f-]{36}$/i.test(game.id)) {
         payload.id = game.id;
@@ -138,10 +146,18 @@
     const t = date.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
     const mode = game.mode === 'multiplayer' ? 'Multijogador' : 'Individual';
     const parts = [mode];
+    if (game.mode === 'single' && game.sessionName) parts.push(game.sessionName);
     const code = String(game.roomCode || '').trim();
     if (code) parts.push(code.toUpperCase());
     parts.push(`${d} ${t}`);
     return parts.join(' · ');
+  }
+
+  function getLocalSessionName() {
+    if (!currentGame || currentGame.mode !== 'single') return null;
+    if (currentGame.sessionName) return currentGame.sessionName;
+    if (currentGame.startedAt) return buildLocalSessionName(currentGame.startedAt);
+    return null;
   }
 
   global.GameHistory = {
@@ -154,5 +170,7 @@
     getGame,
     formatRoundSummary,
     formatGameTitle,
+    getLocalSessionName,
+    buildLocalSessionName,
   };
 })(typeof window !== 'undefined' ? window : global);

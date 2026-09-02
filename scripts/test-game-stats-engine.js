@@ -8,10 +8,13 @@
 const {
   computeAllStats,
   computeMatchInsights,
+  computeGlobalInsights,
   computePlayerStats,
   computeCategoryStats,
+  computeAgeBandStats,
   computeQuestionDifficulty,
   computeStreaks,
+  normalizeGames,
   questionKey,
 } = require('./lib/game-stats-engine');
 const { fromGameHistory, enrichGamesWithAnswerEvents, fromSupabasePayload } = require('./lib/game-stats-adapters');
@@ -34,8 +37,9 @@ const mpGame = {
   mode: 'multiplayer',
   startedAt: '2026-09-02T16:00:00.000Z',
   finishedAt: '2026-09-02T16:18:32.000Z',
+  roomCode: 'ABCD',
   players: [
-    { playerId: 'p-joao', nickname: 'João' },
+    { playerId: 'p-joao', nickname: 'João', isHost: true },
     { playerId: 'p-maria', nickname: 'Maria' },
     { playerId: 'p-tiago', nickname: 'Tiago' },
   ],
@@ -46,6 +50,7 @@ const mpGame = {
       categoryN: 2,
       format: 'ONDE_FICA',
       difficulty: 2,
+      ageBand: '10-15',
       question: 'Qual é a capital de Portugal?',
       correctAnswer: 'Lisboa',
       answers: [
@@ -60,6 +65,7 @@ const mpGame = {
       categoryN: 3,
       format: 'QUANDO',
       difficulty: 3,
+      ageBand: '10-15',
       question: 'Em que ano foi assinado o Tratado de Tordesilhas?',
       correctAnswer: '1494',
       answers: [
@@ -74,6 +80,7 @@ const mpGame = {
       categoryN: 14,
       format: 'COMPLETA',
       difficulty: 3,
+      ageBand: '15+',
       question: 'Qual é o rio mais longo de Portugal?',
       correctAnswer: 'Tejo',
       answers: [
@@ -104,6 +111,12 @@ const legacyGame = {
 console.log('Game Stats Engine — testes V1\n');
 
 assert('questionKey estável', questionKey({ question: 'Olá', correctAnswer: 'Mundo' }) === questionKey({ question: 'Olá', correctAnswer: 'Mundo' }));
+assert('oculta jogos sem rondas', normalizeGames([{
+  gameId: 'empty-1',
+  mode: 'multiplayer',
+  startedAt: '2026-09-02T16:00:00.000Z',
+  rounds: [],
+}]).length === 0);
 
 const games = fromGameHistory([mpGame, legacyGame]);
 const all = computeAllStats(games);
@@ -111,6 +124,9 @@ const all = computeAllStats(games);
 assert('meta V1', all.meta.engineVersion === 1 && all.meta.gamesAnalyzed === 2);
 assert('summary partidas', all.summary.gamesTotal === 2 && all.summary.roundsTotal === 4);
 assert('legacy sem respostas', all.summary.hasAnswerData === true);
+assert('global insights no all stats', all.globalInsights?.insights?.length >= 3);
+assert('global corpus overview', all.globalInsights.insights.some((i) => i.type === 'corpus_overview'));
+assert('global hardest question', all.globalInsights.insights.some((i) => i.type === 'global_hardest_question'));
 
 const joao = computePlayerStats(games, { playerId: 'p-joao' }).players[0];
 assert('player João acertos', joao && joao.correctTotal === 2 && joao.answersTotal === 3);
@@ -120,16 +136,33 @@ const cats = computeCategoryStats(games);
 assert('category stats', cats.categories.length >= 3);
 assert('categoria mais jogada', cats.mostPlayed && cats.mostPlayed.roundsPresented >= 1);
 
+const bands = computeAgeBandStats(games);
+assert('age band stats', bands.ageBands.length >= 2);
+const band1015 = bands.ageBands.find((b) => b.ageBand === '10-15');
+assert('faixa 10-15 respostas', band1015 && band1015.answersTotal === 6);
+
 const diff = computeQuestionDifficulty(games);
 const tejo = diff.questions.find((q) => /tejo/i.test(q.question) || /tejo/i.test(q.correctAnswer));
 assert('dificuldade Tejo hard', tejo && tejo.difficulty === 'hard' && tejo.accuracyPct === 33.3);
+assert('dificuldade inclui resposta', tejo && tejo.correctAnswer === 'Tejo');
+assert('dificuldade por faixa', Array.isArray(diff.byAgeBand) && diff.byAgeBand.length >= 2);
+const band15Diff = diff.byAgeBand.find((b) => b.ageBand === '15+');
+assert('faixa 15+ Tejo', band15Diff && band15Diff.questions.some((q) => q.correctAnswer === 'Tejo'));
+const band1015Diff = diff.byAgeBand.find((b) => b.ageBand === '10-15');
+assert('faixa 10-15 sem Tejo', band1015Diff && !band1015Diff.questions.some((q) => q.correctAnswer === 'Tejo'));
 
 const streaks = computeStreaks(games, { playerId: 'p-joao' });
 assert('streak João', streaks.players[0] && streaks.players[0].bestStreak >= 1);
 
 const insights = computeMatchInsights(games[0]);
 assert('insights MP', insights.hasAnswerData && insights.insights.length >= 3);
-assert('insight dominância ou precisão', insights.insights.some((i) => /dominou|precisão|mais rápido|difícil|dividiu/i.test(i.message)));
+assert('insight MP label', insights.matchLabel?.mode === 'multiplayer'
+  && insights.matchLabel?.name === 'João'
+  && insights.matchLabel?.roomCode === 'ABCD'
+  && insights.matchLabel?.date);
+assert('MP sem ranking por jogador', !insights.insights.some((i) => i.type === 'accuracy_leader' || i.type === 'fastest' || i.type === 'streak'));
+assert('MP destaques de sala', insights.insights.some((i) => i.type === 'match_accuracy'));
+assert('insight pergunta difícil ou divisão', insights.insights.some((i) => i.type === 'hardest_question' || i.type === 'split_question'));
 
 const legacyOnly = computeMatchInsights(games[1]);
 assert('insights legacy informativo', !legacyOnly.hasAnswerData && legacyOnly.insights.length === 1);

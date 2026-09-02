@@ -9,8 +9,7 @@
  * Mantém game-stats-engine.js livre de formatos legacy/Supabase.
  */
 
-const { normalizeGames, DEFAULT_PLAYER_ID, normalizeText } = require('./game-stats-engine');
-
+const { normalizeGames, DEFAULT_PLAYER_ID, normalizeText } = global.GameStatsEngine || {};
 function fromGameHistory(games, options = {}) {
   const list = Array.isArray(games) ? games : [];
   const defaultPlayerId = options.defaultPlayerId || DEFAULT_PLAYER_ID;
@@ -54,13 +53,28 @@ function fromGameHistory(games, options = {}) {
       finishedAt: g.finishedAt,
       roomCode: g.roomCode,
       roomId: g.roomId,
+      sessionName: g.sessionName || null,
       players,
       rounds,
     };
   }));
 }
 
-function fromSupabaseRows({ matches = [], historyRows = [], players = [] } = {}) {
+function parseMetadata(raw) {
+  if (!raw) return {};
+  if (typeof raw === 'object') return raw;
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
+function fromSupabaseRows({ matches = [], historyRows = [], players = [], rooms = [] } = {}) {
+  const roomCodeById = new Map((rooms || []).map((r) => [r.id, r.code]));
   const historyByMatch = new Map();
   for (const row of historyRows) {
     const matchId = row.match_id || row.matchId || 'unknown';
@@ -86,18 +100,26 @@ function fromSupabaseRows({ matches = [], historyRows = [], players = [] } = {})
     playersByRoom.get(roomId).push({
       playerId: p.player_id || p.playerId,
       nickname: p.nickname,
+      is_host: p.is_host,
     });
   }
 
-  const games = matches.map((m) => ({
-    gameId: m.id || m.match_id,
-    mode: m.mode,
-    startedAt: m.started_at || m.startedAt,
-    finishedAt: m.finished_at || m.finishedAt,
-    roomId: m.room_id || m.roomId,
-    players: playersByRoom.get(m.room_id || m.roomId) || [],
-    rounds: historyByMatch.get(m.id || m.match_id) || [],
-  }));
+  const games = matches.map((m) => {
+    const meta = parseMetadata(m.metadata);
+    const roomId = m.room_id || m.roomId;
+    const roomCode = meta.roomCode || meta.room_code || roomCodeById.get(roomId) || null;
+    return {
+      gameId: m.id || m.match_id,
+      mode: m.mode,
+      startedAt: m.started_at || m.startedAt,
+      finishedAt: m.finished_at || m.finishedAt,
+      roomId,
+      roomCode,
+      sessionName: meta.sessionName || meta.session_name || null,
+      players: playersByRoom.get(roomId) || [],
+      rounds: historyByMatch.get(m.id || m.match_id) || [],
+    };
+  });
 
   return normalizeGames(games);
 }
@@ -177,8 +199,8 @@ function mergeAnswerEventsIntoGames(games, answerEvents = [], players = []) {
   return games;
 }
 
-function fromSupabasePayload({ matches = [], historyRows = [], answerEvents = [], players = [] } = {}) {
-  const games = fromSupabaseRows({ matches, historyRows, players });
+function fromSupabasePayload({ matches = [], historyRows = [], answerEvents = [], players = [], rooms = [] } = {}) {
+  const games = fromSupabaseRows({ matches, historyRows, players, rooms });
   if (!answerEvents?.length) return games;
   return mergeAnswerEventsIntoGames([...games], answerEvents, players);
 }

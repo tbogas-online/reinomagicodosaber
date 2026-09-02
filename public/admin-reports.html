@@ -555,10 +555,222 @@
       border-color: var(--border);
       color: var(--text);
     }
+    .admin-tabs button.admin-tab {
+      border-width: 1px;
+      border-style: solid;
+      font-weight: 600;
+    }
+    .admin-tabs button.tab-reports:not(.active) { border-color: rgba(29, 78, 216, 0.5); color: #93c5fd; }
+    .admin-tabs button.tab-rooms:not(.active) { border-color: rgba(124, 58, 237, 0.5); color: #c4b5fd; }
+    .admin-tabs button.tab-bank:not(.active) { border-color: rgba(5, 150, 105, 0.5); color: #6ee7b7; }
+    .admin-tabs button.tab-knowledge:not(.active) { border-color: rgba(217, 119, 6, 0.5); color: #fcd34d; }
+    .admin-tabs button.tab-gamestats:not(.active) { border-color: rgba(8, 145, 178, 0.5); color: #67e8f9; }
+    .admin-tabs button.tab-telemetry:not(.active) { border-color: rgba(220, 38, 38, 0.5); color: #fca5a5; }
+    .admin-tabs button.tab-reports.active { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+    .admin-tabs button.tab-rooms.active { background: #7c3aed; border-color: #7c3aed; color: #fff; }
+    .admin-tabs button.tab-bank.active { background: #059669; border-color: #059669; color: #fff; }
+    .admin-tabs button.tab-knowledge.active { background: #d97706; border-color: #d97706; color: #fff; }
+    .admin-tabs button.tab-gamestats.active { background: #0891b2; border-color: #0891b2; color: #fff; }
+    .admin-tabs button.tab-telemetry.active { background: #dc2626; border-color: #dc2626; color: #fff; }
     .admin-tabs button.active {
-      background: #1d4ed8;
-      border-color: #1d4ed8;
       color: #fff;
+    }
+    .game-stats-insights {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .game-stats-global-insights {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .game-stats-global-insights .game-stats-match-body {
+      border-top: 0;
+      padding: 0;
+    }
+    .game-stats-match {
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.015) 100%);
+      overflow: hidden;
+    }
+    .game-stats-match[open] {
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
+    }
+    .game-stats-match-summary {
+      list-style: none;
+      display: grid;
+      grid-template-columns: auto 1fr auto auto;
+      gap: 10px 14px;
+      align-items: center;
+      padding: 16px 18px;
+      cursor: pointer;
+      user-select: none;
+    }
+    .game-stats-match-summary::-webkit-details-marker { display: none; }
+    .game-stats-match-summary::marker { content: ''; }
+    .game-stats-match-mode {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+    }
+    .game-stats-match-mode.mode-mp {
+      background: rgba(124, 58, 237, 0.18);
+      color: #ddd6fe;
+      border: 1px solid rgba(124, 58, 237, 0.35);
+    }
+    .game-stats-match-mode.mode-single {
+      background: rgba(8, 145, 178, 0.18);
+      color: #a5f3fc;
+      border: 1px solid rgba(8, 145, 178, 0.35);
+    }
+    .game-stats-match-main {
+      min-width: 0;
+    }
+    .game-stats-match-title {
+      display: block;
+      font-size: 1.02rem;
+      font-weight: 700;
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+    .game-stats-match-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.4;
+    }
+    .game-stats-match-meta .match-room {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      letter-spacing: 0.06em;
+      color: #c4b5fd;
+      font-weight: 600;
+    }
+    .game-stats-match-stats {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      justify-content: flex-end;
+    }
+    .game-stats-match-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 5px 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.18);
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+    .game-stats-match-chevron {
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      transition: transform 0.18s ease, background 0.18s ease;
+      font-size: 14px;
+    }
+    .game-stats-match[open] .game-stats-match-chevron {
+      transform: rotate(180deg);
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text);
+    }
+    .game-stats-match-body {
+      padding: 4px 18px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      border-top: 1px solid var(--border);
+    }
+    .game-stats-insight {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 14px 14px 14px 12px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: rgba(0, 0, 0, 0.16);
+      border-left-width: 4px;
+    }
+    .game-stats-insight-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 18px;
+      background: rgba(255, 255, 255, 0.06);
+    }
+    .game-stats-insight-label {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      opacity: 0.9;
+    }
+    .game-stats-insight-msg {
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .game-stats-insight-player {
+      color: #f8fafc;
+      font-weight: 700;
+    }
+    .game-stats-insight-extra {
+      margin: 8px 0 0;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px dashed var(--border);
+      font-size: 13px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+    .game-stats-insight.tone-green { border-left-color: #10b981; }
+    .game-stats-insight.tone-green .game-stats-insight-icon { background: rgba(16, 185, 129, 0.16); }
+    .game-stats-insight.tone-green .game-stats-insight-label { color: #6ee7b7; }
+    .game-stats-insight.tone-amber { border-left-color: #f59e0b; }
+    .game-stats-insight.tone-amber .game-stats-insight-icon { background: rgba(245, 158, 11, 0.16); }
+    .game-stats-insight.tone-amber .game-stats-insight-label { color: #fcd34d; }
+    .game-stats-insight.tone-purple { border-left-color: #a855f7; }
+    .game-stats-insight.tone-purple .game-stats-insight-icon { background: rgba(168, 85, 247, 0.16); }
+    .game-stats-insight.tone-purple .game-stats-insight-label { color: #d8b4fe; }
+    .game-stats-insight.tone-orange { border-left-color: #f97316; }
+    .game-stats-insight.tone-orange .game-stats-insight-icon { background: rgba(249, 115, 22, 0.16); }
+    .game-stats-insight.tone-orange .game-stats-insight-label { color: #fdba74; }
+    .game-stats-insight.tone-red { border-left-color: #ef4444; }
+    .game-stats-insight.tone-red .game-stats-insight-icon { background: rgba(239, 68, 68, 0.16); }
+    .game-stats-insight.tone-red .game-stats-insight-label { color: #fca5a5; }
+    .game-stats-insight.tone-blue { border-left-color: #3b82f6; }
+    .game-stats-insight.tone-blue .game-stats-insight-icon { background: rgba(59, 130, 246, 0.16); }
+    .game-stats-insight.tone-blue .game-stats-insight-label { color: #93c5fd; }
+    .game-stats-insight.tone-gray { border-left-color: #64748b; }
+    .game-stats-insight.tone-gray .game-stats-insight-icon { background: rgba(100, 116, 139, 0.16); }
+    .game-stats-insight.tone-gray .game-stats-insight-label { color: #cbd5e1; }
+    @media (max-width: 760px) {
+      .game-stats-match-summary {
+        grid-template-columns: 1fr auto;
+      }
+      .game-stats-match-mode { grid-column: 1 / -1; }
+      .game-stats-match-stats { justify-content: flex-start; grid-column: 1 / -1; }
     }
     .admin-tabs .spacer { flex: 1; }
     .bank-footer-link-wrap {
@@ -1057,12 +1269,12 @@
 
     <section id="dashboard" class="hidden">
       <div class="admin-tabs">
-        <button type="button" id="tabReports" class="active">Reportes</button>
-        <button type="button" id="tabRooms" class="secondary">Salas multijogador</button>
-        <button type="button" id="tabBank" class="secondary">Banco de perguntas</button>
-        <button type="button" id="tabKnowledge" class="secondary">Repositório</button>
-        <button type="button" id="tabGameStats" class="secondary">Estatísticas jogo</button>
-        <button type="button" id="tabTelemetry" class="secondary">Telemetria IA</button>
+        <button type="button" id="tabReports" class="admin-tab tab-reports active">Reportes</button>
+        <button type="button" id="tabRooms" class="admin-tab tab-rooms">Salas multijogador</button>
+        <button type="button" id="tabBank" class="admin-tab tab-bank">Banco de perguntas</button>
+        <button type="button" id="tabKnowledge" class="admin-tab tab-knowledge">Repositório</button>
+        <button type="button" id="tabGameStats" class="admin-tab tab-gamestats">Estatísticas jogo</button>
+        <button type="button" id="tabTelemetry" class="admin-tab tab-telemetry">Telemetria IA</button>
         <span class="spacer"></span>
         <button type="button" id="logoutBtn" class="secondary">Sair</button>
       </div>
@@ -1573,7 +1785,7 @@
           <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
             <div>
               <h2 class="charts-title" style="margin:0;">Estatísticas de jogo</h2>
-              <p class="chart-filter-note" style="margin:6px 0 0">Calculado a partir do histórico local deste browser (<code>reino_magico_game_history_v1</code> e eventos de resposta).</p>
+              <p class="chart-filter-note" style="margin:6px 0 0">Dados no Supabase (partidas, respostas e eventos) — com fallback ao histórico local deste browser.</p>
             </div>
             <div class="rooms-refresh-wrap">
               <span id="gameStatsLastUpdated" class="rooms-last-updated"></span>
@@ -1582,17 +1794,26 @@
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px;">
             <button type="button" class="primary" id="gameStatsRefreshBtn">📊 Actualizar estatísticas</button>
             <button type="button" class="secondary" id="gameStatsExportBtn">⬇ Exportar JSON</button>
+            <button type="button" class="secondary" id="gameStatsClearBtn" style="border-color:#dc2626;color:#fca5a5;">🗑 Limpar estatísticas</button>
           </div>
           <p class="status" id="gameStatsStatus"></p>
         </div>
 
-        <div class="card" id="gameStatsInsightsSection">
-          <h3>Destaques por partida</h3>
-          <div id="gameStatsInsights" class="issue-detail-list"></div>
+        <div class="card" id="gameStatsGlobalInsightsSection">
+          <h3>⭐ Destaques do jogo</h3>
+          <p class="chart-filter-note" style="margin:-4px 0 14px">Destaques agregados de todas as partidas analisadas.</p>
+          <div id="gameStatsGlobalInsights" class="game-stats-global-insights"></div>
         </div>
 
-        <div class="card">
-          <h3>Jogadores</h3>
+        <div class="card" id="gameStatsInsightsSection">
+          <h3>Destaques por partida</h3>
+          <p class="chart-filter-note" style="margin:-4px 0 14px">Clica numa partida para expandir e ler os destaques com mais detalhe.</p>
+          <div id="gameStatsInsights" class="game-stats-insights"></div>
+        </div>
+
+        <div class="card" id="gameStatsPlayersSection">
+          <h3>Jogadores (modo individual)</h3>
+          <p class="chart-filter-note" style="margin:-4px 0 12px">No multijogador, vários jogadores reais podem partilhar o mesmo dispositivo — por isso o ranking abaixo só inclui partidas individuais.</p>
           <div class="reports-table-wrap">
             <table class="reports-table">
               <thead>
@@ -1607,6 +1828,26 @@
               </thead>
               <tbody id="gameStatsPlayersBody">
                 <tr><td colspan="6" class="sub">Carrega as estatísticas para ver jogadores.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Faixas etárias</h3>
+          <div class="reports-table-wrap">
+            <table class="reports-table">
+              <thead>
+                <tr>
+                  <th>Faixa</th>
+                  <th>Rondas</th>
+                  <th>Respostas</th>
+                  <th>Precisão</th>
+                  <th>Tempo médio</th>
+                </tr>
+              </thead>
+              <tbody id="gameStatsAgeBandsBody">
+                <tr><td colspan="5" class="sub">—</td></tr>
               </tbody>
             </table>
           </div>
@@ -1633,20 +1874,8 @@
 
         <div class="card">
           <h3>Perguntas mais difíceis</h3>
-          <div class="reports-table-wrap">
-            <table class="reports-table">
-              <thead>
-                <tr>
-                  <th>Pergunta</th>
-                  <th>Respostas</th>
-                  <th>Precisão</th>
-                  <th>Dificuldade</th>
-                </tr>
-              </thead>
-              <tbody id="gameStatsQuestionsBody">
-                <tr><td colspan="4" class="sub">—</td></tr>
-              </tbody>
-            </table>
+          <div id="gameStatsQuestionsRoot">
+            <p class="sub">—</p>
           </div>
         </div>
       </div>
@@ -4389,8 +4618,32 @@
       return `${(n / 1000).toFixed(1)} s`;
     }
 
+    const GAME_STATS_AGE_LABELS = {
+      '6-9': '6–9 anos',
+      '10-15': '10–15 anos',
+      '15+': '+15 anos',
+      '—': 'Desconhecida',
+    };
+
+    function formatGameStatsAgeBand(ageBand) {
+      const key = String(ageBand || '—').trim() || '—';
+      return GAME_STATS_AGE_LABELS[key] || key;
+    }
+
     function formatGameStatsPct(value) {
       return value == null ? '—' : `${value}%`;
+    }
+
+    const GAME_STATS_DIFFICULTY_LABELS = {
+      easy: 'Fácil',
+      medium: 'Média',
+      hard: 'Difícil',
+      unknown: '—',
+    };
+
+    function formatGameStatsDifficulty(value) {
+      const key = String(value || '').trim();
+      return GAME_STATS_DIFFICULTY_LABELS[key] || key || '—';
     }
 
     function clipGameStatsText(text, max = 72) {
@@ -4400,12 +4653,12 @@
     }
 
     async function fetchGameStatsFromServer() {
+      const data = await api('/api/game-stats-admin?stats=1&limit=500');
+      if (data?.stats) return data.stats;
       const engine = window.GameStatsEngine;
       if (!engine?.computeAllStats) {
         throw new Error('Motor de estatísticas não carregado (game-stats-engine.js).');
       }
-      const data = await api('/api/game-stats-admin?stats=1');
-      if (data?.stats) return data.stats;
       const adapters = window.GameStatsAdapters;
       if (!adapters?.fromSupabasePayload) {
         throw new Error('Adaptadores de estatísticas não carregados.');
@@ -4415,6 +4668,7 @@
         historyRows: data.historyRows || [],
         answerEvents: data.answerEvents || [],
         players: data.players || [],
+        rooms: data.rooms || [],
       });
       return engine.computeAllStats(games);
     }
@@ -4441,25 +4695,187 @@
         <div class="stat stat-resolved"><strong>${summary.answersTotal || 0}</strong><span>Respostas registadas</span></div>
         <div class="stat stat-top-issue"><strong>${formatGameStatsPct(summary.accuracyPct)}</strong><span>Precisão global</span></div>
         <div class="stat stat-resolved"><strong>${formatGameStatsMs(summary.avgResponseMs)}</strong><span>Tempo médio</span></div>
-        <div class="stat stat-open"><strong>${topPlayer ? esc(topPlayer.nickname || topPlayer.playerId) : '—'}</strong><span>Melhor jogador</span></div>
+        <div class="stat stat-open"><strong>${topPlayer ? esc(topPlayer.nickname || topPlayer.playerId) : '—'}</strong><span>Melhor jogador (individual)</span></div>
       `;
+    }
+
+    const GAME_STATS_INSIGHT_META = {
+      corpus_overview: { icon: '📊', label: 'Visão global', tone: 'blue' },
+      games_split: { icon: '🎮', label: 'Tipos de partida', tone: 'purple' },
+      global_pace: { icon: '⏱️', label: 'Ritmo global', tone: 'amber' },
+      global_hardest_question: { icon: '🧩', label: 'Mais difícil (histórico)', tone: 'red' },
+      global_easiest_question: { icon: '✨', label: 'Mais fácil (histórico)', tone: 'green' },
+      top_category: { icon: '📚', label: 'Categoria destaque', tone: 'purple' },
+      weakest_category: { icon: '📉', label: 'Categoria difícil', tone: 'orange' },
+      best_age_band: { icon: '🧒', label: 'Melhor faixa etária', tone: 'green' },
+      weakest_age_band: { icon: '📊', label: 'Faixa mais difícil', tone: 'orange' },
+      global_top_player: { icon: '🏆', label: 'Melhor jogador (individual)', tone: 'green' },
+      global_best_streak: { icon: '🔥', label: 'Melhor série (individual)', tone: 'orange' },
+      match_accuracy: { icon: '🎯', label: 'Precisão da sala', tone: 'green' },
+      match_pace: { icon: '⏱️', label: 'Ritmo da sala', tone: 'amber' },
+      match_devices: { icon: '📱', label: 'Dispositivos', tone: 'purple' },
+      accuracy_leader: { icon: '🎯', label: 'Melhor precisão', tone: 'green' },
+      fastest: { icon: '⚡', label: 'Mais rápido', tone: 'amber' },
+      category_dominance: { icon: '👑', label: 'Dominou categoria', tone: 'purple' },
+      streak: { icon: '🔥', label: 'Melhor série', tone: 'orange' },
+      hardest_question: { icon: '🧩', label: 'Pergunta difícil', tone: 'red' },
+      split_question: { icon: '⚖️', label: 'Dividiu jogadores', tone: 'blue' },
+      info: { icon: 'ℹ️', label: 'Informação', tone: 'gray' },
+    };
+
+    function getGameStatsInsightMeta(type) {
+      return GAME_STATS_INSIGHT_META[type] || { icon: '✨', label: String(type || 'Destaque').replace(/_/g, ' '), tone: 'gray' };
+    }
+
+    function renderGameStatsMatchSummary(match, index) {
+      const lbl = match.matchLabel || {};
+      const game = match.game || {};
+      const isMp = lbl.mode === 'multiplayer';
+      const modeClass = isMp ? 'mode-mp' : 'mode-single';
+      const modeLabel = isMp ? '🎮 Multijogador' : '🏠 Individual';
+      const title = lbl.name || lbl.title || 'Partida';
+      const metaParts = [];
+      if (isMp && lbl.roomCode) {
+        metaParts.push(`Sala <span class="match-room">${esc(lbl.roomCode)}</span>`);
+      }
+      if (lbl.date) metaParts.push(esc(lbl.date));
+      const insightCount = (match.insights || []).length;
+      const pills = [];
+      if (game.roundsTotal != null) pills.push(`<span class="game-stats-match-pill">🎲 ${game.roundsTotal} rondas</span>`);
+      if (game.answersTotal > 0) {
+        pills.push(`<span class="game-stats-match-pill">✅ ${formatGameStatsPct(game.accuracyPct)}</span>`);
+      }
+      pills.push(`<span class="game-stats-match-pill">💡 ${insightCount}</span>`);
+      return `
+        <span class="game-stats-match-mode ${modeClass}">${modeLabel}</span>
+        <div class="game-stats-match-main">
+          <span class="game-stats-match-title">${esc(title)}</span>
+          ${metaParts.length ? `<div class="game-stats-match-meta">${metaParts.join(' · ')}</div>` : ''}
+        </div>
+        <div class="game-stats-match-stats">${pills.join('')}</div>
+        <span class="game-stats-match-chevron" aria-hidden="true">▾</span>
+      `;
+    }
+
+    function resolveInsightPlayerName(ins, match) {
+      if (ins.playerName) return String(ins.playerName).trim();
+      const players = match?.game?.players || [];
+      const found = players.find((p) => p.playerId === ins.playerId);
+      if (found?.nickname) return String(found.nickname).trim();
+      const engine = window.GameStatsEngine;
+      if (engine?.resolvePlayerDisplayName) {
+        return engine.resolvePlayerDisplayName(ins.playerId, ins.nickname || found?.nickname, null);
+      }
+      return '';
+    }
+
+    function formatGameStatsInsightMessage(ins, match) {
+      const name = resolveInsightPlayerName(ins, match);
+      const nameHtml = name ? `<strong class="game-stats-insight-player">${esc(name)}</strong>` : '';
+      switch (ins.type) {
+        case 'match_accuracy':
+          return esc(ins.message || `A sala teve ${ins.accuracyPct}% de precisão.`);
+        case 'match_pace': {
+          const secs = ins.avgResponseMs != null ? (ins.avgResponseMs / 1000).toFixed(1) : null;
+          return secs != null
+            ? esc(ins.message || `Tempo médio de resposta na sala: ${secs} s.`)
+            : esc(ins.message || '');
+        }
+        case 'match_devices':
+          return esc(ins.message || '');
+        case 'global_top_player':
+          return nameHtml
+            ? `${nameHtml} lidera o modo individual (${esc(ins.accuracyPct)}% em ${esc(ins.answersTotal)} respostas).`
+            : esc(ins.message || '');
+        case 'global_best_streak':
+          return nameHtml
+            ? `${nameHtml} tem a melhor série no modo individual (${esc(ins.bestStreak)} acertos seguidos).`
+            : esc(ins.message || '');
+        case 'global_hardest_question':
+        case 'global_easiest_question':
+        case 'corpus_overview':
+        case 'games_split':
+        case 'global_pace':
+        case 'top_category':
+        case 'weakest_category':
+        case 'best_age_band':
+        case 'weakest_age_band':
+          return esc(ins.message || '');
+        case 'accuracy_leader':
+          return nameHtml
+            ? `${nameHtml} teve a melhor precisão (${esc(ins.accuracyPct)}%).`
+            : esc(ins.message || '');
+        case 'fastest': {
+          const secs = ins.avgResponseMs != null ? (ins.avgResponseMs / 1000).toFixed(1) : null;
+          return nameHtml && secs != null
+            ? `${nameHtml} foi o mais rápido (${esc(secs)} s de média).`
+            : esc(ins.message || '');
+        }
+        case 'category_dominance': {
+          const cat = ins.category || (ins.categoryN != null ? `Categoria ${ins.categoryN}` : 'categoria');
+          return nameHtml
+            ? `${nameHtml} dominou ${esc(cat)} (${esc(ins.accuracyPct)}% de acerto).`
+            : esc(ins.message || '');
+        }
+        case 'streak':
+          return nameHtml
+            ? `${nameHtml} teve a maior recuperação (${esc(ins.bestStreak)} respostas certas seguidas).`
+            : esc(ins.message || '');
+        case 'hardest_question':
+          return esc(ins.message || `A pergunta ${ins.round} foi a mais difícil (${ins.accuracyPct}% acertaram).`);
+        case 'split_question':
+          return esc(ins.message || `A pergunta ${ins.round} dividiu os jogadores.`);
+        default:
+          return esc(ins.message || '');
+      }
+    }
+
+    function renderGameStatsInsightCard(ins, match) {
+      const meta = getGameStatsInsightMeta(ins.type);
+      const question = ins.question
+        ? `<p class="game-stats-insight-extra"><strong>Pergunta:</strong> ${esc(clipGameStatsText(ins.question, 160))}${ins.correctAnswer ? `<br><strong>Resposta:</strong> ${esc(clipGameStatsText(ins.correctAnswer, 80))}` : ''}</p>`
+        : '';
+      return `
+        <article class="game-stats-insight tone-${meta.tone}">
+          <span class="game-stats-insight-icon" aria-hidden="true">${meta.icon}</span>
+          <div>
+            <div class="game-stats-insight-label">${esc(meta.label)}</div>
+            <div class="game-stats-insight-msg">${formatGameStatsInsightMessage(ins, match)}</div>
+            ${question}
+          </div>
+        </article>
+      `;
+    }
+
+    function renderGameStatsGlobalInsights(stats) {
+      const el = document.getElementById('gameStatsGlobalInsights');
+      if (!el) return;
+      const block = stats.globalInsights || {};
+      const insights = block.insights || [];
+      if (!insights.length) {
+        el.innerHTML = '<p class="sub">Sem dados para sumário global.</p>';
+        return;
+      }
+      el.innerHTML = `<div class="game-stats-match-body">${insights.map((ins) => renderGameStatsInsightCard(ins, null)).join('')}</div>`;
     }
 
     function renderGameStatsInsights(stats) {
       const el = document.getElementById('gameStatsInsights');
       if (!el) return;
-      const insights = (stats.matchInsights || [])
-        .flatMap((m) => (m.insights || []).map((ins) => ({ gameId: m.gameId, ...ins })))
-        .slice(0, 12);
-      if (!insights.length) {
+      const matches = (stats.matchInsights || [])
+        .filter((m) => (m.game?.roundsTotal || 0) > 0 && (m.insights || []).length > 0)
+        .slice(0, 15);
+      if (!matches.length) {
         el.innerHTML = '<p class="sub">Sem destaques — joga mais partidas com respostas registadas.</p>';
         return;
       }
-      el.innerHTML = insights.map((ins) => `
-        <div class="issue-detail-item">
-          <strong>${esc(ins.type || 'insight')}</strong>
-          <span>${esc(ins.message || '')}</span>
-        </div>
+      el.innerHTML = matches.map((match, index) => `
+        <details class="game-stats-match">
+          <summary class="game-stats-match-summary">${renderGameStatsMatchSummary(match, index)}</summary>
+          <div class="game-stats-match-body">
+            ${(match.insights || []).map((ins) => renderGameStatsInsightCard(ins, match)).join('')}
+          </div>
+        </details>
       `).join('');
     }
 
@@ -4468,7 +4884,7 @@
       if (!body) return;
       const players = stats.players?.players || [];
       if (!players.length) {
-        body.innerHTML = '<tr><td colspan="6" class="sub">Sem respostas registadas no servidor.</td></tr>';
+        body.innerHTML = '<tr><td colspan="6" class="sub">Sem respostas em partidas individuais — o multijogador aparece nos destaques por partida.</td></tr>';
         return;
       }
       const streakMap = new Map((stats.streaks?.players || []).map((s) => [s.playerId, s.bestStreak]));
@@ -4480,6 +4896,25 @@
           <td>${formatGameStatsPct(p.accuracyPct)}</td>
           <td>${formatGameStatsMs(p.avgResponseMs)}</td>
           <td>${streakMap.get(p.playerId) ?? 0}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderGameStatsAgeBands(stats) {
+      const body = document.getElementById('gameStatsAgeBandsBody');
+      if (!body) return;
+      const bands = stats.ageBands?.ageBands || [];
+      if (!bands.length) {
+        body.innerHTML = '<tr><td colspan="5" class="sub">Sem dados por faixa etária.</td></tr>';
+        return;
+      }
+      body.innerHTML = bands.map((b) => `
+        <tr>
+          <td>${esc(formatGameStatsAgeBand(b.ageBand))}</td>
+          <td>${b.roundsPresented ?? 0}</td>
+          <td>${b.answersTotal ?? 0}</td>
+          <td>${formatGameStatsPct(b.accuracyPct)}</td>
+          <td>${formatGameStatsMs(b.avgResponseMs)}</td>
         </tr>
       `).join('');
     }
@@ -4502,33 +4937,132 @@
       `).join('');
     }
 
-    function renderGameStatsQuestions(stats) {
-      const body = document.getElementById('gameStatsQuestionsBody');
-      if (!body) return;
-      const questions = (stats.difficulty?.questions || [])
-        .filter((q) => (q.answersTotal || 0) >= 1)
-        .sort((a, b) => (a.accuracyPct ?? 100) - (b.accuracyPct ?? 100))
-        .slice(0, 15);
-      if (!questions.length) {
-        body.innerHTML = '<tr><td colspan="4" class="sub">Sem dados de dificuldade.</td></tr>';
-        return;
-      }
-      body.innerHTML = questions.map((q) => `
+    function renderGameStatsQuestionRow(q) {
+      const wrongHint = Array.isArray(q.topWrongAnswers) && q.topWrongAnswers.length
+        ? `<div class="sub" style="margin-top:4px">Erros: ${q.topWrongAnswers.slice(0, 3).map((w) => esc(`${w.answer} (${w.count})`)).join(' · ')}</div>`
+        : '';
+      return `
         <tr>
-          <td>${esc(clipGameStatsText(q.question))}</td>
+          <td>${esc(clipGameStatsText(q.question))}${wrongHint}</td>
+          <td>${esc(clipGameStatsText(q.correctAnswer, 48))}</td>
           <td>${q.answersTotal ?? 0}</td>
           <td>${formatGameStatsPct(q.accuracyPct)}</td>
-          <td>${esc(q.difficulty || '—')}</td>
+          <td>${esc(formatGameStatsDifficulty(q.difficulty))}</td>
         </tr>
-      `).join('');
+      `;
+    }
+
+    function renderGameStatsQuestions(stats) {
+      const root = document.getElementById('gameStatsQuestionsRoot');
+      if (!root) return;
+      const bands = stats.difficulty?.byAgeBand || [];
+      if (!bands.length) {
+        const questions = (stats.difficulty?.questions || [])
+          .filter((q) => (q.answersTotal || 0) >= 1)
+          .sort((a, b) => (a.accuracyPct ?? 100) - (b.accuracyPct ?? 100))
+          .slice(0, 15);
+        if (!questions.length) {
+          root.innerHTML = '<p class="sub">Sem dados de dificuldade.</p>';
+          return;
+        }
+        root.innerHTML = `
+          <div class="reports-table-wrap">
+            <table class="reports-table">
+              <thead>
+                <tr>
+                  <th>Pergunta</th>
+                  <th>Resposta</th>
+                  <th>Respostas</th>
+                  <th>Precisão</th>
+                  <th>Dificuldade</th>
+                </tr>
+              </thead>
+              <tbody>${questions.map(renderGameStatsQuestionRow).join('')}</tbody>
+            </table>
+          </div>
+        `;
+        return;
+      }
+      const sections = bands.map((band) => {
+        const questions = (band.questions || [])
+          .filter((q) => (q.answersTotal || 0) >= 1)
+          .sort((a, b) => (a.accuracyPct ?? 100) - (b.accuracyPct ?? 100))
+          .slice(0, 10);
+        if (!questions.length) return '';
+        return `
+          <h4 class="charts-title" style="font-size:0.95rem; margin:18px 0 8px">${esc(formatGameStatsAgeBand(band.ageBand))}</h4>
+          <div class="reports-table-wrap">
+            <table class="reports-table">
+              <thead>
+                <tr>
+                  <th>Pergunta</th>
+                  <th>Resposta</th>
+                  <th>Respostas</th>
+                  <th>Precisão</th>
+                  <th>Dificuldade</th>
+                </tr>
+              </thead>
+              <tbody>${questions.map(renderGameStatsQuestionRow).join('')}</tbody>
+            </table>
+          </div>
+        `;
+      }).filter(Boolean);
+      root.innerHTML = sections.length
+        ? sections.join('')
+        : '<p class="sub">Sem dados de dificuldade.</p>';
     }
 
     function renderGameStatsDashboard(stats) {
       renderGameStatsKpis(stats);
+      renderGameStatsGlobalInsights(stats);
       renderGameStatsInsights(stats);
       renderGameStatsPlayers(stats);
+      renderGameStatsAgeBands(stats);
       renderGameStatsCategories(stats);
       renderGameStatsQuestions(stats);
+    }
+
+    function clearLocalGameStatsHistory() {
+      try {
+        localStorage.removeItem(GAME_HISTORY_STORAGE_KEY);
+      } catch { /* ignore */ }
+    }
+
+    async function clearGameStatsDashboard() {
+      const statusEl = document.getElementById('gameStatsStatus');
+      const ok = await confirmAction(
+        'Apagar todas as estatísticas de jogo no Supabase e o histórico local deste browser? Esta acção não pode ser desfeita.',
+        { okLabel: 'Limpar estatísticas', danger: true },
+      );
+      if (!ok) return;
+      if (statusEl) {
+        statusEl.textContent = 'A limpar estatísticas…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/game-stats-admin', { method: 'DELETE' });
+        clearLocalGameStatsHistory();
+        lastGameStatsPayload = null;
+        await loadGameStatsDashboard({ quiet: true });
+        const cleared = data?.cleared || {};
+        const parts = [];
+        if (cleared.answerEvents != null) parts.push(`${cleared.answerEvents} evento(s) de resposta`);
+        if (cleared.matches != null) parts.push(`${cleared.matches} partida(s)`);
+        if (cleared.historyAnswersCleared != null && cleared.historyAnswersCleared > 0) {
+          parts.push(`${cleared.historyAnswersCleared} ronda(s) MP sem respostas`);
+        }
+        if (statusEl) {
+          statusEl.textContent = parts.length
+            ? `Estatísticas apagadas (${parts.join(', ')}). Histórico local também limpo.`
+            : 'Estatísticas apagadas. Histórico local também limpo.';
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao limpar estatísticas.';
+          statusEl.className = 'status err';
+        }
+      }
     }
 
     async function loadGameStatsDashboard(options = {}) {
@@ -4562,7 +5096,8 @@
           statusEl.className = 'status ok';
         }
       } catch (err) {
-        if (statusEl && !quiet) {
+        console.error('[game-stats]', err);
+        if (statusEl) {
           statusEl.textContent = err.message || 'Erro ao calcular estatísticas.';
           statusEl.className = 'status err';
         }
@@ -6043,6 +6578,7 @@
     document.getElementById('tabGameStats')?.addEventListener('click', () => setAdminTab('gamestats'));
     document.getElementById('tabTelemetry')?.addEventListener('click', () => setAdminTab('telemetry'));
     document.getElementById('gameStatsRefreshBtn')?.addEventListener('click', () => loadGameStatsDashboard());
+    document.getElementById('gameStatsClearBtn')?.addEventListener('click', () => clearGameStatsDashboard());
     document.getElementById('gameStatsExportBtn')?.addEventListener('click', () => {
       if (!lastGameStatsPayload) {
         const statusEl = document.getElementById('gameStatsStatus');

@@ -25,11 +25,17 @@ const ENGINE_EXPORTS = [
   'computeGamesSummary',
   'computePlayerStats',
   'computeCategoryStats',
+  'computeAgeBandStats',
   'computeQuestionStats',
   'computeQuestionDifficulty',
   'computeStreaks',
   'computeMatchInsights',
+  'computeGlobalInsights',
   'computeAllStats',
+  'formatMatchLabel',
+  'formatGameDateLabel',
+  'resolvePlayerDisplayName',
+  'buildPlayerNicknameMap',
 ];
 
 function stripModuleExports(src) {
@@ -59,8 +65,8 @@ ${assign}
 function buildAdapters() {
   let body = stripModuleExports(fs.readFileSync(ADAPTERS_SRC, 'utf8'));
   body = body.replace(
-    /const \{ normalizeGames, DEFAULT_PLAYER_ID \} = require\('\.\/game-stats-engine'\);/,
-    'const { normalizeGames, DEFAULT_PLAYER_ID, normalizeText } = global.GameStatsEngine || {};',
+    /const\s*\{[^}]+\}\s*=\s*require\('\.\/game-stats-engine'\);\s*\n/,
+    'const { normalizeGames, DEFAULT_PLAYER_ID, normalizeText } = global.GameStatsEngine || {};\n',
   );
   body = body.replace(/\nmodule\.exports\s*=\s*\{[\s\S]*\};\s*$/, '\n');
   return `/**

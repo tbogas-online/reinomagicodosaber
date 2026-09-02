@@ -49,7 +49,11 @@
 
   function buildRow(event, playerId) {
     const ctx = getMatchContext();
-    const nick = global.MultiplayerSync?.getMyNickname?.() || 'Jogador';
+    const game = global.GameHistory?.getCurrentGame?.();
+    const localName = game?.sessionName || global.GameHistory?.getLocalSessionName?.();
+    const nick = ctx.mode === 'single' && localName
+      ? localName
+      : (global.MultiplayerSync?.getMyNickname?.() || 'Jogador');
     return {
       match_id: ctx.matchId,
       room_id: ctx.roomId,
@@ -130,7 +134,7 @@
       mode: 'single',
       started_at: game.startedAt || new Date().toISOString(),
       rounds_count: 0,
-      metadata: { source: 'local', gameId: game.id },
+      metadata: { source: 'local', gameId: game.id, sessionName: game.sessionName || null },
     }, { onConflict: 'id', ignoreDuplicates: false });
     if (error && !/duplicate|unique/i.test(error.message || '')) {
       console.warn('[AnswerEvents] match upsert', error.message);
