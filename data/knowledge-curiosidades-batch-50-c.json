@@ -1,0 +1,1502 @@
+{
+  "exportedAt": "2026-09-02T15:23:32.143Z",
+  "count": 48,
+  "items": [
+    {
+      "knowledge_id": "knw-cat20-cur-b52-001",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O símbolo nacional de Portugal inclui cinco escudetes azuis com besantes.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O símbolo nacional de Portugal inclui cinco escudetes azuis com besantes. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-001",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 60,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "história"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-002",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O bacalhau é muito consumido em Portugal, apesar de ser pescado principalmente no Atlântico Norte.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O bacalhau é muito consumido em Portugal, apesar de ser pescado principalmente no Atlântico Norte. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-002",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 61,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "gastronomia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-003",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "A Ponte 25 de Abril liga Lisboa a Almada.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Ponte 25 de Abril liga Lisboa a Almada. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-003",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 62,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "engenharia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-004",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O Parque Nacional da Peneda-Gerês é o único parque nacional de Portugal.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Parque Nacional da Peneda-Gerês é o único parque nacional de Portugal. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-004",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 63,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "natureza"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-005",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O Minho é a região mais a sul de Portugal continental.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "O Minho é a região mais a sul de Portugal continental. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-005",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 64,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "geografia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-006",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "animais",
+      "fact": "Os flamingos ficam cor-de-rosa em parte por causa da comida que ingerem.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os flamingos ficam cor-de-rosa em parte por causa da comida que ingerem. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-006",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 65,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-007",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "animais",
+      "fact": "As zebras têm listras que ajudam a confundir predadores.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "As zebras têm listras que ajudam a confundir predadores. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-007",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.97,
+      "priority_pt": 66,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-008",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "animais",
+      "fact": "O camaleão muda de cor apenas por emoção, nunca por temperatura.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "O camaleão muda de cor apenas por emoção, nunca por temperatura. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-008",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 67,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-009",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "animais",
+      "fact": "As formigas podem levantar um peso muitas vezes superior ao seu corpo.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "As formigas podem levantar um peso muitas vezes superior ao seu corpo. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-009",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 68,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-010",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "animais",
+      "fact": "O ornitorrinco põe ovos, embora seja um mamífero.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O ornitorrinco põe ovos, embora seja um mamífero. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-010",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 69,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-011",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "plantas",
+      "fact": "As plantas produzem oxigénio durante a fotossíntese.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "As plantas produzem oxigénio durante a fotossíntese. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-011",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 70,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "natureza"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-012",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "plantas",
+      "fact": "O bambu pode crescer vários centímetros num único dia.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O bambu pode crescer vários centímetros num único dia. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-012",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 71,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "plantas"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-013",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "plantas",
+      "fact": "Todas as flores cheiram a perfume natural.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "Todas as flores cheiram a perfume natural. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-013",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 72,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "plantas"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-014",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "plantas",
+      "fact": "A madeira das árvores é formada por células mortas que dão rigidez ao tronco.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A madeira das árvores é formada por células mortas que dão rigidez ao tronco. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-014",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 73,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "plantas",
+        "ciência"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-015",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "mar",
+      "fact": "A água do mar é salgada por causa dos minerais que os rios transportam.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A água do mar é salgada por causa dos minerais que os rios transportam. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-015",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 74,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "mar",
+        "ciência"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-016",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "mar",
+      "fact": "Os recifes de coral são habitats muito ricos em biodiversidade marinha.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os recifes de coral são habitats muito ricos em biodiversidade marinha. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-016",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.97,
+      "priority_pt": 75,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "mar"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-017",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "mar",
+      "fact": "Os tubarões são peixes com esqueleto de osso, como os salmões.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "Os tubarões são peixes com esqueleto de osso, como os salmões. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-017",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 76,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "mar",
+        "animais"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-018",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "mar",
+      "fact": "A maré é influenciada principalmente pela Lua.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A maré é influenciada principalmente pela Lua. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-018",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 77,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "mar",
+        "astronomia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-019",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "espaço",
+      "fact": "Neptuno é o planeta mais distante do Sol no nosso Sistema Solar.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Neptuno é o planeta mais distante do Sol no nosso Sistema Solar. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-019",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 78,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-020",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "espaço",
+      "fact": "Um ano em Júpiter dura cerca de 12 anos terrestres.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Um ano em Júpiter dura cerca de 12 anos terrestres. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-020",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 79,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-021",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "espaço",
+      "fact": "A estrela mais próxima do Sol, além do próprio Sol, é Proxima Centauri.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A estrela mais próxima do Sol, além do próprio Sol, é Proxima Centauri. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-021",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 60,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-022",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "espaço",
+      "fact": "Os astronautas flutuam na Estação Espacial Internacional porque não há gravidade nenhuma.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "Os astronautas flutuam na Estação Espacial Internacional porque não há gravidade nenhuma. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-022",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 61,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia",
+        "física"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-023",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "física",
+      "fact": "O ar quente tende a subir porque é menos denso que o ar frio.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O ar quente tende a subir porque é menos denso que o ar frio. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-023",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 62,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "física"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-024",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "física",
+      "fact": "O arco-íris aparece quando a luz do Sol atravessa gotas de água.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O arco-íris aparece quando a luz do Sol atravessa gotas de água. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-024",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 63,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "física"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-025",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "física",
+      "fact": "O magnetismo pode atrair objectos de madeira.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "O magnetismo pode atrair objectos de madeira. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-025",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.97,
+      "priority_pt": 64,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "física"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-026",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "química",
+      "fact": "O sal de cozinha é principalmente cloreto de sódio.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O sal de cozinha é principalmente cloreto de sódio. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-026",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 65,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "química"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-027",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "química",
+      "fact": "O ozono na atmosfera ajuda a filtrar radiação ultravioleta do Sol.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O ozono na atmosfera ajuda a filtrar radiação ultravioleta do Sol. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-027",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 66,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "química",
+        "ambiente"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-028",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "química",
+      "fact": "O ouro é um metal que não enferruja com facilidade.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O ouro é um metal que não enferruja com facilidade. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-028",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 67,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "química"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-029",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "A escrita foi inventada antes da roda.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "A escrita foi inventada antes da roda. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-029",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 68,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "história"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-030",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "Os faraós egípcios construíram pirâmides como túmulos monumentais.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os faraós egípcios construíram pirâmides como túmulos monumentais. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-030",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 69,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "história"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-031",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "A Idade do Bronze precedeu a Idade do Ferro em muitas civilizações.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Idade do Bronze precedeu a Idade do Ferro em muitas civilizações. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-031",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 70,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "história"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-032",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "Gutenberg está associado à imprensa de caracteres móveis na Europa.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Gutenberg está associado à imprensa de caracteres móveis na Europa. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-032",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 71,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "história",
+        "tecnologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-033",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "O Equador divide a Terra em hemisfério norte e hemisfério sul.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Equador divide a Terra em hemisfério norte e hemisfério sul. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-033",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 72,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-034",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "A Antártida é o continente mais frio da Terra.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Antártida é o continente mais frio da Terra. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-034",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.97,
+      "priority_pt": 73,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-035",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "O mapa-múndi de Mercator distorce o tamanho dos países junto aos polos.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O mapa-múndi de Mercator distorce o tamanho dos países junto aos polos. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-035",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 74,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-036",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "O Japão é um arquipélago no Oceano Pacífico.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Japão é um arquipélago no Oceano Pacífico. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-036",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 75,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-037",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "tecnologia",
+      "fact": "Os semicondutores são essenciais nos chips dos computadores modernos.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os semicondutores são essenciais nos chips dos computadores modernos. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-037",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 76,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "tecnologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-038",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "tecnologia",
+      "fact": "A energia solar pode ser convertida em electricidade por painéis fotovoltaicos.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A energia solar pode ser convertida em electricidade por painéis fotovoltaicos. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-038",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 77,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "tecnologia",
+        "ambiente"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-039",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "tecnologia",
+      "fact": "O código Morse usa pontos e traços para representar letras.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O código Morse usa pontos e traços para representar letras. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-039",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 78,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "tecnologia",
+        "história"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-040",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "cultura",
+      "fact": "O ballet é uma forma de dança com origens na corte europeia.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O ballet é uma forma de dança com origens na corte europeia. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-040",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 79,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "cultura"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-041",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "cultura",
+      "fact": "O cinema mudo não tinha diálogos falados.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O cinema mudo não tinha diálogos falados. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-041",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 60,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "cultura"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-042",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "cultura",
+      "fact": "O violino pertence à família das cordas.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O violino pertence à família das cordas. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-042",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 61,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "música"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-043",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "desporto",
+      "fact": "No basquetebol, um lançamento de três pontos vale mais do que um de dois.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "No basquetebol, um lançamento de três pontos vale mais do que um de dois. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-043",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.97,
+      "priority_pt": 62,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "desporto"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-044",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "desporto",
+      "fact": "O Tour de France é uma competição de ciclismo.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Tour de France é uma competição de ciclismo. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-044",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 63,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "desporto"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-045",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "desporto",
+      "fact": "No futebol, o guarda-redes é a única posição que pode tocar na bola com as mãos dentro da grande área.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "No futebol, o guarda-redes é a única posição que pode tocar na bola com as mãos dentro da grande área. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-045",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 64,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "desporto"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-046",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "O sangue transporta oxigénio pelo corpo.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O sangue transporta oxigénio pelo corpo. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-046",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 65,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "biologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-047",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "Os rins filtram resíduos do sangue.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os rins filtram resíduos do sangue. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-047",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 66,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "biologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b52-048",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "Os dentes de leite caem e são substituídos por dentes permanentes.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os dentes de leite caem e são substituídos por dentes permanentes. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b52-048",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 67,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "biologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    }
+  ]
+}

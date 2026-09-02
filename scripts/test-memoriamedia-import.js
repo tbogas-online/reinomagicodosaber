@@ -7,6 +7,7 @@ const {
   stripHtml,
   normalizeText,
   transformRows,
+  clueLeaksAnswer,
 } = require('./lib/memoriamedia-adivinhas');
 
 let passed = 0;
@@ -80,6 +81,17 @@ console.log('MemóriaMedia import — testes\n');
 
 assert('stripHtml', stripHtml('<p>Olá &eacute; bom</p>').includes('Olá'));
 assert('normalizeText', normalizeText('Figueira!') === 'figueira');
+assert('clueLeaksAnswer detecta', clueLeaksAnswer(['é um pente de madeira'], 'Pente'));
+assert('clueLeaksAnswer ignora seguro', !clueLeaksAnswer(['tem dentes mas não morde'], 'Pente'));
+
+{
+  const parsed = {
+    answer: 'Relógio',
+    clues: ['o relógio dá as horas', 'tic tac'],
+    fact: 'test',
+  };
+  assert('validateParsed clue_leaks', validateParsed(parsed, { includeMalicious: true }).includes('clue_leaks_answer'));
+}
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

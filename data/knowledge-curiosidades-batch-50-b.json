@@ -1,0 +1,1566 @@
+{
+  "exportedAt": "2026-09-02T15:17:07.868Z",
+  "count": 50,
+  "items": [
+    {
+      "knowledge_id": "knw-cat20-cur-b51-001",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O Pastel de Belém é vendido desde 1837 na freguesia de Belém, em Lisboa.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Pastel de Belém é vendido desde 1837 na freguesia de Belém, em Lisboa. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-001",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 62,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "gastronomia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-002",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O Mosteiro dos Jerónimos é Património Mundial da UNESCO desde 1983.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Mosteiro dos Jerónimos é Património Mundial da UNESCO desde 1983. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-002",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 63,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "cultura"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-003",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "A Universidade de Coimbra é uma das mais antigas da Europa.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Universidade de Coimbra é uma das mais antigas da Europa. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-003",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 64,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "educação"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-004",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O calçado português é um dos produtos de exportação mais reconhecidos do país.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O calçado português é um dos produtos de exportação mais reconhecidos do país. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-004",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 65,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "economia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-005",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "portugal",
+      "fact": "O Algarve fica no norte de Portugal.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "O Algarve fica no norte de Portugal. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-005",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 66,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "portugal",
+        "geografia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-006",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "As tartarugas marinhas podem viver mais de 80 anos.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "As tartarugas marinhas podem viver mais de 80 anos. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-006",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 67,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-007",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "O choco pode mudar a cor da pele para se camuflar.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O choco pode mudar a cor da pele para se camuflar. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-007",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.97,
+      "priority_pt": 68,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais",
+        "mar"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-008",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "As árvores mais antigas do mundo são pinheiros com milhares de anos.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "As árvores mais antigas do mundo são pinheiros com milhares de anos. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-008",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 69,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "plantas"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-009",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "Os morcegos são aves que voam de noite.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "Os morcegos são aves que voam de noite. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-009",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 70,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-010",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "natureza",
+      "fact": "O coração de um colibri pode bater mais de 1000 vezes por minuto.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O coração de um colibri pode bater mais de 1000 vezes por minuto. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-010",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 71,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "animais"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-011",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "astronomia",
+      "fact": "Saturno é famoso pelos seus anéis visíveis.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Saturno é famoso pelos seus anéis visíveis. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-011",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 72,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-012",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "astronomia",
+      "fact": "A Via Láctea é a galáxia onde está o Sistema Solar.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Via Láctea é a galáxia onde está o Sistema Solar. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-012",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 73,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-013",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "astronomia",
+      "fact": "Mercúrio é o planeta mais próximo do Sol.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Mercúrio é o planeta mais próximo do Sol. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-013",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 74,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-014",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "astronomia",
+      "fact": "O Sol gira em torno da Terra.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "O Sol gira em torno da Terra. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-014",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 75,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-015",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "astronomia",
+      "fact": "Uma estrela cadente é na verdade um meteorito a entrar na atmosfera.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Uma estrela cadente é na verdade um meteorito a entrar na atmosfera. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-015",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 76,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "astronomia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-016",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "ciência",
+      "fact": "A água ferve a 100 °C ao nível do mar.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A água ferve a 100 °C ao nível do mar. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-016",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.97,
+      "priority_pt": 77,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "física"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-017",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "ciência",
+      "fact": "O ferro é um metal magnético.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O ferro é um metal magnético. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-017",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 78,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "química"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-018",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "ciência",
+      "fact": "Os humanos têm o mesmo número de costelas que os cães.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "Os humanos têm o mesmo número de costelas que os cães. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-018",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 79,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "biologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-019",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "ciência",
+      "fact": "O vidro é feito principalmente de areia aquecida a temperaturas muito elevadas.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O vidro é feito principalmente de areia aquecida a temperaturas muito elevadas. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-019",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 62,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "química"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-020",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "ciência",
+      "fact": "O som não se propaga no vácuo do espaço.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O som não se propaga no vácuo do espaço. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-020",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 63,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "física"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-021",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "A Grande Muralha da China foi construída ao longo de vários séculos.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Grande Muralha da China foi construída ao longo de vários séculos. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-021",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 64,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "história"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-022",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "Leonardo da Vinci pintou a Mona Lisa.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Leonardo da Vinci pintou a Mona Lisa. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-022",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 65,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "arte",
+        "história"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-023",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "A Primeira Guerra Mundial começou em 1914.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Primeira Guerra Mundial começou em 1914. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-023",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 66,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "história"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-024",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "Os vikings eram originários da Escandinávia.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os vikings eram originários da Escandinávia. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-024",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 67,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "história"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-025",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "história",
+      "fact": "O Império Romano caiu no século V.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Império Romano caiu no século V. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-025",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.97,
+      "priority_pt": 68,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "história"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-026",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "O canal da Mancha separa a França do Reino Unido.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O canal da Mancha separa a França do Reino Unido. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-026",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 69,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-027",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "O maior oceano do mundo é o Pacífico.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O maior oceano do mundo é o Pacífico. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-027",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 70,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-028",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "A Islândia é conhecida pela actividade vulcânica e geotermia.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A Islândia é conhecida pela actividade vulcânica e geotermia. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-028",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 71,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-029",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "O Nilo é o rio mais longo de África.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Nilo é o rio mais longo de África. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-029",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 72,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-030",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "geografia",
+      "fact": "A capital da Austrália é Sydney.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "A capital da Austrália é Sydney. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-030",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 73,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "geografia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-031",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "tecnologia",
+      "fact": "O Bluetooth recebe o nome de um rei viking da Dinamarca.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Bluetooth recebe o nome de um rei viking da Dinamarca. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-031",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 74,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "tecnologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-032",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "tecnologia",
+      "fact": "O primeiro computador electrónico de uso geral foi o ENIAC.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O primeiro computador electrónico de uso geral foi o ENIAC. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-032",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 75,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "tecnologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-033",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "tecnologia",
+      "fact": "A impressora 3D constrói objectos camada a camada.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A impressora 3D constrói objectos camada a camada. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-033",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 76,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "tecnologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-034",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "tecnologia",
+      "fact": "O Wi-Fi precisa de fios para funcionar dentro de casa.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "O Wi-Fi precisa de fios para funcionar dentro de casa. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-034",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.97,
+      "priority_pt": 77,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "tecnologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-035",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "tecnologia",
+      "fact": "Os drones podem ser controlados remotamente.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os drones podem ser controlados remotamente. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-035",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 78,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "tecnologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-036",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "cultura",
+      "fact": "O cinema foi inventado no final do século XIX.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O cinema foi inventado no final do século XIX. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-036",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 79,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "cultura"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-037",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "cultura",
+      "fact": "O ópera é uma forma de arte que combina música, canto e teatro.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O ópera é uma forma de arte que combina música, canto e teatro. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-037",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 62,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "música",
+        "cultura"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-038",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "cultura",
+      "fact": "O Museu do Louvre fica em Paris.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O Museu do Louvre fica em Paris. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-038",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 63,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "arte"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-039",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "cultura",
+      "fact": "O rock and roll surgiu na década de 1950.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O rock and roll surgiu na década de 1950. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-039",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 64,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "música"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-040",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "cultura",
+      "fact": "Michelangelo pintou o tecto da Capela Sistina.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Michelangelo pintou o tecto da Capela Sistina. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-040",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 65,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "arte"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-041",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "desporto",
+      "fact": "O futebol é o desporto mais popular do mundo.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O futebol é o desporto mais popular do mundo. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-041",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 66,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "desporto"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-042",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "desporto",
+      "fact": "Uma maratona tem 42,195 quilómetros.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Uma maratona tem 42,195 quilómetros. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-042",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9600000000000001,
+      "priority_pt": 67,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "desporto"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-043",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "desporto",
+      "fact": "O ténis de mesa também se chama pingue-pongue.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O ténis de mesa também se chama pingue-pongue. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-043",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.97,
+      "priority_pt": 68,
+      "age_bands": [
+        "6-9",
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "desporto"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-044",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "desporto",
+      "fact": "No xadrez, o rei pode ser capturado como qualquer outra peça.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "No xadrez, o rei pode ser capturado como qualquer outra peça. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-044",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.98,
+      "priority_pt": 69,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "desporto"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-045",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "desporto",
+      "fact": "A natação é um desporto olímpico desde os Jogos modernos.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A natação é um desporto olímpico desde os Jogos modernos. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-045",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.99,
+      "priority_pt": 70,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "desporto"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-046",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "O fígado é o maior órgão interno do corpo humano.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O fígado é o maior órgão interno do corpo humano. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-046",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.91,
+      "priority_pt": 71,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "biologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-047",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "Os pulmões são responsáveis pela respiração.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "Os pulmões são responsáveis pela respiração. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-047",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.92,
+      "priority_pt": 72,
+      "age_bands": [
+        "6-9",
+        "10-15"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "biologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-048",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "O cérebro humano pesa cerca de 1,4 kg em adultos.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "O cérebro humano pesa cerca de 1,4 kg em adultos. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-048",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.93,
+      "priority_pt": 73,
+      "age_bands": [
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "biologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-049",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "As unhas dos pés crescem mais depressa que as das mãos.",
+      "answer": "Falso",
+      "clues": [],
+      "statement": "As unhas dos pés crescem mais depressa que as das mãos. Verdadeiro ou Falso?",
+      "is_true": false,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-049",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9400000000000001,
+      "priority_pt": 74,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "biologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    },
+    {
+      "knowledge_id": "knw-cat20-cur-b51-050",
+      "category_n": 20,
+      "topic": "curiosidade surpreendente",
+      "subtopic": "corpo humano",
+      "fact": "A pele é o maior órgão do corpo humano.",
+      "answer": "Verdadeiro",
+      "clues": [],
+      "statement": "A pele é o maior órgão do corpo humano. Verdadeiro ou Falso?",
+      "is_true": true,
+      "source": "manual",
+      "source_id": "manual:curiosidade:b51-050",
+      "source_url": null,
+      "license": null,
+      "confidence": 0.9500000000000001,
+      "priority_pt": 75,
+      "age_bands": [
+        "10-15",
+        "15+"
+      ],
+      "allowed_formats": [
+        "CURIOSIDADE",
+        "VERDADEIRO_FALSO"
+      ],
+      "tags": [
+        "biologia"
+      ],
+      "verified_at": "2026-09-02",
+      "verified_by": "daily-knowledge-import",
+      "metadata": {}
+    }
+  ]
+}

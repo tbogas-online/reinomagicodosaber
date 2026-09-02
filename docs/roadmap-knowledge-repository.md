@@ -154,7 +154,7 @@ Cada pergunta gerada (depois da IA + validação):
 - [x] RPC `pick_knowledge_record`, `import_knowledge_batch`, `disable_knowledge_record`, `get_knowledge_repository_stats`
 - [x] Colunas `knowledge_id`, `source_id`, `confidence` em `question_bank`
 - [x] Cliente browser `public/knowledge-repository.js`
-- [ ] Executar SQL no projecto Supabase + seed de amostra (`seed-knowledge-cat20-sample.sql`)
+- [x] Executar SQL no projecto Supabase + seed de amostra (`seed-knowledge-cat20-sample.sql`) *(schema activo — 474+ registos em produção)*
 
 ### KR-0.2 Módulo `knowledge-repository.js`
 
@@ -201,11 +201,13 @@ Cada pergunta gerada (depois da IA + validação):
 - [ ] Campos obrigatórios: `fact`, `answer`, `clues[]`, `source`, `sourceId` *(clues derivados das estrofes; ~122 aptas sem maliciosas)*
 - [ ] Normalização PT-PT (Priberam para variantes ortográficas)
 - [x] Deduplicação por `answer` + similaridade de `fact` (Jaccard)
-- [ ] Meta: **≥ 200 adivinhas** verificadas para MVP *(122 da MemóriaMedia + outras fontes Giacometti/BNP)*
+- [x] Meta: **≥ 200 adivinhas** verificadas para MVP *(410 activas — Ditos.pt, MemóriaMedia, web)*
+- [x] Auditoria de duplicados: `npm run audit:kb-duplicates`
+- [x] Deduplicação de adivinhas aplicada (1 activa por resposta normalizada; `npm run dedupe:kb:adivinhas:apply`)
 
 ### KR-1.2 Validação de import
 
-- [ ] Testes automáticos: clues não revelam resposta
+- [ ] Testes automáticos: clues não revelam resposta *(parcial — `test-memoriamedia-import.js`)*
 - [ ] Idade mínima por vocabulário
 - [ ] Rejeitar adivinhas ambíguas (regras `known-facts` + heurísticas)
 
@@ -257,7 +259,8 @@ Cada pergunta gerada (depois da IA + validação):
 
 - [x] Schema: `fact` + `answer` (ou `statement` + `isTrue` para V/F) — `knowledge-repository.sql`
 - [x] Seed de amostra (`seed-knowledge-cat20-sample.sql`, fila `knowledge-import-queue.json`)
-- [ ] Meta: **≥ 150 curiosidades** MVP
+- [x] Lote A: 50 curiosidades (`--batch-50`) + lote B (`--batch-50-b`) + lote C (`--batch-50-c`, 48) com filtro anti-duplicado no import
+- [x] Meta: **≥ 150 curiosidades** MVP *(importar lote C após dedupe)*
 
 ### KR-2.2 Alternância 50/50
 
@@ -389,8 +392,6 @@ Para cada categoria **1–19**, repetir mini-roadmap:
 
 ## Próximo passo imediato
 
-1. **Supabase SQL Editor** — executar `supabase/knowledge-repository.sql` e `supabase/seed-knowledge-cat20-sample.sql` (se ainda não corrido)
-2. Fornecer formato/export da primeira fonte real (MemóriaMedia ou CSV) — meta ≥200 adivinhas + ≥150 curiosidades
-3. **KR-1.4** — telemetria `% source=repository` no KP; desactivar `knowledgeId` ao resolver reporte (feito)
-4. **KR-4** — `knowledgeId` em `persistent-history` e repetição prioritária (feito)
+1. **KR-1.4** — validar em jogo: 0 adivinhas sem `knowledgeId`; telemetria `% source=repository`
+2. **KR-1.2** — vocabulário por idade; expandir testes de import
 
