@@ -23,6 +23,16 @@ if (!fs.existsSync(envPath)) {
   console.warn('');
 }
 
+const hasAiKey = ['GROQ_API_KEY', 'OPENAI_API_KEY', 'ANTHROPIC_API_KEY']
+  .some((k) => String(process.env[k] || '').trim());
+if (!hasAiKey) {
+  console.warn('');
+  console.warn('Aviso: nenhuma chave de IA em .env.local (GROQ_API_KEY, OPENAI_API_KEY, ANTHROPIC_API_KEY).');
+  console.warn('  → O jogo mostra «IA offline» em local até adicionares pelo menos uma chave.');
+  console.warn('  → Alternativa: DEV_LIVE=1 no .env.local + netlify link (herda env do site Netlify).');
+  console.warn('');
+}
+
 const gen = spawnSync(process.execPath, ['scripts/generate-version.js'], {
   cwd: root,
   env: process.env,

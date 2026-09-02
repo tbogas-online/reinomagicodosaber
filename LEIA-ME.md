@@ -158,8 +158,11 @@ Abre **http://localhost:8888** (porta configurável com `DEV_PORT` no `.env.loca
 **Dados locais:**
 
 - **Reportes** (Netlify Blobs) → pasta `.netlify/` no projeto (gitignored).
+- **IA** (Groq/OpenAI/Anthropic) → em modo `--offline` **não** herda as chaves do Netlify; copia-as para `.env.local` (`GROQ_API_KEY`, etc.) e reinicia `npm run dev`. Sem chaves, o jogo mostra «IA offline — nenhuma chave configurada».
 - **Supabase** (salas, banco, telemetria, repositório) → usa o projecto configurado em `.env.local` (podes usar o mesmo de produção ou um projecto de teste).
-- **IA** (Groq/OpenAI/Anthropic) → chamadas directas às APIs dos fornecedores (quotas próprias, não Netlify).
+- **IA** (quotas) → chamadas directas às APIs dos fornecedores (quotas próprias, não Netlify).
+
+**Alternativa sem copiar chaves:** `netlify link` (uma vez) + `DEV_LIVE=1` no `.env.local` — o CLI herda as variáveis do site Netlify; as functions continuam a correr na máquina.
 
 `GENERATE_ALLOW_PUBLIC=true` é activado automaticamente em local para facilitar testes sem Basic Auth.
 
