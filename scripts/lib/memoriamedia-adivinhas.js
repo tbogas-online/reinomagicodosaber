@@ -324,6 +324,7 @@ module.exports = {
   PAGE_SIZE,
   stripHtml,
   normalizeText,
+  clueLeaksAnswer,
   mapRawRow,
   validateParsed,
   toKnowledgeRecord,
