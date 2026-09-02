@@ -1,6 +1,7 @@
 'use strict';
 
 const { normalizePtPtRecord } = require('./pt-pt-normalize');
+const { evaluateRecordPolicy } = require('./knowledge-policy');
 
 const AGE_BANDS = ['6-9', '10-15', '15+'];
 
@@ -57,6 +58,20 @@ function validateRecord(rec) {
   if (formats.includes('ADIVINHA')) {
     if (!Array.isArray(rec.clues) || rec.clues.length < 2) missing.push('clues');
   }
+
+  const formatId = formats.includes('ADIVINHA')
+    ? 'ADIVINHA'
+    : (formats.includes('VERDADEIRO_FALSO') ? 'VERDADEIRO_FALSO' : (formats[0] || null));
+  const policy = evaluateRecordPolicy(
+    {
+      category: rec.category_n,
+      source: rec.source,
+      confidence: rec.confidence,
+    },
+    { categoryN: rec.category_n, formatId },
+  );
+  if (!policy.ok) missing.push(`policy_${policy.reason}`);
+
   return missing;
 }
 

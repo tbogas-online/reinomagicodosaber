@@ -158,16 +158,16 @@ Cada pergunta gerada (depois da IA + validação):
 
 ### KR-0.2 Módulo `knowledge-repository.js`
 
-- [ ] `loadRecords(category, filters)`
-- [ ] `pickRecord(ctx)` — respeita idade, formato, não repetido, prioridade PT
-- [ ] `getRecordById(knowledgeId)`
-- [ ] `markUsed(knowledgeId, ageBandKey, sessionId)`
+- [x] `loadRecords(category, filters)` — RPC `list_knowledge_records`
+- [x] `pickRecord(ctx)` — aceita objeto ctx ou `(categoryN, ageBand, opts)`; política KR-0.3 + anti-reuso
+- [x] `getRecordById(knowledgeId)` — RPC `get_knowledge_record`
+- [x] `markUsed(knowledgeId, ageBandKey, sessionId)` — RPC `mark_knowledge_used`
 
 ### KR-0.3 Política de confiança
 
-- [ ] `confidence` mínimo por categoria (ex.: adivinhas ≥ 0.90)
-- [ ] Bloquear geração se `source` não estiver na allowlist da categoria
-- [ ] Campo `blocked` / `supersededBy` para correcções
+- [x] `confidence` mínimo por categoria (ex.: adivinhas ≥ 0.90) — `getMinConfidence` + import
+- [x] Bloquear geração se `source` não estiver na allowlist da categoria — `evaluateRecordPolicy`
+- [x] Campo `blocked` / `supersededBy` para correcções — `rowToRecord` + SQL `supersede_knowledge_record`
 
 ### KR-0.4 Contrato IA
 
@@ -392,7 +392,7 @@ Para cada categoria **1–19**, repetir mini-roadmap:
 
 ## Próximo passo imediato
 
-1. **KR-0.2 / KR-0.3** — API cliente (`markUsed`, `getRecordById`) e política de confiança por categoria
+1. **KR-2.3** — verificação factual opcional (Wikidata) para curiosidades
 2. **KR-7+** — expandir para Geografia (cat. 2) ou outra categoria com fontes definidas
 3. Validar em produção após deploy: painel Repositório → **Cat. 20 sem IA (≥95%)**
 

@@ -183,6 +183,7 @@ BEGIN
   FROM public.knowledge_records kr
   WHERE kr.category_n = p_category_n
     AND kr.is_active = true
+    AND kr.superseded_by IS NULL
     AND kr.confidence >= COALESCE(p_min_confidence, 0.850)
     AND public.knowledge_record_matches_context(kr, p_age_band, p_format)
     AND (p_topic IS NULL OR p_topic = '' OR kr.topic = p_topic)
