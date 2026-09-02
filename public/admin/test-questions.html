@@ -705,6 +705,7 @@
         model: usage.model || '',
         source: 'ai',
         gameMode: 'test',
+        parsed: fields.parsed,
       });
     }
 
@@ -931,6 +932,7 @@
             attempt,
             issueCodes: [!parsed?.q ? 'STRUCTURE_MISSING_Q' : 'STRUCTURE_MISSING_A'],
             aiUsage,
+            parsed,
           });
           continue;
         }
@@ -986,6 +988,7 @@
           issueDetails: lastIssueDetails,
           score: result.score,
           aiUsage,
+          parsed,
         });
         showResult(result, parsed, resolved, aiUsage);
       }

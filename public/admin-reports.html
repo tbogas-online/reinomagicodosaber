@@ -685,6 +685,24 @@
       white-space: normal;
       word-break: break-word;
     }
+    .issue-detail-list .issue-question {
+      margin-top: 6px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      background: rgba(148, 163, 184, 0.08);
+      border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    }
+    .issue-detail-list .issue-question div {
+      margin-bottom: 4px;
+    }
+    .issue-detail-list .issue-question div:last-child {
+      margin-bottom: 0;
+    }
+    .issue-detail-list .issue-question strong {
+      color: var(--muted);
+      font-weight: 600;
+      margin-right: 4px;
+    }
     .issue-detail-list .issue-last-empty {
       color: var(--muted);
     }
@@ -1566,14 +1584,14 @@
           </div>
 
           <div class="charts-grid" style="margin-top:12px">
-            <div class="chart-box">
+            <div class="chart-box chart-wide">
+              <h3>Rejeições por categoria</h3>
+              <div id="chartGenCategories" class="chart"></div>
+            </div>
+            <div class="chart-box chart-wide">
               <h3>Rejeições por causa</h3>
               <div id="chartGenIssueCodes" class="chart"></div>
               <div id="chartGenIssueDetail" class="issue-detail-list"></div>
-            </div>
-            <div class="chart-box">
-              <h3>Rejeições por categoria</h3>
-              <div id="chartGenCategories" class="chart"></div>
             </div>
             <div class="chart-box">
               <h3>Rejeições por formato</h3>
@@ -2460,8 +2478,8 @@
     let authHeader = sessionStorage.getItem(AUTH_KEY) || '';
     let offset = 0;
     const limit = 50;
-    const AUTO_REFRESH_MS = 30000;
-    const ROOMS_AUTO_REFRESH_MS = 10000;
+    const AUTO_REFRESH_MS = 120000; // reportes: 2 min (poupa invocações Netlify)
+    const ROOMS_AUTO_REFRESH_MS = 60000; // salas/banco/repo/telemetria: 1 min
     let lastTotal = 0;
     let lastReports = [];
     let reportsById = {};
@@ -3025,6 +3043,8 @@
     function formatGenIssueOccurrenceMeta(occ) {
       if (!occ) return '';
       const parts = [];
+      if (occ.source) parts.push(GEN_SOURCE_LABELS[occ.source] || occ.source);
+      if (occ.outcome) parts.push(occ.outcome);
       if (occ.category != null) parts.push(bankCategoryLabel(occ.category));
       if (occ.ageBandKey) parts.push(occ.ageBandKey);
       if (occ.formatId) parts.push(occ.formatId);
@@ -3033,20 +3053,34 @@
       if (occ.provider) parts.push(GEN_PROVIDER_LABELS[occ.provider] || occ.provider);
       if (occ.model) parts.push(occ.model);
       if (occ.attempt != null) parts.push(`tent. ${occ.attempt}`);
+      if (occ.score != null) parts.push(`score ${occ.score}`);
       return parts.join(' · ');
+    }
+
+    function renderGenQuestionSnapshot(snapshot) {
+      if (!snapshot || (!snapshot.q && !snapshot.a)) return '';
+      const options = Array.isArray(snapshot.options) ? snapshot.options : [];
+      return `
+        <div class="issue-question">
+          ${snapshot.q ? `<div><strong>P:</strong>${esc(snapshot.q)}</div>` : ''}
+          ${snapshot.a ? `<div><strong>R:</strong>${esc(snapshot.a)}</div>` : ''}
+          ${options.length ? `<div><strong>Opções:</strong>${esc(options.join(' · '))}</div>` : ''}
+        </div>
+      `;
     }
 
     function renderGenIssueLastOccurrenceCell(info) {
       const occ = info?.lastOccurrence;
       const message = occ?.message || info?.sampleMessage || '';
-      if (!message && !occ) return '<span class="issue-last-empty">—</span>';
+      if (!message && !occ?.questionSnapshot && !occ) return '<span class="issue-last-empty">—</span>';
       const when = occ?.ts ? formatPortugalDateTime(occ.ts) : '';
       const meta = formatGenIssueOccurrenceMeta(occ);
       return `
         <div class="issue-last">
           ${when ? `<div class="issue-last-meta">${esc(when)}</div>` : ''}
           ${meta ? `<div class="issue-last-meta">${esc(meta)}</div>` : ''}
-          <div class="issue-last-msg">${esc(message)}</div>
+          ${renderGenQuestionSnapshot(occ?.questionSnapshot)}
+          ${message ? `<div class="issue-last-msg">${esc(message)}</div>` : ''}
         </div>
       `;
     }

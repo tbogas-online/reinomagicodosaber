@@ -4699,6 +4699,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             ...telemetryBase,
             outcome: 'parse_error',
             issueCodes: [!parsed?.q ? 'STRUCTURE_MISSING_Q' : 'STRUCTURE_MISSING_A'],
+            parsed,
           });
           continue;
         }
@@ -4752,6 +4753,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             outcome: 'rejected',
             issueDetails: qualityCheck.issueDetails,
             score: qualityCheck.score,
+            parsed,
           });
           continue;
         }
@@ -4779,6 +4781,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
                 outcome: 'rejected',
                 issueDetails: lastValidationIssueDetails,
                 score: qualityCheck.score,
+                parsed,
               });
               continue;
             }
@@ -4964,6 +4967,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
               ...telemetryBase,
               outcome: 'parse_error',
               issueCodes: [!parsed?.q ? 'STRUCTURE_MISSING_Q' : 'STRUCTURE_MISSING_A'],
+              parsed,
             });
             continue;
           }
@@ -5012,6 +5016,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             outcome: 'rejected',
             issueDetails: qualityCheck.issueDetails,
             score: qualityCheck.score,
+            parsed,
           });
           continue;
         }
@@ -5373,6 +5378,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             ...telemetryBase,
             outcome: 'parse_error',
             issueCodes: [!parsed.q ? 'STRUCTURE_MISSING_Q' : 'STRUCTURE_MISSING_A'],
+            parsed,
           });
           console.warn(`Resposta incompleta da IA (tentativa ${attempt}):`, clean.slice(0, 240));
           incompleteStreak++;
@@ -5461,6 +5467,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             outcome: 'rejected',
             issueDetails: qualityCheck.issueDetails,
             score: qualityCheck.score,
+            parsed,
           });
           if(DEBUG_MODE || attempt >= 5){
             console.warn(`Validação falhou (tentativa ${attempt}, score ${qualityCheck.score ?? '?'}):`, lastValidationIssues, parsed.q);
@@ -5500,6 +5507,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
                 outcome: 'rejected',
                 issueDetails: lastValidationIssueDetails,
                 score: qualityCheck.score,
+                parsed,
               });
               if(DEBUG_MODE || attempt >= 4){
                 console.warn('Verificação factual IA rejeitou:', factualCheck.issues, parsed.q);
@@ -5537,6 +5545,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
                 outcome: 'rejected',
                 issueDetails: lastValidationIssueDetails,
                 score: qualityCheck.score,
+                parsed,
               });
               if(DEBUG_MODE || attempt >= 4){
                 console.warn('Verificação semântica ADIVINHA rejeitou:', adivinhaCheck.issues, parsed.q);
@@ -5565,6 +5574,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             outcome: 'rejected',
             issueCodes: ['QUESTION_REPEATED'],
             score: qualityCheck.score,
+            parsed,
           });
           console.warn(`Pergunta repetida rejeitada (tentativa ${attempt}):`, parsed.q);
           continue;
@@ -5576,6 +5586,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             outcome: 'rejected',
             issueCodes: ['ANSWER_REPEATED'],
             score: qualityCheck.score,
+            parsed,
           });
           console.warn(`Resposta repetida rejeitada (tentativa ${attempt}):`, parsed.a);
           continue;
@@ -5832,6 +5843,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       model: usage.model || '',
       source: fields.source || 'ai',
       gameMode: fields.gameMode || (window.MultiplayerController?.isMultiplayer?.() ? 'multiplayer' : 'local'),
+      parsed: fields.parsed,
     });
   }
 

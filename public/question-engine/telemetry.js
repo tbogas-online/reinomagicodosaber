@@ -11,9 +11,29 @@
 
   const MAX_ISSUE_MESSAGES = 6;
   const MAX_ISSUE_MESSAGE_LEN = 200;
+  const MAX_QUESTION_LEN = 500;
+  const MAX_ANSWER_LEN = 200;
+  const MAX_OPTION_LEN = 120;
+  const MAX_OPTIONS = 6;
 
   function clipIssueMessage(value) {
     return String(value || '').trim().slice(0, MAX_ISSUE_MESSAGE_LEN);
+  }
+
+  function normalizeQuestionSnapshot(raw) {
+    const src = raw?.questionSnapshot && typeof raw.questionSnapshot === 'object'
+      ? raw.questionSnapshot
+      : raw?.parsed && typeof raw.parsed === 'object'
+        ? raw.parsed
+        : null;
+    if (!src) return null;
+    const q = String(src.q || '').trim().slice(0, MAX_QUESTION_LEN);
+    const a = String(src.a || '').trim().slice(0, MAX_ANSWER_LEN);
+    const options = Array.isArray(src.options)
+      ? src.options.map((o) => String(o || '').trim().slice(0, MAX_OPTION_LEN)).filter(Boolean).slice(0, MAX_OPTIONS)
+      : [];
+    if (!q && !a) return null;
+    return { q, a, options };
   }
 
   function normalizeIssueMessages(raw) {
@@ -24,6 +44,7 @@
   function normalizeEvent(raw) {
     const e = raw && typeof raw === 'object' ? raw : {};
     const gameMode = VALID_GAME_MODES.has(String(e.gameMode)) ? String(e.gameMode) : 'local';
+    const questionSnapshot = normalizeQuestionSnapshot(e);
     return {
       ts: Number(e.ts) || Date.now(),
       outcome: String(e.outcome || 'unknown'),
@@ -39,6 +60,7 @@
       score: e.score != null ? Number(e.score) : null,
       source: e.source ? String(e.source) : 'ai',
       gameMode,
+      questionSnapshot,
     };
   }
 
@@ -59,6 +81,9 @@
       const occurrence = {
         ts: Number(ev.ts) || Date.now(),
         message: clipIssueMessage(msg),
+        outcome: ev.outcome || '',
+        source: ev.source ? String(ev.source) : 'ai',
+        score: ev.score != null ? Number(ev.score) : null,
         category: ev.category != null ? Number(ev.category) : null,
         formatId: ev.formatId ? String(ev.formatId) : '',
         ageBandKey: ev.ageBandKey ? String(ev.ageBandKey) : '',
@@ -67,6 +92,7 @@
         model: ev.model ? String(ev.model) : '',
         difficulty: ev.difficulty != null ? Number(ev.difficulty) : null,
         attempt: ev.attempt != null ? Number(ev.attempt) : null,
+        questionSnapshot: ev.questionSnapshot || null,
       };
       if (!entry.lastOccurrence || occurrence.ts >= entry.lastOccurrence.ts) {
         entry.lastOccurrence = occurrence;
@@ -281,6 +307,7 @@
     SERVER_ENDPOINT,
     createStore,
     normalizeEvent,
+    normalizeQuestionSnapshot,
     computeSummary,
     recordGenerationEvent,
     getTelemetrySummary,

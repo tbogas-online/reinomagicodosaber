@@ -12,9 +12,29 @@ function clip(value, max) {
 
 const MAX_ISSUE_MESSAGES = 6;
 const MAX_ISSUE_MESSAGE_LEN = 200;
+const MAX_QUESTION_LEN = 500;
+const MAX_ANSWER_LEN = 200;
+const MAX_OPTION_LEN = 120;
+const MAX_OPTIONS = 6;
 
 function clipIssueMessage(value) {
   return String(value || '').trim().slice(0, MAX_ISSUE_MESSAGE_LEN);
+}
+
+function normalizeQuestionSnapshot(raw) {
+  const src = raw?.questionSnapshot && typeof raw.questionSnapshot === 'object'
+    ? raw.questionSnapshot
+    : raw?.parsed && typeof raw.parsed === 'object'
+      ? raw.parsed
+      : null;
+  if (!src) return null;
+  const q = String(src.q || '').trim().slice(0, MAX_QUESTION_LEN);
+  const a = String(src.a || '').trim().slice(0, MAX_ANSWER_LEN);
+  const options = Array.isArray(src.options)
+    ? src.options.map((o) => String(o || '').trim().slice(0, MAX_OPTION_LEN)).filter(Boolean).slice(0, MAX_OPTIONS)
+    : [];
+  if (!q && !a) return null;
+  return { q, a, options };
 }
 
 function normalizeIssueMessages(raw) {
@@ -39,6 +59,9 @@ function accumulateIssueDetail(summary, ev) {
     const occurrence = {
       ts: Number(ev.ts) || Date.now(),
       message: clipIssueMessage(msg),
+      outcome: ev.outcome || '',
+      source: clip(ev.source, 16) || 'ai',
+      score: ev.score != null ? Number(ev.score) : null,
       category: ev.category != null ? Number(ev.category) : null,
       formatId: clip(ev.formatId, 32) || '',
       ageBandKey: clip(ev.ageBandKey, 12) || '',
@@ -47,6 +70,7 @@ function accumulateIssueDetail(summary, ev) {
       model: clip(ev.model, 48) || '',
       difficulty: ev.difficulty != null ? Number(ev.difficulty) : null,
       attempt: ev.attempt != null ? Number(ev.attempt) : null,
+      questionSnapshot: ev.questionSnapshot || null,
     };
     if (!entry.lastOccurrence || occurrence.ts >= entry.lastOccurrence.ts) {
       entry.lastOccurrence = occurrence;
@@ -130,6 +154,7 @@ function normalizeEvent(raw) {
     : [];
   const issueMessages = normalizeIssueMessages(e.issueMessages);
   const category = e.category != null ? Number(e.category) : null;
+  const questionSnapshot = normalizeQuestionSnapshot(e);
   return {
     ts: Number(e.ts) || Date.now(),
     outcome,
@@ -145,6 +170,7 @@ function normalizeEvent(raw) {
     score: e.score != null ? Number(e.score) : null,
     source: clip(e.source, 16) || 'ai',
     gameMode,
+    questionSnapshot,
   };
 }
 
@@ -159,6 +185,11 @@ function eventToRow(normalized) {
     attempt: normalized.attempt != null ? Math.round(normalized.attempt) : null,
     issue_codes: normalized.issueCodes,
     issue_messages: normalized.issueMessages,
+    question_text: normalized.questionSnapshot?.q || null,
+    answer_text: normalized.questionSnapshot?.a || null,
+    question_options: normalized.questionSnapshot?.options?.length
+      ? normalized.questionSnapshot.options
+      : [],
     provider: normalized.provider || null,
     model: normalized.model || null,
     score: normalized.score != null ? Math.round(normalized.score) : null,
@@ -168,6 +199,13 @@ function eventToRow(normalized) {
 }
 
 function rowToItem(row) {
+  const questionSnapshot = (row.question_text || row.answer_text)
+    ? {
+      q: row.question_text || '',
+      a: row.answer_text || '',
+      options: Array.isArray(row.question_options) ? row.question_options : [],
+    }
+    : null;
   return {
     id: row.id,
     ts: row.event_ts,
@@ -183,6 +221,7 @@ function rowToItem(row) {
     model: row.model || '',
     difficulty: row.difficulty != null ? Number(row.difficulty) : null,
     attempt: row.attempt != null ? Number(row.attempt) : null,
+    questionSnapshot,
   };
 }
 
@@ -444,7 +483,7 @@ async function fetchEventItems(filters = {}) {
     ? String(filters.gameMode)
     : '';
   const params = new URLSearchParams({
-    select: 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,provider,model,attempt',
+    select: 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options,provider,model,attempt',
     order: 'created_at.desc',
     limit: String(MAX_EVENTS),
   });
@@ -495,6 +534,7 @@ async function clearAll() {
 module.exports = {
   MAX_EVENTS,
   normalizeEvent,
+  normalizeQuestionSnapshot,
   recordEvent,
   getStats,
   clearAll,
