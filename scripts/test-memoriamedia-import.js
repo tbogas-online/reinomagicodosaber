@@ -116,5 +116,27 @@ assert('clueLeaksAnswer ignora seguro', !clueLeaksAnswer(['tem dentes mas não m
   assert('validateParsed ambígua', validateParsed(parsed, { includeMalicious: true }).includes('ambiguous_answer'));
 }
 
+{
+  const { normalizePtPtText } = require('./lib/pt-pt-normalize');
+  assert('PT-PT nao', normalizePtPtText('Nao morde') === 'Não morde');
+  assert('PT-PT aviao', normalizePtPtText('um aviao') === 'um avião');
+}
+
+{
+  const { validateRecord, normalizeRecord } = require('./lib/knowledge-import-core');
+  const rec = normalizeRecord({
+    knowledge_id: 'knw-test',
+    category_n: 20,
+    topic: 'adivinha tradicional',
+    fact: 'facto',
+    answer: 'Pente',
+    source: 'MemóriaMedia',
+    source_id: 'mm:1',
+    allowed_formats: ['ADIVINHA'],
+    clues: ['so uma pista'],
+  });
+  assert('import clues obrigatórias', validateRecord(rec).includes('clues'));
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

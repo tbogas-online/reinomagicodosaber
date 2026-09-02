@@ -1690,6 +1690,17 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('204. KR-1.4 entrega bloqueada', assertCat20Delivery({ source: 'bank', a: 'Pente' }, 20, QE.FORMAT_IDS.ADIVINHA).blocked);
   assert('205. KR-1.4 entrega ok', assertCat20Delivery({ knowledgeId: 'knw-1', source: 'repository' }, 20, QE.FORMAT_IDS.ADIVINHA).ok);
   assert('206. KR-1.4 banco sem id', bankRowMissingKnowledgeId(20, { format: QE.FORMAT_IDS.ADIVINHA }));
+
+  const { computeCategoryDelivery } = require('./lib/gen-telemetry-metrics');
+  const cat20 = computeCategoryDelivery([
+    { outcome: 'accepted', category: 20, source: 'repo-direct' },
+    { outcome: 'accepted', category: 20, source: 'bank' },
+    { outcome: 'accepted', category: 20, source: 'repo-ai' },
+    { outcome: 'accepted', category: 20, source: 'ai' },
+    { outcome: 'accepted', category: 2, source: 'ai' },
+  ], 20);
+  assert('207. cat20 nonAiShare', Math.round(cat20.nonAiShare * 100) === 50, String(cat20.nonAi));
+  assert('208. cat20 meets target false', cat20.meetsNonAiTarget === false);
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

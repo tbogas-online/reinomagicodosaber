@@ -198,8 +198,8 @@ Cada pergunta gerada (depois da IA + validação):
 
 - [x] Definir formato de import (`scripts/import-knowledge-adivinhas.js`)
 - [x] API JSON Fabrik: `…/adivinhario-base-de-dados/list/5?format=json` (233 registos, paginação `limitstart5`)
-- [ ] Campos obrigatórios: `fact`, `answer`, `clues[]`, `source`, `sourceId` *(clues derivados das estrofes; ~122 aptas sem maliciosas)*
-- [ ] Normalização PT-PT (Priberam para variantes ortográficas)
+- [x] Campos obrigatórios: `fact`, `answer`, `clues[]`, `source`, `sourceId` (`validateRecord` + `validateParsed`)
+- [x] Normalização PT-PT (heurísticas AO1990 em `scripts/lib/pt-pt-normalize.js`)
 - [x] Deduplicação por `answer` + similaridade de `fact` (Jaccard)
 - [x] Meta: **≥ 200 adivinhas** verificadas para MVP *(410 activas — Ditos.pt, MemóriaMedia, web)*
 - [x] Auditoria de duplicados: `npm run audit:kb-duplicates`
@@ -217,7 +217,7 @@ Cada pergunta gerada (depois da IA + validação):
 - [x] IA recebe `record` completo; gera apenas `q` + reordena `clues` + `distractors`
 - [x] Fallback: banco local de perguntas já validadas — **não** LLM livre
 - [x] Badge de fonte no rodapé (IA / Repositório / Banco)
-- [ ] Telemetria: `% perguntas com source ≠ ai`
+- [x] Telemetria: `% perguntas com source ≠ ai` (`nonAiShare` + `cat20Delivery` no painel Telemetria e Repositório; meta ≥95%)
 
 ### KR-1.4 Critérios de aceitação
 
@@ -392,6 +392,7 @@ Para cada categoria **1–19**, repetir mini-roadmap:
 
 ## Próximo passo imediato
 
-1. **KR-1.4** — validar em jogo: 0 adivinhas sem `knowledgeId`; telemetria `% source=repository`
-2. **KR-1.2** — vocabulário por idade; expandir testes de import
+1. **KR-0.2 / KR-0.3** — API cliente (`markUsed`, `getRecordById`) e política de confiança por categoria
+2. **KR-7+** — expandir para Geografia (cat. 2) ou outra categoria com fontes definidas
+3. Validar em produção após deploy: painel Repositório → **Cat. 20 sem IA (≥95%)**
 

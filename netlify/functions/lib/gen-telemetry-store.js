@@ -1,4 +1,5 @@
 const { getSupabaseAdmin } = require('./rooms-store');
+const { enrichSummaryWithCategoryDelivery } = require('../../../scripts/lib/gen-telemetry-metrics');
 
 const MAX_EVENTS = 10000;
 const TABLE = 'gen_telemetry_events';
@@ -351,7 +352,7 @@ function computeSummaryFromItems(items) {
     accumulateAttempt(summary, ev);
   }
 
-  return finalizeSummaryRates(summary);
+  return enrichSummaryWithCategoryDelivery(finalizeSummaryRates(summary), items);
 }
 
 function sumByBucket(byBucket) {

@@ -1,6 +1,7 @@
 'use strict';
 
 const { validateAdivinhaImport } = require('./adivinha-import-validation');
+const { normalizePtPtRecord } = require('./pt-pt-normalize');
 
 const BASE_URL = 'https://www.memoriamedia.net';
 const LIST_JSON = `${BASE_URL}/index.php/adivinhario-base-de-dados/list/5?format=json`;
@@ -172,6 +173,15 @@ function mapRawRow(row) {
 
 function validateParsed(parsed, options = {}) {
   const issues = [];
+  const normalized = normalizePtPtRecord({
+    fact: parsed.fact,
+    answer: parsed.answer,
+    clues: parsed.clues || [],
+  });
+  parsed.fact = normalized.fact;
+  parsed.answer = normalized.answer;
+  parsed.clues = normalized.clues;
+
   if (!parsed.mmId) issues.push('missing_id');
   if (!parsed.fact || parsed.fact.length < 12) issues.push('fact_too_short');
   if (!parsed.answer || parsed.answer.length < 2) issues.push('missing_answer');
@@ -201,14 +211,19 @@ function validateParsed(parsed, options = {}) {
 function toKnowledgeRecord(parsed, seq) {
   const knowledgeId = `knw-cat20-mm-${String(parsed.mmId).padStart(4, '0')}`;
   const ageBands = inferAgeBands(parsed);
+  const normalized = normalizePtPtRecord({
+    fact: parsed.fact,
+    answer: parsed.answer,
+    clues: parsed.clues,
+  });
   return {
     knowledge_id: knowledgeId,
     category_n: 20,
     topic: 'adivinha tradicional',
     subtopic: parsed.concelho || parsed.distrito || 'folclore',
-    fact: parsed.fact,
-    answer: parsed.answer,
-    clues: parsed.clues,
+    fact: normalized.fact,
+    answer: normalized.answer,
+    clues: normalized.clues,
     source: SOURCE,
     source_id: `mm:adivinha:${parsed.mmId}`,
     source_url: parsed.sourceUrl,

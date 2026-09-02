@@ -1,5 +1,7 @@
 'use strict';
 
+const { normalizePtPtRecord } = require('./pt-pt-normalize');
+
 const AGE_BANDS = ['6-9', '10-15', '15+'];
 
 function todayPt() {
@@ -10,14 +12,19 @@ function normalizeRecord(raw) {
   const r = raw || {};
   const ageBands = r.age_bands || r.ageBands || ['6-9', '10-15', '15+'];
   const allowedFormats = r.allowed_formats || r.allowedFormats || ['RESPOSTA_DIRETA'];
+  const pt = normalizePtPtRecord({
+    fact: r.fact,
+    answer: r.answer,
+    clues: Array.isArray(r.clues) ? r.clues : [],
+  });
   return {
     knowledge_id: String(r.knowledge_id || r.knowledgeId || '').trim(),
     category_n: Number(r.category_n ?? r.category ?? 0),
     topic: String(r.topic || '').trim(),
     subtopic: r.subtopic ? String(r.subtopic).trim() : null,
-    fact: String(r.fact || '').trim(),
-    answer: String(r.answer || '').trim(),
-    clues: Array.isArray(r.clues) ? r.clues.map(String) : [],
+    fact: pt.fact || String(r.fact || '').trim(),
+    answer: pt.answer || String(r.answer || '').trim(),
+    clues: pt.clues.length ? pt.clues : (Array.isArray(r.clues) ? r.clues.map(String) : []),
     statement: r.statement ? String(r.statement) : null,
     is_true: r.is_true ?? r.isTrue ?? null,
     source: String(r.source || '').trim(),
@@ -46,6 +53,10 @@ function validateRecord(rec) {
   if (!rec.source_id) missing.push('source_id');
   if (!rec.age_bands?.length) missing.push('age_bands');
   if (!rec.allowed_formats?.length) missing.push('allowed_formats');
+  const formats = rec.allowed_formats || [];
+  if (formats.includes('ADIVINHA')) {
+    if (!Array.isArray(rec.clues) || rec.clues.length < 2) missing.push('clues');
+  }
   return missing;
 }
 

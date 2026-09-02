@@ -3356,6 +3356,8 @@
       const repoDirectPct = Math.round((summary.repoDirectShare || 0) * 100);
       const bankPct = Math.round((summary.bankShare || 0) * 100);
       const nonAiPct = Math.round((summary.nonAiShare || 0) * 100);
+      const cat20 = summary.cat20Delivery || {};
+      const cat20NonAiPct = cat20.accepted ? Math.round((cat20.nonAiShare || 0) * 100) : null;
       const techErrors = (summary.parseErrors || 0) + (summary.apiErrors || 0);
       const avgAttempts = summary.aiAvgAttempts != null
         ? summary.aiAvgAttempts.toFixed(1)
@@ -3370,6 +3372,7 @@
         <div class="stat stat-repository"><strong>${repoPct}%</strong><span>Repositório</span></div>
         <div class="stat stat-total"><strong>${repoDirectPct}%</strong><span>Repo directo</span></div>
         <div class="stat stat-total"><strong>${nonAiPct}%</strong><span>Sem IA livre</span></div>
+        <div class="stat ${cat20NonAiPct != null && cat20.meetsNonAiTarget ? 'stat-resolved' : 'stat-open'}"><strong>${cat20NonAiPct != null ? `${cat20NonAiPct}%` : '—'}</strong><span>Cat. 20 sem IA (≥95%)</span></div>
         <div class="stat stat-open"><strong>${avgAttempts}</strong><span>Média tentativas IA</span></div>
       `;
 
@@ -4874,6 +4877,16 @@
       const repoDirectPct = data?.telemetry?.repoDirectShare != null
         ? `${Math.round((data.telemetry.repoDirectShare || 0) * 100)}%`
         : '—';
+      const nonAiPct = data?.telemetry?.nonAiShare != null
+        ? `${Math.round((data.telemetry.nonAiShare || 0) * 100)}%`
+        : '—';
+      const cat20 = data?.telemetry?.cat20Delivery;
+      const cat20NonAiPct = cat20?.accepted
+        ? `${Math.round((cat20.nonAiShare || 0) * 100)}%`
+        : '—';
+      const cat20TargetClass = cat20?.accepted
+        ? (cat20.meetsNonAiTarget ? 'stat-resolved' : 'stat-open')
+        : 'stat-total';
       row.innerHTML = `
         <div class="stat stat-total"><strong>${summary.pending ?? '—'}</strong><span>Pendentes na fila</span></div>
         <div class="stat stat-resolved"><strong>${summary.imported ?? '—'}</strong><span>Já importados</span></div>
@@ -4882,6 +4895,8 @@
         <div class="stat stat-top-issue"><strong>${bankPct}</strong><span>Banco (entrega)</span></div>
         <div class="stat stat-top-issue"><strong>${repoPct}</strong><span>Repositório (entrega)</span></div>
         <div class="stat stat-repository"><strong>${repoDirectPct}</strong><span>Repo directo</span></div>
+        <div class="stat stat-top-issue"><strong>${nonAiPct}</strong><span>Sem IA livre (global)</span></div>
+        <div class="stat ${cat20TargetClass}"><strong>${cat20NonAiPct}</strong><span>Cat. 20 sem IA (meta ≥95%)</span></div>
         <div class="stat stat-open"><strong>${data?.state?.lastRunDate || '—'}</strong><span>Última importação</span></div>
         <div class="stat stat-cancelled"><strong>${lastRun?.upserted ?? '—'}</strong><span>Último lote (upserted)</span></div>
       `;

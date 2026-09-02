@@ -106,6 +106,55 @@
       + (bySource['repo-ai']?.accepted || 0);
   }
 
+  function isNonAiDeliverySource(source) {
+    const src = String(source || 'ai');
+    return src !== 'ai' && src !== 'repo-ai';
+  }
+
+  function computeCat20Delivery(events) {
+    const accepted = (events || []).filter(
+      (ev) => ev.outcome === 'accepted' && Number(ev.category) === 20,
+    );
+    const total = accepted.length;
+    const targetNonAiShare = 0.95;
+    if (!total) {
+      return {
+        category: 20,
+        accepted: 0,
+        nonAi: 0,
+        nonAiShare: 0,
+        repository: 0,
+        repositoryShare: 0,
+        aiFree: 0,
+        aiFreeShare: 0,
+        meetsNonAiTarget: false,
+        targetNonAiShare,
+      };
+    }
+    let nonAi = 0;
+    let repository = 0;
+    let aiFree = 0;
+    for (const ev of accepted) {
+      const src = ev.source || 'ai';
+      if (isNonAiDeliverySource(src)) nonAi += 1;
+      if (src === 'repository' || src === 'repo-direct' || src === 'repo-ai') repository += 1;
+      if (src === 'ai') aiFree += 1;
+    }
+    const nonAiShare = nonAi / total;
+    return {
+      category: 20,
+      accepted: total,
+      nonAi,
+      nonAiShare,
+      repository,
+      repositoryShare: repository / total,
+      aiFree,
+      aiFreeShare: aiFree / total,
+      meetsNonAiTarget: nonAiShare >= targetNonAiShare,
+      targetNonAiShare,
+    };
+  }
+
   function computeSummary(events) {
     const summary = {
       total: events.length,
@@ -199,6 +248,7 @@
       .reduce((sum, [, bucket]) => sum + (bucket.accepted || 0), 0);
     summary.nonAiShare = summary.accepted ? nonAiAccepted / summary.accepted : 0;
     summary.aiAvgAttempts = aiAttemptCount ? aiAttemptSum / aiAttemptCount : null;
+    summary.cat20Delivery = computeCat20Delivery(events);
     return summary;
   }
 
