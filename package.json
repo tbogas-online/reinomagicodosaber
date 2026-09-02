@@ -19,6 +19,7 @@
     "import:curiosidades": "node scripts/import-knowledge-curiosidades.js",
     "import:curiosidades:batch50": "node scripts/import-knowledge-curiosidades.js --batch-50",
     "import:curiosidades:batch50:dry": "node scripts/import-knowledge-curiosidades.js --batch-50 --dry-run",
+    "audit:kb-duplicates": "node scripts/audit-knowledge-duplicates.js",
     "generate:adivinha-pool": "node scripts/generate-adivinha-answer-pool.js",
     "generate:offensive-words": "node scripts/generate-offensive-words-browser.js",
     "generate:content-safety": "node scripts/generate-content-safety-browser.js",
