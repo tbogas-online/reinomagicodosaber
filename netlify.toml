@@ -40,6 +40,9 @@
 [functions."gen-telemetry-admin"]
   node_bundler = "esbuild"
 
+[functions."game-stats-admin"]
+  node_bundler = "esbuild"
+
 [functions."knowledge-import-admin"]
   node_bundler = "esbuild"
   included_files = ["./data/knowledge-import-queue.json"]
@@ -88,6 +91,11 @@
 [[redirects]]
   from = "/api/gen-telemetry-admin"
   to = "/.netlify/functions/gen-telemetry-admin"
+  status = 200
+
+[[redirects]]
+  from = "/api/game-stats-admin"
+  to = "/.netlify/functions/game-stats-admin"
   status = 200
 
 [[redirects]]

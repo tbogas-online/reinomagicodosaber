@@ -1061,6 +1061,7 @@
         <button type="button" id="tabRooms" class="secondary">Salas multijogador</button>
         <button type="button" id="tabBank" class="secondary">Banco de perguntas</button>
         <button type="button" id="tabKnowledge" class="secondary">Repositório</button>
+        <button type="button" id="tabGameStats" class="secondary">Estatísticas jogo</button>
         <button type="button" id="tabTelemetry" class="secondary">Telemetria IA</button>
         <span class="spacer"></span>
         <button type="button" id="logoutBtn" class="secondary">Sair</button>
@@ -1565,6 +1566,91 @@
         </div>
       </div>
 
+      <div id="gameStatsPanel" class="hidden">
+        <div class="card stats" id="gameStatsKpis"></div>
+
+        <div class="card">
+          <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
+            <div>
+              <h2 class="charts-title" style="margin:0;">Estatísticas de jogo</h2>
+              <p class="chart-filter-note" style="margin:6px 0 0">Calculado a partir do histórico local deste browser (<code>reino_magico_game_history_v1</code> e eventos de resposta).</p>
+            </div>
+            <div class="rooms-refresh-wrap">
+              <span id="gameStatsLastUpdated" class="rooms-last-updated"></span>
+            </div>
+          </div>
+          <div class="bulk-bar" style="flex-wrap:wrap; gap:8px;">
+            <button type="button" class="primary" id="gameStatsRefreshBtn">📊 Actualizar estatísticas</button>
+            <button type="button" class="secondary" id="gameStatsExportBtn">⬇ Exportar JSON</button>
+          </div>
+          <p class="status" id="gameStatsStatus"></p>
+        </div>
+
+        <div class="card" id="gameStatsInsightsSection">
+          <h3>Destaques por partida</h3>
+          <div id="gameStatsInsights" class="issue-detail-list"></div>
+        </div>
+
+        <div class="card">
+          <h3>Jogadores</h3>
+          <div class="reports-table-wrap">
+            <table class="reports-table">
+              <thead>
+                <tr>
+                  <th>Jogador</th>
+                  <th>Respostas</th>
+                  <th>Acertos</th>
+                  <th>Precisão</th>
+                  <th>Tempo médio</th>
+                  <th>Melhor série</th>
+                </tr>
+              </thead>
+              <tbody id="gameStatsPlayersBody">
+                <tr><td colspan="6" class="sub">Carrega as estatísticas para ver jogadores.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Categorias</h3>
+          <div class="reports-table-wrap">
+            <table class="reports-table">
+              <thead>
+                <tr>
+                  <th>Categoria</th>
+                  <th>Rondas</th>
+                  <th>Respostas</th>
+                  <th>Precisão</th>
+                </tr>
+              </thead>
+              <tbody id="gameStatsCategoriesBody">
+                <tr><td colspan="4" class="sub">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Perguntas mais difíceis</h3>
+          <div class="reports-table-wrap">
+            <table class="reports-table">
+              <thead>
+                <tr>
+                  <th>Pergunta</th>
+                  <th>Respostas</th>
+                  <th>Precisão</th>
+                  <th>Dificuldade</th>
+                </tr>
+              </thead>
+              <tbody id="gameStatsQuestionsBody">
+                <tr><td colspan="4" class="sub">—</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <div id="telemetryPanel" class="hidden">
         <div class="card stats telemetry-kpis" id="genTelemetryStats"></div>
 
@@ -1672,6 +1758,8 @@
   </div>
 
   <script src="html-escape.js"></script>
+  <script src="game-stats-engine.js"></script>
+  <script src="game-stats-adapters.js"></script>
   <script src="question-engine/issue-codes.js?v=20260902-123822"></script>
   <script src="question-engine/known-facts.js?v=20260902-123822"></script>
   <script>
@@ -2870,6 +2958,7 @@
       if (activeAdminTab === 'bank') return ROOMS_AUTO_REFRESH_MS;
       if (activeAdminTab === 'knowledge') return ROOMS_AUTO_REFRESH_MS;
       if (activeAdminTab === 'telemetry') return ROOMS_AUTO_REFRESH_MS;
+      if (activeAdminTab === 'gamestats') return ROOMS_AUTO_REFRESH_MS;
       return AUTO_REFRESH_MS;
     }
 
@@ -3893,6 +3982,9 @@
         const hash = row.question_hash || '';
         const checked = selectedBankHashes.has(hash) ? 'checked' : '';
         const reported = row.is_reported ? ' · reportada' : '';
+        const releaseBtn = row.in_quarantine
+          ? `<button type="button" class="secondary bank-release-quarantine" data-hash="${esc(hash)}" title="Libertar da quarentena anti-reuso">Libertar</button>`
+          : '';
         return `<tr data-hash="${esc(hash)}">
           <td><input type="checkbox" class="bank-row-check" data-hash="${esc(hash)}" ${checked} aria-label="Seleccionar pergunta"></td>
           <td>${esc(row.question || '—')}${reported ? `<span class="pill" style="margin-left:6px;">reportada</span>` : ''}</td>
@@ -3901,7 +3993,7 @@
           <td>${esc(row.age_band || '—')}</td>
           <td><code>${esc(hash || '—')}</code></td>
           <td class="actions-cell">
-            <button type="button" class="secondary bank-release-quarantine" data-hash="${esc(hash)}" title="Libertar da quarentena anti-reuso">Libertar</button>
+            ${releaseBtn}
             <button type="button" class="danger bank-delete-one" data-hash="${esc(hash)}">Apagar</button>
           </td>
         </tr>`;
@@ -4232,19 +4324,23 @@
       activeAdminTab = tab === 'rooms' ? 'rooms'
         : (tab === 'bank' ? 'bank'
           : (tab === 'knowledge' ? 'knowledge'
-            : (tab === 'telemetry' ? 'telemetry' : 'reports')));
+            : (tab === 'gamestats' ? 'gamestats'
+              : (tab === 'telemetry' ? 'telemetry' : 'reports'))));
       document.getElementById('tabReports')?.classList.toggle('active', activeAdminTab === 'reports');
       document.getElementById('tabRooms')?.classList.toggle('active', activeAdminTab === 'rooms');
       document.getElementById('tabBank')?.classList.toggle('active', activeAdminTab === 'bank');
       document.getElementById('tabKnowledge')?.classList.toggle('active', activeAdminTab === 'knowledge');
+      document.getElementById('tabGameStats')?.classList.toggle('active', activeAdminTab === 'gamestats');
       document.getElementById('tabTelemetry')?.classList.toggle('active', activeAdminTab === 'telemetry');
       document.getElementById('reportsPanel')?.classList.toggle('hidden', activeAdminTab !== 'reports');
       document.getElementById('roomsPanel')?.classList.toggle('hidden', activeAdminTab !== 'rooms');
       document.getElementById('bankPanel')?.classList.toggle('hidden', activeAdminTab !== 'bank');
       document.getElementById('knowledgePanel')?.classList.toggle('hidden', activeAdminTab !== 'knowledge');
+      document.getElementById('gameStatsPanel')?.classList.toggle('hidden', activeAdminTab !== 'gamestats');
       document.getElementById('telemetryPanel')?.classList.toggle('hidden', activeAdminTab !== 'telemetry');
       if (activeAdminTab === 'reports') loadDashboard({ quiet: true });
       else if (activeAdminTab === 'rooms') loadRoomsDashboard({ quiet: true });
+      else if (activeAdminTab === 'gamestats') loadGameStatsDashboard({ quiet: true });
       else if (activeAdminTab === 'telemetry') loadTelemetryDashboard({ quiet: true });
       else if (activeAdminTab === 'knowledge') loadKnowledgeDashboard({ quiet: true });
       else loadBankDashboard({ quiet: true });
@@ -4255,6 +4351,7 @@
       if (activeAdminTab === 'rooms') loadRoomsDashboard(options);
       else if (activeAdminTab === 'bank') loadBankDashboard(options);
       else if (activeAdminTab === 'knowledge') loadKnowledgeDashboard(options);
+      else if (activeAdminTab === 'gamestats') loadGameStatsDashboard(options);
       else if (activeAdminTab === 'telemetry') loadTelemetryDashboard(options);
       else loadDashboard(options);
     }
@@ -4270,6 +4367,206 @@
         <div class="stat stat-resolved"><strong>${stats.totalGamesMp || 0}</strong><span>Jogos multijogador (total)</span></div>
         <div class="stat stat-top-issue"><strong>${stats.totalGamesLocal || 0}</strong><span>Jogos locais (total)</span></div>
       `;
+    }
+
+    const GAME_HISTORY_STORAGE_KEY = 'reino_magico_game_history_v1';
+    let lastGameStatsPayload = null;
+
+    function readLocalJson(key, fallback) {
+      try {
+        const raw = localStorage.getItem(key);
+        const parsed = raw ? JSON.parse(raw) : fallback;
+        return Array.isArray(parsed) ? parsed : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function formatGameStatsMs(ms) {
+      const n = Number(ms);
+      if (!Number.isFinite(n) || n < 0) return '—';
+      if (n < 1000) return `${Math.round(n)} ms`;
+      return `${(n / 1000).toFixed(1)} s`;
+    }
+
+    function formatGameStatsPct(value) {
+      return value == null ? '—' : `${value}%`;
+    }
+
+    function clipGameStatsText(text, max = 72) {
+      const t = String(text || '').replace(/<[^>]*>/g, '').trim();
+      if (!t) return '—';
+      return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+    }
+
+    async function fetchGameStatsFromServer() {
+      const engine = window.GameStatsEngine;
+      if (!engine?.computeAllStats) {
+        throw new Error('Motor de estatísticas não carregado (game-stats-engine.js).');
+      }
+      const data = await api('/api/game-stats-admin?stats=1');
+      if (data?.stats) return data.stats;
+      const adapters = window.GameStatsAdapters;
+      if (!adapters?.fromSupabasePayload) {
+        throw new Error('Adaptadores de estatísticas não carregados.');
+      }
+      const games = adapters.fromSupabasePayload({
+        matches: data.matches || [],
+        historyRows: data.historyRows || [],
+        answerEvents: data.answerEvents || [],
+        players: data.players || [],
+      });
+      return engine.computeAllStats(games);
+    }
+
+    function computeLocalGameStatsFallback() {
+      const engine = window.GameStatsEngine;
+      const adapters = window.GameStatsAdapters;
+      if (!engine?.computeAllStats || !adapters?.fromGameHistory) {
+        throw new Error('Motor de estatísticas não carregado (game-stats-engine.js).');
+      }
+      const rawGames = readLocalJson(GAME_HISTORY_STORAGE_KEY, []);
+      return engine.computeAllStats(adapters.fromGameHistory(rawGames));
+    }
+
+    function renderGameStatsKpis(stats) {
+      const el = document.getElementById('gameStatsKpis');
+      if (!el || !stats) return;
+      const summary = stats.summary || {};
+      const players = stats.players?.players || [];
+      const topPlayer = players[0];
+      el.innerHTML = `
+        <div class="stat stat-total"><strong>${summary.gamesTotal || 0}</strong><span>Partidas</span></div>
+        <div class="stat stat-open"><strong>${summary.roundsTotal || 0}</strong><span>Rondas</span></div>
+        <div class="stat stat-resolved"><strong>${summary.answersTotal || 0}</strong><span>Respostas registadas</span></div>
+        <div class="stat stat-top-issue"><strong>${formatGameStatsPct(summary.accuracyPct)}</strong><span>Precisão global</span></div>
+        <div class="stat stat-resolved"><strong>${formatGameStatsMs(summary.avgResponseMs)}</strong><span>Tempo médio</span></div>
+        <div class="stat stat-open"><strong>${topPlayer ? esc(topPlayer.nickname || topPlayer.playerId) : '—'}</strong><span>Melhor jogador</span></div>
+      `;
+    }
+
+    function renderGameStatsInsights(stats) {
+      const el = document.getElementById('gameStatsInsights');
+      if (!el) return;
+      const insights = (stats.matchInsights || [])
+        .flatMap((m) => (m.insights || []).map((ins) => ({ gameId: m.gameId, ...ins })))
+        .slice(0, 12);
+      if (!insights.length) {
+        el.innerHTML = '<p class="sub">Sem destaques — joga mais partidas com respostas registadas.</p>';
+        return;
+      }
+      el.innerHTML = insights.map((ins) => `
+        <div class="issue-detail-item">
+          <strong>${esc(ins.type || 'insight')}</strong>
+          <span>${esc(ins.message || '')}</span>
+        </div>
+      `).join('');
+    }
+
+    function renderGameStatsPlayers(stats) {
+      const body = document.getElementById('gameStatsPlayersBody');
+      if (!body) return;
+      const players = stats.players?.players || [];
+      if (!players.length) {
+        body.innerHTML = '<tr><td colspan="6" class="sub">Sem respostas registadas no servidor.</td></tr>';
+        return;
+      }
+      const streakMap = new Map((stats.streaks?.players || []).map((s) => [s.playerId, s.bestStreak]));
+      body.innerHTML = players.map((p) => `
+        <tr>
+          <td>${esc(p.nickname || p.playerId || '—')}</td>
+          <td>${p.answersTotal ?? 0}</td>
+          <td>${p.correctTotal ?? 0}</td>
+          <td>${formatGameStatsPct(p.accuracyPct)}</td>
+          <td>${formatGameStatsMs(p.avgResponseMs)}</td>
+          <td>${streakMap.get(p.playerId) ?? 0}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderGameStatsCategories(stats) {
+      const body = document.getElementById('gameStatsCategoriesBody');
+      if (!body) return;
+      const cats = (stats.categories?.categories || []).slice().sort((a, b) => (b.answersTotal || 0) - (a.answersTotal || 0));
+      if (!cats.length) {
+        body.innerHTML = '<tr><td colspan="4" class="sub">—</td></tr>';
+        return;
+      }
+      body.innerHTML = cats.map((c) => `
+        <tr>
+          <td>${esc(c.category || (c.categoryN != null ? `Categoria ${c.categoryN}` : '—'))}</td>
+          <td>${c.roundsPresented ?? 0}</td>
+          <td>${c.answersTotal ?? 0}</td>
+          <td>${formatGameStatsPct(c.accuracyPct)}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderGameStatsQuestions(stats) {
+      const body = document.getElementById('gameStatsQuestionsBody');
+      if (!body) return;
+      const questions = (stats.difficulty?.questions || [])
+        .filter((q) => (q.answersTotal || 0) >= 1)
+        .sort((a, b) => (a.accuracyPct ?? 100) - (b.accuracyPct ?? 100))
+        .slice(0, 15);
+      if (!questions.length) {
+        body.innerHTML = '<tr><td colspan="4" class="sub">Sem dados de dificuldade.</td></tr>';
+        return;
+      }
+      body.innerHTML = questions.map((q) => `
+        <tr>
+          <td>${esc(clipGameStatsText(q.question))}</td>
+          <td>${q.answersTotal ?? 0}</td>
+          <td>${formatGameStatsPct(q.accuracyPct)}</td>
+          <td>${esc(q.difficulty || '—')}</td>
+        </tr>
+      `).join('');
+    }
+
+    function renderGameStatsDashboard(stats) {
+      renderGameStatsKpis(stats);
+      renderGameStatsInsights(stats);
+      renderGameStatsPlayers(stats);
+      renderGameStatsCategories(stats);
+      renderGameStatsQuestions(stats);
+    }
+
+    async function loadGameStatsDashboard(options = {}) {
+      const statusEl = document.getElementById('gameStatsStatus');
+      const quiet = options.quiet === true;
+      if (statusEl && !quiet) {
+        statusEl.textContent = 'A carregar estatísticas do Supabase…';
+        statusEl.className = 'status';
+      }
+      try {
+        let stats;
+        let source = 'supabase';
+        try {
+          stats = await fetchGameStatsFromServer();
+        } catch (err) {
+          console.warn('[game-stats] Supabase:', err?.message || err);
+          stats = computeLocalGameStatsFallback();
+          source = 'local-fallback';
+        }
+        lastGameStatsPayload = stats;
+        renderGameStatsDashboard(stats);
+        const updatedEl = document.getElementById('gameStatsLastUpdated');
+        if (updatedEl) {
+          updatedEl.textContent = `Actualizado ${new Date().toLocaleString('pt-PT')}${source === 'local-fallback' ? ' (fallback local)' : ''}`;
+        }
+        if (statusEl) {
+          const note = stats.meta?.hasAnswerData
+            ? `${stats.meta.gamesAnalyzed} partida(s) analisada(s)${source === 'supabase' ? ' (Supabase)' : ' (histórico local — sem respostas no servidor)'}.`
+            : 'Sem respostas registadas no servidor — joga e responde para gerar estatísticas.';
+          statusEl.textContent = note;
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl && !quiet) {
+          statusEl.textContent = err.message || 'Erro ao calcular estatísticas.';
+          statusEl.className = 'status err';
+        }
+      }
     }
 
     function renderBankStats(stats) {
@@ -5743,7 +6040,26 @@
     document.getElementById('tabRooms')?.addEventListener('click', () => setAdminTab('rooms'));
     document.getElementById('tabBank')?.addEventListener('click', () => setAdminTab('bank'));
     document.getElementById('tabKnowledge')?.addEventListener('click', () => setAdminTab('knowledge'));
+    document.getElementById('tabGameStats')?.addEventListener('click', () => setAdminTab('gamestats'));
     document.getElementById('tabTelemetry')?.addEventListener('click', () => setAdminTab('telemetry'));
+    document.getElementById('gameStatsRefreshBtn')?.addEventListener('click', () => loadGameStatsDashboard());
+    document.getElementById('gameStatsExportBtn')?.addEventListener('click', () => {
+      if (!lastGameStatsPayload) {
+        const statusEl = document.getElementById('gameStatsStatus');
+        if (statusEl) {
+          statusEl.textContent = 'Carrega as estatísticas antes de exportar.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      const blob = new Blob([JSON.stringify(lastGameStatsPayload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `reino-game-stats-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    });
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
     initBankSearchCategorySelect();

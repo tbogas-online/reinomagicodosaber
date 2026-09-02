@@ -429,6 +429,24 @@ async function fetchAllBankRowsByCategory(categoryN, options = {}) {
   return filterRowsByReportStatus(rows, reportFilter, options.reportHashSets);
 }
 
+async function getQuarantinedBankHashes(hashes, days = 30) {
+  const unique = [...new Set((hashes || []).map((h) => String(h || '').trim()).filter(Boolean))];
+  if (!unique.length) return new Set();
+
+  const cutoff = new Date(Date.now() - Math.max(Number(days) || 30, 1) * 24 * 60 * 60 * 1000).toISOString();
+  const params = new URLSearchParams();
+  params.set('select', 'question_hash');
+  params.set('question_hash', `in.(${unique.join(',')})`);
+  params.set('played_at', `gte.${cutoff}`);
+
+  try {
+    const rows = await supabaseRequest(`/question_reuse_events?${params.toString()}`);
+    return new Set((Array.isArray(rows) ? rows : []).map((r) => r.question_hash).filter(Boolean));
+  } catch {
+    return new Set();
+  }
+}
+
 async function searchQuestionBank(options = {}) {
   const {
     query = '',
@@ -491,9 +509,10 @@ async function searchQuestionBank(options = {}) {
     reportHashSets,
   );
   const capped = filtered.slice(0, Math.min(Math.max(Number(limit) || 25, 1), 100));
+  const quarantined = await getQuarantinedBankHashes(capped.map((r) => r.question_hash));
 
   return {
-    rows: capped,
+    rows: capped.map((r) => ({ ...r, in_quarantine: quarantined.has(r.question_hash) })),
     total: filtered.length,
   };
 }

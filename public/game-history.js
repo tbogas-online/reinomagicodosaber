@@ -52,6 +52,9 @@
       roomId: meta?.roomId || null,
       rounds: [],
     };
+    if (currentGame.mode === 'single') {
+      global.AnswerEventsSync?.ensureSingleMatch?.(currentGame);
+    }
     return currentGame;
   }
 
@@ -64,6 +67,7 @@
     const entry = {
       round: currentGame.rounds.length + 1,
       category: round.category || '',
+      categoryN: round.categoryN != null ? Number(round.categoryN) : null,
       format: round.format || '',
       difficulty: round.difficulty || '',
       ageBand: round.ageBand || '',
@@ -108,10 +112,8 @@
       if (typeof game.id === 'string' && /^[0-9a-f-]{36}$/i.test(game.id)) {
         payload.id = game.id;
       }
-      const { error } = await client.from('game_matches').insert(payload);
-      if (error && !/duplicate|unique/i.test(error.message || '')) {
-        console.warn('[GameHistory] sync local game:', error.message);
-      }
+      const { error } = await client.from('game_matches').upsert(payload, { onConflict: 'id' });
+      if (error) console.warn('[GameHistory] sync local game:', error.message);
     } catch (err) {
       console.warn('[GameHistory] sync local game failed:', err?.message || err);
     }

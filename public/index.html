@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0e1c15">
-<meta name="app-build" content="20260902-175116">
+<meta name="app-build" content="20260902-183514">
 <title>O Reino Mágico do Saber</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -1092,6 +1092,18 @@
   .q-open-adivinha-outcome.is-correct{ color: var(--teal); }
   body.theme-day .q-open-adivinha-outcome{ color: #b84a1f; }
   body.theme-day .q-open-adivinha-outcome.is-correct{ color: #1f7a5c; }
+  .q-timeout-feedback{
+    width: 100%;
+    margin: 0;
+    padding: 8px 12px;
+    text-align: center;
+    font-family: 'Cinzel', serif;
+    font-size: 13px;
+    letter-spacing: .03em;
+    color: var(--ember);
+    font-weight: 600;
+  }
+  body.theme-day .q-timeout-feedback{ color: #b84a1f; }
   .option-btn:hover:not(:disabled){
     border-color: var(--gold-bright); background: rgba(var(--gold-rgb),0.12);
   }
@@ -3418,6 +3430,7 @@
       </div>
       <button type="button" class="q-report-btn" id="btn-report-question" hidden>🚩 Reportar problema / Sugestão</button>
     </div>
+    <p class="q-timeout-feedback" id="q-timeout-feedback" hidden aria-live="polite">⏱ Tempo esgotado — resposta errada.</p>
 
     <div class="row" style="margin-top:22px;">
       <button class="btn" id="btn-mostrar-resposta">👁️ Mostrar Resposta</button>
@@ -3526,42 +3539,43 @@
 <span class="mp-share-toast" id="mp-share-toast" hidden>Link copiado!</span>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-<script src="supabase-config.js?v=20260902-175116"></script>
-<script src="supabase-client.js?v=20260902-175116"></script>
-<script src="knowledge-repository.js?v=20260902-175116"></script>
-<script src="html-escape.js?v=20260902-175116"></script>
-<script src="game-history.js?v=20260902-175116"></script>
-<script src="player-names.js?v=20260902-175116"></script>
-<script src="multiplayer-sync.js?v=20260902-175116"></script>
-<script src="multiplayer-controller.js?v=20260902-175116"></script>
-<script src="question-engine/engine-config.js?v=20260902-175116"></script>
-<script src="question-engine/issue-codes.js?v=20260902-175116"></script>
-<script src="question-engine/knowledge-key.js?v=20260902-175116"></script>
-<script src="question-engine/retry-strategy.js?v=20260902-175116"></script>
-<script src="question-engine/telemetry.js?v=20260902-175116"></script>
-<script src="question-engine/known-facts.js?v=20260902-175116"></script>
-<script src="question-engine/factual-verify.js?v=20260902-175116"></script>
-<script src="question-engine/adivinha-verify.js?v=20260902-175116"></script>
-<script src="question-engine/adivinha-answer-pool.js?v=20260902-175116"></script>
-<script src="question-engine/content-safety-data.js?v=20260902-175116"></script>
-<script src="question-engine/content-safety.js?v=20260902-175116"></script>
-<script src="question-engine/adivinha-distractors.js?v=20260902-175116"></script>
-<script src="question-engine/difficulty-estimate.js?v=20260902-175116"></script>
-<script src="question-engine/pt-pt-validators.js?v=20260902-175116"></script>
-<script src="question-engine/format-validators.js?v=20260902-175116"></script>
-<script src="question-engine/mc-validators.js?v=20260902-175116"></script>
-<script src="question-engine/age-validators.js?v=20260902-175116"></script>
-<script src="question-engine/category-validators.js?v=20260902-175116"></script>
-<script src="question-engine/semantic-validators.js?v=20260902-175116"></script>
-<script src="question-engine/reported-content.js?v=20260902-175116"></script>
-<script src="question-engine/repetition-validators.js?v=20260902-175116"></script>
-<script src="question-engine/knowledge-key-compute.js?v=20260902-175116"></script>
-<script src="question-engine/persistent-history.js?v=20260902-175116"></script>
-<script src="question-engine/prompt-builder.js?v=20260902-175116"></script>
-<script src="question-engine/mc-assembly.js?v=20260902-175116"></script>
-<script src="question-engine/question-scoring.js?v=20260902-175116"></script>
-<script src="question-engine.js?v=20260902-175116" id="question-engine-script"></script>
-<script src="question-bank.js?v=20260902-175116"></script>
+<script src="supabase-config.js?v=20260902-183514"></script>
+<script src="supabase-client.js?v=20260902-183514"></script>
+<script src="answer-events-sync.js?v=20260902-183514"></script>
+<script src="knowledge-repository.js?v=20260902-183514"></script>
+<script src="html-escape.js?v=20260902-183514"></script>
+<script src="game-history.js?v=20260902-183514"></script>
+<script src="player-names.js?v=20260902-183514"></script>
+<script src="multiplayer-sync.js?v=20260902-183514"></script>
+<script src="multiplayer-controller.js?v=20260902-183514"></script>
+<script src="question-engine/engine-config.js?v=20260902-183514"></script>
+<script src="question-engine/issue-codes.js?v=20260902-183514"></script>
+<script src="question-engine/knowledge-key.js?v=20260902-183514"></script>
+<script src="question-engine/retry-strategy.js?v=20260902-183514"></script>
+<script src="question-engine/telemetry.js?v=20260902-183514"></script>
+<script src="question-engine/known-facts.js?v=20260902-183514"></script>
+<script src="question-engine/factual-verify.js?v=20260902-183514"></script>
+<script src="question-engine/adivinha-verify.js?v=20260902-183514"></script>
+<script src="question-engine/adivinha-answer-pool.js?v=20260902-183514"></script>
+<script src="question-engine/content-safety-data.js?v=20260902-183514"></script>
+<script src="question-engine/content-safety.js?v=20260902-183514"></script>
+<script src="question-engine/adivinha-distractors.js?v=20260902-183514"></script>
+<script src="question-engine/difficulty-estimate.js?v=20260902-183514"></script>
+<script src="question-engine/pt-pt-validators.js?v=20260902-183514"></script>
+<script src="question-engine/format-validators.js?v=20260902-183514"></script>
+<script src="question-engine/mc-validators.js?v=20260902-183514"></script>
+<script src="question-engine/age-validators.js?v=20260902-183514"></script>
+<script src="question-engine/category-validators.js?v=20260902-183514"></script>
+<script src="question-engine/semantic-validators.js?v=20260902-183514"></script>
+<script src="question-engine/reported-content.js?v=20260902-183514"></script>
+<script src="question-engine/repetition-validators.js?v=20260902-183514"></script>
+<script src="question-engine/knowledge-key-compute.js?v=20260902-183514"></script>
+<script src="question-engine/persistent-history.js?v=20260902-183514"></script>
+<script src="question-engine/prompt-builder.js?v=20260902-183514"></script>
+<script src="question-engine/mc-assembly.js?v=20260902-183514"></script>
+<script src="question-engine/question-scoring.js?v=20260902-183514"></script>
+<script src="question-engine.js?v=20260902-183514" id="question-engine-script"></script>
+<script src="question-bank.js?v=20260902-183514"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para logs extra na consola.
   const DEBUG_MODE = new URLSearchParams(location.search).has('debug');
@@ -4330,11 +4344,11 @@
     return ageBandKey === '15+' && String(formatId || '') === 'ADIVINHA';
   }
 
-  const ANSWER_EVENTS_KEY = 'reino_magico_answer_events_v1';
-  const ANSWER_EVENTS_MAX = 500;
-  let openAdivinhaAnswerStartMs = null;
+  let questionAnswerStartMs = null;
+  let mcAnswerRecorded = false;
   let openAdivinhaOutcomeRecorded = false;
   let openAdivinhaLastCorrect = null;
+  const TIMEOUT_ANSWER_LABEL = '⏱ Tempo esgotado';
 
   function currentQuestionIsOpenAdivinha(){
     return isAdivinhaOpenAnswer(selectedAgeBand, currentQuestion?.format || currentQuestion?.formatId);
@@ -4345,13 +4359,17 @@
       const mpId = window.MultiplayerSync?.getPlayerId?.();
       if(mpId) return String(mpId);
     } catch { /* ignore */ }
+    const cached = window.AnswerEventsSync?.getCachedPlayerId?.();
+    if(cached) return String(cached);
     return 'local';
   }
 
   function resetOpenAdivinhaScoreUI(){
-    openAdivinhaAnswerStartMs = null;
+    questionAnswerStartMs = null;
+    mcAnswerRecorded = false;
     openAdivinhaOutcomeRecorded = false;
     openAdivinhaLastCorrect = null;
+    hideTimeoutFeedback();
     const box = document.getElementById('q-open-adivinha-score');
     if(box){
       box.hidden = true;
@@ -4395,9 +4413,9 @@
     }
     if(outcome){
       if(timedOut){
-        outcome.textContent = '⏱ Tempo esgotado — resposta errada.';
+        outcome.hidden = true;
+        outcome.textContent = '';
         outcome.classList.remove('is-correct');
-        outcome.hidden = false;
       } else if(openAdivinhaOutcomeRecorded){
         outcome.textContent = correct ? '✓ Resposta certa registada.' : '✗ Resposta errada registada.';
         outcome.classList.toggle('is-correct', correct === true);
@@ -4409,7 +4427,7 @@
       }
     }
     if(hint){
-      if(!openAdivinhaOutcomeRecorded){
+      if(timedOut || !openAdivinhaOutcomeRecorded){
         hint.textContent = '';
         hint.hidden = true;
       } else if(locked){
@@ -4422,8 +4440,93 @@
     }
   }
 
-  function markOpenAdivinhaTiming(){
-    if(currentQuestionIsOpenAdivinha()) openAdivinhaAnswerStartMs = Date.now();
+  function showTimeoutFeedback(){
+    const el = document.getElementById('q-timeout-feedback');
+    if(el) el.hidden = false;
+  }
+
+  function hideTimeoutFeedback(){
+    const el = document.getElementById('q-timeout-feedback');
+    if(el) el.hidden = true;
+  }
+
+  function questionAnswerAlreadyRecorded(){
+    if(currentQuestionIsOpenAdivinha()) return openAdivinhaOutcomeRecorded;
+    return mcAnswerRecorded;
+  }
+
+  function recordAnswerOutcomeCore(correct, selectedAnswer, responseMs, { timedOut = false } = {}){
+    const sel = timedOut ? TIMEOUT_ANSWER_LABEL : stripTags(selectedAnswer);
+    lastSelectedAnswer = sel;
+    attachAnswerOutcomeToCurrentRound(correct, sel, responseMs);
+    persistAnswerEvent(buildAnswerEventPayload(correct, sel, responseMs, { timedOut }));
+    syncAnswerToRoom();
+  }
+
+  function markQuestionAnswerTiming(){
+    questionAnswerStartMs = Date.now();
+    mcAnswerRecorded = false;
+  }
+
+  function getQuestionResponseMs(){
+    return questionAnswerStartMs != null
+      ? Math.max(0, Date.now() - questionAnswerStartMs)
+      : null;
+  }
+
+  function buildAnswerEventPayload(correct, selectedAnswer, responseMs, { timedOut = false } = {}){
+    const answerText = stripTags(currentQuestion?.a);
+    return {
+      playerId: getStatsPlayerId(),
+      correct: !!correct,
+      selectedAnswer,
+      responseMs,
+      timedOut: !!timedOut,
+      question: stripTags(currentQuestion?.q),
+      correctAnswer: answerText,
+      format: currentQuestion?.format || currentQuestion?.formatId || '',
+      categoryN: currentQuestion?.categoryN ?? lastCategory?.n ?? null,
+      knowledgeId: currentQuestion?.knowledgeId || null,
+      ageBand: selectedAgeBand,
+      mode: window.MultiplayerController?.isMultiplayer?.() ? 'multiplayer' : 'single',
+    };
+  }
+
+  function attachAnswerOutcomeToCurrentRound(correct, selectedAnswer, responseMs){
+    const cur = window.GameHistory?.getCurrentGame?.();
+    const last = cur?.rounds?.[cur.rounds.length - 1];
+    if(!last || !currentQuestion) return;
+    const qPlain = stripTags(currentQuestion.q);
+    if(stripTags(last.question) !== qPlain) return;
+    const answerText = stripTags(currentQuestion.a);
+    const sel = selectedAnswer != null
+      ? selectedAnswer
+      : (correct ? answerText : '✗ Errei');
+    const playerId = getStatsPlayerId();
+    const entry = {
+      playerId,
+      selectedAnswer: sel,
+      correct: !!correct,
+      responseMs: responseMs ?? null,
+      answeredAt: new Date().toISOString(),
+    };
+    const existing = Array.isArray(last.answers) ? last.answers.slice() : [];
+    const idx = existing.findIndex((a) => a.playerId === playerId);
+    if(idx >= 0) existing[idx] = entry;
+    else existing.push(entry);
+    last.answers = existing;
+  }
+
+  function recordMcAnswerOutcome(correct, selectedAnswer, { timedOut = false } = {}){
+    if(!currentQuestion || !questionUsesMcOptions(currentQuestion) || mcAnswerRecorded) return;
+    mcAnswerRecorded = true;
+    recordAnswerOutcomeCore(correct, selectedAnswer, getQuestionResponseMs(), { timedOut });
+  }
+
+  function recordGenericAnswerOutcome(correct, selectedAnswer, { timedOut = false } = {}){
+    if(!currentQuestion || mcAnswerRecorded) return;
+    mcAnswerRecorded = true;
+    recordAnswerOutcomeCore(correct, selectedAnswer, getQuestionResponseMs(), { timedOut });
   }
 
   function showOpenAdivinhaScoreButtons(){
@@ -4435,29 +4538,13 @@
   }
 
   function persistAnswerEvent(event){
-    try {
-      const raw = localStorage.getItem(ANSWER_EVENTS_KEY);
-      const list = raw ? JSON.parse(raw) : [];
-      const events = Array.isArray(list) ? list : [];
-      events.unshift({ ...event, ts: Date.now() });
-      localStorage.setItem(ANSWER_EVENTS_KEY, JSON.stringify(events.slice(0, ANSWER_EVENTS_MAX)));
-    } catch { /* quota */ }
+    window.AnswerEventsSync?.persist?.(event);
   }
 
   function attachOpenAdivinhaOutcomeToCurrentRound(correct, responseMs, { timedOut = false } = {}){
-    const cur = window.GameHistory?.getCurrentGame?.();
-    const last = cur?.rounds?.[cur.rounds.length - 1];
-    if(!last || !currentQuestion) return;
-    const qPlain = stripTags(currentQuestion.q);
-    if(stripTags(last.question) !== qPlain) return;
     const answerText = stripTags(currentQuestion.a);
-    last.answers = [{
-      playerId: getStatsPlayerId(),
-      selectedAnswer: correct ? answerText : (timedOut ? '⏱ Tempo esgotado' : '✗ Errei'),
-      correct: !!correct,
-      responseMs: responseMs ?? null,
-      answeredAt: new Date().toISOString(),
-    }];
+    const sel = correct ? answerText : (timedOut ? TIMEOUT_ANSWER_LABEL : '✗ Errei');
+    attachAnswerOutcomeToCurrentRound(correct, sel, responseMs);
   }
 
   function recordOpenAdivinhaOutcome(correct, { timedOut = false } = {}){
@@ -4475,30 +4562,17 @@
     openAdivinhaOutcomeRecorded = true;
     openAdivinhaLastCorrect = !!correct;
     const answerText = stripTags(currentQuestion.a);
-    const responseMs = openAdivinhaAnswerStartMs != null
-      ? Math.max(0, Date.now() - openAdivinhaAnswerStartMs)
-      : null;
+    const responseMs = getQuestionResponseMs();
     lastSelectedAnswer = timedOut
-      ? '⏱ Tempo esgotado'
+      ? TIMEOUT_ANSWER_LABEL
       : (correct ? answerText : '✗ Errei');
     updateOpenAdivinhaScoreButtons(correct, { locked: timedOut, timedOut });
     attachOpenAdivinhaOutcomeToCurrentRound(correct, responseMs, { timedOut });
-    persistAnswerEvent({
-      playerId: getStatsPlayerId(),
-      correct: !!correct,
-      selectedAnswer: lastSelectedAnswer,
-      responseMs,
-      timedOut: !!timedOut,
-      question: stripTags(currentQuestion.q),
-      correctAnswer: answerText,
-      format: currentQuestion.format || currentQuestion.formatId || 'ADIVINHA',
-      categoryN: currentQuestion.categoryN ?? lastCategory?.n ?? null,
-      knowledgeId: currentQuestion.knowledgeId || null,
-      ageBand: selectedAgeBand,
-      mode: window.MultiplayerController?.isMultiplayer?.() ? 'multiplayer' : 'single',
-    });
+    persistAnswerEvent(buildAnswerEventPayload(correct, lastSelectedAnswer, responseMs, { timedOut }));
     syncAnswerToRoom();
-    document.getElementById('btn-voltar-categorias')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    if(!timedOut){
+      document.getElementById('btn-voltar-categorias')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
   }
 
   function applyAdivinhaAnswerMode(item, ageBandKey, formatId){
@@ -7708,7 +7782,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       document.getElementById('btn-mostrar-resposta').textContent = '👁️ Mostrar Resposta';
     }
     recordQuestionReusePlay(question, cat, ageBand);
-    markOpenAdivinhaTiming();
+    markQuestionAnswerTiming();
     startQuestionCountdown();
   }
 
@@ -8239,7 +8313,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       document.getElementById('btn-mostrar-resposta').textContent = '👁️ Mostrar Resposta';
     }
     recordQuestionReusePlay(question, cat, ageBand);
-    markOpenAdivinhaTiming();
+    markQuestionAnswerTiming();
     startQuestionCountdown();
   }
 
@@ -8273,14 +8347,17 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   function selectOption(btn, optText){
     stopQuestionCountdown();
-    lastSelectedAnswer = stripTags(optText);
+    const plain = stripTags(optText);
+    const correct = plain === stripTags(currentQuestion.a);
+    lastSelectedAnswer = plain;
     revealCorrectOption();
-    if(stripTags(optText) !== stripTags(currentQuestion.a)){
+    if(!correct){
       btn.classList.add('wrong');
       SFX.wrong();
     } else {
       SFX.correct();
     }
+    recordMcAnswerOutcome(correct, plain);
     document.getElementById('q-answer').style.display = 'block';
     document.getElementById('btn-mostrar-resposta').style.display = 'none';
     focusAnswerPanel();
@@ -8342,12 +8419,28 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
   function handleQuestionCountdownExpired(){
     stopQuestionCountdown();
     SFX.timeUp();
-    if(currentQuestionIsOpenAdivinha() && !openAdivinhaOutcomeRecorded){
+    if(!currentQuestion){
+      revealAnswer();
+      return;
+    }
+    if(questionAnswerAlreadyRecorded()){
+      revealAnswer();
+      return;
+    }
+    if(currentQuestionIsOpenAdivinha()){
       revealAnswer();
       recordOpenAdivinhaOutcome(false, { timedOut: true });
+      showTimeoutFeedback();
       return;
     }
     revealAnswer();
+    SFX.wrong();
+    if(questionUsesMcOptions(currentQuestion)){
+      recordMcAnswerOutcome(false, TIMEOUT_ANSWER_LABEL, { timedOut: true });
+    } else {
+      recordGenericAnswerOutcome(false, TIMEOUT_ANSWER_LABEL, { timedOut: true });
+    }
+    showTimeoutFeedback();
   }
 
   function renderQuestionCountdownTick(){
@@ -10052,7 +10145,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     <button type="button" id="app-update-btn" hidden>Tentar</button>
   </div>
 </div>
-<script src="app-update.js?v=20260902-175116" defer></script>
+<script src="app-update.js?v=20260902-183514" defer></script>
 
 </body>
 </html>

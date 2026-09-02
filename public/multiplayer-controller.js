@@ -365,6 +365,7 @@
     if (!q || !GH) return;
     const round = GH.addRound({
       category: cat?.name || '',
+      categoryN: cat?.n ?? null,
       format: q.formatId || q.format || '',
       difficulty: q.difficulty || '',
       ageBand: ageBand || '',
@@ -962,6 +963,14 @@
     resetGenerationHistory();
     currentMatchId = global.crypto?.randomUUID?.() || 'mp-' + Date.now();
     GH.startGame('multiplayer', { roomCode: MP.getRoomCode(), roomId: MP.getRoomId() });
+    const startedGame = GH.getCurrentGame();
+    if (startedGame && /^[0-9a-f-]{36}$/i.test(currentMatchId)) {
+      MP.ensureMatchStarted(currentMatchId, {
+        startedAt: startedGame.startedAt,
+        roomCode: MP.getRoomCode(),
+        gameId: startedGame.id || null,
+      }).catch(() => {});
+    }
     const state = buildGameState({ screen: 'game', status: 'playing', sessionStartedAt: now });
     await MP.startGame(state, settings || {});
     gameHooks.fillCategoryList?.();
@@ -1995,6 +2004,7 @@
     isMultiplayer,
     isHost,
     canControl,
+    getMatchId: () => currentMatchId,
     onSinglePlayerStart,
     onAnswerRevealed,
     hostRollDice,

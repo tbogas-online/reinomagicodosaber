@@ -2,10 +2,10 @@
   "name": "reino-magico-do-saber",
   "private": true,
   "scripts": {
-    "build": "node scripts/generate-version.js",
+    "build": "node scripts/generate-version.js && node scripts/build-game-stats-browser.js",
     "dev": "node scripts/dev-local.js",
     "deploy:live": "node scripts/deploy-netlify.js",
-    "test": "node scripts/test-question-engine.js && node scripts/test-kr1-knowledge.js && node scripts/test-memoriamedia-import.js && node scripts/test-knowledge-repository.js && node scripts/test-knowledge-dedupe.js",
+    "test": "node scripts/test-question-engine.js && node scripts/test-kr1-knowledge.js && node scripts/test-memoriamedia-import.js && node scripts/test-knowledge-repository.js && node scripts/test-knowledge-dedupe.js && node scripts/test-game-stats-engine.js",
     "test:kr1": "node scripts/test-kr1-knowledge.js",
     "import:knowledge": "node scripts/daily-knowledge-import.js",
     "import:knowledge:dry": "node scripts/daily-knowledge-import.js --dry-run",

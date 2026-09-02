@@ -242,7 +242,7 @@
   async function insertMatch(matchId, metadata) {
     if (!client || !roomId || !isHost || !matchId) return;
     const meta = metadata || {};
-    const { error } = await client.from('game_matches').insert({
+    const row = {
       id: matchId,
       room_id: roomId,
       mode: 'multiplayer',
@@ -255,9 +255,29 @@
         roomCode: meta.roomCode || null,
         gameId: meta.gameId || null,
       },
-    });
+    };
+    const { error } = await client.from('game_matches').upsert(row, { onConflict: 'id' });
+    if (error) console.warn('[MP] match insert', error.message);
+  }
+
+  async function ensureMatchStarted(matchId, metadata) {
+    if (!client || !roomId || !isHost || !matchId) return;
+    const meta = metadata || {};
+    const { error } = await client.from('game_matches').upsert({
+      id: matchId,
+      room_id: roomId,
+      mode: 'multiplayer',
+      host_player_id: playerId,
+      started_at: meta.startedAt || new Date().toISOString(),
+      rounds_count: 0,
+      metadata: {
+        source: 'multiplayer',
+        roomCode: meta.roomCode || null,
+        gameId: meta.gameId || null,
+      },
+    }, { onConflict: 'id' });
     if (error && !/duplicate|unique/i.test(error.message || '')) {
-      console.warn('[MP] match insert', error.message);
+      console.warn('[MP] match start', error.message);
     }
   }
 
@@ -498,6 +518,7 @@
     startGame,
     insertHistoryRound,
     insertMatch,
+    ensureMatchStarted,
     fetchPlayers,
     refreshPlayers,
     schedulePlayersRefresh,
