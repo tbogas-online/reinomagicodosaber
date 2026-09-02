@@ -9,6 +9,7 @@ const {
   deleteQuestionsFromBank,
   deleteQuestionsByCategory,
 } = require('./lib/question-bank-store');
+const { regenerateAdivinhaBankOptions } = require('./lib/adivinha-bank-fix');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
 const { getQuestionHashesByReportStatus } = require('./lib/reports-store');
 
@@ -135,6 +136,20 @@ exports.handler = async (event) => {
             return json(400, { error: err.message });
           }
           return json(503, { error: 'Não foi possível apagar perguntas da categoria.' });
+        }
+      }
+
+      if (body.action === 'regenerate-adivinha-options') {
+        try {
+          const categoryN = body.categoryN != null ? Number(body.categoryN) : 20;
+          const result = await regenerateAdivinhaBankOptions({
+            categoryN,
+            dryRun: body.dryRun === true,
+          });
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] regenerate-adivinha-options failed:', err);
+          return json(503, { error: 'Não foi possível regenerar opções de adivinhas.' });
         }
       }
 

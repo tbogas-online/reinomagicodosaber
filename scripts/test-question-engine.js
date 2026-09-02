@@ -1469,5 +1469,34 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('167. knowledgeId reportado rejeitado', !repoBlocked.ok && repoBlocked.issues.some((i) => /reportad/i.test(i)));
 }
 
+// 168–170. ADIVINHA distractores plausíveis
+{
+  const bad = {
+    q: 'Pais altos, Mães baixas. O que sou?',
+    a: 'Pinhões',
+    options: ['Pinhões', 'Cerca de 12 a 17', '33 vértebras', 'Cerca de 3%'],
+  };
+  const badCheck = QE.validateQuestion(bad, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.ADIVINHA, isMC: true }),
+    helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '10-15' },
+  });
+  assert('168. adivinha rejeita distractores numéricos', !badCheck.ok);
+
+  const distractors = QE.buildAdivinhaDistractors('Pinhões', { normalizeFn: normalizeQ });
+  assert('169. buildAdivinhaDistractors devolve 3', Array.isArray(distractors) && distractors.length === 3);
+  const opts = QE.assembleMcOptions('Pinhões', distractors || []);
+  const good = {
+    q: 'Pais altos, Mães baixas. O que sou?',
+    a: 'Pinhões',
+    options: opts,
+    clues: ['Pais altos', 'Mães baixas'],
+  };
+  const goodCheck = QE.validateQuestion(good, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.ADIVINHA, isMC: true }),
+    helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '10-15' },
+  });
+  assert('170. adivinha com distractores do pool aceite', goodCheck.ok, goodCheck.issues?.join(', '));
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

@@ -67,7 +67,39 @@ async function getQuarantineStats(days = 30) {
   }
 }
 
+async function releaseQuarantine({
+  scope,
+  categoryN = null,
+  ageBand = null,
+  topic = null,
+  questionHash = null,
+  knowledgeId = null,
+  days = 30,
+} = {}) {
+  const data = await supabaseRpc('release_question_reuse_quarantine', {
+    p_scope: scope,
+    p_category_n: categoryN,
+    p_age_band: ageBand,
+    p_topic: topic,
+    p_question_hash: questionHash,
+    p_knowledge_id: knowledgeId,
+    p_days: days,
+  });
+  if (!data || data.ok === false) {
+    const err = new Error(data?.reason || 'release_question_reuse_quarantine falhou');
+    err.code = data?.reason || 'RELEASE_FAILED';
+    throw err;
+  }
+  return {
+    ok: true,
+    deleted: Number(data.deleted) || 0,
+    scope: data.scope || scope,
+    days: Number(data.days) || days,
+  };
+}
+
 module.exports = {
   getQuarantineStats,
+  releaseQuarantine,
   EMPTY_QUARANTINE,
 };

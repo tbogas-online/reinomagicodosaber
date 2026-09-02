@@ -424,6 +424,9 @@ function collectMcIssues(parsed, ctx) {
     ...validateMcOptionsQuality(options, stripTags, collapseOptionKey, ageBandKey),
     ...validateDisneyCharacterAliases(options, a),
     ...(typeof ctx.adivinhaMcAmbiguity === 'function' ? ctx.adivinhaMcAmbiguity(q, a, options, stripTags, formatId) : []),
+    ...(formatId === 'ADIVINHA' && global.QuestionEngineAdivinhaDistractors
+      ? global.QuestionEngineAdivinhaDistractors.validateAdivinhaMcDistractors(options, a, stripTags)
+      : []),
   ];
   if (options.length === 4) {
     issues.push(...validateMcOptionsCoherence(q, options, stripTags));

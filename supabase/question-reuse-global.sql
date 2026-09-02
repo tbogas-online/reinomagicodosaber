@@ -380,6 +380,104 @@ $$;
 REVOKE ALL ON FUNCTION public.get_question_reuse_quarantine_stats(INT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_question_reuse_quarantine_stats(INT) TO service_role;
 
+-- ---------------------------------------------------------------------------
+-- RPC: libertar perguntas/factos da quarentena (admin — service role)
+-- Remove eventos de anti-reuso recentes para voltarem ao sorteio.
+-- p_scope: all | bank | knowledge | hash | knowledge_id
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.release_question_reuse_quarantine(
+  p_scope TEXT,
+  p_category_n INT DEFAULT NULL,
+  p_age_band TEXT DEFAULT NULL,
+  p_topic TEXT DEFAULT NULL,
+  p_question_hash TEXT DEFAULT NULL,
+  p_knowledge_id TEXT DEFAULT NULL,
+  p_days INT DEFAULT 30
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_deleted INT := 0;
+  v_days INT;
+  v_cutoff TIMESTAMPTZ;
+  v_scope TEXT;
+BEGIN
+  IF p_scope IS NULL OR trim(p_scope) = '' THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'missing_scope');
+  END IF;
+
+  v_scope := lower(trim(p_scope));
+  v_days := GREATEST(COALESCE(p_days, 30), 1);
+  v_cutoff := now() - (v_days || ' days')::interval;
+
+  IF v_scope = 'all' THEN
+    DELETE FROM public.question_reuse_events e
+    WHERE e.played_at > v_cutoff;
+  ELSIF v_scope = 'bank' THEN
+    DELETE FROM public.question_reuse_events e
+    WHERE e.played_at > v_cutoff
+      AND (
+        (p_category_n IS NULL AND EXISTS (
+          SELECT 1 FROM public.question_bank qb
+          WHERE qb.question_hash = e.question_hash
+        ))
+        OR (
+          p_category_n IS NOT NULL
+          AND e.category_n = p_category_n
+          AND (
+            p_age_band IS NULL OR trim(p_age_band) = '' OR e.age_band = trim(p_age_band)
+          )
+        )
+      );
+  ELSIF v_scope = 'knowledge' THEN
+    DELETE FROM public.question_reuse_events e
+    WHERE e.played_at > v_cutoff
+      AND e.knowledge_id IS NOT NULL
+      AND trim(e.knowledge_id) <> ''
+      AND (
+        p_category_n IS NULL AND (p_topic IS NULL OR trim(p_topic) = '')
+        OR EXISTS (
+          SELECT 1
+          FROM public.knowledge_records kr
+          WHERE kr.knowledge_id = e.knowledge_id
+            AND (p_category_n IS NULL OR kr.category_n = p_category_n)
+            AND (p_topic IS NULL OR trim(p_topic) = '' OR kr.topic = trim(p_topic))
+        )
+      );
+  ELSIF v_scope = 'hash' THEN
+    IF p_question_hash IS NULL OR trim(p_question_hash) = '' THEN
+      RETURN jsonb_build_object('ok', false, 'reason', 'missing_hash');
+    END IF;
+    DELETE FROM public.question_reuse_events e
+    WHERE e.played_at > v_cutoff
+      AND e.question_hash = trim(p_question_hash);
+  ELSIF v_scope = 'knowledge_id' THEN
+    IF p_knowledge_id IS NULL OR trim(p_knowledge_id) = '' THEN
+      RETURN jsonb_build_object('ok', false, 'reason', 'missing_knowledge_id');
+    END IF;
+    DELETE FROM public.question_reuse_events e
+    WHERE e.played_at > v_cutoff
+      AND e.knowledge_id = trim(p_knowledge_id);
+  ELSE
+    RETURN jsonb_build_object('ok', false, 'reason', 'invalid_scope');
+  END IF;
+
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
+  RETURN jsonb_build_object(
+    'ok', true,
+    'deleted', v_deleted,
+    'scope', v_scope,
+    'days', v_days
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.release_question_reuse_quarantine(TEXT, INT, TEXT, TEXT, TEXT, TEXT, INT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.release_question_reuse_quarantine(TEXT, INT, TEXT, TEXT, TEXT, TEXT, INT) TO service_role;
+
 REVOKE ALL ON FUNCTION public.record_question_reuse(TEXT, TEXT, INT, TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.record_question_reuse(TEXT, TEXT, INT, TEXT) TO anon, authenticated;
 

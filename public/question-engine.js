@@ -12,6 +12,7 @@
   const KnownFacts = global.QuestionEngineKnownFacts;
   const FactualVerify = global.QuestionEngineFactualVerify;
   const AdivinhaVerify = global.QuestionEngineAdivinhaVerify;
+  const AdivinhaDistractors = global.QuestionEngineAdivinhaDistractors;
   const DifficultyEstimate = global.QuestionEngineDifficultyEstimate;
   const Config = global.QuestionEngineConfig;
   const FormatValidators = global.QuestionEngineFormatValidators;
@@ -23,7 +24,7 @@
   const QuestionScoring = global.QuestionEngineQuestionScoring;
 
   if (!Issues || !KnowledgeKey || !KnowledgeKeyCompute || !Retry || !Telemetry || !KnownFacts
-    || !FactualVerify || !AdivinhaVerify || !DifficultyEstimate || !Config || !FormatValidators
+    || !FactualVerify || !AdivinhaVerify || !AdivinhaDistractors || !DifficultyEstimate || !Config || !FormatValidators
     || !AgeValidators || !PersistentHistory || !ReportedContent || !PromptBuilder || !McAssembly || !QuestionScoring) {
     throw new Error('QuestionEngine: carrega todos os módulos question-engine/*.js antes de question-engine.js');
   }
@@ -150,6 +151,9 @@
     parseAdivinhaVerifyResponse: AdivinhaVerify.parseAdivinhaVerifyResponse,
     parseAdivinhaClues: AdivinhaVerify.parseAdivinhaClues,
     validateAdivinhaClues,
+    buildAdivinhaDistractors: AdivinhaDistractors.buildAdivinhaDistractors,
+    isPlausibleAdivinhaAnswer: AdivinhaDistractors.isPlausibleAdivinhaAnswer,
+    hasBadAdivinhaMcOptions: AdivinhaDistractors.hasBadAdivinhaMcOptions,
     estimateDifficulty: DifficultyEstimate.estimateDifficulty,
     validateDifficultyMatch: DifficultyEstimate.validateDifficultyMatch,
     scoreQuestion,

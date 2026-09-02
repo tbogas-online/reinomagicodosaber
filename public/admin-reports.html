@@ -1205,6 +1205,21 @@
           <div id="bankQuarantineSection" class="bank-quarantine-section">
             <h3 class="charts-title" style="font-size:1rem; margin:0 0 6px;">Quarentena (30 dias)</h3>
             <p class="sub" id="bankQuarantineNote" style="margin-top:0;">Perguntas do banco jogadas recentemente — indisponíveis para novo sorteio.</p>
+            <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+              <select id="bankQuarantineCategory" aria-label="Categoria para libertar quarentena">
+                <option value="">Todas as categorias</option>
+              </select>
+              <select id="bankQuarantineAge" aria-label="Faixa etária para libertar quarentena">
+                <option value="">Todas as idades</option>
+                <option value="6-9">6–9</option>
+                <option value="10-15">10–15</option>
+                <option value="15+">15+</option>
+              </select>
+              <button type="button" class="secondary" id="bankQuarantineReleaseCategoryBtn">Libertar categoria</button>
+              <button type="button" class="secondary" id="bankQuarantineReleaseAllBtn">Libertar todo o banco</button>
+              <button type="button" class="danger" id="bankQuarantineReleaseEverythingBtn">Libertar tudo</button>
+            </div>
+            <p class="status" id="bankQuarantineStatus"></p>
             <div class="bank-matrix-wrap">
               <table class="bank-matrix quarantine-matrix">
                 <thead>
@@ -1253,6 +1268,7 @@
             <label><input type="checkbox" id="bankDeleteBlock" checked> Bloquear re-inserção</label>
             <label><input type="checkbox" id="bankDeleteLocal" checked> Limpar neste browser</label>
             <button type="button" class="secondary" id="bankPurgeInvalidBtn">Remover sem opções</button>
+            <button type="button" class="secondary" id="bankRegenAdivinhaBtn" title="Regenera opções MC de adivinhas com distractores inválidos">Regenerar opções adivinhas</button>
             <button type="button" class="danger" id="bankDeleteSelectedBtn" disabled>Apagar seleccionadas</button>
             <button type="button" class="danger" id="bankDeleteCategoryBtn">Apagar por categoria</button>
           </div>
@@ -1287,6 +1303,20 @@
         <div class="card" id="knowledgeQuarantineSection">
           <h2 class="charts-title" style="margin:0 0 6px;">Quarentena repositório (30 dias)</h2>
           <p class="sub" id="knowledgeQuarantineNote" style="margin-top:0;">Factos verificados jogados recentemente — indisponíveis para adivinhas e curiosidades.</p>
+          <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
+            <select id="knowledgeQuarantineCategory" aria-label="Categoria para libertar quarentena">
+              <option value="">Todas as categorias</option>
+            </select>
+            <select id="knowledgeQuarantineTopic" aria-label="Tópico para libertar quarentena">
+              <option value="">Todos os tópicos</option>
+              <option value="adivinha tradicional">adivinha tradicional</option>
+              <option value="curiosidade surpreendente">curiosidade surpreendente</option>
+            </select>
+            <button type="button" class="secondary" id="knowledgeQuarantineReleaseCategoryBtn">Libertar categoria</button>
+            <button type="button" class="secondary" id="knowledgeQuarantineReleaseAllBtn">Libertar todo o repositório</button>
+            <button type="button" class="danger" id="knowledgeQuarantineReleaseEverythingBtn">Libertar tudo</button>
+          </div>
+          <p class="status" id="knowledgeQuarantineStatus"></p>
           <div class="bank-matrix-wrap">
             <table class="bank-matrix quarantine-matrix">
               <thead>
@@ -3363,6 +3393,81 @@
       }
     }
 
+    function initQuarantineCategorySelects() {
+      for (const id of ['bankQuarantineCategory', 'knowledgeQuarantineCategory']) {
+        const sel = document.getElementById(id);
+        if (!sel || sel.options.length > 1) continue;
+        for (const cat of BANK_CATEGORIES) {
+          const opt = document.createElement('option');
+          opt.value = String(cat.n);
+          opt.textContent = `${cat.n}. ${cat.name}`;
+          sel.appendChild(opt);
+        }
+      }
+    }
+
+    function quarantineReleaseLabel(scope, { categoryN, ageBand, topic } = {}) {
+      if (scope === 'all') return 'toda a quarentena (banco + repositório)';
+      if (scope === 'bank' && !categoryN) return 'todo o banco de perguntas';
+      if (scope === 'knowledge' && !categoryN && !topic) return 'todo o repositório de factos';
+      const parts = [];
+      if (categoryN) parts.push(bankCategoryLabel(categoryN));
+      if (ageBand) parts.push(`faixa ${ageBand}`);
+      if (topic) parts.push(`tópico «${topic}»`);
+      const target = scope === 'knowledge' ? 'repositório' : 'banco';
+      return parts.length ? `${target}: ${parts.join(' · ')}` : target;
+    }
+
+    async function releaseQuarantineEvents(scope, filters = {}, options = {}) {
+      const {
+        statusElId = null,
+        reloadBank = false,
+        reloadKnowledge = false,
+      } = options;
+      const statusEl = statusElId ? document.getElementById(statusElId) : null;
+      const days = Number(lastBankStats?.quarantine?.days || lastKnowledgePayload?.quarantine?.days || 30);
+      const label = quarantineReleaseLabel(scope, filters);
+      const ok = await confirmAction(
+        `Libertar ${label} da quarentena dos últimos ${days} dias? As perguntas/factos voltam a estar disponíveis para sorteio.`,
+        { okLabel: 'Libertar', danger: scope === 'all' },
+      );
+      if (!ok) return null;
+
+      if (statusEl) {
+        statusEl.textContent = 'A libertar quarentena…';
+        statusEl.className = 'status';
+      }
+
+      try {
+        const data = await api('/api/quarantine-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            scope,
+            categoryN: filters.categoryN ?? null,
+            ageBand: filters.ageBand || null,
+            topic: filters.topic || null,
+            questionHash: filters.questionHash || null,
+            knowledgeId: filters.knowledgeId || null,
+            days,
+          }),
+        });
+        if (reloadBank) await loadBankDashboard({ quiet: true });
+        if (reloadKnowledge) await loadKnowledgeDashboard({ quiet: true });
+        const msg = `${data.deleted || 0} evento(s) removido(s) da quarentena.`;
+        if (statusEl) {
+          statusEl.textContent = msg;
+          statusEl.className = 'status ok';
+        }
+        return data;
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao libertar quarentena.';
+          statusEl.className = 'status err';
+        }
+        return null;
+      }
+    }
+
     function updateBankDeleteUi() {
       const btn = document.getElementById('bankDeleteSelectedBtn');
       const catBtn = document.getElementById('bankDeleteCategoryBtn');
@@ -3400,7 +3505,10 @@
           <td>${esc(catMap[String(row.category_n)] || row.category_n || '—')}</td>
           <td>${esc(row.age_band || '—')}</td>
           <td><code>${esc(hash || '—')}</code></td>
-          <td class="actions-cell"><button type="button" class="danger bank-delete-one" data-hash="${esc(hash)}">Apagar</button></td>
+          <td class="actions-cell">
+            <button type="button" class="secondary bank-release-quarantine" data-hash="${esc(hash)}" title="Libertar da quarentena anti-reuso">Libertar</button>
+            <button type="button" class="danger bank-delete-one" data-hash="${esc(hash)}">Apagar</button>
+          </td>
         </tr>`;
       }).join('');
       updateBankDeleteUi();
@@ -3623,6 +3731,39 @@
       } finally {
         bankDeleteLoading = false;
         updateBankDeleteUi();
+      }
+    }
+
+    async function regenerateAdivinhaBankOptions() {
+      const ok = await confirmAction(
+        'Regenerar opções MC de todas as adivinhas (cat. 20) com distractores inválidos no Supabase?',
+        { okLabel: 'Regenerar' },
+      );
+      if (!ok) return;
+      const statusEl = document.getElementById('bankSearchStatus');
+      if (statusEl) {
+        statusEl.textContent = 'A regenerar opções de adivinhas…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/question-bank-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'regenerate-adivinha-options', categoryN: 20 }),
+        });
+        await loadBankDashboard({ quiet: true });
+        if (statusEl) {
+          const sample = (data.samples || [])[0];
+          const sampleText = sample
+            ? ` Ex.: «${sample.answer}» — ${(sample.before || []).join(' | ')} → ${(sample.after || []).join(' | ')}`
+            : '';
+          statusEl.textContent = `Regeneradas ${data.updated || 0} de ${data.invalid || 0} inválida(s) (${data.scanned || 0} analisadas).${sampleText}`;
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao regenerar opções.';
+          statusEl.className = 'status err';
+        }
       }
     }
 
@@ -4168,7 +4309,9 @@
           <td>${esc(catMap[String(row.category_n)] || row.category_n || '—')}</td>
           <td>${esc(row.source || '—')}</td>
           <td>${active ? '<span class="pill">activo</span>' : '<span class="pill">inactivo</span>'}</td>
-          <td class="actions-cell">${active ? `<button type="button" class="danger knowledge-disable-one" data-kid="${esc(kid)}">Desactivar</button>` : '—'}</td>
+          <td class="actions-cell">${active ? `
+            <button type="button" class="secondary knowledge-release-quarantine" data-kid="${esc(kid)}" title="Libertar da quarentena anti-reuso">Libertar</button>
+            <button type="button" class="danger knowledge-disable-one" data-kid="${esc(kid)}">Desactivar</button>` : '—'}</td>
         </tr>`;
       }).join('');
       updateKnowledgeBrowseUi();
@@ -5064,6 +5207,66 @@
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
     initBankSearchCategorySelect();
     initKnowledgeSearchCategorySelect();
+    initQuarantineCategorySelects();
+    document.getElementById('bankQuarantineReleaseCategoryBtn')?.addEventListener('click', () => {
+      const categoryN = document.getElementById('bankQuarantineCategory')?.value || '';
+      if (!categoryN) {
+        const statusEl = document.getElementById('bankQuarantineStatus');
+        if (statusEl) {
+          statusEl.textContent = 'Escolhe uma categoria ou usa «Libertar todo o banco».';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      releaseQuarantineEvents('bank', {
+        categoryN: Number(categoryN),
+        ageBand: document.getElementById('bankQuarantineAge')?.value || '',
+      }, { statusElId: 'bankQuarantineStatus', reloadBank: true, reloadKnowledge: true });
+    });
+    document.getElementById('bankQuarantineReleaseAllBtn')?.addEventListener('click', () => {
+      releaseQuarantineEvents('bank', {}, {
+        statusElId: 'bankQuarantineStatus',
+        reloadBank: true,
+        reloadKnowledge: true,
+      });
+    });
+    document.getElementById('bankQuarantineReleaseEverythingBtn')?.addEventListener('click', () => {
+      releaseQuarantineEvents('all', {}, {
+        statusElId: 'bankQuarantineStatus',
+        reloadBank: true,
+        reloadKnowledge: true,
+      });
+    });
+    document.getElementById('knowledgeQuarantineReleaseCategoryBtn')?.addEventListener('click', () => {
+      const categoryN = document.getElementById('knowledgeQuarantineCategory')?.value || '';
+      const topic = document.getElementById('knowledgeQuarantineTopic')?.value || '';
+      if (!categoryN && !topic) {
+        const statusEl = document.getElementById('knowledgeQuarantineStatus');
+        if (statusEl) {
+          statusEl.textContent = 'Escolhe categoria/tópico ou usa «Libertar todo o repositório».';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      releaseQuarantineEvents('knowledge', {
+        categoryN: categoryN ? Number(categoryN) : null,
+        topic,
+      }, { statusElId: 'knowledgeQuarantineStatus', reloadBank: true, reloadKnowledge: true });
+    });
+    document.getElementById('knowledgeQuarantineReleaseAllBtn')?.addEventListener('click', () => {
+      releaseQuarantineEvents('knowledge', {}, {
+        statusElId: 'knowledgeQuarantineStatus',
+        reloadBank: true,
+        reloadKnowledge: true,
+      });
+    });
+    document.getElementById('knowledgeQuarantineReleaseEverythingBtn')?.addEventListener('click', () => {
+      releaseQuarantineEvents('all', {}, {
+        statusElId: 'knowledgeQuarantineStatus',
+        reloadBank: true,
+        reloadKnowledge: true,
+      });
+    });
     document.getElementById('bankSearchBtn')?.addEventListener('click', () => searchBankQuestions());
     document.getElementById('bankListCategoryBtn')?.addEventListener('click', () => listBankCategory());
     document.getElementById('bankDeleteCategoryBtn')?.addEventListener('click', () => deleteBankByCategory());
@@ -5071,6 +5274,7 @@
       if (e.key === 'Enter') searchBankQuestions();
     });
     document.getElementById('bankPurgeInvalidBtn')?.addEventListener('click', () => purgeInvalidBankQuestions());
+    document.getElementById('bankRegenAdivinhaBtn')?.addEventListener('click', () => regenerateAdivinhaBankOptions());
     document.getElementById('bankDeleteSelectedBtn')?.addEventListener('click', async () => {
       const hashes = [...selectedBankHashes];
       if (!hashes.length) return;
@@ -5102,6 +5306,16 @@
       updateBankDeleteUi();
     });
     document.getElementById('bankSearchBody')?.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('bank-release-quarantine')) {
+        const hash = e.target.dataset.hash;
+        if (!hash) return;
+        await releaseQuarantineEvents('hash', { questionHash: hash }, {
+          statusElId: 'bankSearchStatus',
+          reloadBank: true,
+          reloadKnowledge: true,
+        });
+        return;
+      }
       if (!e.target.classList.contains('bank-delete-one')) return;
       const hash = e.target.dataset.hash;
       if (!hash) return;
@@ -5155,6 +5369,16 @@
       updateKnowledgeBrowseUi();
     });
     document.getElementById('knowledgeSearchBody')?.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('knowledge-release-quarantine')) {
+        const kid = e.target.dataset.kid;
+        if (!kid) return;
+        await releaseQuarantineEvents('knowledge_id', { knowledgeId: kid }, {
+          statusElId: 'knowledgeSearchStatus',
+          reloadBank: true,
+          reloadKnowledge: true,
+        });
+        return;
+      }
       if (!e.target.classList.contains('knowledge-disable-one')) return;
       const kid = e.target.dataset.kid;
       if (!kid) return;

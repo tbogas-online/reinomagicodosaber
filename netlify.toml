@@ -35,6 +35,9 @@
   node_bundler = "esbuild"
   included_files = ["./data/knowledge-import-queue.json"]
 
+[functions."quarantine-admin"]
+  node_bundler = "esbuild"
+
 [[redirects]]
   from = "/api/generate"
   to = "/.netlify/functions/generate"
@@ -78,6 +81,11 @@
 [[redirects]]
   from = "/api/knowledge-import-admin"
   to = "/.netlify/functions/knowledge-import-admin"
+  status = 200
+
+[[redirects]]
+  from = "/api/quarantine-admin"
+  to = "/.netlify/functions/quarantine-admin"
   status = 200
 
 [[redirects]]

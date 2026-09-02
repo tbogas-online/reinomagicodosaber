@@ -12,6 +12,9 @@
     "import:curiosidades": "node scripts/import-knowledge-curiosidades.js",
     "import:curiosidades:batch50": "node scripts/import-knowledge-curiosidades.js --batch-50",
     "import:curiosidades:batch50:dry": "node scripts/import-knowledge-curiosidades.js --batch-50 --dry-run",
+    "generate:adivinha-pool": "node scripts/generate-adivinha-answer-pool.js",
+    "fix:adivinha-options": "node scripts/fix-adivinha-bank-options.js",
+    "fix:adivinha-options:dry": "node scripts/fix-adivinha-bank-options.js --dry-run",
     "zip": "node scripts/generate-version.js && node scripts/create-zip.js"
   },
   "dependencies": {

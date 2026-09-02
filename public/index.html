@@ -3435,6 +3435,8 @@
 <script src="question-engine/known-facts.js?v=20260901-160409"></script>
 <script src="question-engine/factual-verify.js?v=20260901-160409"></script>
 <script src="question-engine/adivinha-verify.js?v=20260901-160000"></script>
+<script src="question-engine/adivinha-answer-pool.js?v=20260902-082600"></script>
+<script src="question-engine/adivinha-distractors.js?v=20260902-082600"></script>
 <script src="question-engine/difficulty-estimate.js?v=20260901-163000"></script>
 <script src="question-engine/pt-pt-validators.js?v=20260901-180000"></script>
 <script src="question-engine/format-validators.js?v=20260901-145000"></script>
@@ -4133,14 +4135,6 @@
     };
   }
 
-  const ADIVINHA_REPO_DISTRACTOR_POOL = [
-    'Serra', 'Martelo', 'Chave', 'Vela', 'Relógio', 'Espelho', 'Pente', 'Anel', 'Agulha',
-    'Gato', 'Cão', 'Rato', 'Pássaro', 'Peixe', 'Coelho', 'Abelha', 'Formiga', 'Girafa',
-    'Sol', 'Lua', 'Estrela', 'Nuvem', 'Chuva', 'Vento', 'Fogo', 'Água', 'Neve',
-    'Livro', 'Mesa', 'Cadeira', 'Porta', 'Janela', 'Cama', 'Colher', 'Faca', 'Garfo',
-    'Barco', 'Comboio', 'Carro', 'Bicicleta', 'Árvore', 'Flor', 'Maçã', 'Pão', 'Ovo',
-  ];
-
   function recordHasRepoAdivinhaContent(record){
     const answer = String(record?.answer || '').trim();
     const clues = Array.isArray(record?.clues) ? record.clues.filter((c) => String(c).trim()) : [];
@@ -4155,20 +4149,14 @@
   }
 
   function buildAdivinhaRepoDistractors(answer, categoryNumber, ageBandKey){
+    const engine = QE();
+    if(engine.buildAdivinhaDistractors){
+      return engine.buildAdivinhaDistractors(answer, { normalizeFn: normalizeQ });
+    }
     const correctNorm = normalizeQ(answer);
     const seen = new Set([correctNorm]);
     const picked = [];
-    const fallback = buildFallbackOptions(answer, categoryNumber, ageBandKey);
-    if(fallback){
-      for(const opt of fallback){
-        const norm = normalizeQ(opt);
-        if(norm === correctNorm || seen.has(norm)) continue;
-        seen.add(norm);
-        picked.push(opt);
-        if(picked.length >= 3) return picked;
-      }
-    }
-    for(const opt of shuffled(ADIVINHA_REPO_DISTRACTOR_POOL)){
+    for(const opt of shuffled(['Serra', 'Pente', 'Anel', 'Vela', 'Gato', 'Cão', 'Chave', 'Relógio'])){
       const norm = normalizeQ(opt);
       if(!norm || seen.has(norm)) continue;
       seen.add(norm);

@@ -14,6 +14,8 @@
     'question-engine/known-facts.js',
     'question-engine/factual-verify.js',
     'question-engine/adivinha-verify.js',
+    'question-engine/adivinha-answer-pool.js',
+    'question-engine/adivinha-distractors.js',
     'question-engine/difficulty-estimate.js',
     'question-engine/pt-pt-validators.js',
     'question-engine/format-validators.js',
