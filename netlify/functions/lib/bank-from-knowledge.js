@@ -4,6 +4,7 @@ const {
   buildAdivinhaDistractors,
   assembleMcOptions,
 } = require('../../../scripts/lib/adivinha-distractors-node');
+const { cleanAdivinhaFolkloreLine } = require('../../../scripts/lib/adivinha-web-utils');
 
 const AGE_BANDS = ['6-9', '10-15', '15+'];
 const BATCH_SIZE = 40;
@@ -34,8 +35,11 @@ function capitalizeAnswer(answer) {
 }
 
 function buildAdivinhaQuestion(record) {
-  const clues = Array.isArray(record.clues) ? record.clues.map((c) => String(c).trim()).filter(Boolean) : [];
-  let qText = clues.length >= 2 ? clues.join(' ') : String(record.fact || '').trim();
+  const clues = Array.isArray(record.clues)
+    ? record.clues.map((c) => cleanAdivinhaFolkloreLine(c)).filter(Boolean)
+    : [];
+  const fact = cleanAdivinhaFolkloreLine(record.fact || '');
+  let qText = clues.length >= 2 ? clues.join(' ') : fact;
   qText = qText.replace(/^[«"']?\s*[^.!?]{1,40}[.!?]\s+/u, '').trim() || qText;
   if (!/\?\s*$/.test(qText)) {
     qText = `${qText.replace(/[.!]\s*$/, '').trim()}. O que sou?`;

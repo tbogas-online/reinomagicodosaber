@@ -24,6 +24,16 @@ function normalizeAdivinhaAnswerPt(question, answer) {
   return a;
 }
 
+function cleanAdivinhaFolkloreLine(text) {
+  return String(text || '')
+    .replace(/\s*\(Nota:\s*o informante não disse a solução\.?\)\s*/gi, '')
+    .replace(/^adivinha oral\s*/i, '')
+    .replace(/\s*[-–—]?\s*Tamb[eé]m n[aã]o sei.*$/gi, '')
+    .replace(/\s*O que [eé]\?\s*[-–—]?\s*Tamb[eé]m n[aã]o sei.*$/gi, '')
+    .replace(/\s*O que [eé]\?\s*$/gi, '')
+    .trim();
+}
+
 function cleanQuestion(text) {
   let q = String(text || '')
     .replace(/\s+/g, ' ')
@@ -187,6 +197,7 @@ module.exports = {
   RE_BRASILEIRISMO,
   isKiteRiddleContext,
   normalizeAdivinhaAnswerPt,
+  cleanAdivinhaFolkloreLine,
   cleanQuestion,
   cleanAnswer,
   splitClues,

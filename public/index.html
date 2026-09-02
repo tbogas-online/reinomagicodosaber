@@ -3854,6 +3854,14 @@
     if(hasValidMcOptions(optsFromBank, fmt, item.a)){
       return { ...item, options: optsFromBank };
     }
+    if(fmt === 'ADIVINHA'){
+      const distractors = buildAdivinhaRepoDistractors(item.a, categoryNumber, ageBandKey);
+      if(distractors){
+        const engine = QE();
+        const rebuilt = engine.assembleMcOptions(item.a, distractors.map(formatGameText));
+        if(hasValidMcOptions(rebuilt, fmt, item.a)) return { ...item, options: rebuilt };
+      }
+    }
     if(fmt === 'CURIOSIDADE' || fmt === 'VERDADEIRO_FALSO' || expectedMcOptionCount(fmt, item.a) === 2){
       const vfOpts = buildTrueFalseOptions(item.a);
       if(vfOpts) return { ...item, options: vfOpts, format: fmt || 'CURIOSIDADE' };
@@ -4261,11 +4269,24 @@
     return picked.length >= 3 ? picked : null;
   }
 
+  function cleanAdivinhaFolkloreLine(text){
+    if(window.QuestionEngineFormatValidators?.cleanAdivinhaFolkloreLine){
+      return window.QuestionEngineFormatValidators.cleanAdivinhaFolkloreLine(text);
+    }
+    return String(text || '')
+      .replace(/\s*\(Nota:\s*o informante não disse a solução\.?\)\s*/gi, '')
+      .replace(/^adivinha oral\s*/i, '')
+      .replace(/\s*[-–—]?\s*Tamb[eé]m n[aã]o sei.*$/gi, '')
+      .trim();
+  }
+
   function buildAdivinhaDirectFromRecord(record, engine, categoryNumber, ageBandKey){
     const rawAnswer = String(record.answer || '').trim();
     if(!rawAnswer || /^sem\s+resposta$/i.test(rawAnswer)) return null;
-    const clues = Array.isArray(record.clues) ? record.clues.map((c) => String(c).trim()).filter(Boolean) : [];
-    let qText = clues.length >= 2 ? clues.join(' ') : String(record.fact || '').trim();
+    const clues = Array.isArray(record.clues)
+      ? record.clues.map((c) => cleanAdivinhaFolkloreLine(c)).filter(Boolean)
+      : [];
+    let qText = clues.length >= 2 ? clues.join(' ') : cleanAdivinhaFolkloreLine(record.fact || '');
     qText = qText.replace(/^[«"']?\s*[^.!?]{1,40}[.!?]\s+/u, '').trim() || qText;
     if(!/\?\s*$/.test(qText)){
       qText = qText.replace(/[.!]\s*$/, '').trim() + '. O que sou?';

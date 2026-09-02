@@ -85,6 +85,11 @@
       if (normA !== 'verdadeiro' && normA !== 'falso') return false;
       return normalized.includes('verdadeiro') && normalized.includes('falso');
     }
+    const adivinhaDistractors = global.QuestionEngineAdivinhaDistractors;
+    if (format === 'ADIVINHA' && adivinhaDistractors?.hasBadAdivinhaMcOptions
+      && adivinhaDistractors.hasBadAdivinhaMcOptions(cleaned, correctAnswer, stripTags)) {
+      return false;
+    }
     return true;
   }
 

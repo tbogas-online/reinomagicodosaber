@@ -50,6 +50,16 @@ function stripFormatLabel(q) {
   return String(q || '').replace(/^(curiosidade|adivinha|completa|quem é|o que é):\s*/i, '').trim();
 }
 
+function cleanAdivinhaFolkloreLine(text) {
+  return String(text || '')
+    .replace(/\s*\(Nota:\s*o informante não disse a solução\.?\)\s*/gi, '')
+    .replace(/^adivinha oral\s*/i, '')
+    .replace(/\s*[-–—]?\s*Tamb[eé]m n[aã]o sei.*$/gi, '')
+    .replace(/\s*O que [eé]\?\s*[-–—]?\s*Tamb[eé]m n[aã]o sei.*$/gi, '')
+    .replace(/\s*O que [eé]\?\s*$/gi, '')
+    .trim();
+}
+
 function validateCuriosidade(q) {
   const issues = [];
   const body = stripFormatLabel(q);
@@ -309,6 +319,7 @@ function validateByFormat(parsed, formatId, helpers) {
 }
   global.QuestionEngineFormatValidators = Object.freeze({
     stripFormatLabel,
+    cleanAdivinhaFolkloreLine,
     isObviouslyNotAPerson,
     looksLikeWhenQuestion,
     validateCuriosidade,

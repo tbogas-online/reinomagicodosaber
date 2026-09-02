@@ -1637,6 +1637,20 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '15+' },
   });
   assert('195. cabra/milho adivinha ambígua rejeitada', !cabra.ok);
+  const cleanLine = sandbox.globalThis.QuestionEngineFormatValidators?.cleanAdivinhaFolkloreLine?.(
+    'Tando eu no meu capelejo. O que é? - Também não sei…',
+  );
+  assert('196. limpa meta folclórica', cleanLine === 'Tando eu no meu capelejo.');
+  const badMc = QE.validateQuestion({
+    q: 'Tando eu no meu capelejo. O que sou?',
+    a: 'Castanha no ouriço',
+    options: ['Cerca de 2,5 a 3 mil milhões', 'Cerca de 86 mil milhões', 'Castanha no ouriço', 'Cerca de 11 dias'],
+    clues: ['capelejo', 'ouriço'],
+  }, {
+    ...baseCtx({ categoryNumber: 20, formatId: QE.FORMAT_IDS.ADIVINHA, isMC: true, ageBandKey: '10-15' }),
+    helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '10-15' },
+  });
+  assert('197. adivinha rejeita distractores numéricos do banco', !badMc.ok);
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
