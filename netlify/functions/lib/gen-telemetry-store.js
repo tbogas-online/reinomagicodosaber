@@ -164,7 +164,47 @@ function rowToItem(row) {
     issueCodes: Array.isArray(row.issue_codes) ? row.issue_codes : [],
     issueMessages: Array.isArray(row.issue_messages) ? row.issue_messages : [],
     provider: row.provider || '',
+    model: row.model || '',
+    attempt: row.attempt != null ? Number(row.attempt) : null,
   };
+}
+
+function isRepoSource(source) {
+  const src = String(source || '');
+  return src === 'repository' || src === 'repo-direct' || src === 'repo-ai';
+}
+
+function repoAcceptedCount(bySource) {
+  return (bySource?.repository?.accepted || 0)
+    + (bySource?.['repo-direct']?.accepted || 0)
+    + (bySource?.['repo-ai']?.accepted || 0);
+}
+
+function accumulateProvider(summary, ev) {
+  const prov = clip(ev.provider, 24);
+  if (!prov) return;
+  if (!summary.byProvider[prov]) summary.byProvider[prov] = { total: 0, accepted: 0, rejected: 0 };
+  summary.byProvider[prov].total += 1;
+  if (ev.outcome === 'accepted') summary.byProvider[prov].accepted += 1;
+  else if (ev.outcome === 'rejected') summary.byProvider[prov].rejected += 1;
+}
+
+function accumulateModel(summary, ev) {
+  const model = clip(ev.model, 48);
+  if (!model) return;
+  if (!summary.byModel[model]) summary.byModel[model] = { total: 0, accepted: 0 };
+  summary.byModel[model].total += 1;
+  if (ev.outcome === 'accepted') summary.byModel[model].accepted += 1;
+}
+
+function accumulateAttempt(summary, ev) {
+  if (ev.outcome !== 'accepted' || ev.attempt == null) return;
+  const key = String(Math.min(Math.max(Math.round(ev.attempt), 1), 10));
+  summary.byAttempt[key] = (summary.byAttempt[key] || 0) + 1;
+  if (ev.source === 'ai') {
+    summary._aiAttemptSum = (summary._aiAttemptSum || 0) + ev.attempt;
+    summary._aiAttemptCount = (summary._aiAttemptCount || 0) + 1;
+  }
 }
 
 function accumulateSource(summary, ev) {
@@ -178,12 +218,22 @@ function finalizeSummaryRates(summary) {
   const failures = summary.rejected + summary.parseErrors + summary.apiErrors;
   summary.rejectionRate = summary.total ? failures / summary.total : 0;
   summary.acceptanceRate = summary.total ? summary.accepted / summary.total : 0;
-  const repoAccepted = summary.bySource?.repository?.accepted || 0;
+  const repoAccepted = repoAcceptedCount(summary.bySource);
   summary.repositoryShare = summary.accepted ? repoAccepted / summary.accepted : 0;
+  const repoDirectAccepted = (summary.bySource?.['repo-direct']?.accepted || 0)
+    + (summary.bySource?.repository?.accepted || 0);
+  summary.repoDirectShare = repoAccepted ? repoDirectAccepted / repoAccepted : 0;
+  const bankAccepted = summary.bySource?.bank?.accepted || 0;
+  summary.bankShare = summary.accepted ? bankAccepted / summary.accepted : 0;
   const nonAiAccepted = Object.entries(summary.bySource || {})
-    .filter(([key]) => key !== 'ai')
+    .filter(([key]) => key !== 'ai' && key !== 'repo-ai')
     .reduce((sum, [, bucket]) => sum + (bucket.accepted || 0), 0);
   summary.nonAiShare = summary.accepted ? nonAiAccepted / summary.accepted : 0;
+  summary.aiAvgAttempts = summary._aiAttemptCount
+    ? summary._aiAttemptSum / summary._aiAttemptCount
+    : null;
+  delete summary._aiAttemptSum;
+  delete summary._aiAttemptCount;
   return summary;
 }
 
@@ -200,10 +250,16 @@ function computeSummaryFromItems(items) {
     byFormat: {},
     byGameMode: {},
     bySource: {},
+    byProvider: {},
+    byModel: {},
+    byAttempt: {},
     rejectionRate: 0,
     acceptanceRate: 0,
     repositoryShare: 0,
+    repoDirectShare: 0,
+    bankShare: 0,
     nonAiShare: 0,
+    aiAvgAttempts: null,
   };
 
   for (const ev of items) {
@@ -234,6 +290,9 @@ function computeSummaryFromItems(items) {
       summary.byGameMode[mode].rejected += 1;
     }
     accumulateSource(summary, ev);
+    accumulateProvider(summary, ev);
+    accumulateModel(summary, ev);
+    accumulateAttempt(summary, ev);
   }
 
   return finalizeSummaryRates(summary);
@@ -368,7 +427,7 @@ async function fetchEventItems(filters = {}) {
     ? String(filters.gameMode)
     : '';
   const params = new URLSearchParams({
-    select: 'id,event_ts,outcome,category,format_id,age_band_key,game_mode,source,issue_codes,issue_messages,provider',
+    select: 'id,event_ts,outcome,category,format_id,age_band_key,game_mode,source,issue_codes,issue_messages,provider,model,attempt',
     order: 'created_at.desc',
     limit: String(MAX_EVENTS),
   });
@@ -426,4 +485,6 @@ module.exports = {
   computeTimelineFromItems,
   finalizeSummaryRates,
   accumulateSource,
+  isRepoSource,
+  repoAcceptedCount,
 };

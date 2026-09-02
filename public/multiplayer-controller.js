@@ -135,6 +135,7 @@
       currentQuestion: h.getCurrentQuestion?.() || null,
       countdownPaused: !!h.getCountdownPaused?.(),
       countdownRemaining: h.getCountdownRemaining?.() ?? null,
+      countdownEndsAt: h.getCountdownEndsAt?.() ?? null,
       answerRevealed: !!h.getAnswerRevealed?.(),
       selectedAnswer: h.getLastSelectedAnswer?.() ?? null,
       dice: extra && 'dice' in extra ? extra.dice : (h.getLastDiceRoll?.() ?? null),
@@ -317,7 +318,11 @@
         await h.displayQuestion?.(lastCat, state.lastIsSurprise, state.selectedAgeBand, state.currentQuestion);
       }
       if (typeof state.countdownPaused === 'boolean') {
-        h.applyCountdownSync?.(state.countdownPaused, state.countdownRemaining);
+        h.applyCountdownSync?.(
+          state.countdownPaused,
+          state.countdownRemaining,
+          state.countdownEndsAt,
+        );
       }
       if (state.answerRevealed) {
         h.applyAnswerFromRemote?.(state.selectedAnswer || null);
@@ -1186,7 +1191,13 @@
   const renderLobbyPlayers = renderPlayersUI;
 
   function escapeHtml(s) {
-    return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (global.ReinoHtmlEscape?.escapeHtml) return global.ReinoHtmlEscape.escapeHtml(s);
+    return String(s ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   let gamePlayersOpen = false;

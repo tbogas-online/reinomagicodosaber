@@ -1,35 +1,5 @@
-// Server-side proxy for the AI provider(s) — Netlify Functions version.
-// The API key(s) are NEVER exposed to the browser.
-// The function accepts the same small request shape the game already uses
-// and always returns an Anthropic-compatible response, so the frontend
-// needs no changes regardless of which provider actually answered.
-//
-// Existe uma versão irmã desta função em functions/api/generate.js, escrita
-// para o runtime do Cloudflare Pages (Workers). As duas ficam
-// intencionalmente separadas (em vez de partilhar um módulo importado)
-// porque os dois runtimes diferem na forma de aceder a variáveis de
-// ambiente e ao pedido/resposta HTTP — mas a LÓGICA (fornecedores,
-// validações, formato de resposta) é mantida idêntica entre as duas.
-// Se alterares o comportamento aqui, replica a mesma alteração lá.
-//
-// Suporta três fornecedores de IA, configuráveis por variáveis de ambiente:
-//   GROQ_API_KEY       -> ativa o Groq (modelo Llama)
-//   ANTHROPIC_API_KEY  -> ativa a Anthropic (modelo Claude)
-//   OPENAI_API_KEY     -> ativa a OpenAI (modelo GPT)
-//
-// Podes configurar um, dois ou os três ao mesmo tempo. Com mais do que um
-// configurado, a Function tenta o fornecedor preferido primeiro e, se esse
-// pedido falhar (erro de rede, limite atingido, etc.), tenta
-// automaticamente o(s) seguinte(s) antes de devolver erro ao browser.
-//
-// Variáveis opcionais:
-//   AI_PROVIDER         -> "groq", "anthropic" ou "openai" para forçar um único fornecedor
-//   AI_PROVIDER_ORDER    -> ex.: "groq,openai,anthropic" para definir a ordem de tentativa
-//   GROQ_MODEL           -> nome do modelo Groq (default: openai/gpt-oss-20b)
-//   ANTHROPIC_MODEL      -> nome do modelo Anthropic (default: claude-haiku-4-5-20251001)
-//   OPENAI_MODEL         -> nome do modelo OpenAI (default: gpt-4o-mini)
-
 const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
+const { validateGameClient } = require('./lib/report-utils');
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const ANTHROPIC_VERSION = '2023-06-01';
@@ -73,6 +43,11 @@ exports.handler = async (event) => {
   try {
     if (event.httpMethod !== 'POST') {
       return json(405, { error: 'Método não permitido' });
+    }
+
+    const clientAuth = validateGameClient(event);
+    if (!clientAuth.ok) {
+      return json(clientAuth.status, { error: clientAuth.error });
     }
 
     let payload;

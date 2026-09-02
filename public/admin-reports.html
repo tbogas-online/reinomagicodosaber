@@ -1024,6 +1024,14 @@
       <div class="card">
         <div class="row">
           <div>
+            <label for="filterDateFrom">Desde</label>
+            <input id="filterDateFrom" type="date" title="Dia inicial (inclusive)">
+          </div>
+          <div>
+            <label for="filterDateTo">Até</label>
+            <input id="filterDateTo" type="date" title="Dia final (inclusive)">
+          </div>
+          <div>
             <label for="filterIssue">Tipo</label>
             <select id="filterIssue">
               <option value="">Todos</option>
@@ -1521,6 +1529,23 @@
               <h3>Por fonte (aceites)</h3>
               <div id="chartGenSources" class="chart"></div>
             </div>
+            <div class="chart-box chart-wide">
+              <h3>Mix de entrega (perguntas servidas)</h3>
+              <p class="chart-filter-note" style="margin:0 0 8px">Como cada pergunta chegou ao jogador — banco Supabase, repositório (directo vs IA), IA livre ou local.</p>
+              <div id="chartGenDelivery" class="chart"></div>
+            </div>
+            <div class="chart-box">
+              <h3>Por fornecedor IA</h3>
+              <div id="chartGenProviders" class="chart"></div>
+            </div>
+            <div class="chart-box">
+              <h3>Por modelo IA</h3>
+              <div id="chartGenModels" class="chart"></div>
+            </div>
+            <div class="chart-box">
+              <h3>Tentativas até aceitar (IA livre)</h3>
+              <div id="chartGenAttempts" class="chart"></div>
+            </div>
           </div>
         </div>
       </div>
@@ -1537,6 +1562,7 @@
     </div>
   </div>
 
+  <script src="html-escape.js"></script>
   <script src="question-engine/known-facts.js?v=20260901-150000"></script>
   <script>
     const AUTH_KEY = 'reino_admin_reports_auth';
@@ -1757,6 +1783,10 @@
     }
 
     function getTimelineSeries(stats) {
+      if (hasCustomDateFilter()) {
+        const custom = stats?.timelineSeries?.custom;
+        if (custom?.length) return custom;
+      }
       const series = stats?.timelineSeries?.[timelineRange];
       if (series?.length) return series;
       if (timelineRange === '14d' && stats?.daily?.length) {
@@ -1769,8 +1799,47 @@
     }
 
     function getStackedTimelineSeries(stats) {
+      if (hasCustomDateFilter()) {
+        const custom = stats?.timelineStacked?.custom;
+        if (custom?.length) return custom;
+      }
       const series = stats?.timelineStacked?.[timelineRange];
       return series?.length ? series : [];
+    }
+
+    function hasCustomDateFilter() {
+      return Boolean(
+        document.getElementById('filterDateFrom')?.value
+        || document.getElementById('filterDateTo')?.value,
+      );
+    }
+
+    function normalizeDateFilterInputs() {
+      const fromEl = document.getElementById('filterDateFrom');
+      const toEl = document.getElementById('filterDateTo');
+      if (!fromEl || !toEl) return;
+      const from = fromEl.value;
+      const to = toEl.value;
+      if (from && to && from > to) {
+        fromEl.value = to;
+        toEl.value = from;
+      }
+    }
+
+    function getTimelineMeta(stats) {
+      if (hasCustomDateFilter()) {
+        const range = stats?.dateRange || {};
+        const from = range.from || document.getElementById('filterDateFrom')?.value;
+        const to = range.to || document.getElementById('filterDateTo')?.value;
+        const parts = [];
+        if (from) parts.push(formatShortDate(from));
+        if (to) parts.push(formatShortDate(to));
+        const label = parts.length === 2
+          ? `de ${parts[0]} a ${parts[1]}`
+          : (from ? `desde ${parts[0]}` : `até ${parts[0]}`);
+        return { label, granularity: 'day', custom: true };
+      }
+      return TIMELINE_RANGES[timelineRange];
     }
 
     function getTimelineIssueTypes(stats) {
@@ -2082,7 +2151,7 @@
 
     function updateTimelineFiltersUi() {
       document.querySelectorAll('#timelineFilters [data-range]').forEach((btn) => {
-        btn.classList.toggle('active', btn.dataset.range === timelineRange);
+        btn.classList.toggle('active', !hasCustomDateFilter() && btn.dataset.range === timelineRange);
       });
     }
 
@@ -2111,7 +2180,9 @@
 
     function hasDashboardFilters() {
       return Boolean(
-        document.getElementById('filterIssue')?.value
+        document.getElementById('filterDateFrom')?.value
+        || document.getElementById('filterDateTo')?.value
+        || document.getElementById('filterIssue')?.value
         || document.getElementById('filterAge')?.value
         || document.getElementById('filterCategory')?.value.trim()
         || document.getElementById('filterDevice')?.value
@@ -2122,6 +2193,8 @@
 
     function clearDashboardFilters() {
       const fields = [
+        ['filterDateFrom', ''],
+        ['filterDateTo', ''],
         ['filterIssue', ''],
         ['filterAge', ''],
         ['filterCategory', ''],
@@ -2213,7 +2286,7 @@
     }
 
     function renderTimelineChart(stats = lastStats) {
-      const meta = TIMELINE_RANGES[timelineRange];
+      const meta = getTimelineMeta(stats);
       const titleEl = document.getElementById('chartTimelineTitle');
       const noteEl = document.getElementById('timelineNote');
       const issue = getActiveIssueFilter();
@@ -2228,10 +2301,13 @@
           ? 'Granularidade por hora (UTC).'
           : 'Granularidade por dia (UTC).';
         const chartLabel = TIMELINE_CHART_TYPES[timelineChartType] || timelineChartType;
+        const dateNote = hasCustomDateFilter()
+          ? ' Período definido pelos filtros Desde/Até.'
+          : '';
         const filterNote = issueLabel
           ? ` Filtro: ${issueLabel}.`
           : ` ${chartLabel} por tipo.`;
-        noteEl.textContent = `${base}${filterNote} Reportes cancelados não entram nos gráficos.`;
+        noteEl.textContent = `${base}${dateNote}${filterNote} Reportes cancelados não entram nos gráficos.`;
       }
       updateTimelineFiltersUi();
       updateTimelineChartTypeUi();
@@ -2343,11 +2419,13 @@
     const pagerInfo = document.getElementById('pagerInfo');
 
     function esc(text) {
+      if (window.ReinoHtmlEscape?.escapeHtml) return window.ReinoHtmlEscape.escapeHtml(text);
       return String(text || '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
     }
 
     function confirmAction(message, options = {}) {
@@ -2751,13 +2829,18 @@
     }
 
     function buildFilterParams() {
+      normalizeDateFilterInputs();
       const params = new URLSearchParams();
+      const dateFrom = document.getElementById('filterDateFrom').value;
+      const dateTo = document.getElementById('filterDateTo').value;
       const issue = document.getElementById('filterIssue').value;
       const age = document.getElementById('filterAge').value;
       const category = document.getElementById('filterCategory').value.trim();
       const reporter = document.getElementById('filterReporter').value.trim();
       const deviceType = document.getElementById('filterDevice').value;
       const reportStatus = document.getElementById('filterStatus').value;
+      if (dateFrom) params.set('dateFrom', dateFrom);
+      if (dateTo) params.set('dateTo', dateTo);
       if (issue) params.set('issueType', issue);
       if (age) params.set('ageBand', age);
       if (category) params.set('category', category);
@@ -2913,13 +2996,46 @@
 
     const GEN_SOURCE_LABELS = {
       ai: 'IA livre',
-      repository: 'Repositório',
-      bank: 'Banco local',
+      repository: 'Repositório (legado)',
+      'repo-direct': 'Repositório directo',
+      'repo-ai': 'Repositório + IA',
+      bank: 'Banco Supabase',
       local: 'Local / offline',
+      'local-repeat': 'Local repetido',
       'local-history': 'Histórico local',
       'local-engine': 'Motor local v1',
       'local-engine-v2': 'Motor local v2',
     };
+
+    const GEN_PROVIDER_LABELS = {
+      groq: 'Groq',
+      openai: 'OpenAI',
+      anthropic: 'Anthropic',
+    };
+
+    function buildDeliveryEntries(bySource) {
+      const groups = {
+        bank: 0,
+        'repo-direct': 0,
+        'repo-ai': 0,
+        repository: 0,
+        ai: 0,
+        local: 0,
+      };
+      for (const [key, bucket] of Object.entries(bySource || {})) {
+        const n = bucket?.accepted || 0;
+        if (!n) continue;
+        if (key === 'bank') groups.bank += n;
+        else if (key === 'repo-direct') groups['repo-direct'] += n;
+        else if (key === 'repo-ai') groups['repo-ai'] += n;
+        else if (key === 'repository') groups.repository += n;
+        else if (key === 'ai') groups.ai += n;
+        else if (key.startsWith('local')) groups.local += n;
+      }
+      return Object.entries(groups)
+        .filter(([, n]) => n > 0)
+        .sort((a, b) => b[1] - a[1]);
+    }
 
     const GEN_OUTCOME_LABELS = {
       accepted: 'Aceites',
@@ -3051,6 +3167,10 @@
       const fmtEl = document.getElementById('chartGenFormats');
       const modeEl = document.getElementById('chartGenGameModes');
       const sourceEl = document.getElementById('chartGenSources');
+      const deliveryEl = document.getElementById('chartGenDelivery');
+      const providerEl = document.getElementById('chartGenProviders');
+      const modelEl = document.getElementById('chartGenModels');
+      const attemptEl = document.getElementById('chartGenAttempts');
       if (!statsEl || !issueEl || !catEl || !fmtEl || !modeEl) return;
 
       if (!summary?.total) {
@@ -3062,6 +3182,10 @@
         fmtEl.innerHTML = '';
         modeEl.innerHTML = '';
         if (sourceEl) sourceEl.innerHTML = '';
+        if (deliveryEl) deliveryEl.innerHTML = '';
+        if (providerEl) providerEl.innerHTML = '';
+        if (modelEl) modelEl.innerHTML = '';
+        if (attemptEl) attemptEl.innerHTML = '';
         return;
       }
 
@@ -3069,16 +3193,24 @@
       const rejectPct = Math.round((summary.rejectionRate || 0) * 100);
       const acceptPct = Math.round((summary.acceptanceRate || 0) * 100);
       const repoPct = Math.round((summary.repositoryShare || 0) * 100);
+      const repoDirectPct = Math.round((summary.repoDirectShare || 0) * 100);
+      const bankPct = Math.round((summary.bankShare || 0) * 100);
       const nonAiPct = Math.round((summary.nonAiShare || 0) * 100);
       const techErrors = (summary.parseErrors || 0) + (summary.apiErrors || 0);
+      const avgAttempts = summary.aiAvgAttempts != null
+        ? summary.aiAvgAttempts.toFixed(1)
+        : '—';
       statsEl.innerHTML = `
         <div class="stat stat-total"><strong>${summary.total}</strong><span>Tentativas</span></div>
         <div class="stat stat-resolved"><strong>${summary.accepted}</strong><span>Aceites (${acceptPct}%)</span></div>
         <div class="stat stat-open"><strong>${summary.rejected}</strong><span>Rejeit. validação</span></div>
         <div class="stat stat-cancelled"><strong>${techErrors}</strong><span>Erros parse/API</span></div>
         <div class="stat stat-top-issue"><strong>${rejectPct}%</strong><span>Taxa rejeição</span></div>
-        <div class="stat stat-repository"><strong>${repoPct}%</strong><span>Repositório (aceites)</span></div>
-        <div class="stat stat-total"><strong>${nonAiPct}%</strong><span>Sem IA livre (aceites)</span></div>
+        <div class="stat stat-repository"><strong>${bankPct}%</strong><span>Banco Supabase</span></div>
+        <div class="stat stat-repository"><strong>${repoPct}%</strong><span>Repositório</span></div>
+        <div class="stat stat-total"><strong>${repoDirectPct}%</strong><span>Repo directo</span></div>
+        <div class="stat stat-total"><strong>${nonAiPct}%</strong><span>Sem IA livre</span></div>
+        <div class="stat stat-open"><strong>${avgAttempts}</strong><span>Média tentativas IA</span></div>
       `;
 
       const detailMap = summary.byIssueDetail || {};
@@ -3119,6 +3251,63 @@
           .filter(([, n]) => n > 0)
           .sort((a, b) => b[1] - a[1]);
         renderBarChart(sourceEl, sourceEntries, (k) => GEN_SOURCE_LABELS[k] || k);
+      }
+
+      if (deliveryEl) {
+        const deliveryEntries = buildDeliveryEntries(summary.bySource);
+        const deliveryLabels = {
+          bank: 'Banco Supabase',
+          'repo-direct': 'Repositório directo',
+          'repo-ai': 'Repositório + IA',
+          repository: 'Repositório (legado)',
+          ai: 'IA livre',
+          local: 'Local / offline',
+        };
+        renderBarChart(
+          deliveryEl,
+          deliveryEntries,
+          (k) => deliveryLabels[k] || GEN_SOURCE_LABELS[k] || k,
+          { colorFn: (k) => ({
+            bank: '#0d9488',
+            'repo-direct': '#8b5cf6',
+            'repo-ai': '#a78bfa',
+            repository: '#7c3aed',
+            ai: '#3b82f6',
+            local: '#64748b',
+          }[k] || '') },
+        );
+      }
+
+      if (providerEl) {
+        const providerEntries = Object.entries(summary.byProvider || {})
+          .map(([k, v]) => [k, v.accepted || 0])
+          .filter(([, n]) => n > 0)
+          .sort((a, b) => b[1] - a[1]);
+        renderBarChart(
+          providerEl,
+          providerEntries.length ? providerEntries : [['—', 0]],
+          (k) => GEN_PROVIDER_LABELS[k] || k,
+        );
+      }
+
+      if (modelEl) {
+        const modelEntries = Object.entries(summary.byModel || {})
+          .map(([k, v]) => [k, v.accepted || 0])
+          .filter(([, n]) => n > 0)
+          .sort((a, b) => b[1] - a[1])
+          .slice(0, 10);
+        renderBarChart(modelEl, modelEntries, (k) => k);
+      }
+
+      if (attemptEl) {
+        const attemptEntries = Object.entries(summary.byAttempt || {})
+          .map(([k, n]) => [k, n])
+          .sort((a, b) => Number(a[0]) - Number(b[0]));
+        renderBarChart(
+          attemptEl,
+          attemptEntries,
+          (k) => `${k}ª tentativa`,
+        );
       }
     }
 
@@ -4517,12 +4706,20 @@
       const repoPct = data?.telemetry?.repositoryShare != null
         ? `${Math.round((data.telemetry.repositoryShare || 0) * 100)}%`
         : '—';
+      const bankPct = data?.telemetry?.bankShare != null
+        ? `${Math.round((data.telemetry.bankShare || 0) * 100)}%`
+        : '—';
+      const repoDirectPct = data?.telemetry?.repoDirectShare != null
+        ? `${Math.round((data.telemetry.repoDirectShare || 0) * 100)}%`
+        : '—';
       row.innerHTML = `
         <div class="stat stat-total"><strong>${summary.pending ?? '—'}</strong><span>Pendentes na fila</span></div>
         <div class="stat stat-resolved"><strong>${summary.imported ?? '—'}</strong><span>Já importados</span></div>
         <div class="stat stat-repository"><strong>${repo.active ?? repo.total ?? '—'}</strong><span>Activos no Supabase</span></div>
         <div class="stat stat-quarantine"><strong>${qKnowledge}</strong><span>Quarentena repo (${qDays}d)</span></div>
-        <div class="stat stat-top-issue"><strong>${repoPct}</strong><span>Repositório (aceites IA)</span></div>
+        <div class="stat stat-top-issue"><strong>${bankPct}</strong><span>Banco (entrega)</span></div>
+        <div class="stat stat-top-issue"><strong>${repoPct}</strong><span>Repositório (entrega)</span></div>
+        <div class="stat stat-repository"><strong>${repoDirectPct}</strong><span>Repo directo</span></div>
         <div class="stat stat-open"><strong>${data?.state?.lastRunDate || '—'}</strong><span>Última importação</span></div>
         <div class="stat stat-cancelled"><strong>${lastRun?.upserted ?? '—'}</strong><span>Último lote (upserted)</span></div>
       `;
@@ -5225,7 +5422,7 @@
       e.preventDefault();
       setIssueTypeFilter(row.dataset.filterKey);
     });
-    ['filterIssue', 'filterAge', 'filterCategory', 'filterDevice', 'filterStatus', 'filterReporter'].forEach((id) => {
+    ['filterDateFrom', 'filterDateTo', 'filterIssue', 'filterAge', 'filterCategory', 'filterDevice', 'filterStatus', 'filterReporter'].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       el.addEventListener('change', () => { offset = 0; loadDashboard(); });

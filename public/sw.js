@@ -1,14 +1,55 @@
 /* Service Worker — Reino Mágico do Saber
- * APP_BUILD é substituído em cada deploy por scripts/generate-version.js
+ * APP_BUILD e PRECACHE_URLS são gerados por scripts/generate-version.js
  */
-const APP_BUILD = '20260901-160409';
+const APP_BUILD = '20260902-114119';
 const STATIC_CACHE = `reino-static-${APP_BUILD}`;
+
+// GENERATED_PRECACHE_START
 const PRECACHE_URLS = [
-  '/manifest.webmanifest',
+  '/app-update.js?v=20260902-114119',
   '/favicon.ico',
+  '/game-history.js?v=20260902-114119',
+  '/html-escape.js?v=20260902-114119',
   '/icon-any-192.png',
   '/icon-any-512.png',
+  '/index.html',
+  '/knowledge-repository.js?v=20260902-114119',
+  '/manifest.webmanifest',
+  '/multiplayer-controller.js?v=20260902-114119',
+  '/multiplayer-sync.js?v=20260902-114119',
+  '/player-names.js?v=20260902-114119',
+  '/question-bank.js?v=20260902-114119',
+  '/question-engine.js?v=20260902-114119',
+  '/question-engine/adivinha-answer-pool.js?v=20260902-114119',
+  '/question-engine/adivinha-distractors.js?v=20260902-114119',
+  '/question-engine/adivinha-verify.js?v=20260902-114119',
+  '/question-engine/age-validators.js?v=20260902-114119',
+  '/question-engine/category-validators.js?v=20260902-114119',
+  '/question-engine/content-safety-data.js?v=20260902-114119',
+  '/question-engine/content-safety.js?v=20260902-114119',
+  '/question-engine/difficulty-estimate.js?v=20260902-114119',
+  '/question-engine/engine-config.js?v=20260902-114119',
+  '/question-engine/factual-verify.js?v=20260902-114119',
+  '/question-engine/format-validators.js?v=20260902-114119',
+  '/question-engine/issue-codes.js?v=20260902-114119',
+  '/question-engine/knowledge-key-compute.js?v=20260902-114119',
+  '/question-engine/knowledge-key.js?v=20260902-114119',
+  '/question-engine/known-facts.js?v=20260902-114119',
+  '/question-engine/mc-assembly.js?v=20260902-114119',
+  '/question-engine/mc-validators.js?v=20260902-114119',
+  '/question-engine/persistent-history.js?v=20260902-114119',
+  '/question-engine/prompt-builder.js?v=20260902-114119',
+  '/question-engine/pt-pt-validators.js?v=20260902-114119',
+  '/question-engine/question-scoring.js?v=20260902-114119',
+  '/question-engine/repetition-validators.js?v=20260902-114119',
+  '/question-engine/reported-content.js?v=20260902-114119',
+  '/question-engine/retry-strategy.js?v=20260902-114119',
+  '/question-engine/semantic-validators.js?v=20260902-114119',
+  '/question-engine/telemetry.js?v=20260902-114119',
+  '/supabase-client.js?v=20260902-114119',
+  '/supabase-config.js?v=20260902-114119',
 ];
+// GENERATED_PRECACHE_END
 
 function isNavigation(request) {
   return request.mode === 'navigate'
@@ -23,10 +64,17 @@ function isNetworkOnly(url) {
     || url.pathname === '/app-update.js';
 }
 
-function versionedUrl(pathname) {
-  const url = new URL(pathname, self.location.origin);
-  url.searchParams.set('v', APP_BUILD);
-  return url.toString();
+function isStaticAsset(pathname) {
+  return /\.(js|css|woff2?|png|jpe?g|webp|svg|ico)$/i.test(pathname);
+}
+
+async function cacheMatchFlexible(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+  if (isStaticAsset(new URL(request.url).pathname)) {
+    return caches.match(request, { ignoreSearch: true });
+  }
+  return undefined;
 }
 
 async function networkFirst(request) {
@@ -38,7 +86,7 @@ async function networkFirst(request) {
     }
     return response;
   } catch {
-    const cached = await caches.match(request);
+    const cached = await cacheMatchFlexible(request);
     if (cached) return cached;
     throw new Error('offline');
   }
@@ -46,7 +94,7 @@ async function networkFirst(request) {
 
 async function staleWhileRevalidate(request) {
   const cache = await caches.open(STATIC_CACHE);
-  const cached = await caches.match(request);
+  const cached = await cacheMatchFlexible(request);
   const networkPromise = fetch(request).then((response) => {
     if (response && response.ok) cache.put(request, response.clone());
     return response;
@@ -63,18 +111,9 @@ async function staleWhileRevalidate(request) {
 self.addEventListener('install', (event) => {
   event.waitUntil((async () => {
     const cache = await caches.open(STATIC_CACHE);
-    const assets = [
-      versionedUrl('/question-engine/issue-codes.js'),
-      versionedUrl('/question-engine/knowledge-key.js'),
-      versionedUrl('/question-engine/retry-strategy.js'),
-      versionedUrl('/question-engine/telemetry.js'),
-      versionedUrl('/question-engine/known-facts.js'),
-      versionedUrl('/question-engine/factual-verify.js'),
-      versionedUrl('/question-engine.js'),
-      ...PRECACHE_URLS.map((path) => versionedUrl(path)),
-    ];
-    await Promise.all(assets.map(async (url) => {
+    await Promise.all(PRECACHE_URLS.map(async (urlPath) => {
       try {
+        const url = new URL(urlPath, self.location.origin).toString();
         const response = await fetch(url, { cache: 'no-cache' });
         if (response.ok) await cache.put(url, response);
       } catch {

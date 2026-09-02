@@ -7,6 +7,9 @@ const VERSION_FILE = path.join(PUBLIC, 'version.json');
 const CHANGELOG_SOURCE = path.join(__dirname, 'changelog.json');
 const CHANGELOG_PUBLIC = path.join(PUBLIC, 'changelog.json');
 const INDEX_HTML = path.join(PUBLIC, 'index.html');
+const SW_FILE = path.join(PUBLIC, 'sw.js');
+const PRECACHE_START = '// GENERATED_PRECACHE_START';
+const PRECACHE_END = '// GENERATED_PRECACHE_END';
 
 const now = new Date();
 const parts = new Intl.DateTimeFormat('en-GB', {
@@ -31,6 +34,51 @@ const versionInfo = {
   timezone: 'Europe/Lisbon',
 };
 
+function bumpLocalAssetVersions(html, build) {
+  let next = html.replace(
+    /((?:src|href)=["'])([^"'?#]+)(\?v=)[^"']+(["'])/gi,
+    (match, pre, assetPath, q, post) => {
+      if (/^https?:\/\//i.test(assetPath) || assetPath.startsWith('//')) return match;
+      return `${pre}${assetPath}?v=${build}${post}`;
+    },
+  );
+  next = next.replace(
+    /((?:src|href)=["'])([^"'?#]+\.(?:js|css))(["'])/gi,
+    (match, pre, assetPath, post) => {
+      if (/^https?:\/\//i.test(assetPath) || assetPath.startsWith('//')) return match;
+      return `${pre}${assetPath}?v=${build}${post}`;
+    },
+  );
+  return next;
+}
+
+function extractLocalScriptUrls(html) {
+  const urls = new Set(['/index.html']);
+  const re = /<script[^>]+src=["']([^"']+)["']/gi;
+  let m;
+  while ((m = re.exec(html))) {
+    const src = m[1];
+    if (/^https?:\/\//i.test(src) || src.startsWith('//')) continue;
+    const pathOnly = src.split('#')[0];
+    urls.add(pathOnly.startsWith('/') ? pathOnly : `/${pathOnly}`);
+  }
+  urls.add('/manifest.webmanifest');
+  urls.add('/favicon.ico');
+  urls.add('/icon-any-192.png');
+  urls.add('/icon-any-512.png');
+  return [...urls].sort();
+}
+
+function writePrecacheList(sw, urls) {
+  const lines = urls.map((u) => `  '${u.replace(/'/g, "\\'")}',`).join('\n');
+  const block = `${PRECACHE_START}\nconst PRECACHE_URLS = [\n${lines}\n];\n${PRECACHE_END}`;
+  const pattern = new RegExp(`${PRECACHE_START}[\\s\\S]*?${PRECACHE_END}`);
+  if (!pattern.test(sw)) {
+    throw new Error('sw.js missing GENERATED_PRECACHE markers');
+  }
+  return sw.replace(pattern, block);
+}
+
 fs.writeFileSync(VERSION_FILE, JSON.stringify(versionInfo, null, 2) + '\n', 'utf8');
 
 if (fs.existsSync(CHANGELOG_SOURCE)) {
@@ -43,10 +91,10 @@ if (fs.existsSync(CHANGELOG_SOURCE)) {
     return { title: fallbackTitle, items: [] };
   };
 
-  const versionToTitle = (version) => {
-    const m = String(version || '').match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/);
-    if (!m) return '';
-    return `${m[3]}/${m[2]}/${m[1]} · ${m[4]}:${m[5]}`;
+  const versionToTitle = (v) => {
+    const match = String(v || '').match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})/);
+    if (!match) return '';
+    return `${match[3]}/${match[2]}/${match[1]} · ${match[4]}:${match[5]}`;
   };
 
   const normalizeHistory = (history) => {
@@ -83,47 +131,20 @@ if (fs.existsSync(INDEX_HTML)) {
     /<meta name="app-build" content="[^"]*">/,
     `<meta name="app-build" content="${version}">`,
   );
-  html = html.replace(
-    /question-engine\/issue-codes\.js\?v=[^"]+/g,
-    `question-engine/issue-codes.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\/knowledge-key\.js\?v=[^"]+/g,
-    `question-engine/knowledge-key.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\/retry-strategy\.js\?v=[^"]+/g,
-    `question-engine/retry-strategy.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\/telemetry\.js\?v=[^"]+/g,
-    `question-engine/telemetry.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\/known-facts\.js\?v=[^"]+/g,
-    `question-engine/known-facts.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\/factual-verify\.js\?v=[^"]+/g,
-    `question-engine/factual-verify.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\.js\?v=[^"]+/g,
-    `question-engine.js?v=${version}`,
-  );
-  html = html.replace(
-    /app-update\.js\?v=[^"]+/g,
-    `app-update.js?v=${version}`,
-  );
+  html = bumpLocalAssetVersions(html, version);
   html = html.replace(/__APP_BUILD__/g, version);
   fs.writeFileSync(INDEX_HTML, html, 'utf8');
-}
 
-const SW_FILE = path.join(PUBLIC, 'sw.js');
-if (fs.existsSync(SW_FILE)) {
+  if (fs.existsSync(SW_FILE)) {
+    const precacheUrls = extractLocalScriptUrls(html);
+    let sw = fs.readFileSync(SW_FILE, 'utf8');
+    sw = sw.replace(/const APP_BUILD = '[^']*';/, `const APP_BUILD = '${version}';`);
+    sw = writePrecacheList(sw, precacheUrls);
+    fs.writeFileSync(SW_FILE, sw, 'utf8');
+  }
+} else if (fs.existsSync(SW_FILE)) {
   let sw = fs.readFileSync(SW_FILE, 'utf8');
   sw = sw.replace(/const APP_BUILD = '[^']*';/, `const APP_BUILD = '${version}';`);
-  sw = sw.replace(/__APP_BUILD__/g, version);
   fs.writeFileSync(SW_FILE, sw, 'utf8');
 }
 
@@ -137,38 +158,7 @@ function patchTestPageHtml(filePath) {
     /<meta name="app-build" content="[^"]*">/,
     `<meta name="app-build" content="${version}">`,
   );
-  html = html.replace(
-    /question-engine\/issue-codes\.js\?v=[^"]+/g,
-    `question-engine/issue-codes.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\/knowledge-key\.js\?v=[^"]+/g,
-    `question-engine/knowledge-key.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\/retry-strategy\.js\?v=[^"]+/g,
-    `question-engine/retry-strategy.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\/telemetry\.js\?v=[^"]+/g,
-    `question-engine/telemetry.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\/known-facts\.js\?v=[^"]+/g,
-    `question-engine/known-facts.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\/factual-verify\.js\?v=[^"]+/g,
-    `question-engine/factual-verify.js?v=${version}`,
-  );
-  html = html.replace(
-    /question-engine\.js\?v=[^"]+/g,
-    `question-engine.js?v=${version}`,
-  );
-  html = html.replace(
-    /app-update\.js\?v=[^"]+/g,
-    `app-update.js?v=${version}`,
-  );
+  html = bumpLocalAssetVersions(html, version);
   if (!html.includes('app-update.js')) {
     html = html.replace(
       '</body>',
@@ -178,13 +168,9 @@ function patchTestPageHtml(filePath) {
   fs.writeFileSync(filePath, html, 'utf8');
 }
 
-if (fs.existsSync(TEST_AI)) {
-  patchTestPageHtml(TEST_AI);
-}
-if (fs.existsSync(TEST_QUESTIONS)) {
-  patchTestPageHtml(TEST_QUESTIONS);
-}
+if (fs.existsSync(TEST_AI)) patchTestPageHtml(TEST_AI);
+if (fs.existsSync(TEST_QUESTIONS)) patchTestPageHtml(TEST_QUESTIONS);
 
 console.log(`Reino Mágico do Saber — versão gerada: ${version}`);
 console.log(`Atualização (Portugal): ${updatedAtPortugal}`);
-console.log(`Ficheiros: version.json, changelog.json, meta app-build em index.html, sw.js`);
+console.log('Ficheiros: version.json, changelog.json, index.html, sw.js (precache sincronizado)');

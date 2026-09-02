@@ -197,6 +197,41 @@ function validateAdminAuth(event) {
   return { ok: false, status: 401, error: 'Utilizador ou palavra-passe incorretos.' };
 }
 
+function validateGameClient(event) {
+  if (process.env.GENERATE_ALLOW_PUBLIC === 'true') return { ok: true };
+  const headers = event.headers || {};
+  if (headers['x-reino-client'] === 'reino-magico-game') return { ok: true };
+
+  const allowedOrigins = new Set();
+  const siteCandidates = [
+    process.env.URL,
+    process.env.DEPLOY_PRIME_URL,
+    process.env.DEPLOY_URL,
+    process.env.SITE_URL,
+  ].filter(Boolean);
+  for (const site of siteCandidates) {
+    try { allowedOrigins.add(new URL(site).origin); } catch { /* ignore */ }
+  }
+  const host = headers.host || headers['x-forwarded-host'];
+  if (host) {
+    allowedOrigins.add(`https://${host}`);
+    allowedOrigins.add(`http://${host}`);
+  }
+
+  for (const raw of [headers.origin, headers.referer]) {
+    if (!raw) continue;
+    try {
+      if (allowedOrigins.has(new URL(raw).origin)) return { ok: true };
+    } catch { /* ignore */ }
+  }
+
+  return {
+    ok: false,
+    status: 403,
+    error: 'Pedido não autorizado. Usa a app do jogo ou define GENERATE_ALLOW_PUBLIC=true em desenvolvimento.',
+  };
+}
+
 function validateAdminAuthRequest(request) {
   const expectedUser = process.env.REPORTS_ADMIN_USER;
   const expectedPass = process.env.REPORTS_ADMIN_PASS;
@@ -246,6 +281,7 @@ module.exports = {
   buildReport,
   validateReportPayload,
   validateAdminAuth,
+  validateGameClient,
   validateAdminAuthRequest,
   getClientKeyFromRequest,
   jsonResponse,

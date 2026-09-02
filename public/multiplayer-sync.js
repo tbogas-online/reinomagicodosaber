@@ -203,7 +203,7 @@
   }
 
   async function updateGameState(gameState) {
-    if (!roomId) return;
+    if (!roomId || !isHost) return;
     lastGameStateJson = JSON.stringify(gameState);
     await updateRoom({ game_state: gameState, status: gameState?.status || 'playing' });
   }
@@ -291,8 +291,11 @@
     if (!roomId) return;
     await setConnected(true);
     try {
-      const touch = await touchRoomActivity();
-      if (touch.expired) {
+      const { data: expired, error } = await client.rpc('expire_room_if_inactive', {
+        p_room_id: roomId,
+      });
+      if (error) throw error;
+      if (expired) {
         await notifyRoomExpired();
         return;
       }

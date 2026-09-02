@@ -202,6 +202,31 @@ async function saveReport(report, event) {
   return report;
 }
 
+function isValidDateFilter(value) {
+  if (!value || typeof value !== 'string') return false;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const d = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
+
+function reportDayKey(item) {
+  return item?.receivedAt ? item.receivedAt.slice(0, 10) : null;
+}
+
+function resolveCustomDateRange(dateFrom, dateTo, byDay = {}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const sortedDays = Object.keys(byDay).sort();
+  const earliest = sortedDays[0] || today;
+  let from = dateFrom || earliest;
+  let to = dateTo || today;
+  if (from > to) {
+    const swap = from;
+    from = to;
+    to = swap;
+  }
+  return { from, to };
+}
+
 function filterIndexItems(items, filters = {}) {
   let filtered = items;
   if (filters.issueType) filtered = filtered.filter((i) => i.issueType === filters.issueType);
@@ -214,6 +239,18 @@ function filterIndexItems(items, filters = {}) {
   if (filters.category) {
     const needle = String(filters.category).toLowerCase();
     filtered = filtered.filter((i) => String(i.categoryName || '').toLowerCase().includes(needle));
+  }
+  if (filters.dateFrom && isValidDateFilter(filters.dateFrom)) {
+    filtered = filtered.filter((i) => {
+      const day = reportDayKey(i);
+      return day && day >= filters.dateFrom;
+    });
+  }
+  if (filters.dateTo && isValidDateFilter(filters.dateTo)) {
+    filtered = filtered.filter((i) => {
+      const day = reportDayKey(i);
+      return day && day <= filters.dateTo;
+    });
   }
   if (filters.q) {
     const needle = String(filters.q).toLowerCase();
@@ -264,6 +301,29 @@ function buildStackedDailySeries(byDayByIssue, days = 14) {
   const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
   for (let i = days - 1; i >= 0; i -= 1) {
     const d = new Date(end.getTime() - i * 86400000);
+    const key = d.toISOString().slice(0, 10);
+    const byIssue = byDayByIssue[key] || {};
+    daily.push({ key, byIssue, count: sumByIssue(byIssue) });
+  }
+  return daily;
+}
+
+function buildDailySeriesBetween(byDay, dateFrom, dateTo) {
+  const daily = [];
+  const start = new Date(`${dateFrom}T00:00:00.000Z`);
+  const end = new Date(`${dateTo}T00:00:00.000Z`);
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
+    const key = d.toISOString().slice(0, 10);
+    daily.push({ key, count: byDay[key] || 0 });
+  }
+  return daily;
+}
+
+function buildStackedDailySeriesBetween(byDayByIssue, dateFrom, dateTo) {
+  const daily = [];
+  const start = new Date(`${dateFrom}T00:00:00.000Z`);
+  const end = new Date(`${dateTo}T00:00:00.000Z`);
+  for (let d = new Date(start); d <= end; d.setUTCDate(d.getUTCDate() + 1)) {
     const key = d.toISOString().slice(0, 10);
     const byIssue = byDayByIssue[key] || {};
     daily.push({ key, byIssue, count: sumByIssue(byIssue) });
@@ -387,6 +447,19 @@ function computeStatsFromIndex(index, scope = 'all', filters = {}) {
     '14d': buildStackedDailySeries(byDayByIssue, 14),
   };
 
+  const hasDateFilter = isValidDateFilter(filters.dateFrom) || isValidDateFilter(filters.dateTo);
+  let dateRange = null;
+  if (hasDateFilter) {
+    const range = resolveCustomDateRange(
+      isValidDateFilter(filters.dateFrom) ? filters.dateFrom : null,
+      isValidDateFilter(filters.dateTo) ? filters.dateTo : null,
+      byDay,
+    );
+    dateRange = range;
+    timelineSeries.custom = buildDailySeriesBetween(byDay, range.from, range.to);
+    timelineStacked.custom = buildStackedDailySeriesBetween(byDayByIssue, range.from, range.to);
+  }
+
   return {
     total: filteredAll.length,
     activeTotal: activeItems.length,
@@ -405,6 +478,7 @@ function computeStatsFromIndex(index, scope = 'all', filters = {}) {
     timelineSeries,
     timelineStacked,
     daily: timelineSeries['14d'],
+    dateRange,
     latestAt: activeItems[0]?.receivedAt || allItems[0]?.receivedAt || null,
   };
 }

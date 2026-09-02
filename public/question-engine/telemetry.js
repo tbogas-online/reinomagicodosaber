@@ -58,6 +58,12 @@
     }
   }
 
+  function repoAcceptedCount(bySource) {
+    return (bySource.repository?.accepted || 0)
+      + (bySource['repo-direct']?.accepted || 0)
+      + (bySource['repo-ai']?.accepted || 0);
+  }
+
   function computeSummary(events) {
     const summary = {
       total: events.length,
@@ -71,11 +77,19 @@
       byFormat: {},
       byGameMode: {},
       bySource: {},
+      byProvider: {},
+      byModel: {},
+      byAttempt: {},
       rejectionRate: 0,
       acceptanceRate: 0,
       repositoryShare: 0,
+      repoDirectShare: 0,
+      bankShare: 0,
       nonAiShare: 0,
+      aiAvgAttempts: null,
     };
+    let aiAttemptSum = 0;
+    let aiAttemptCount = 0;
     for (const ev of events) {
       if (ev.outcome === 'accepted') summary.accepted += 1;
       else if (ev.outcome === 'rejected') summary.rejected += 1;
@@ -107,16 +121,42 @@
       if (!summary.bySource[src]) summary.bySource[src] = { total: 0, accepted: 0 };
       summary.bySource[src].total += 1;
       if (ev.outcome === 'accepted') summary.bySource[src].accepted += 1;
+      if (ev.provider) {
+        if (!summary.byProvider[ev.provider]) summary.byProvider[ev.provider] = { total: 0, accepted: 0, rejected: 0 };
+        summary.byProvider[ev.provider].total += 1;
+        if (ev.outcome === 'accepted') summary.byProvider[ev.provider].accepted += 1;
+        else if (ev.outcome === 'rejected') summary.byProvider[ev.provider].rejected += 1;
+      }
+      if (ev.model) {
+        if (!summary.byModel[ev.model]) summary.byModel[ev.model] = { total: 0, accepted: 0 };
+        summary.byModel[ev.model].total += 1;
+        if (ev.outcome === 'accepted') summary.byModel[ev.model].accepted += 1;
+      }
+      if (ev.outcome === 'accepted' && ev.attempt != null) {
+        const key = String(Math.min(Math.max(Math.round(ev.attempt), 1), 10));
+        summary.byAttempt[key] = (summary.byAttempt[key] || 0) + 1;
+        if (ev.source === 'ai') {
+          aiAttemptSum += ev.attempt;
+          aiAttemptCount += 1;
+        }
+      }
     }
     const failures = summary.rejected + summary.parseErrors + summary.apiErrors;
     summary.rejectionRate = summary.total ? failures / summary.total : 0;
     summary.acceptanceRate = summary.total ? summary.accepted / summary.total : 0;
-    const repoAccepted = summary.bySource.repository?.accepted || 0;
+    const repoAccepted = repoAcceptedCount(summary.bySource);
     summary.repositoryShare = summary.accepted ? repoAccepted / summary.accepted : 0;
+    const repoDirectAccepted = (summary.bySource['repo-direct']?.accepted || 0)
+      + (summary.bySource.repository?.accepted || 0);
+    summary.repoDirectShare = repoAccepted ? repoDirectAccepted / repoAccepted : 0;
+    summary.bankShare = summary.accepted
+      ? (summary.bySource.bank?.accepted || 0) / summary.accepted
+      : 0;
     const nonAiAccepted = Object.entries(summary.bySource)
-      .filter(([key]) => key !== 'ai')
+      .filter(([key]) => key !== 'ai' && key !== 'repo-ai')
       .reduce((sum, [, bucket]) => sum + (bucket.accepted || 0), 0);
     summary.nonAiShare = summary.accepted ? nonAiAccepted / summary.accepted : 0;
+    summary.aiAvgAttempts = aiAttemptCount ? aiAttemptSum / aiAttemptCount : null;
     return summary;
   }
 

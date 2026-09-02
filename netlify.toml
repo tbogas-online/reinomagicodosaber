@@ -106,6 +106,18 @@
   to = "/.netlify/functions/report-attachment"
   status = 200
 
+[[redirects]]
+  from = "/test-ai.html"
+  to = "/index.html"
+  status = 404
+  force = true
+
+[[redirects]]
+  from = "/test-questions.html"
+  to = "/index.html"
+  status = 404
+  force = true
+
 # A versão deve refletir imediatamente cada novo deploy.
 [[headers]]
   for = "/version.json"

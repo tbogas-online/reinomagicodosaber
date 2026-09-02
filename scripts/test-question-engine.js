@@ -1651,6 +1651,20 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '10-15' },
   });
   assert('197. adivinha rejeita distractores numéricos do banco', !badMc.ok);
+
+  const { computeSummaryFromItems } = require('../netlify/functions/lib/gen-telemetry-store');
+  const telemetrySummary = computeSummaryFromItems([
+    { outcome: 'accepted', source: 'bank', attempt: 1, provider: '', model: '' },
+    { outcome: 'accepted', source: 'repo-direct', attempt: 1, provider: '', model: '' },
+    { outcome: 'accepted', source: 'repo-ai', attempt: 2, provider: 'groq', model: 'qwen/qwen3.6-27b' },
+    { outcome: 'accepted', source: 'ai', attempt: 3, provider: 'groq', model: 'qwen/qwen3.6-27b' },
+    { outcome: 'rejected', source: 'ai', attempt: 1, provider: 'openai', model: 'gpt-4o-mini', issueCodes: ['X'] },
+    { outcome: 'api_error', source: 'repo-ai', attempt: 1, provider: 'anthropic', model: 'claude-haiku', issueCodes: ['API_FAIL'] },
+  ]);
+  assert('198. telemetria bankShare', Math.round(telemetrySummary.bankShare * 100) === 25);
+  assert('199. telemetria repositoryShare', Math.round(telemetrySummary.repositoryShare * 100) === 50);
+  assert('200. telemetria byProvider groq', telemetrySummary.byProvider.groq?.accepted === 2);
+  assert('201. telemetria aiAvgAttempts', telemetrySummary.aiAvgAttempts === 3);
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

@@ -38,6 +38,8 @@ exports.handler = async (event) => {
             reporterId: params.reporterId,
             deviceType: params.deviceType,
             status: params.status,
+            dateFrom: params.dateFrom,
+            dateTo: params.dateTo,
           });
           return json(200, { ok: true, stats });
         } catch (err) {
@@ -56,6 +58,8 @@ exports.handler = async (event) => {
           reporterId: params.reporterId,
           deviceType: params.deviceType,
           status: params.status,
+          dateFrom: params.dateFrom,
+          dateTo: params.dateTo,
           q: params.q,
         }, event);
         return json(200, { ok: true, ...data });

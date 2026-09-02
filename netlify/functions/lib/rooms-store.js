@@ -154,7 +154,48 @@ function mapRoomRow(room) {
   };
 }
 
+async function supabaseRpc(functionName, body = {}) {
+  const cfg = getSupabaseAdmin();
+  if (!cfg) {
+    const err = new Error('Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).');
+    err.code = 'NOT_CONFIGURED';
+    throw err;
+  }
+
+  const response = await fetch(`${cfg.url}/rest/v1/rpc/${functionName}`, {
+    method: 'POST',
+    headers: {
+      apikey: cfg.key,
+      Authorization: `Bearer ${cfg.key}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    const err = new Error(text || `Supabase RPC HTTP ${response.status}`);
+    err.status = response.status;
+    throw err;
+  }
+
+  const text = await response.text();
+  if (!text) return null;
+  return JSON.parse(text);
+}
+
+async function expireInactiveRooms() {
+  try {
+    const count = await supabaseRpc('expire_inactive_rooms');
+    return Number(count) || 0;
+  } catch (err) {
+    console.warn('[rooms-store] expire_inactive_rooms failed:', err.message || err);
+    return 0;
+  }
+}
+
 async function listOpenRooms() {
+  await expireInactiveRooms();
   const rooms = await supabaseRequest(
     '/rooms?status=in.(lobby,playing)'
     + '&select=id,code,status,created_at,last_activity_at,updated_at,host_player_id,'
@@ -165,6 +206,7 @@ async function listOpenRooms() {
 }
 
 async function getRoomStats() {
+  const expiredNow = await expireInactiveRooms();
   const since = new Date();
   since.setDate(since.getDate() - 14);
   const sinceIso = since.toISOString();
@@ -209,6 +251,7 @@ async function getRoomStats() {
     openRooms: open.length,
     playingRooms: playing,
     lobbyRooms: lobby,
+    expiredNow,
     totalRooms,
     totalGames,
     totalGamesMp,
@@ -242,6 +285,7 @@ async function closeRooms(roomIds) {
 
 module.exports = {
   getSupabaseAdmin,
+  expireInactiveRooms,
   listOpenRooms,
   getRoomStats,
   closeRoom,
