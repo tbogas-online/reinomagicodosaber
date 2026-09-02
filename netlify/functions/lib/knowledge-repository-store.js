@@ -1,4 +1,5 @@
 const { getSupabaseAdmin } = require('./rooms-store');
+const { buildDedupePlan } = require('./knowledge-dedupe');
 
 const KNOWLEDGE_SELECT = [
   'knowledge_id',
@@ -173,8 +174,81 @@ async function disableKnowledgeRecords(knowledgeIds) {
   return { ok: true, disabled, failed, knowledgeIds: unique };
 }
 
+const DEDUPE_SELECT = 'knowledge_id,category_n,topic,fact,answer,source,source_id,is_active,priority_pt';
+
+async function fetchActiveKnowledgeRecords(categoryN = 20) {
+  const pageSize = 1000;
+  let offset = 0;
+  const all = [];
+
+  while (true) {
+    const params = new URLSearchParams();
+    params.set('select', DEDUPE_SELECT);
+    params.set('category_n', `eq.${categoryN}`);
+    params.set('is_active', 'eq.true');
+    params.set('order', 'knowledge_id.asc');
+    params.set('limit', String(pageSize));
+    params.set('offset', String(offset));
+    const rows = await supabaseRequest(`/knowledge_records?${params.toString()}`);
+    const batch = Array.isArray(rows) ? rows : [];
+    all.push(...batch);
+    if (batch.length < pageSize) break;
+    offset += pageSize;
+  }
+
+  return all;
+}
+
+async function auditKnowledgeDuplicates(options = {}) {
+  const categoryN = Number(options.categoryN) || 20;
+  const records = await fetchActiveKnowledgeRecords(categoryN);
+  const plan = buildDedupePlan(records, {
+    adivinhas: !!options.adivinhas,
+    curiosidades: options.curiosidades !== false,
+  });
+
+  return {
+    ok: true,
+    categoryN,
+    analyzed: records.length,
+    adivinhasActive: records.filter((r) => r.topic === 'adivinha tradicional').length,
+    curiosidadesActive: records.filter((r) => r.topic === 'curiosidade surpreendente').length,
+    ...plan,
+  };
+}
+
+async function applyKnowledgeDedupe(options = {}) {
+  const audit = await auditKnowledgeDuplicates(options);
+  const ids = audit.toDisable.map((e) => e.knowledge_id);
+
+  if (!ids.length) {
+    return {
+      ok: true,
+      applied: false,
+      message: 'Nenhum duplicado a desactivar.',
+      analyzed: audit.analyzed,
+      stats: audit.stats,
+      toDisable: [],
+    };
+  }
+
+  const result = await disableKnowledgeRecords(ids);
+  return {
+    ok: true,
+    applied: true,
+    message: `Desactivados ${result.disabled} duplicado(s).`,
+    analyzed: audit.analyzed,
+    stats: audit.stats,
+    disabled: result.disabled,
+    failed: result.failed,
+    toDisable: audit.toDisable,
+  };
+}
+
 module.exports = {
   searchKnowledgeRecords,
   disableKnowledgeRecord,
   disableKnowledgeRecords,
+  auditKnowledgeDuplicates,
+  applyKnowledgeDedupe,
 };

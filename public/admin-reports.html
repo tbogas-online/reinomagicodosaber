@@ -164,6 +164,24 @@
       color: var(--muted);
       font-size: 12px;
     }
+    .knowledge-dedupe-preview {
+      margin-top: 12px;
+      font-size: 13px;
+      overflow-x: auto;
+    }
+    .knowledge-dedupe-options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 20px;
+      margin-bottom: 10px;
+      font-size: 13px;
+    }
+    .knowledge-dedupe-options label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+    }
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
     th, td { border-bottom: 1px solid var(--border); padding: 8px 6px; text-align: left; vertical-align: top; }
     th { color: var(--muted); font-weight: 600; }
@@ -1484,6 +1502,21 @@
 
           <h3 style="margin:16px 0 8px; font-size:0.95rem;">Próximos na fila</h3>
           <div id="knowledgeQueuePreview" class="knowledge-queue-preview"></div>
+        </div>
+
+        <div class="card" id="knowledgeDedupeSection">
+          <h2 class="charts-title" style="margin:0 0 6px;">Duplicados (categoria 20)</h2>
+          <p class="sub" style="margin-top:0;">Valida registos activos e desactiva duplicados — mantém o de maior prioridade (MemóriaMedia &gt; manual &gt; web).</p>
+          <div class="knowledge-dedupe-options">
+            <label><input type="checkbox" id="knowledgeDedupeCuriosidades" checked> Curiosidades</label>
+            <label><input type="checkbox" id="knowledgeDedupeAdivinhas"> Adivinhas (1 por resposta)</label>
+          </div>
+          <div class="bulk-bar" style="flex-wrap:wrap; gap:8px;">
+            <button type="button" class="secondary" id="knowledgeDedupeAuditBtn" title="Analisa duplicados sem alterar o repositório">🔍 Validar duplicados</button>
+            <button type="button" class="danger" id="knowledgeDedupeApplyBtn" title="Desactiva os duplicados detectados">🗑 Desactivar duplicados</button>
+          </div>
+          <p class="status" id="knowledgeDedupeStatus"></p>
+          <div id="knowledgeDedupePreview" class="knowledge-dedupe-preview"></div>
         </div>
 
         <div class="card" id="knowledgeBrowseSection">
@@ -4591,6 +4624,7 @@
 
     let knowledgeLoading = false;
     let lastKnowledgePayload = null;
+    let lastKnowledgeDedupePlan = null;
     let lastKnowledgeSearchRows = [];
     const selectedKnowledgeIds = new Set();
     let knowledgeSearchLoading = false;
@@ -4907,6 +4941,130 @@
           const label = `${catName(row.category_n)} · ${row.topic || '—'}`;
           return `<span class="pill" title="${esc(label)}">${esc(String(row.category_n))} ${esc(row.topic || '—')} <strong>${row.count}</strong></span>`;
         }).join('');
+      }
+    }
+
+    function getKnowledgeDedupeOptions() {
+      return {
+        categoryN: 20,
+        curiosidades: document.getElementById('knowledgeDedupeCuriosidades')?.checked !== false,
+        adivinhas: document.getElementById('knowledgeDedupeAdivinhas')?.checked === true,
+      };
+    }
+
+    function renderKnowledgeDedupePreview(data) {
+      const el = document.getElementById('knowledgeDedupePreview');
+      if (!el) return;
+      const items = data?.toDisable || [];
+      if (!items.length) {
+        el.innerHTML = '<p class="sub" style="margin:0;">Sem duplicados detectados com os filtros actuais.</p>';
+        return;
+      }
+      const rows = items.slice(0, 40).map((item) => `
+        <tr>
+          <td><code>${esc(item.knowledge_id)}</code></td>
+          <td>${esc(item.reason || '')}</td>
+          <td>${esc(item.topic || '')}</td>
+          <td>${esc(item.source || '')}</td>
+          <td>${esc(item.answer || '')}</td>
+          <td><code>${esc(item.keeper || '')}</code></td>
+        </tr>
+      `).join('');
+      const more = items.length > 40 ? `<p class="sub">… +${items.length - 40} registo(s)</p>` : '';
+      el.innerHTML = `
+        <table>
+          <thead>
+            <tr>
+              <th>Desactivar</th>
+              <th>Motivo</th>
+              <th>Tópico</th>
+              <th>Fonte</th>
+              <th>Resposta</th>
+              <th>Manter</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        ${more}
+      `;
+    }
+
+    async function auditKnowledgeDuplicates() {
+      const statusEl = document.getElementById('knowledgeDedupeStatus');
+      const opts = getKnowledgeDedupeOptions();
+      if (!opts.curiosidades && !opts.adivinhas) {
+        if (statusEl) {
+          statusEl.textContent = 'Selecciona pelo menos Curiosidades ou Adivinhas.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      if (statusEl) {
+        statusEl.textContent = 'A validar duplicados…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/knowledge-import-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'dedupe-audit', ...opts }),
+        });
+        lastKnowledgeDedupePlan = data;
+        renderKnowledgeDedupePreview(data);
+        const stats = data.stats || {};
+        const msg = stats.planned
+          ? `${stats.planned} duplicado(s): ${stats.curiosidades || 0} curiosidades, ${stats.adivinhas || 0} adivinhas (${data.analyzed || '?'} activos analisados).`
+          : `Nenhum duplicado (${data.analyzed || '?'} activos analisados).`;
+        if (statusEl) {
+          statusEl.textContent = msg;
+          statusEl.className = stats.planned ? 'status' : 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao validar duplicados.';
+          statusEl.className = 'status err';
+        }
+        if (String(err.message || '').includes('incorretos')) logout();
+      }
+    }
+
+    async function applyKnowledgeDedupe() {
+      const statusEl = document.getElementById('knowledgeDedupeStatus');
+      const opts = getKnowledgeDedupeOptions();
+      if (!opts.curiosidades && !opts.adivinhas) {
+        if (statusEl) {
+          statusEl.textContent = 'Selecciona pelo menos Curiosidades ou Adivinhas.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      const planned = lastKnowledgeDedupePlan?.stats?.planned;
+      const confirmMsg = planned
+        ? `Desactivar ${planned} registo(s) duplicado(s) no repositório? Mantém-se o de maior prioridade em cada grupo.`
+        : 'Executar desactivação de duplicados (revalida no servidor antes de aplicar)?';
+      const ok = await confirmAction(confirmMsg, { okLabel: 'Desactivar', danger: true });
+      if (!ok) return;
+      if (statusEl) {
+        statusEl.textContent = 'A desactivar duplicados…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/knowledge-import-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'dedupe-apply', ...opts }),
+        });
+        lastKnowledgeDedupePlan = data;
+        renderKnowledgeDedupePreview(data);
+        if (statusEl) {
+          statusEl.textContent = data.message || `Desactivados ${data.disabled || 0} registo(s).`;
+          statusEl.className = 'status ok';
+        }
+        await loadKnowledgeDashboard({ quiet: true });
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao desactivar duplicados.';
+          statusEl.className = 'status err';
+        }
+        if (String(err.message || '').includes('incorretos')) logout();
       }
     }
 
@@ -5702,6 +5860,8 @@
     document.getElementById('knowledgeImportBtn')?.addEventListener('click', () => runKnowledgeImport());
     document.getElementById('knowledgeForceImportBtn')?.addEventListener('click', () => runKnowledgeImport({ force: true }));
     document.getElementById('knowledgeResetBtn')?.addEventListener('click', () => resetKnowledgeOverrides());
+    document.getElementById('knowledgeDedupeAuditBtn')?.addEventListener('click', () => auditKnowledgeDuplicates());
+    document.getElementById('knowledgeDedupeApplyBtn')?.addEventListener('click', () => applyKnowledgeDedupe());
     document.getElementById('knowledgeSearchBtn')?.addEventListener('click', () => searchKnowledgeRecords());
     document.getElementById('knowledgeListCategoryBtn')?.addEventListener('click', () => listKnowledgeCategory());
     document.getElementById('knowledgeSearchQuery')?.addEventListener('keydown', (e) => {

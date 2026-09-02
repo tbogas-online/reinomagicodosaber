@@ -6,6 +6,8 @@ const { getImportDashboard, runDailyImport, resetImportOverrides, syncImportQueu
 const {
   searchKnowledgeRecords,
   disableKnowledgeRecords,
+  auditKnowledgeDuplicates,
+  applyKnowledgeDedupe,
 } = require('./lib/knowledge-repository-store');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
 
@@ -112,6 +114,40 @@ exports.handler = async (event) => {
         }
       }
 
+      if (body.action === 'dedupe-audit') {
+        if (!getSupabaseAdmin()) {
+          return json(503, { error: 'Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).' });
+        }
+        try {
+          const result = await auditKnowledgeDuplicates({
+            categoryN: body.categoryN,
+            adivinhas: !!body.adivinhas,
+            curiosidades: body.curiosidades !== false,
+          });
+          return json(200, result);
+        } catch (err) {
+          console.error('[knowledge-import-admin] dedupe-audit failed:', err);
+          return json(503, { error: err.message || 'Não foi possível auditar duplicados.' });
+        }
+      }
+
+      if (body.action === 'dedupe-apply') {
+        if (!getSupabaseAdmin()) {
+          return json(503, { error: 'Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).' });
+        }
+        try {
+          const result = await applyKnowledgeDedupe({
+            categoryN: body.categoryN,
+            adivinhas: !!body.adivinhas,
+            curiosidades: body.curiosidades !== false,
+          });
+          return json(200, result);
+        } catch (err) {
+          console.error('[knowledge-import-admin] dedupe-apply failed:', err);
+          return json(503, { error: err.message || 'Não foi possível desactivar duplicados.' });
+        }
+      }
+
       if (body.action === 'disable') {
         if (!getSupabaseAdmin()) {
           return json(503, { error: 'Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).' });
@@ -133,7 +169,7 @@ exports.handler = async (event) => {
         }
       }
 
-      return json(400, { error: 'Acção desconhecida. Usa action: "run", "dry-run", "sync-seed", "reset-overrides", "search" ou "disable".' });
+      return json(400, { error: 'Acção desconhecida. Usa action: "run", "dry-run", "sync-seed", "reset-overrides", "search", "disable", "dedupe-audit" ou "dedupe-apply".' });
     }
 
     return json(405, { error: 'Método não permitido.' });

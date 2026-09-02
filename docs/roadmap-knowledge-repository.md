@@ -203,7 +203,7 @@ Cada pergunta gerada (depois da IA + validação):
 - [x] Deduplicação por `answer` + similaridade de `fact` (Jaccard)
 - [x] Meta: **≥ 200 adivinhas** verificadas para MVP *(410 activas — Ditos.pt, MemóriaMedia, web)*
 - [x] Auditoria de duplicados: `npm run audit:kb-duplicates`
-- [x] Deduplicação de adivinhas aplicada (1 activa por resposta normalizada; `npm run dedupe:kb:adivinhas:apply`)
+- [x] Deduplicação no admin: validar e desactivar duplicados (separador Repositório)
 
 ### KR-1.2 Validação de import
 

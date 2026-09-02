@@ -1,7 +1,5 @@
 'use strict';
 
-const { normalizeText } = require('./memoriamedia-adivinhas');
-
 const JACCARD_THRESHOLD = 0.72;
 
 const SOURCE_RANK = {
@@ -14,6 +12,16 @@ const SOURCE_RANK = {
   'Quero Bolsa': 40,
   sample: 10,
 };
+
+function normalizeText(s) {
+  return String(s || '')
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
 
 function tokenSet(s) {
   return new Set(normalizeText(s).split(' ').filter((w) => w.length > 2));
@@ -97,6 +105,8 @@ function planFromGroups(groups, reason) {
         reason,
         topic: row.topic,
         source: row.source,
+        answer: row.answer,
+        fact: String(row.fact || '').slice(0, 120),
       });
     }
   }
@@ -117,20 +127,13 @@ function buildDedupePlan(records, { adivinhas = false, curiosidades = true } = {
         'exact_fact',
       ),
     );
-    const exactFacts = new Set(
-      curiosidadeRows.map((r) => normalizeText(r.fact)).filter(Boolean),
-    );
     const forJaccard = curiosidadeRows.filter((r) => {
       const key = normalizeText(r.fact);
       if (!key) return false;
-      const dupExact = curiosidadeRows.filter((x) => normalizeText(x.fact) === key);
-      return dupExact.length <= 1;
+      return curiosidadeRows.filter((x) => normalizeText(x.fact) === key).length <= 1;
     });
     planned.push(
-      ...planFromGroups(
-        buildJaccardClusters(forJaccard, 'fact'),
-        'similar_fact',
-      ),
+      ...planFromGroups(buildJaccardClusters(forJaccard, 'fact'), 'similar_fact'),
     );
   }
 
@@ -141,14 +144,10 @@ function buildDedupePlan(records, { adivinhas = false, curiosidades = true } = {
         'exact_answer',
       ),
     );
-    const exactAnswers = new Set(
-      adivinhaRows.map((r) => normalizeText(r.answer)).filter(Boolean),
-    );
     const forJaccard = adivinhaRows.filter((r) => {
       const key = normalizeText(r.answer);
       if (!key) return false;
-      const dupExact = adivinhaRows.filter((x) => normalizeText(x.answer) === key);
-      return dupExact.length <= 1;
+      return adivinhaRows.filter((x) => normalizeText(x.answer) === key).length <= 1;
     });
     const byAnswer = new Map();
     for (const row of forJaccard) {
@@ -160,7 +159,6 @@ function buildDedupePlan(records, { adivinhas = false, curiosidades = true } = {
       if (items.length < 2) continue;
       planned.push(...planFromGroups(buildJaccardClusters(items, 'fact'), 'similar_answer_fact'));
     }
-    void exactAnswers;
   }
 
   const seen = new Set();
@@ -182,61 +180,7 @@ function buildDedupePlan(records, { adivinhas = false, curiosidades = true } = {
   };
 }
 
-function isDuplicateOfExisting(record, existingRecords, { topic } = {}) {
-  const rec = record;
-  const topicFilter = topic || rec.topic;
-  const peers = existingRecords.filter((r) => r.is_active !== false && r.topic === topicFilter);
-
-  if (topicFilter === 'curiosidade surpreendente') {
-    const fact = normalizeText(rec.fact);
-    for (const row of peers) {
-      if (normalizeText(row.fact) === fact) return { duplicate: true, reason: 'exact_fact', of: row.knowledge_id };
-      if (jaccard(row.fact, rec.fact) >= JACCARD_THRESHOLD) {
-        return { duplicate: true, reason: 'similar_fact', of: row.knowledge_id };
-      }
-    }
-    return { duplicate: false };
-  }
-
-  if (topicFilter === 'adivinha tradicional') {
-    const answer = normalizeText(rec.answer);
-    for (const row of peers) {
-      if (normalizeText(row.answer) !== answer) continue;
-      if (normalizeText(row.fact) === normalizeText(rec.fact)) {
-        return { duplicate: true, reason: 'exact_answer_fact', of: row.knowledge_id };
-      }
-      if (jaccard(row.fact, rec.fact) >= JACCARD_THRESHOLD) {
-        return { duplicate: true, reason: 'similar_answer_fact', of: row.knowledge_id };
-      }
-    }
-  }
-
-  return { duplicate: false };
-}
-
-function filterNewRecords(records, existingRecords) {
-  const accepted = [];
-  const skipped = [];
-  const pool = [...existingRecords];
-
-  for (const record of records) {
-    const dup = isDuplicateOfExisting(record, pool, { topic: record.topic });
-    if (dup.duplicate) {
-      skipped.push({ record, ...dup });
-      continue;
-    }
-    accepted.push(record);
-    pool.push({ ...record, is_active: true });
-  }
-
-  return { accepted, skipped };
-}
-
 module.exports = {
   JACCARD_THRESHOLD,
-  jaccard,
-  scoreRecord,
   buildDedupePlan,
-  isDuplicateOfExisting,
-  filterNewRecords,
 };
