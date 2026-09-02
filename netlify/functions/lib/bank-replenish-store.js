@@ -1,7 +1,7 @@
 'use strict';
 
 const { getSupabaseAdmin } = require('./rooms-store');
-const { replenishBankFromKnowledge } = require('../../scripts/lib/bank-from-knowledge');
+const { replenishBankFromKnowledge } = require('./bank-from-knowledge');
 
 async function replenishCategory20Bank({ ageBand, limit = 50, dryRun = false } = {}) {
   const cfg = getSupabaseAdmin();
