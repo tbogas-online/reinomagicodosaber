@@ -215,12 +215,19 @@ function validatePortugueseText(blob) {
   return issues;
 }
 
-  function collectPtPtIssues(q, a, options, ageBandKey) {
+  function collectPtPtIssues(q, a, options, ageBandKey, clues = []) {
     const blob = [q, a, ...options].join(' ');
+    const contentSafety = global.QuestionEngineContentSafety || global.QuestionEngineFamilySafeWords;
+    const safetyIssues = contentSafety?.collectContentSafetyIssues
+      ? contentSafety.collectContentSafetyIssues(q, a, options, clues).map((item) => mkIssue(item.code, ISSUE_LAYER.ptPt, item.message))
+      : (contentSafety?.collectFamilySafeIssues
+        ? contentSafety.collectFamilySafeIssues(q, a, options, clues).map((item) => mkIssue(item.code, ISSUE_LAYER.ptPt, item.message))
+        : []);
     return [
       ...validatePortugueseText(blob),
       ...validateCountryNamesPt(blob),
       ...validatePortugueseNotEnglish([q, a, ...options], ageBandKey),
+      ...safetyIssues,
     ];
   }
 

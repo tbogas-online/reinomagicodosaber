@@ -6,6 +6,7 @@
 
   const Issues = global.QuestionEngineIssues;
   const Pool = global.QuestionEngineAdivinhaAnswerPool;
+  const ContentSafety = global.QuestionEngineContentSafety || global.QuestionEngineFamilySafeWords;
   if (!Issues) {
     throw new Error('adivinha-distractors: carrega issue-codes.js antes deste módulo');
   }
@@ -31,6 +32,7 @@
     const t = String(text || '').trim();
     if (!t || t.length > 48) return false;
     if (BAD_OPTION_PATTERN.test(t)) return false;
+    if (ContentSafety?.isOffensiveWord?.(t) || ContentSafety?.containsOffensiveLanguage?.(t)) return false;
     const words = t.split(/\s+/).filter(Boolean);
     if (words.length > 6) return false;
     if (words.length >= 4 && /,/.test(t)) return false;

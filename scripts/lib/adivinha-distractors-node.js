@@ -1,6 +1,7 @@
 'use strict';
 
 const pool = require('./adivinha-answer-pool-data');
+const { isOffensiveWord, containsOffensiveLanguage } = require('./family-safe-words-node');
 
 const BAD_OPTION_PATTERN = /\d|%|cerca de|aproximadamente|vértebra|vertebra|percentagem|milhões|milhoes|bilhões|bilhoes|graus celsius/i;
 
@@ -18,6 +19,7 @@ function isPlausibleAdivinhaAnswer(text) {
   const t = String(text || '').trim();
   if (!t || t.length > 48) return false;
   if (BAD_OPTION_PATTERN.test(t)) return false;
+  if (isOffensiveWord(t) || containsOffensiveLanguage(t)) return false;
   const words = t.split(/\s+/).filter(Boolean);
   if (words.length > 6) return false;
   if (words.length >= 4 && /,/.test(t)) return false;

@@ -164,7 +164,7 @@
     layers.category = layerScore(LAYER_WEIGHTS.category, catIssues);
     issues.push(...catIssues);
 
-    const ptIssues = collectPtPtIssues(q, a, options, ageBandKey);
+    const ptIssues = collectPtPtIssues(q, a, options, ageBandKey, Array.isArray(parsed?.clues) ? parsed.clues : []);
     layers.ptPt = layerScore(LAYER_WEIGHTS.ptPt, ptIssues);
     issues.push(...ptIssues);
 

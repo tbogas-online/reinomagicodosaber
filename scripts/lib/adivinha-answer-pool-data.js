@@ -36,7 +36,6 @@ module.exports = [
   "Corda de carro",
   "Corvo",
   "Cravalho",
-  "Cú",
   "Escuro",
   "Fogo",
   "Foguete",

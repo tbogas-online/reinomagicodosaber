@@ -4,6 +4,8 @@
 const fs = require('fs');
 const path = require('path');
 
+const { isOffensiveWord, containsOffensiveLanguage } = require('./lib/family-safe-words-node');
+
 const EXPORT_PATH = path.join(__dirname, '..', 'data', 'exports', 'memoriamedia-adivinhas.json');
 const OUT_PUBLIC = path.join(__dirname, '..', 'public', 'question-engine', 'adivinha-answer-pool.js');
 const OUT_LIB = path.join(__dirname, '..', 'scripts', 'lib', 'adivinha-answer-pool-data.js');
@@ -18,6 +20,7 @@ function isPlausibleAdivinhaAnswer(text) {
   const t = String(text || '').trim();
   if (!t || t.length > 48) return false;
   if (BAD_PATTERN.test(t)) return false;
+  if (isOffensiveWord(t) || containsOffensiveLanguage(t)) return false;
   const words = t.split(/\s+/).filter(Boolean);
   if (words.length > 6) return false;
   if (words.length >= 4 && /,/.test(t)) return false;

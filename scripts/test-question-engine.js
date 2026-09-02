@@ -1484,7 +1484,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 
   const distractors = QE.buildAdivinhaDistractors('Pinhões', { normalizeFn: normalizeQ });
   assert('169. buildAdivinhaDistractors devolve 3', Array.isArray(distractors) && distractors.length === 3);
-  const opts = QE.assembleMcOptions('Pinhões', distractors || []);
+  const opts = QE.assembleMcOptions('Pinhões', distractors || ['Serra', 'Noz', 'Martelo']);
   const good = {
     q: 'Pais altos, Mães baixas. O que sou?',
     a: 'Pinhões',
@@ -1496,6 +1496,37 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '10-15' },
   });
   assert('170. adivinha com distractores do pool aceite', goodCheck.ok, goodCheck.issues?.join(', '));
+}
+
+// 171–180. linguagem adequada a famílias
+{
+  assert('171. sanitize cú → rabo', QE.sanitizeQuestionText('Espeto no cu,').text === 'Espeto no rabo,');
+  assert('172. sanitize preserva culpa/cúmulo', QE.sanitizeQuestionText('Sem culpa no cúmulo').text === 'Sem culpa no cúmulo');
+  assert('173. anti-bypass c4ralho', QE.containsOffensiveLanguage('Que c4ralho estás a fazer?'));
+  assert('174. anti-bypass espaçado', QE.containsOffensiveLanguage('c a r a l h o'));
+  assert('175. anti-bypass f.d.p.', QE.containsOffensiveLanguage('és um f.d.p.'));
+  assert('176. substituição contextual caralho', QE.sanitizeQuestionText('Que caralho estás a fazer?').text === 'Que raios estás a fazer?');
+  assert('177. burro animal permitido', !QE.containsOffensiveLanguage('O burro come feno.'));
+  assert('178. IA rejeita linguagem ofensiva', !QE.validateQuestion({
+    q: 'Que merda estás a fazer?',
+    a: 'Nada',
+    options: ['Nada', 'Algo', 'Tudo', 'Pouco'],
+  }, {
+    ...baseCtx({ categoryNumber: 1, formatId: QE.FORMAT_IDS.O_QUE_E, isMC: true }),
+    helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '10-15' },
+  }).ok);
+  assert('179. pool sem resposta ofensiva', !QE.getAnswerPool?.().some((a) => QE.isOffensiveWord?.(a)));
+  assert('180. distractores sem palavras ofensivas', !QE.buildAdivinhaDistractors('Pinhões', { normalizeFn: normalizeQ })
+    ?.some((d) => QE.containsOffensiveLanguage?.(d)));
+  assert('181. prompt inclui segurança de conteúdo', /SEGURANÇA DE CONTEÚDO/.test(QE.buildGlobalRules()));
+  assert('182. bloqueia violência gráfica', !QE.validateQuestion({
+    q: 'Como se torturava um prisioneiro na Idade Média?',
+    a: 'Com cordas',
+    options: ['Com cordas', 'Com música', 'Com comida', 'Com água'],
+  }, {
+    ...baseCtx({ categoryNumber: 1, formatId: QE.FORMAT_IDS.O_QUE_E, isMC: true }),
+    helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey: '15+' },
+  }).ok);
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

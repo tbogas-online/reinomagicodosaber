@@ -52,6 +52,9 @@
   }
 
   function buildGlobalRules() {
+    const contentSafetyRules = global.QuestionEngineContentSafety?.buildContentSafetyPromptRules
+      ? global.QuestionEngineContentSafety.buildContentSafetyPromptRules()
+      : '';
     return `REGRAS GLOBAIS (obrigatórias):
 - Português de Portugal (PT-PT), natural e fácil de ler em voz alta — como se fosse dita num jogo de tabuleiro.
 - Uma pergunta = uma coisa. Uma resposta claramente correcta (sem várias respostas defensáveis).
@@ -68,7 +71,7 @@
   MAU: "Que país tem mais fronteiras terrestres, empatado com a Rússia?"
 - Equilíbrio Portugal/mundo: inclui cultura portuguesa quando adequado, mas também Europa, África, Ásia, América e Oceânia.
 - Evita estereótipos culturais ("os japoneses são…") — prefere tradições ou factos específicos.
-- Não repitas o mesmo conhecimento de perguntas anteriores (mesmo com palavras diferentes).
+${contentSafetyRules ? `\n${contentSafetyRules}\n` : ''}- Não repitas o mesmo conhecimento de perguntas anteriores (mesmo com palavras diferentes).
 - Resposta curta e inequívoca no campo "a". Não reveles a resposta na pergunta nem nas opções erradas.
 - Em matemática: calcula a resposta antes de devolver — o resultado tem de ser verificável.
 - ADIVINHA e CURIOSIDADE só na categoria Adivinhas e Curiosidades — não as uses noutras categorias.

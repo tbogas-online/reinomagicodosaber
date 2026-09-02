@@ -3435,8 +3435,10 @@
 <script src="question-engine/known-facts.js?v=20260901-160409"></script>
 <script src="question-engine/factual-verify.js?v=20260901-160409"></script>
 <script src="question-engine/adivinha-verify.js?v=20260901-160000"></script>
-<script src="question-engine/adivinha-answer-pool.js?v=20260902-082600"></script>
-<script src="question-engine/adivinha-distractors.js?v=20260902-082600"></script>
+<script src="question-engine/adivinha-answer-pool.js?v=20260902-090500"></script>
+<script src="question-engine/content-safety-data.js?v=20260902-090500"></script>
+<script src="question-engine/content-safety.js?v=20260902-090500"></script>
+<script src="question-engine/adivinha-distractors.js?v=20260902-090500"></script>
 <script src="question-engine/difficulty-estimate.js?v=20260901-163000"></script>
 <script src="question-engine/pt-pt-validators.js?v=20260901-180000"></script>
 <script src="question-engine/format-validators.js?v=20260901-145000"></script>
@@ -4037,8 +4039,17 @@
     return String(str).replace(/^(\s*(?:<i>\s*)?)([a-zà-ÿ])/, (m, prefix, letter) => prefix + letter.toLocaleUpperCase('pt-PT'));
   }
 
+  function sanitizeGameText(str){
+    const engine = QE();
+    const raw = String(str || '');
+    if (engine.sanitizeQuestionText) {
+      return engine.sanitizeQuestionText(raw).text;
+    }
+    return engine.sanitizeFamilySafeText ? engine.sanitizeFamilySafeText(raw) : raw;
+  }
+
   function formatGameText(str){
-    return ensureLeadingCapital(fixAllCaps(sanitizeItalics(str)));
+    return ensureLeadingCapital(fixAllCaps(sanitizeItalics(sanitizeGameText(str))));
   }
 
   function hashQuestionKey(text){
@@ -4052,10 +4063,13 @@
   }
 
   function finalizeQuestion(item){
-    const out = { ...item };
+    const engine = QE();
+    const base = engine.sanitizeFamilySafeParsed ? engine.sanitizeFamilySafeParsed({ ...item }) : { ...item };
+    const out = { ...base };
     if(out.q) out.q = formatGameText(out.q);
     if(out.a) out.a = formatGameText(out.a);
     if(Array.isArray(out.options)) out.options = out.options.map(formatGameText);
+    if(Array.isArray(out.clues)) out.clues = out.clues.map(formatGameText);
     const catN = lastCategory?.n || 0;
     const age = selectedAgeBand || '';
     out.id = out.id || `rmq-${catN}-${age}-${hashQuestionKey(stripTags(out.q) + '|' + stripTags(out.a))}`;

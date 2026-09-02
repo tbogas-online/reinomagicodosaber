@@ -12,6 +12,7 @@
   const KnownFacts = global.QuestionEngineKnownFacts;
   const FactualVerify = global.QuestionEngineFactualVerify;
   const AdivinhaVerify = global.QuestionEngineAdivinhaVerify;
+  const ContentSafety = global.QuestionEngineContentSafety;
   const AdivinhaDistractors = global.QuestionEngineAdivinhaDistractors;
   const DifficultyEstimate = global.QuestionEngineDifficultyEstimate;
   const Config = global.QuestionEngineConfig;
@@ -24,7 +25,7 @@
   const QuestionScoring = global.QuestionEngineQuestionScoring;
 
   if (!Issues || !KnowledgeKey || !KnowledgeKeyCompute || !Retry || !Telemetry || !KnownFacts
-    || !FactualVerify || !AdivinhaVerify || !AdivinhaDistractors || !DifficultyEstimate || !Config || !FormatValidators
+    || !FactualVerify || !AdivinhaVerify || !AdivinhaDistractors || !ContentSafety || !DifficultyEstimate || !Config || !FormatValidators
     || !AgeValidators || !PersistentHistory || !ReportedContent || !PromptBuilder || !McAssembly || !QuestionScoring) {
     throw new Error('QuestionEngine: carrega todos os módulos question-engine/*.js antes de question-engine.js');
   }
@@ -154,6 +155,20 @@
     buildAdivinhaDistractors: AdivinhaDistractors.buildAdivinhaDistractors,
     isPlausibleAdivinhaAnswer: AdivinhaDistractors.isPlausibleAdivinhaAnswer,
     hasBadAdivinhaMcOptions: AdivinhaDistractors.hasBadAdivinhaMcOptions,
+    sanitizeQuestionText: ContentSafety.sanitizeQuestionText,
+    sanitizeFamilySafeText: ContentSafety.sanitizeFamilySafeText,
+    sanitizeFamilySafeParsed: ContentSafety.sanitizeFamilySafeParsed,
+    findContentSafetyMatches: ContentSafety.findContentSafetyMatches,
+    findOffensiveMatches: ContentSafety.findOffensiveMatches,
+    containsOffensiveLanguage: ContentSafety.containsOffensiveLanguage,
+    containsOffensiveWord: ContentSafety.containsOffensiveWord,
+    isOffensiveWord: ContentSafety.isOffensiveWord,
+    collectContentSafetyIssues: ContentSafety.collectContentSafetyIssues,
+    collectFamilySafeIssues: ContentSafety.collectFamilySafeIssues,
+    buildContentSafetyPromptRules: ContentSafety.buildContentSafetyPromptRules,
+    CONTENT_SEVERITY: ContentSafety.SEVERITY,
+    CONTENT_CATEGORY: ContentSafety.CATEGORY,
+    getAnswerPool: AdivinhaDistractors.getAnswerPool,
     estimateDifficulty: DifficultyEstimate.estimateDifficulty,
     validateDifficultyMatch: DifficultyEstimate.validateDifficultyMatch,
     scoreQuestion,
