@@ -89,8 +89,31 @@ assert('clueLeaksAnswer ignora seguro', !clueLeaksAnswer(['tem dentes mas não m
     answer: 'Relógio',
     clues: ['o relógio dá as horas', 'tic tac'],
     fact: 'test',
+    classificationId: '5',
   };
   assert('validateParsed clue_leaks', validateParsed(parsed, { includeMalicious: true }).includes('clue_leaks_answer'));
+}
+
+{
+  const parsed = {
+    mmId: 200,
+    answer: 'Relógio',
+    clues: ['tenho dentes', 'não mordo'],
+    fact: 'Tenho dentes mas não mordo.',
+    classificationId: '5',
+  };
+  assert('validateParsed incoerente', validateParsed(parsed, { includeMalicious: true }).includes('incoherent_adivinha'));
+}
+
+{
+  const parsed = {
+    mmId: 201,
+    answer: 'Água',
+    clues: ['transparente', 'molha'],
+    fact: 'Sou transparente e molho tudo.',
+    classificationId: '5',
+  };
+  assert('validateParsed ambígua', validateParsed(parsed, { includeMalicious: true }).includes('ambiguous_answer'));
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

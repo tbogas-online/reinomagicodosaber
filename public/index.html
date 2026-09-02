@@ -3907,6 +3907,21 @@
     return pool[Math.floor(Math.random()*pool.length)];
   }
 
+  const CAT20_KNOWLEDGE_FORMATS = new Set(['ADIVINHA', 'CURIOSIDADE', 'VERDADEIRO_FALSO']);
+  function cat20RequiresKnowledgeId(categoryN, formatId){
+    return categoryN === 20 && CAT20_KNOWLEDGE_FORMATS.has(String(formatId || ''));
+  }
+  function buildCat20StockFallbackQuestion(engine){
+    return {
+      q: 'Ainda não há perguntas verificadas disponíveis para esta categoria e faixa etária.',
+      a: '—',
+      options: ['—', '—', '—', '—'],
+      source: 'local',
+      format: engine.FORMAT_IDS.ESCOLHA_MULTIPLA,
+      formatLabel: 'Sem stock',
+    };
+  }
+
   async function tryPickFromQuestionBank(categoryN, ageBandKey, reuseCtx, maxAttempts = 12){
     const QB = window.QuestionBank;
     if(!QB?.isConfigured?.()){
@@ -3936,6 +3951,15 @@
           if(row.question_hash) excludeHashes.push(row.question_hash);
           if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: pergunta ignorada (reuse)', row.question_hash, row.knowledge_id || '');
           continue;
+        }
+        if(categoryN === 20){
+          const bankFmt = String(row.format || '');
+          const bankKid = String(row.knowledge_id || '').trim();
+          if(CAT20_KNOWLEDGE_FORMATS.has(bankFmt) && !bankKid){
+            if(row.question_hash) excludeHashes.push(row.question_hash);
+            if(DEBUG_MODE) console.info('[KR-1.4] Banco: ignorada sem knowledgeId', row.question_hash, bankFmt);
+            continue;
+          }
         }
         if(isAdivinhaOpenAnswer(ageBandKey, row.format)){
           if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: adivinha 15+ (resposta aberta)', row.question_hash);
@@ -4135,6 +4159,25 @@
     if(Array.isArray(out.clues)) out.clues = out.clues.map(formatGameText);
     const catN = lastCategory?.n || 0;
     const age = selectedAgeBand || '';
+    const formatId = out.format || '';
+    if(cat20RequiresKnowledgeId(catN, formatId)){
+      const kid = String(out.knowledgeId || '').trim();
+      if(!kid && out.a !== '—'){
+        if(DEBUG_MODE){
+          console.warn('[KR-1.4] pergunta cat.20 bloqueada — falta knowledgeId', { formatId, source: out.source });
+        }
+        recordQuestionGenTelemetry(engine, {
+          outcome: 'rejected',
+          source: out.source || 'unknown',
+          category: catN,
+          formatId,
+          ageBandKey: age,
+          issueCodes: ['KR14_MISSING_KNOWLEDGE_ID'],
+          issueMessages: ['pergunta cat.20 sem knowledgeId — bloqueada'],
+        });
+        return finalizeQuestion(buildCat20StockFallbackQuestion(engine));
+      }
+    }
     out.id = out.id || `rmq-${catN}-${age}-${hashQuestionKey(stripTags(out.q) + '|' + stripTags(out.a))}`;
     return out;
   }

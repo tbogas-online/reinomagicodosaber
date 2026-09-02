@@ -1679,6 +1679,17 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('199. telemetria repositoryShare', Math.round(telemetrySummary.repositoryShare * 100) === 50);
   assert('200. telemetria byProvider groq', telemetrySummary.byProvider.groq?.accepted === 2);
   assert('201. telemetria aiAvgAttempts', telemetrySummary.aiAvgAttempts === 3);
+
+  const {
+    cat20RequiresKnowledgeId,
+    assertCat20Delivery,
+    bankRowMissingKnowledgeId,
+  } = require('./lib/kr1-cat20-guards');
+  assert('202. KR-1.4 cat20 ADIVINHA', cat20RequiresKnowledgeId(20, QE.FORMAT_IDS.ADIVINHA));
+  assert('203. KR-1.4 cat20 CURIOSIDADE', cat20RequiresKnowledgeId(20, QE.FORMAT_IDS.CURIOSIDADE));
+  assert('204. KR-1.4 entrega bloqueada', assertCat20Delivery({ source: 'bank', a: 'Pente' }, 20, QE.FORMAT_IDS.ADIVINHA).blocked);
+  assert('205. KR-1.4 entrega ok', assertCat20Delivery({ knowledgeId: 'knw-1', source: 'repository' }, 20, QE.FORMAT_IDS.ADIVINHA).ok);
+  assert('206. KR-1.4 banco sem id', bankRowMissingKnowledgeId(20, { format: QE.FORMAT_IDS.ADIVINHA }));
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

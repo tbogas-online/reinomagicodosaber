@@ -207,9 +207,9 @@ Cada pergunta gerada (depois da IA + validação):
 
 ### KR-1.2 Validação de import
 
-- [ ] Testes automáticos: clues não revelam resposta *(parcial — `test-memoriamedia-import.js`)*
-- [ ] Idade mínima por vocabulário
-- [ ] Rejeitar adivinhas ambíguas (regras `known-facts` + heurísticas)
+- [x] Testes automáticos: clues não revelam resposta (`test-memoriamedia-import.js`, `test-kr1-knowledge.js`)
+- [x] Idade mínima por vocabulário (`scripts/lib/adivinha-import-validation.js` → `validateParsed`)
+- [x] Rejeitar adivinhas ambíguas (heurísticas `known-facts` + respostas vagas/incoerentes)
 
 ### KR-1.3 Jogo (só adivinhas)
 
@@ -221,10 +221,10 @@ Cada pergunta gerada (depois da IA + validação):
 
 ### KR-1.4 Critérios de aceitação
 
-- [ ] 0 perguntas de adivinha sem `knowledgeId` em produção
+- [x] 0 perguntas de adivinha/curiosidade sem `knowledgeId` em produção (guarda em `finalizeQuestion` + banco ignora linhas sem id; `npm run audit:cat20-knowledge-ids`; SQL `cat20-bank-knowledge-id-guard.sql`)
 - [x] Reporte de pergunta mau → desactiva `knowledgeId` no repositório (ao resolver no admin ou botão dedicado; cliente já marca no Supabase ao reportar)
 - [x] Telemetria `% source=repository` visível no painel Repositório
-- [ ] Testes 150+ passam; novos testes KR-1 (import + pick + no-hallucination)
+- [x] Testes 200+ passam; novos testes KR-1 (`test-kr1-knowledge.js`, asserts 202–206 em `test-question-engine.js`)
 
 ---
 

@@ -1,5 +1,7 @@
 'use strict';
 
+const { validateAdivinhaImport } = require('./adivinha-import-validation');
+
 const BASE_URL = 'https://www.memoriamedia.net';
 const LIST_JSON = `${BASE_URL}/index.php/adivinhario-base-de-dados/list/5?format=json`;
 const PAGE_SIZE = 10;
@@ -184,6 +186,14 @@ function validateParsed(parsed, options = {}) {
   if (!options.includeMalicious && MALICIOUS_CLASS_IDS.has(parsed.classificationId)) {
     issues.push('malicious_classification');
   }
+
+  const ageBands = inferAgeBands({
+    classificationId: parsed.classificationId,
+    answer: parsed.answer,
+    clues: parsed.clues || [],
+    fact: parsed.fact,
+  });
+  issues.push(...validateAdivinhaImport(parsed, ageBands));
 
   return issues;
 }

@@ -347,6 +347,7 @@ $$;
 
 -- ---------------------------------------------------------------------------
 -- save_question_to_bank — acrescenta knowledge_id, source_id, confidence
+-- (helper reino_cat20_bank_requires_knowledge_id: ver cat20-bank-knowledge-id-guard.sql)
 -- ---------------------------------------------------------------------------
 DROP FUNCTION IF EXISTS public.save_question_to_bank(INT, TEXT, TEXT, TEXT, TEXT, JSONB, TEXT, TEXT, TEXT);
 
@@ -393,6 +394,11 @@ BEGIN
 
   IF NOT public.reino_has_valid_mc_options(p_options, p_format, p_correct_answer) THEN
     RETURN jsonb_build_object('ok', false, 'reason', 'missing_options');
+  END IF;
+
+  IF public.reino_cat20_bank_requires_knowledge_id(p_category_n, p_format)
+     AND (p_knowledge_id IS NULL OR trim(p_knowledge_id) = '') THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'missing_knowledge_id');
   END IF;
 
   INSERT INTO public.question_bank (
