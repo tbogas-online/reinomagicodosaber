@@ -29,11 +29,27 @@ function accumulateIssueDetail(summary, ev) {
     const code = codes[i];
     const msg = messages[i] || messages[0] || '';
     if (!summary.byIssueDetail[code]) {
-      summary.byIssueDetail[code] = { count: 0, sampleMessage: msg };
+      summary.byIssueDetail[code] = { count: 0, sampleMessage: msg, lastOccurrence: null };
     }
-    summary.byIssueDetail[code].count += 1;
-    if (msg && !summary.byIssueDetail[code].sampleMessage) {
-      summary.byIssueDetail[code].sampleMessage = msg;
+    const entry = summary.byIssueDetail[code];
+    entry.count += 1;
+    if (msg && !entry.sampleMessage) {
+      entry.sampleMessage = msg;
+    }
+    const occurrence = {
+      ts: Number(ev.ts) || Date.now(),
+      message: clipIssueMessage(msg),
+      category: ev.category != null ? Number(ev.category) : null,
+      formatId: clip(ev.formatId, 32) || '',
+      ageBandKey: clip(ev.ageBandKey, 12) || '',
+      gameMode: ev.gameMode || 'local',
+      provider: clip(ev.provider, 24) || '',
+      model: clip(ev.model, 48) || '',
+      difficulty: ev.difficulty != null ? Number(ev.difficulty) : null,
+      attempt: ev.attempt != null ? Number(ev.attempt) : null,
+    };
+    if (!entry.lastOccurrence || occurrence.ts >= entry.lastOccurrence.ts) {
+      entry.lastOccurrence = occurrence;
     }
   }
 }
@@ -165,6 +181,7 @@ function rowToItem(row) {
     issueMessages: Array.isArray(row.issue_messages) ? row.issue_messages : [],
     provider: row.provider || '',
     model: row.model || '',
+    difficulty: row.difficulty != null ? Number(row.difficulty) : null,
     attempt: row.attempt != null ? Number(row.attempt) : null,
   };
 }
@@ -427,7 +444,7 @@ async function fetchEventItems(filters = {}) {
     ? String(filters.gameMode)
     : '';
   const params = new URLSearchParams({
-    select: 'id,event_ts,outcome,category,format_id,age_band_key,game_mode,source,issue_codes,issue_messages,provider,model,attempt',
+    select: 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,provider,model,attempt',
     order: 'created_at.desc',
     limit: String(MAX_EVENTS),
   });

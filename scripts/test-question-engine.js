@@ -877,7 +877,21 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   });
   const summary2 = QE.getGenerationTelemetrySummary();
   assert('104. telemetria byIssueDetail', summary2.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA?.count === 1
-    && /Remy/i.test(summary2.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA.sampleMessage));
+    && /Remy/i.test(summary2.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA.sampleMessage)
+    && /Remy/i.test(summary2.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA.lastOccurrence?.message));
+  QE.recordGenerationTelemetry({
+    outcome: 'rejected',
+    category: 3,
+    formatId: 'MC',
+    ageBandKey: '10-15',
+    issueCodes: ['FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA'],
+    issueMessages: ['mensagem mais recente para validação'],
+    ts: Date.now() + 1000,
+  });
+  const summary3 = QE.getGenerationTelemetrySummary();
+  assert('104b. telemetria lastOccurrence', summary3.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA?.count === 2
+    && summary3.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA.lastOccurrence?.message === 'mensagem mais recente para validação'
+    && summary3.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA.lastOccurrence?.category === 3);
 }
 
 // 105–110. Fase 4 — pushIssue em ADIVINHA, PT-PT e idade

@@ -671,6 +671,23 @@
     .issue-detail-list .issue-desc {
       color: var(--text);
     }
+    .issue-detail-list .issue-last {
+      font-size: 10px;
+      line-height: 1.4;
+      max-width: 360px;
+    }
+    .issue-detail-list .issue-last-meta {
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    .issue-detail-list .issue-last-msg {
+      color: var(--text);
+      white-space: normal;
+      word-break: break-word;
+    }
+    .issue-detail-list .issue-last-empty {
+      color: var(--muted);
+    }
     .bar-row {
       display: grid;
       grid-template-columns: minmax(90px, 34%) 1fr auto;
@@ -2993,12 +3010,45 @@
       return code;
     }
 
-    function genIssueTooltip(code, sampleMessage) {
+    function genIssueTooltip(code, info) {
+      const sampleMessage = typeof info === 'string' ? info : info?.sampleMessage;
+      const last = typeof info === 'object' ? info?.lastOccurrence : null;
       const parts = [code];
       const label = formatGenIssueLabel(code, sampleMessage);
       if (label && label !== code) parts.push(label);
-      if (sampleMessage && sampleMessage !== label) parts.push(sampleMessage);
+      if (last?.ts) parts.push(`Última: ${formatPortugalDateTime(last.ts)}`);
+      const msg = last?.message || sampleMessage;
+      if (msg && msg !== label) parts.push(msg);
       return parts.join('\n\n');
+    }
+
+    function formatGenIssueOccurrenceMeta(occ) {
+      if (!occ) return '';
+      const parts = [];
+      if (occ.category != null) parts.push(bankCategoryLabel(occ.category));
+      if (occ.ageBandKey) parts.push(occ.ageBandKey);
+      if (occ.formatId) parts.push(occ.formatId);
+      if (occ.difficulty != null) parts.push(`dif. ${occ.difficulty}`);
+      if (occ.gameMode) parts.push(GEN_GAME_MODE_LABELS[occ.gameMode] || occ.gameMode);
+      if (occ.provider) parts.push(GEN_PROVIDER_LABELS[occ.provider] || occ.provider);
+      if (occ.model) parts.push(occ.model);
+      if (occ.attempt != null) parts.push(`tent. ${occ.attempt}`);
+      return parts.join(' · ');
+    }
+
+    function renderGenIssueLastOccurrenceCell(info) {
+      const occ = info?.lastOccurrence;
+      const message = occ?.message || info?.sampleMessage || '';
+      if (!message && !occ) return '<span class="issue-last-empty">—</span>';
+      const when = occ?.ts ? formatPortugalDateTime(occ.ts) : '';
+      const meta = formatGenIssueOccurrenceMeta(occ);
+      return `
+        <div class="issue-last">
+          ${when ? `<div class="issue-last-meta">${esc(when)}</div>` : ''}
+          ${meta ? `<div class="issue-last-meta">${esc(meta)}</div>` : ''}
+          <div class="issue-last-msg">${esc(message)}</div>
+        </div>
+      `;
     }
 
     function renderGenIssueDetailList(summary) {
@@ -3015,14 +3065,15 @@
       el.innerHTML = `
         <table>
           <thead>
-            <tr><th>Código</th><th>Causa</th><th>N</th></tr>
+            <tr><th>Código</th><th>Causa</th><th>N</th><th>Última ocorrência</th></tr>
           </thead>
           <tbody>
             ${entries.map(([code, info]) => `
-              <tr title="${esc(genIssueTooltip(code, info.sampleMessage))}">
+              <tr title="${esc(genIssueTooltip(code, info))}">
                 <td class="issue-code">${esc(code)}</td>
                 <td class="issue-desc">${esc(formatGenIssueLabel(code, info.sampleMessage))}</td>
                 <td>${info.count}</td>
+                <td>${renderGenIssueLastOccurrenceCell(info)}</td>
               </tr>
             `).join('')}
           </tbody>
@@ -3261,7 +3312,7 @@
         issueEl,
         issueEntries,
         (code) => formatGenIssueLabel(code, detailMap[code]?.sampleMessage),
-        { tooltipFn: (code) => genIssueTooltip(code, detailMap[code]?.sampleMessage) },
+        { tooltipFn: (code) => genIssueTooltip(code, detailMap[code]) },
       );
       renderGenIssueDetailList(summary);
       renderGenTelemetryTimeline(summary);

@@ -49,11 +49,27 @@
       const code = codes[i];
       const msg = messages[i] || messages[0] || '';
       if (!summary.byIssueDetail[code]) {
-        summary.byIssueDetail[code] = { count: 0, sampleMessage: msg };
+        summary.byIssueDetail[code] = { count: 0, sampleMessage: msg, lastOccurrence: null };
       }
-      summary.byIssueDetail[code].count += 1;
-      if (msg && !summary.byIssueDetail[code].sampleMessage) {
-        summary.byIssueDetail[code].sampleMessage = msg;
+      const entry = summary.byIssueDetail[code];
+      entry.count += 1;
+      if (msg && !entry.sampleMessage) {
+        entry.sampleMessage = msg;
+      }
+      const occurrence = {
+        ts: Number(ev.ts) || Date.now(),
+        message: clipIssueMessage(msg),
+        category: ev.category != null ? Number(ev.category) : null,
+        formatId: ev.formatId ? String(ev.formatId) : '',
+        ageBandKey: ev.ageBandKey ? String(ev.ageBandKey) : '',
+        gameMode: ev.gameMode || 'local',
+        provider: ev.provider ? String(ev.provider) : '',
+        model: ev.model ? String(ev.model) : '',
+        difficulty: ev.difficulty != null ? Number(ev.difficulty) : null,
+        attempt: ev.attempt != null ? Number(ev.attempt) : null,
+      };
+      if (!entry.lastOccurrence || occurrence.ts >= entry.lastOccurrence.ts) {
+        entry.lastOccurrence = occurrence;
       }
     }
   }
