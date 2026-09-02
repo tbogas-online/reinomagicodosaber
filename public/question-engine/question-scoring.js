@@ -224,11 +224,16 @@
 
   function validateQuestion(parsed, ctx) {
     const scored = scoreQuestion(parsed, ctx);
-    if (scored.issues.length > 0) {
+    const IssueOverrides = global.QuestionEngineIssueOverrides;
+    const issueDetails = IssueOverrides?.filterIssueDetails
+      ? IssueOverrides.filterIssueDetails(scored.issueDetails, ctx)
+      : scored.issueDetails;
+    const issues = issueMessages(issueDetails);
+    if (issues.length > 0) {
       return {
         ok: false,
-        issues: scored.issues,
-        issueDetails: scored.issueDetails,
+        issues,
+        issueDetails,
         score: scored.score,
         layers: scored.layers,
         knowledgeKey: scored.knowledgeKey,

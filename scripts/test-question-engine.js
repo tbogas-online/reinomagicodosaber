@@ -762,6 +762,36 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('87. MC_NEAR_DUPLICATE code', !r.ok && r.issueDetails?.some((i) => i.code === 'MC_NEAR_DUPLICATE'), r.issues?.join(', '));
 }
 {
+  const years = {
+    q: 'Em que ano começou a Segunda Guerra Mundial?',
+    a: '1939',
+    options: ['1939', '1940', '1941', '1945'],
+  };
+  const rYears = QE.validateQuestion(years, baseCtx({
+    isMC: true,
+    formatId: QE.FORMAT_IDS.QUANDO,
+    categoryNumber: 2,
+    ageBandKey: '10-15',
+  }));
+  assert('87b. MC_NEAR_DUPLICATE permite anos semelhantes', rYears.ok
+    || !rYears.issueDetails?.some((i) => i.code === 'MC_NEAR_DUPLICATE'), rYears.issues?.join(', '));
+}
+{
+  const dupYears = {
+    q: 'Em que ano caiu o Muro de Berlim?',
+    a: '1989',
+    options: ['1989', '1989', '1990', '1991'],
+  };
+  const rDupYears = QE.validateQuestion(dupYears, baseCtx({
+    isMC: true,
+    formatId: QE.FORMAT_IDS.QUANDO,
+    categoryNumber: 2,
+    ageBandKey: '10-15',
+  }));
+  assert('87c. MC_NEAR_DUPLICATE rejeita anos iguais', !rDupYears.ok
+    && rDupYears.issueDetails?.some((i) => i.code === 'MC_NEAR_DUPLICATE'), rDupYears.issues?.join(', '));
+}
+{
   const hint = QE.buildRetryHint(['conhecimento já testado recentemente (knowledgeKey)'], QE.FORMAT_IDS.RESPOSTA_DIRETA, '10-15');
   assert('88. buildRetryHint por code', hint.includes('Não repitas conhecimento já testado'));
 }
@@ -892,6 +922,15 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('104b. telemetria lastOccurrence', summary3.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA?.count === 2
     && summary3.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA.lastOccurrence?.message === 'mensagem mais recente para validação'
     && summary3.byIssueDetail.FACT_29_PERGUNTA_CONFUSA_RATO_QUE_FA.lastOccurrence?.category === 3);
+  const { computeSummaryFromItems } = require('../netlify/functions/lib/gen-telemetry-store');
+  const recentSummary = computeSummaryFromItems(Array.from({ length: 12 }, (_, i) => ({
+    outcome: 'rejected',
+    issueCodes: ['AGE_TOO_HARD'],
+    issueMessages: [`msg ${i}`],
+    ts: 1000 + i,
+  })));
+  assert('104c. telemetria recentOccurrences', recentSummary.byIssueDetail.AGE_TOO_HARD?.recentOccurrences?.length === 10
+    && recentSummary.byIssueDetail.AGE_TOO_HARD.recentOccurrences[0].message === 'msg 11');
 }
 
 // 105–110. Fase 4 — pushIssue em ADIVINHA, PT-PT e idade
@@ -1701,6 +1740,31 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   ], 20);
   assert('207. cat20 nonAiShare', Math.round(cat20.nonAiShare * 100) === 50, String(cat20.nonAi));
   assert('208. cat20 meets target false', cat20.meetsNonAiTarget === false);
+
+  const bucket = {
+    q: 'Se encheres um balde com 5 litros de água e depois adicionares mais 3 litros, o balde terá 9 litros. Verdadeiro ou Falso?',
+    a: 'Falso',
+    options: ['Verdadeiro', 'Falso'],
+  };
+  const bucketCtx = baseCtx({
+    formatId: QE.FORMAT_IDS.SITUACAO_PRATICA,
+    categoryNumber: 7,
+    ageBandKey: '10-15',
+    isMC: true,
+    isTrueFalse: true,
+  });
+  const bucketBefore = QE.validateQuestion(bucket, bucketCtx);
+  assert('209. balde AGE_TOO_HARD', !bucketBefore.ok
+    && bucketBefore.issueDetails?.some((i) => i.code === 'AGE_TOO_HARD'), bucketBefore.issues?.join(', '));
+  sandbox.globalThis.QuestionEngineIssueOverrides.setOverrides([{
+    issueCode: 'AGE_TOO_HARD',
+    message: '',
+    ageBandKey: '10-15',
+    formatId: QE.FORMAT_IDS.SITUACAO_PRATICA,
+  }]);
+  const bucketAfter = QE.validateQuestion(bucket, bucketCtx);
+  assert('210. override permite balde', bucketAfter.ok, bucketAfter.issues?.join(', '));
+  sandbox.globalThis.QuestionEngineIssueOverrides.setOverrides([]);
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

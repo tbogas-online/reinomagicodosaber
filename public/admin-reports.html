@@ -765,6 +765,170 @@
     .game-stats-insight.tone-gray { border-left-color: #64748b; }
     .game-stats-insight.tone-gray .game-stats-insight-icon { background: rgba(100, 116, 139, 0.16); }
     .game-stats-insight.tone-gray .game-stats-insight-label { color: #cbd5e1; }
+    .game-stats-section-card {
+      border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.035) 0%, rgba(255, 255, 255, 0.01) 100%);
+    }
+    .game-stats-section-head {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 14px;
+    }
+    .game-stats-section-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.35rem;
+      flex-shrink: 0;
+      border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    }
+    .game-stats-section-title {
+      margin: 0;
+      font-size: 1.05rem;
+      line-height: 1.3;
+    }
+    .game-stats-section-card .chart-filter-note {
+      margin: 4px 0 0;
+    }
+    .game-stats-section-card.tone-players .game-stats-section-icon {
+      background: rgba(16, 185, 129, 0.14);
+      border-color: rgba(16, 185, 129, 0.35);
+    }
+    .game-stats-section-card.tone-age .game-stats-section-icon {
+      background: rgba(168, 85, 247, 0.14);
+      border-color: rgba(168, 85, 247, 0.35);
+    }
+    .game-stats-section-card.tone-categories .game-stats-section-icon {
+      background: rgba(59, 130, 246, 0.14);
+      border-color: rgba(59, 130, 246, 0.35);
+    }
+    .game-stats-section-card.tone-questions .game-stats-section-icon {
+      background: rgba(239, 68, 68, 0.14);
+      border-color: rgba(239, 68, 68, 0.35);
+    }
+    .game-stats-table-card {
+      border: 1px solid color-mix(in srgb, var(--border) 65%, transparent);
+      border-radius: 12px;
+      overflow: hidden;
+      background: rgba(15, 23, 42, 0.22);
+    }
+    .game-stats-table-card .reports-table th {
+      background: rgba(148, 163, 184, 0.08);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: var(--muted);
+    }
+    .game-stats-table-card .reports-table td {
+      font-size: 13px;
+    }
+    .game-stats-pct {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .game-stats-pct-high { background: rgba(16, 185, 129, 0.16); color: #6ee7b7; }
+    .game-stats-pct-mid { background: rgba(245, 158, 11, 0.16); color: #fcd34d; }
+    .game-stats-pct-low { background: rgba(239, 68, 68, 0.16); color: #fca5a5; }
+    .game-stats-pct-na { background: rgba(100, 116, 139, 0.16); color: #cbd5e1; }
+    .game-stats-player-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-width: 120px;
+    }
+    .game-stats-player-avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 700;
+      color: #e2e8f0;
+      background: linear-gradient(135deg, rgba(8, 145, 178, 0.55), rgba(59, 130, 246, 0.45));
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      flex-shrink: 0;
+    }
+    .game-stats-rank {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--muted);
+      background: rgba(148, 163, 184, 0.12);
+      margin-right: 4px;
+    }
+    .game-stats-rank.top-1 { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
+    .game-stats-rank.top-2 { background: rgba(148, 163, 184, 0.22); color: #e2e8f0; }
+    .game-stats-rank.top-3 { background: rgba(180, 83, 9, 0.2); color: #fdba74; }
+    .game-stats-age-label,
+    .game-stats-cat-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+    .game-stats-age-icon,
+    .game-stats-cat-icon {
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      background: rgba(148, 163, 184, 0.12);
+    }
+    .game-stats-question-band {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 18px 0 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .game-stats-question-band:first-child {
+      margin-top: 0;
+    }
+    .game-stats-diff-badge {
+      display: inline-flex;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      background: rgba(239, 68, 68, 0.14);
+      color: #fca5a5;
+    }
+    .game-stats-diff-badge.easy { background: rgba(16, 185, 129, 0.14); color: #6ee7b7; }
+    .game-stats-diff-badge.medium { background: rgba(245, 158, 11, 0.14); color: #fcd34d; }
+    .game-stats-diff-badge.hard { background: rgba(239, 68, 68, 0.14); color: #fca5a5; }
+    .game-stats-question-text {
+      line-height: 1.45;
+      max-width: 420px;
+    }
+    .game-stats-question-wrong {
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--muted);
+    }
     @media (max-width: 760px) {
       .game-stats-match-summary {
         grid-template-columns: 1fr auto;
@@ -935,6 +1099,62 @@
     }
     .issue-detail-list .issue-last-empty {
       color: var(--muted);
+    }
+    .issue-detail-list .issue-occ-summary {
+      cursor: pointer;
+      color: var(--text);
+      font-size: 11px;
+    }
+    .issue-detail-list .issue-occ-list {
+      margin-top: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .issue-detail-list .issue-occ-item {
+      padding: 8px;
+      border-radius: 8px;
+      border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+      background: rgba(15, 23, 42, 0.35);
+    }
+    .issue-detail-list .issue-occ-actions {
+      margin-top: 8px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .issue-detail-list .issue-override-active {
+      font-size: 10px;
+      color: #86efac;
+      font-weight: 600;
+    }
+    .telemetry-rule-overrides {
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    }
+    .telemetry-rule-overrides h4 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      color: var(--text);
+    }
+    .telemetry-rule-overrides .override-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+      font-size: 11px;
+    }
+    .telemetry-rule-overrides .override-row:last-child {
+      border-bottom: none;
+    }
+    .telemetry-rule-overrides .override-meta {
+      color: var(--muted);
+      flex: 1 1 220px;
     }
     .bar-row {
       display: grid;
@@ -1806,15 +2026,21 @@
         </div>
 
         <div class="card" id="gameStatsInsightsSection">
-          <h3>Destaques por partida</h3>
+          <h3>🏁 Destaques por partida</h3>
           <p class="chart-filter-note" style="margin:-4px 0 14px">Clica numa partida para expandir e ler os destaques com mais detalhe.</p>
           <div id="gameStatsInsights" class="game-stats-insights"></div>
         </div>
 
-        <div class="card" id="gameStatsPlayersSection">
-          <h3>Jogadores (modo individual)</h3>
-          <p class="chart-filter-note" style="margin:-4px 0 12px">No multijogador, vários jogadores reais podem partilhar o mesmo dispositivo — por isso o ranking abaixo só inclui partidas individuais.</p>
-          <div class="reports-table-wrap">
+        <div class="card game-stats-section-card tone-players" id="gameStatsPlayersSection">
+          <div class="game-stats-section-head">
+            <div class="game-stats-section-icon" aria-hidden="true">👤</div>
+            <div>
+              <h3 class="game-stats-section-title">Jogadores (modo individual)</h3>
+              <p class="chart-filter-note">No multijogador, vários jogadores reais podem partilhar o mesmo dispositivo — por isso o ranking abaixo só inclui partidas individuais.</p>
+            </div>
+          </div>
+          <div class="game-stats-table-card">
+            <div class="reports-table-wrap">
             <table class="reports-table">
               <thead>
                 <tr>
@@ -1831,11 +2057,19 @@
               </tbody>
             </table>
           </div>
+          </div>
         </div>
 
-        <div class="card">
-          <h3>Faixas etárias</h3>
-          <div class="reports-table-wrap">
+        <div class="card game-stats-section-card tone-age">
+          <div class="game-stats-section-head">
+            <div class="game-stats-section-icon" aria-hidden="true">🧒</div>
+            <div>
+              <h3 class="game-stats-section-title">Faixas etárias</h3>
+              <p class="chart-filter-note">Desempenho agregado por faixa de idade.</p>
+            </div>
+          </div>
+          <div class="game-stats-table-card">
+            <div class="reports-table-wrap">
             <table class="reports-table">
               <thead>
                 <tr>
@@ -1851,11 +2085,19 @@
               </tbody>
             </table>
           </div>
+          </div>
         </div>
 
-        <div class="card">
-          <h3>Categorias</h3>
-          <div class="reports-table-wrap">
+        <div class="card game-stats-section-card tone-categories">
+          <div class="game-stats-section-head">
+            <div class="game-stats-section-icon" aria-hidden="true">📚</div>
+            <div>
+              <h3 class="game-stats-section-title">Categorias</h3>
+              <p class="chart-filter-note">Precisão e volume de respostas por tema.</p>
+            </div>
+          </div>
+          <div class="game-stats-table-card">
+            <div class="reports-table-wrap">
             <table class="reports-table">
               <thead>
                 <tr>
@@ -1870,10 +2112,17 @@
               </tbody>
             </table>
           </div>
+          </div>
         </div>
 
-        <div class="card">
-          <h3>Perguntas mais difíceis</h3>
+        <div class="card game-stats-section-card tone-questions">
+          <div class="game-stats-section-head">
+            <div class="game-stats-section-icon" aria-hidden="true">🧩</div>
+            <div>
+              <h3 class="game-stats-section-title">Perguntas mais difíceis</h3>
+              <p class="chart-filter-note">Menor taxa de acerto — com resposta correcta e erros frequentes.</p>
+            </div>
+          </div>
           <div id="gameStatsQuestionsRoot">
             <p class="sub">—</p>
           </div>
@@ -1940,6 +2189,7 @@
               <h3>Rejeições por causa</h3>
               <div id="chartGenIssueCodes" class="chart"></div>
               <div id="chartGenIssueDetail" class="issue-detail-list"></div>
+              <div id="telemetryRuleOverrides" class="telemetry-rule-overrides hidden"></div>
             </div>
             <div class="chart-box">
               <h3>Rejeições por formato</h3>
@@ -3420,23 +3670,109 @@
       `;
     }
 
-    function renderGenIssueLastOccurrenceCell(info) {
-      const occ = info?.lastOccurrence;
-      const message = occ?.message || info?.sampleMessage || '';
-      if (!message && !occ?.questionSnapshot && !occ) return '<span class="issue-last-empty">—</span>';
-      const when = occ?.ts ? formatPortugalDateTime(occ.ts) : '';
-      const meta = formatGenIssueOccurrenceMeta(occ);
+    function getIssueOccurrenceList(info) {
+      const recent = Array.isArray(info?.recentOccurrences) ? info.recentOccurrences : [];
+      if (recent.length) return recent.slice(0, 10);
+      return info?.lastOccurrence ? [info.lastOccurrence] : [];
+    }
+
+    function telemetryOverrideMatches(code, occ, override) {
+      if (!override?.issueCode || override.issueCode !== code) return false;
+      const msg = String(occ?.message || '').trim();
+      const ovMsg = String(override.message || '').trim();
+      if (ovMsg && ovMsg !== msg) return false;
+      const age = String(occ?.ageBandKey || '').trim();
+      const ovAge = String(override.ageBandKey || '').trim();
+      if (ovAge && ovAge !== age) return false;
+      const fmt = String(occ?.formatId || '').trim();
+      const ovFmt = String(override.formatId || '').trim();
+      if (ovFmt && ovFmt !== fmt) return false;
+      return true;
+    }
+
+    function isTelemetryRuleOverridden(code, occ, overrides) {
+      if ((overrides || []).some((ov) => telemetryOverrideMatches(code, occ, ov))) return true;
+      return (overrides || []).some((ov) => ov.issueCode === code
+        && !String(ov.message || '').trim()
+        && (!ov.ageBandKey || ov.ageBandKey === String(occ?.ageBandKey || '').trim())
+        && (!ov.formatId || ov.formatId === String(occ?.formatId || '').trim()));
+    }
+
+    function renderGenIssueOccurrenceCell(code, info, overrides) {
+      const occurrences = getIssueOccurrenceList(info);
+      if (!occurrences.length) return '<span class="issue-last-empty">—</span>';
+      const overriddenCount = occurrences.filter((occ) => isTelemetryRuleOverridden(code, occ, overrides)).length;
+      const summaryLabel = occurrences.length === 1
+        ? '1 ocorrência'
+        : `${occurrences.length} últimas`;
       return `
-        <div class="issue-last">
-          ${when ? `<div class="issue-last-meta">${esc(when)}</div>` : ''}
-          ${meta ? `<div class="issue-last-meta">${esc(meta)}</div>` : ''}
-          ${renderGenQuestionSnapshot(occ?.questionSnapshot)}
-          ${message ? `<div class="issue-last-msg">${esc(message)}</div>` : ''}
-        </div>
+        <details class="issue-occ-block">
+          <summary class="issue-occ-summary">${esc(summaryLabel)}${overriddenCount ? ` · <span class="issue-override-active">${overriddenCount} com regra desactivada</span>` : ''}</summary>
+          <div class="issue-occ-list">
+            ${occurrences.map((occ, index) => {
+              const overridden = isTelemetryRuleOverridden(code, occ, overrides);
+              const when = occ?.ts ? formatPortugalDateTime(occ.ts) : '';
+              const meta = formatGenIssueOccurrenceMeta(occ);
+              const message = occ?.message || info?.sampleMessage || '';
+              return `
+                <div class="issue-occ-item">
+                  ${when ? `<div class="issue-last-meta">${esc(when)}</div>` : ''}
+                  ${meta ? `<div class="issue-last-meta">${esc(meta)}</div>` : ''}
+                  ${renderGenQuestionSnapshot(occ?.questionSnapshot)}
+                  ${message ? `<div class="issue-last-msg">${esc(message)}</div>` : ''}
+                  <div class="issue-occ-actions">
+                    ${overridden
+                      ? '<span class="issue-override-active">✓ Regra desactivada para este padrão</span>'
+                      : `<button type="button" class="secondary telemetry-disable-rule-btn" data-issue-code="${esc(code)}" data-message="${esc(message)}" data-age-band="${esc(occ?.ageBandKey || '')}" data-format-id="${esc(occ?.formatId || '')}">🔓 Desactivar esta mensagem</button>
+                         <button type="button" class="secondary telemetry-disable-code-btn" data-issue-code="${esc(code)}" data-age-band="${esc(occ?.ageBandKey || '')}" data-format-id="${esc(occ?.formatId || '')}">⛔ Desactivar todo o código</button>`}
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        </details>
       `;
     }
 
-    function renderGenIssueDetailList(summary) {
+    function renderGenRuleOverridesPanel(overrides) {
+      const el = document.getElementById('telemetryRuleOverrides');
+      if (!el) return;
+      const list = Array.isArray(overrides) ? overrides : [];
+      if (!list.length) {
+        el.classList.add('hidden');
+        el.innerHTML = '';
+        return;
+      }
+      el.classList.remove('hidden');
+      el.innerHTML = `
+        <h4>Regras desactivadas manualmente</h4>
+        ${list.map((ov) => `
+          <div class="override-row">
+            <div class="override-meta">
+              <strong>${esc(ov.issueCode)}</strong>
+              ${ov.message ? ` · ${esc(ov.message)}` : ' · <em>todo o código</em>'}
+              ${ov.ageBandKey ? ` · ${esc(ov.ageBandKey)}` : ''}
+              ${ov.formatId ? ` · ${esc(ov.formatId)}` : ''}
+            </div>
+            <button type="button" class="secondary telemetry-enable-rule-btn" data-override-id="${esc(ov.id)}">↩ Reactivar regra</button>
+          </div>
+        `).join('')}
+      `;
+    }
+
+    async function addValidationRuleOverride(payload) {
+      const data = await api('/api/validation-overrides', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      return data?.override || null;
+    }
+
+    async function removeValidationRuleOverride(id) {
+      await api(`/api/validation-overrides?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
+    }
+
+    function renderGenIssueDetailList(summary, overrides = []) {
       const el = document.getElementById('chartGenIssueDetail');
       if (!el) return;
       const detail = summary?.byIssueDetail || {};
@@ -3445,12 +3781,13 @@
         .slice(0, 12);
       if (!entries.length) {
         el.innerHTML = '';
+        renderGenRuleOverridesPanel(overrides);
         return;
       }
       el.innerHTML = `
         <table>
           <thead>
-            <tr><th>Código</th><th>Causa</th><th>N</th><th>Última ocorrência</th></tr>
+            <tr><th>Código</th><th>Causa</th><th>N</th><th>Últimas ocorrências (10)</th></tr>
           </thead>
           <tbody>
             ${entries.map(([code, info]) => `
@@ -3458,12 +3795,13 @@
                 <td class="issue-code">${esc(code)}</td>
                 <td class="issue-desc">${esc(formatGenIssueLabel(code, info.sampleMessage))}</td>
                 <td>${info.count}</td>
-                <td>${renderGenIssueLastOccurrenceCell(info)}</td>
+                <td>${renderGenIssueOccurrenceCell(code, info, overrides)}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
       `;
+      renderGenRuleOverridesPanel(overrides);
     }
 
     const GEN_GAME_MODE_LABELS = {
@@ -3544,6 +3882,7 @@
     const TELEMETRY_TIMELINE_CHART_STORAGE_KEY = 'reino_admin_telemetry_timeline_chart';
 
     let lastTelemetryPayload = null;
+    let lastTelemetryOverrides = [];
     let telemetryGameModeFilter = '';
     let telemetryTimelineRange = '14d';
     let telemetryTimelineChartType = 'stacked';
@@ -3637,7 +3976,7 @@
       URL.revokeObjectURL(url);
     }
 
-    function renderGenTelemetry(summary) {
+    function renderGenTelemetry(summary, overrides = lastTelemetryOverrides) {
       const statsEl = document.getElementById('genTelemetryStats');
       const issueEl = document.getElementById('chartGenIssueCodes');
       const detailEl = document.getElementById('chartGenIssueDetail');
@@ -3655,6 +3994,7 @@
         statsEl.innerHTML = '<div class="stat stat-total"><strong>0</strong><span>Sem eventos ainda</span></div>';
         issueEl.innerHTML = '<p class="chart-empty">Ainda sem eventos — joga com IA para recolher dados.</p>';
         if (detailEl) detailEl.innerHTML = '';
+        renderGenRuleOverridesPanel(overrides);
         renderGenTelemetryTimeline(summary);
         catEl.innerHTML = '';
         fmtEl.innerHTML = '';
@@ -3702,7 +4042,7 @@
         (code) => formatGenIssueLabel(code, detailMap[code]?.sampleMessage),
         { tooltipFn: (code) => genIssueTooltip(code, detailMap[code]) },
       );
-      renderGenIssueDetailList(summary);
+      renderGenIssueDetailList(summary, overrides);
       renderGenTelemetryTimeline(summary);
 
       const catMap = Object.fromEntries(BANK_CATEGORIES.map((c) => [String(c.n), c.name]));
@@ -3802,7 +4142,8 @@
       try {
         const data = await api(`/api/gen-telemetry-admin?${telemetryStatsQuery()}`);
         lastTelemetryPayload = data;
-        renderGenTelemetry(data.stats || {});
+        lastTelemetryOverrides = data.overrides || [];
+        renderGenTelemetry(data.stats || {}, lastTelemetryOverrides);
         updateTelemetryModeFilterUi();
         const updatedEl = document.getElementById('telemetryLastUpdated');
         const modeLabel = telemetryGameModeFilter
@@ -4634,6 +4975,59 @@
       return value == null ? '—' : `${value}%`;
     }
 
+    function formatGameStatsPctBadge(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return '<span class="game-stats-pct game-stats-pct-na">—</span>';
+      const cls = n >= 75 ? 'high' : (n >= 50 ? 'mid' : 'low');
+      return `<span class="game-stats-pct game-stats-pct-${cls}">${n}%</span>`;
+    }
+
+    function formatGameStatsPlayerName(p) {
+      const engine = window.GameStatsEngine;
+      let name = '';
+      if (engine?.resolvePlayerDisplayName) {
+        name = engine.resolvePlayerDisplayName(p.playerId, p.nickname, null);
+      } else {
+        name = String(p.nickname || p.playerId || '').trim();
+      }
+      if (!name || name === '{}' || name === '[object Object]') return 'Jogador';
+      return name;
+    }
+
+    function formatGameStatsPlayerInitial(name) {
+      const ch = String(name || 'J').trim().charAt(0).toUpperCase();
+      return ch && /[A-ZÀ-Ú0-9]/i.test(ch) ? ch : 'J';
+    }
+
+    function formatGameStatsRankBadge(index) {
+      if (index === 0) return '<span class="game-stats-rank top-1" aria-hidden="true">🥇</span>';
+      if (index === 1) return '<span class="game-stats-rank top-2" aria-hidden="true">🥈</span>';
+      if (index === 2) return '<span class="game-stats-rank top-3" aria-hidden="true">🥉</span>';
+      return `<span class="game-stats-rank" aria-hidden="true">${index + 1}</span>`;
+    }
+
+    function formatGameStatsAgeBandIcon(ageBand) {
+      const key = String(ageBand || '').trim();
+      if (key === '6-9') return '🧒';
+      if (key === '10-15') return '🎒';
+      if (key === '15+') return '🎓';
+      return '📊';
+    }
+
+    function formatGameStatsCategoryIcon(categoryN) {
+      const icons = ['🌍', '🏛️', '🔬', '🎨', '⚽', '🎵', '📐', '🌿', '🚀', '🎭', '🍳', '💡', '📖', '🎬', '🧪', '🏺', '🎮', '🧵', '🦁', '✨'];
+      const n = Number(categoryN);
+      if (!Number.isFinite(n) || n < 1) return '📚';
+      return icons[(n - 1) % icons.length];
+    }
+
+    function formatGameStatsDifficultyBadge(value) {
+      const key = String(value || '').trim().toLowerCase();
+      const label = formatGameStatsDifficulty(value);
+      const cls = key === 'easy' ? 'easy' : (key === 'hard' ? 'hard' : (key === 'medium' ? 'medium' : 'hard'));
+      return `<span class="game-stats-diff-badge ${cls}">${esc(label)}</span>`;
+    }
+
     const GAME_STATS_DIFFICULTY_LABELS = {
       easy: 'Fácil',
       medium: 'Média',
@@ -4888,16 +5282,25 @@
         return;
       }
       const streakMap = new Map((stats.streaks?.players || []).map((s) => [s.playerId, s.bestStreak]));
-      body.innerHTML = players.map((p) => `
+      body.innerHTML = players.map((p, index) => {
+        const name = formatGameStatsPlayerName(p);
+        return `
         <tr>
-          <td>${esc(p.nickname || p.playerId || '—')}</td>
+          <td>
+            <div class="game-stats-player-cell">
+              ${formatGameStatsRankBadge(index)}
+              <span class="game-stats-player-avatar" aria-hidden="true">${esc(formatGameStatsPlayerInitial(name))}</span>
+              <span>${esc(name)}</span>
+            </div>
+          </td>
           <td>${p.answersTotal ?? 0}</td>
           <td>${p.correctTotal ?? 0}</td>
-          <td>${formatGameStatsPct(p.accuracyPct)}</td>
+          <td>${formatGameStatsPctBadge(p.accuracyPct)}</td>
           <td>${formatGameStatsMs(p.avgResponseMs)}</td>
           <td>${streakMap.get(p.playerId) ?? 0}</td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     }
 
     function renderGameStatsAgeBands(stats) {
@@ -4910,10 +5313,15 @@
       }
       body.innerHTML = bands.map((b) => `
         <tr>
-          <td>${esc(formatGameStatsAgeBand(b.ageBand))}</td>
+          <td>
+            <span class="game-stats-age-label">
+              <span class="game-stats-age-icon" aria-hidden="true">${formatGameStatsAgeBandIcon(b.ageBand)}</span>
+              ${esc(formatGameStatsAgeBand(b.ageBand))}
+            </span>
+          </td>
           <td>${b.roundsPresented ?? 0}</td>
           <td>${b.answersTotal ?? 0}</td>
-          <td>${formatGameStatsPct(b.accuracyPct)}</td>
+          <td>${formatGameStatsPctBadge(b.accuracyPct)}</td>
           <td>${formatGameStatsMs(b.avgResponseMs)}</td>
         </tr>
       `).join('');
@@ -4927,27 +5335,35 @@
         body.innerHTML = '<tr><td colspan="4" class="sub">—</td></tr>';
         return;
       }
-      body.innerHTML = cats.map((c) => `
+      body.innerHTML = cats.map((c) => {
+        const label = c.category || (c.categoryN != null ? `Categoria ${c.categoryN}` : '—');
+        return `
         <tr>
-          <td>${esc(c.category || (c.categoryN != null ? `Categoria ${c.categoryN}` : '—'))}</td>
+          <td>
+            <span class="game-stats-cat-label">
+              <span class="game-stats-cat-icon" aria-hidden="true">${formatGameStatsCategoryIcon(c.categoryN)}</span>
+              ${esc(label)}
+            </span>
+          </td>
           <td>${c.roundsPresented ?? 0}</td>
           <td>${c.answersTotal ?? 0}</td>
-          <td>${formatGameStatsPct(c.accuracyPct)}</td>
+          <td>${formatGameStatsPctBadge(c.accuracyPct)}</td>
         </tr>
-      `).join('');
+      `;
+      }).join('');
     }
 
     function renderGameStatsQuestionRow(q) {
       const wrongHint = Array.isArray(q.topWrongAnswers) && q.topWrongAnswers.length
-        ? `<div class="sub" style="margin-top:4px">Erros: ${q.topWrongAnswers.slice(0, 3).map((w) => esc(`${w.answer} (${w.count})`)).join(' · ')}</div>`
+        ? `<div class="game-stats-question-wrong">❌ Erros: ${q.topWrongAnswers.slice(0, 3).map((w) => esc(`${w.answer} (${w.count})`)).join(' · ')}</div>`
         : '';
       return `
         <tr>
-          <td>${esc(clipGameStatsText(q.question))}${wrongHint}</td>
+          <td><div class="game-stats-question-text">${esc(clipGameStatsText(q.question))}${wrongHint}</div></td>
           <td>${esc(clipGameStatsText(q.correctAnswer, 48))}</td>
           <td>${q.answersTotal ?? 0}</td>
-          <td>${formatGameStatsPct(q.accuracyPct)}</td>
-          <td>${esc(formatGameStatsDifficulty(q.difficulty))}</td>
+          <td>${formatGameStatsPctBadge(q.accuracyPct)}</td>
+          <td>${formatGameStatsDifficultyBadge(q.difficulty)}</td>
         </tr>
       `;
     }
@@ -4966,7 +5382,8 @@
           return;
         }
         root.innerHTML = `
-          <div class="reports-table-wrap">
+          <div class="game-stats-table-card">
+            <div class="reports-table-wrap">
             <table class="reports-table">
               <thead>
                 <tr>
@@ -4979,6 +5396,7 @@
               </thead>
               <tbody>${questions.map(renderGameStatsQuestionRow).join('')}</tbody>
             </table>
+            </div>
           </div>
         `;
         return;
@@ -4990,8 +5408,12 @@
           .slice(0, 10);
         if (!questions.length) return '';
         return `
-          <h4 class="charts-title" style="font-size:0.95rem; margin:18px 0 8px">${esc(formatGameStatsAgeBand(band.ageBand))}</h4>
-          <div class="reports-table-wrap">
+          <div class="game-stats-question-band">
+            <span aria-hidden="true">${formatGameStatsAgeBandIcon(band.ageBand)}</span>
+            <span>${esc(formatGameStatsAgeBand(band.ageBand))}</span>
+          </div>
+          <div class="game-stats-table-card">
+            <div class="reports-table-wrap">
             <table class="reports-table">
               <thead>
                 <tr>
@@ -5004,6 +5426,7 @@
               </thead>
               <tbody>${questions.map(renderGameStatsQuestionRow).join('')}</tbody>
             </table>
+            </div>
           </div>
         `;
       }).filter(Boolean);
@@ -6841,6 +7264,56 @@
     document.getElementById('telemetryLoadStatsBtn')?.addEventListener('click', () => loadTelemetryDashboard());
     document.getElementById('telemetryRefreshBtn')?.addEventListener('click', () => loadTelemetryDashboard());
     document.getElementById('telemetryExportBtn')?.addEventListener('click', exportTelemetryJson);
+    document.getElementById('chartGenIssueDetail')?.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.telemetry-disable-rule-btn, .telemetry-disable-code-btn');
+      if (!btn) return;
+      const issueCode = btn.getAttribute('data-issue-code') || '';
+      const message = btn.classList.contains('telemetry-disable-code-btn')
+        ? ''
+        : (btn.getAttribute('data-message') || '');
+      const ageBandKey = btn.getAttribute('data-age-band') || '';
+      const formatId = btn.getAttribute('data-format-id') || '';
+      const label = [issueCode, message || 'todo o código nesta faixa/formato', ageBandKey, formatId].filter(Boolean).join(' · ');
+      if (!confirm(`Desactivar esta regra de validação?\n\n${label}\n\nPerguntas com este padrão passarão a ser aceites.`)) return;
+      const statusEl = document.getElementById('telemetryListStatus');
+      try {
+        btn.disabled = true;
+        await addValidationRuleOverride({ issueCode, message, ageBandKey, formatId });
+        await loadTelemetryDashboard({ quiet: true });
+        if (statusEl) {
+          statusEl.textContent = `Regra desactivada: ${issueCode}`;
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao desactivar regra.';
+          statusEl.className = 'status err';
+        }
+        btn.disabled = false;
+      }
+    });
+    document.getElementById('telemetryRuleOverrides')?.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.telemetry-enable-rule-btn');
+      if (!btn) return;
+      const id = btn.getAttribute('data-override-id') || '';
+      if (!id || !confirm('Reactivar esta regra de validação?')) return;
+      const statusEl = document.getElementById('telemetryListStatus');
+      try {
+        btn.disabled = true;
+        await removeValidationRuleOverride(id);
+        await loadTelemetryDashboard({ quiet: true });
+        if (statusEl) {
+          statusEl.textContent = 'Regra reactivada.';
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao reactivar regra.';
+          statusEl.className = 'status err';
+        }
+        btn.disabled = false;
+      }
+    });
     document.getElementById('telemetryModeFilters')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-telemetry-mode]');
       if (!btn) return;

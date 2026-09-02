@@ -31,6 +31,7 @@
     'question-engine/persistent-history.js',
     'question-engine/prompt-builder.js',
     'question-engine/mc-assembly.js',
+    'question-engine/issue-overrides.js',
     'question-engine/question-scoring.js',
     'question-engine.js',
   ]);

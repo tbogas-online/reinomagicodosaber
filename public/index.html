@@ -3573,6 +3573,7 @@
 <script src="question-engine/persistent-history.js?v=20260902-190304"></script>
 <script src="question-engine/prompt-builder.js?v=20260902-190304"></script>
 <script src="question-engine/mc-assembly.js?v=20260902-190304"></script>
+<script src="question-engine/issue-overrides.js?v=20260902-190304"></script>
 <script src="question-engine/question-scoring.js?v=20260902-190304"></script>
 <script src="question-engine.js?v=20260902-190304" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260902-190304"></script>
@@ -7706,6 +7707,17 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     refreshStatusBadgeText();
   });
 
+  async function loadValidationRuleOverrides(){
+    try {
+      const response = await fetch('/api/validation-overrides?t=' + Date.now(), { cache: 'no-store' });
+      if(!response.ok) return;
+      const data = await response.json().catch(() => ({}));
+      if(window.QuestionEngineIssueOverrides?.setOverrides){
+        window.QuestionEngineIssueOverrides.setOverrides(data.overrides || []);
+      }
+    } catch { /* ignore */ }
+  }
+
   function warnIfQuestionEngineMissing(){
     if(window.QuestionEngine) return;
     if(!DEBUG_MODE) return;
@@ -7865,6 +7877,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   function bootAfterQuestionEngine(){
     warnIfQuestionEngineMissing();
+    loadValidationRuleOverrides();
     maybeOpenAiSettingsFromUrl();
     if(window.MultiplayerController){
       window.MultiplayerController.bindGame({

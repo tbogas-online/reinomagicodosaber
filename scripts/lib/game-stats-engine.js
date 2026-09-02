@@ -650,7 +650,8 @@ function buildPlayerNicknameMap(game) {
 }
 
 function resolvePlayerDisplayName(playerId, nickname, nickMap) {
-  const nick = String(nickname || nickMap?.get(String(playerId || '')) || '').trim();
+  const rawNick = String(nickname || nickMap?.get(String(playerId || '')) || '').trim();
+  const nick = (rawNick && rawNick !== '{}' && rawNick !== '[object Object]') ? rawNick : '';
   if (nick) return nick;
   const id = String(playerId || '').trim();
   if (id.length >= 4) return `Jogador ${id.slice(-4).toUpperCase()}`;

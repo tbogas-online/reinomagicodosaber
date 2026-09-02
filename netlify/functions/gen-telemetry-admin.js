@@ -3,6 +3,7 @@
 const { json, validateAdminAuth } = require('./lib/report-utils');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
 const { getStats, clearAll } = require('./lib/gen-telemetry-store');
+const { listActiveOverrides } = require('./lib/validation-rule-overrides-store');
 
 exports.handler = async (event) => {
   try {
@@ -25,10 +26,16 @@ exports.handler = async (event) => {
         return json(400, { error: 'Usa stats=1.' });
       }
       try {
-        const stats = await getStats(null, {
-          gameMode: params.gameMode,
+        const [stats, overrides] = await Promise.all([
+          getStats(null, { gameMode: params.gameMode }),
+          listActiveOverrides().catch(() => []),
+        ]);
+        return json(200, {
+          ok: true,
+          stats,
+          overrides,
+          filters: { gameMode: params.gameMode || '' },
         });
-        return json(200, { ok: true, stats, filters: { gameMode: params.gameMode || '' } });
       } catch (err) {
         console.error('[gen-telemetry-admin] stats failed:', err);
         return json(503, { error: 'Não foi possível ler telemetria.' });

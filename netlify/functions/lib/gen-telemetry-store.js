@@ -13,6 +13,7 @@ function clip(value, max) {
 
 const MAX_ISSUE_MESSAGES = 6;
 const MAX_ISSUE_MESSAGE_LEN = 200;
+const MAX_RECENT_ISSUE_OCCURRENCES = 10;
 const MAX_QUESTION_LEN = 500;
 const MAX_ANSWER_LEN = 200;
 const MAX_OPTION_LEN = 120;
@@ -43,6 +44,18 @@ function normalizeIssueMessages(raw) {
   return raw.map((m) => clipIssueMessage(m)).filter(Boolean).slice(0, MAX_ISSUE_MESSAGES);
 }
 
+function pushIssueOccurrence(entry, occurrence) {
+  if (!entry.recentOccurrences) entry.recentOccurrences = [];
+  entry.recentOccurrences.push(occurrence);
+  entry.recentOccurrences.sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0));
+  if (entry.recentOccurrences.length > MAX_RECENT_ISSUE_OCCURRENCES) {
+    entry.recentOccurrences.length = MAX_RECENT_ISSUE_OCCURRENCES;
+  }
+  if (!entry.lastOccurrence || occurrence.ts >= entry.lastOccurrence.ts) {
+    entry.lastOccurrence = occurrence;
+  }
+}
+
 function accumulateIssueDetail(summary, ev) {
   const codes = ev.issueCodes || [];
   const messages = ev.issueMessages || [];
@@ -50,7 +63,12 @@ function accumulateIssueDetail(summary, ev) {
     const code = codes[i];
     const msg = messages[i] || messages[0] || '';
     if (!summary.byIssueDetail[code]) {
-      summary.byIssueDetail[code] = { count: 0, sampleMessage: msg, lastOccurrence: null };
+      summary.byIssueDetail[code] = {
+        count: 0,
+        sampleMessage: msg,
+        lastOccurrence: null,
+        recentOccurrences: [],
+      };
     }
     const entry = summary.byIssueDetail[code];
     entry.count += 1;
@@ -58,6 +76,7 @@ function accumulateIssueDetail(summary, ev) {
       entry.sampleMessage = msg;
     }
     const occurrence = {
+      eventId: ev.id || null,
       ts: Number(ev.ts) || Date.now(),
       message: clipIssueMessage(msg),
       outcome: ev.outcome || '',
@@ -73,9 +92,7 @@ function accumulateIssueDetail(summary, ev) {
       attempt: ev.attempt != null ? Number(ev.attempt) : null,
       questionSnapshot: ev.questionSnapshot || null,
     };
-    if (!entry.lastOccurrence || occurrence.ts >= entry.lastOccurrence.ts) {
-      entry.lastOccurrence = occurrence;
-    }
+    pushIssueOccurrence(entry, occurrence);
   }
 }
 

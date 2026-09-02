@@ -314,14 +314,28 @@ function collapseOptionKey(text, normalizeFn) {
   return s.replace(/\s+/g, ' ').trim();
 }
 
+function looksLikeYearOrDateOption(text) {
+  const t = String(text || '').trim();
+  if (!t) return false;
+  if (/^(cerca de\s+)?\d{3,4}s?$/i.test(t)) return true;
+  if (/^\d{1,2}\s+de\s+[a-zà-ú]+\s+de\s+\d{3,4}$/i.test(t)) return true;
+  if (/^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$/.test(t)) return true;
+  if (/^(século|seculo)\s+/i.test(t)) return true;
+  if (/^(ano\s+)?\d{3,4}$/i.test(t)) return true;
+  return false;
+}
+
 function hasNearDuplicateMcOptions(options) {
-  const keys = (options || []).map((o) => optionDedupeKey(o));
+  const raw = (options || []).map((o) => String(o || '').trim());
+  const keys = raw.map((o) => optionDedupeKey(o));
   if (new Set(keys).size !== keys.length) return true;
   for (let i = 0; i < keys.length; i++) {
     for (let j = i + 1; j < keys.length; j++) {
       const a = keys[i];
       const b = keys[j];
       if (!a || !b || a === b) return true;
+      // Anos/datas próximos são distractores válidos em QUANDO — só rejeitar duplicados exactos.
+      if (looksLikeYearOrDateOption(raw[i]) && looksLikeYearOrDateOption(raw[j])) continue;
       if (a.length >= 4 && b.length >= 4) {
         const minLen = Math.min(a.length, b.length);
         const maxLen = Math.max(a.length, b.length);

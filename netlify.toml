@@ -40,6 +40,9 @@
 [functions."gen-telemetry-admin"]
   node_bundler = "esbuild"
 
+[functions."validation-overrides"]
+  node_bundler = "esbuild"
+
 [functions."game-stats-admin"]
   node_bundler = "esbuild"
 
@@ -91,6 +94,11 @@
 [[redirects]]
   from = "/api/gen-telemetry-admin"
   to = "/.netlify/functions/gen-telemetry-admin"
+  status = 200
+
+[[redirects]]
+  from = "/api/validation-overrides"
+  to = "/.netlify/functions/validation-overrides"
   status = 200
 
 [[redirects]]
