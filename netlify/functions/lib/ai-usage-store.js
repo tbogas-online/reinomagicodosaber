@@ -195,7 +195,10 @@ function buildBucketSeries(rows, lookbackMs, bucketMinutes = BUCKET_MINUTES) {
 
   (rows || []).forEach((row) => {
     const key = toLisbonBucketKey(row.bucket_start, bucketMinutes);
-    if (!key || !counts.has(key)) return;
+    if (!key) return;
+    if (!counts.has(key)) {
+      counts.set(key, { requests: 0, errors: 0, tokens: 0 });
+    }
     const slot = counts.get(key);
     slot.requests += Number(row.request_count) || 0;
     slot.errors += Number(row.error_count) || 0;

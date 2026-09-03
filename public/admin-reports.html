@@ -5559,7 +5559,10 @@
       }
       (rows || []).forEach((row) => {
         const key = aiUsageToLisbonBucketKey(row.bucket_start, bucketMinutes);
-        if (!key || !counts.has(key)) return;
+        if (!key) return;
+        if (!counts.has(key)) {
+          counts.set(key, { requests: 0, errors: 0, tokens: 0 });
+        }
         const slot = counts.get(key);
         slot.requests += Number(row.request_count) || 0;
         slot.errors += Number(row.error_count) || 0;
@@ -5635,6 +5638,14 @@
 
     function buildAiUsageView(aiUsage) {
       if (!aiUsage?.available) return { timeline: null, summary: null, filterLabel: '' };
+      const hasFilter = !!(aiUsageProviderFilter || aiUsageModelFilter);
+      if (!hasFilter && aiUsage.timeline) {
+        return {
+          timeline: aiUsage.timeline,
+          summary: aiUsage.summary,
+          filterLabel: '',
+        };
+      }
       const dimensionRows = Array.isArray(aiUsage.dimensionRows) ? aiUsage.dimensionRows : [];
       if (!dimensionRows.length) {
         return {
@@ -5695,6 +5706,10 @@
     }
 
     function buildAiUsageMinuteView(aiUsage) {
+      const hasFilter = !!(aiUsageProviderFilter || aiUsageModelFilter);
+      if (!hasFilter && aiUsage?.minuteTimeline) {
+        return { bucket: aiUsage.minuteTimeline, filterLabel: '' };
+      }
       const minuteRows = Array.isArray(aiUsage?.minuteDimensionRows) ? aiUsage.minuteDimensionRows : [];
       if (!minuteRows.length && aiUsage?.minuteTimeline) {
         return { bucket: aiUsage.minuteTimeline, filterLabel: '' };
