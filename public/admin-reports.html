@@ -571,6 +571,11 @@
       border-bottom: 1px solid rgba(255, 255, 255, 0.06);
       vertical-align: middle;
     }
+    .bank-matrix td.bank-created-at {
+      white-space: nowrap;
+      font-size: 0.82rem;
+      color: var(--muted, #94a3b8);
+    }
     .bank-matrix tbody tr:hover td {
       background: rgba(255, 255, 255, 0.03);
     }
@@ -1432,30 +1437,251 @@
     .pending-review-list {
       display: flex;
       flex-direction: column;
-      gap: 10px;
+      gap: 14px;
+      margin-top: 4px;
+    }
+    .pending-review-empty {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      padding: 28px 16px;
+      border-radius: 10px;
+      border: 1px dashed color-mix(in srgb, var(--border) 80%, transparent);
+      background: rgba(15, 23, 42, 0.25);
+      color: var(--muted);
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    .pending-review-empty-icon {
+      font-size: 1.6rem;
+      opacity: 0.7;
     }
     .pending-review-item {
-      padding: 10px;
-      border-radius: 8px;
-      border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
-      background: rgba(15, 23, 42, 0.35);
-      font-size: 11px;
+      border-radius: 12px;
+      border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--border));
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(15, 23, 42, 0.55) 42%);
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
+      overflow: hidden;
+      font-size: 0.88rem;
     }
-    .pending-review-meta {
+    .pending-review-header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px 12px;
+      padding: 10px 14px;
+      border-bottom: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .pending-review-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .pending-review-time {
+      font-size: 0.78rem;
       color: var(--muted);
-      margin-bottom: 6px;
+      white-space: nowrap;
+    }
+    .pending-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      line-height: 1.3;
+      border: 1px solid transparent;
+    }
+    .pending-pill-cat {
+      color: #93c5fd;
+      background: rgba(59, 130, 246, 0.14);
+      border-color: rgba(59, 130, 246, 0.28);
+    }
+    .pending-pill-age {
+      color: #c4b5fd;
+      background: rgba(139, 92, 246, 0.14);
+      border-color: rgba(139, 92, 246, 0.28);
+    }
+    .pending-pill-issue {
+      color: #fcd34d;
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.32);
+    }
+    .pending-review-body {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 220px;
+      gap: 14px;
+      padding: 14px;
+    }
+    @media (max-width: 860px) {
+      .pending-review-body {
+        grid-template-columns: 1fr;
+      }
+    }
+    .pending-review-main {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      min-width: 0;
+    }
+    .pending-review-row-2 {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+      gap: 10px;
+    }
+    @media (max-width: 640px) {
+      .pending-review-row-2 { grid-template-columns: 1fr; }
+    }
+    .pending-field label {
+      display: block;
+      margin-bottom: 4px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+    .pending-field textarea,
+    .pending-field input[type="text"],
+    .pending-field select {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid color-mix(in srgb, var(--border) 85%, transparent);
+      background: rgba(15, 23, 42, 0.72);
+      color: var(--text);
+      font: inherit;
+      line-height: 1.4;
+    }
+    .pending-field textarea {
+      min-height: 64px;
+      resize: vertical;
+    }
+    .pending-field textarea.pending-review-options {
+      min-height: 88px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+    }
+    .pending-field select:focus,
+    .pending-field textarea:focus,
+    .pending-field input:focus {
+      outline: none;
+      border-color: rgba(59, 130, 246, 0.55);
+      box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+    }
+    .pending-review-aside {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 12px;
+      border-radius: 10px;
+      border: 1px solid color-mix(in srgb, var(--border) 75%, transparent);
+      background: rgba(11, 18, 32, 0.72);
+    }
+    .pending-diff-panel h4 {
+      margin: 0 0 8px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #94a3b8;
+    }
+    .pending-diff-compare {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 8px;
+    }
+    .pending-diff-pill {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2.2rem;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+    }
+    .pending-diff-pill small {
+      font-weight: 500;
+      font-size: 0.65rem;
+      margin-right: 4px;
+      opacity: 0.85;
+    }
+    .pending-diff-pill.requested {
+      color: #93c5fd;
+      background: rgba(59, 130, 246, 0.12);
+      border-color: rgba(59, 130, 246, 0.25);
+    }
+    .pending-diff-pill.estimated {
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.14);
+      border-color: rgba(245, 158, 11, 0.3);
+    }
+    .pending-diff-arrow {
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+    .pending-review-aside .difficulty-scale-hint {
+      margin: 6px 0 0;
+      font-size: 0.68rem;
+    }
+    .pending-review-aside select.pending-review-difficulty {
+      margin-top: 4px;
+    }
+    .pending-review-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: auto;
+    }
+    .pending-review-actions button {
+      width: 100%;
+      justify-content: center;
+    }
+    .pending-review-actions .pending-review-dismiss-btn {
+      opacity: 0.9;
+    }
+    #bankPendingReviewSection .pending-review-kpis {
+      margin-bottom: 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    #bankPendingStatus.status.ok {
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+    }
+    .pending-review-count {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 1.5rem;
+      padding: 2px 8px;
+      margin-left: 8px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #fcd34d;
+      background: rgba(245, 158, 11, 0.18);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      vertical-align: middle;
     }
     .difficulty-scale-hint {
       margin: 2px 0 6px;
       font-size: 10px;
       color: var(--muted);
       line-height: 1.35;
-    }
-    .pending-review-actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-      margin-top: 8px;
     }
     .issue-detail-list .issue-override-active {
       font-size: 10px;
@@ -2182,7 +2408,7 @@
         <div class="card" id="bankPendingReviewSection">
           <div class="row" style="justify-content:space-between; margin-bottom:8px; width:100%; align-items:flex-start;">
             <div>
-              <h2 class="charts-title" style="margin:0;">Fila de revisão (dificuldade)</h2>
+              <h2 class="charts-title" style="margin:0;">Fila de revisão (dificuldade)<span id="bankPendingCount" class="pending-review-count hidden" aria-live="polite"></span></h2>
               <p class="sub" style="margin:6px 0 0;">Perguntas com dificuldade errada — novas entram automaticamente ao jogar; as antigas podes importar da telemetria.</p>
             </div>
             <div class="bulk-bar" style="gap:6px; margin:0;">
@@ -2190,7 +2416,7 @@
               <button type="button" class="secondary" id="bankPendingRefreshBtn">↻ Actualizar fila</button>
             </div>
           </div>
-          <div class="card stats telemetry-kpis" id="bankPendingStatsRow" style="margin-bottom:10px; padding:10px 12px;"></div>
+          <div class="card stats telemetry-kpis pending-review-kpis" id="bankPendingStatsRow"></div>
           <p class="status" id="bankPendingStatus"></p>
           <div id="bankPendingList" class="pending-review-list"></div>
         </div>
@@ -2230,20 +2456,21 @@
           </div>
           <p class="status" id="bankSearchStatus"></p>
           <div class="bank-matrix-wrap">
-            <table>
+            <table id="bankSearchTable" class="bank-matrix bank-search-matrix">
               <thead>
                 <tr>
                   <th style="width:28px;"><input type="checkbox" id="bankSelectAll" aria-label="Seleccionar todas"></th>
-                  <th>Pergunta</th>
-                  <th>Resposta</th>
-                  <th>Cat.</th>
-                  <th>Idade</th>
-                  <th>Hash</th>
+                  <th class="sortable" data-bank-search-sort="question" title="Ordenar por pergunta">Pergunta</th>
+                  <th class="sortable" data-bank-search-sort="answer" title="Ordenar por resposta">Resposta</th>
+                  <th class="sortable" data-bank-search-sort="category" title="Ordenar por categoria">Cat.</th>
+                  <th class="sortable" data-bank-search-sort="age" title="Ordenar por idade">Idade</th>
+                  <th class="sortable" data-bank-search-sort="hash" title="Ordenar por hash">Hash</th>
+                  <th class="sortable sort-active sort-desc" data-bank-search-sort="created_at" title="Ordenar por data de inserção">Inserida</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody id="bankSearchBody">
-                <tr><td colspan="7" class="sub">Pesquisa por texto/hash ou lista por categoria.</td></tr>
+                <tr><td colspan="8" class="sub">Pesquisa por texto/hash ou lista por categoria.</td></tr>
               </tbody>
             </table>
           </div>
@@ -5672,6 +5899,15 @@
     let bankLoading = false;
     let lastBankStats = null;
     let lastBankSearchRows = [];
+    let bankSearchSort = { key: 'created_at', dir: 'desc' };
+    const BANK_SEARCH_SORT_DEFAULT_DIR = {
+      created_at: 'desc',
+      category: 'asc',
+      age: 'asc',
+      hash: 'asc',
+      question: 'asc',
+      answer: 'asc',
+    };
     const selectedBankHashes = new Set();
     let bankSearchLoading = false;
     let lastPendingReviewItems = [];
@@ -5775,6 +6011,45 @@
       return { historyRemoved, gameRoundsRemoved, blocked };
     }
 
+    function formatPendingIssueLabel(code) {
+      const labels = {
+        DIFFICULTY_HARDER_THAN_REQUESTED: 'Mais difícil que pedido',
+        DIFFICULTY_EASIER_THAN_REQUESTED: 'Mais fácil que pedido',
+        DIFFICULTY_OUT_OF_RANGE: 'Fora da escala',
+      };
+      return labels[String(code || '').trim()] || String(code || '').trim();
+    }
+
+    function updatePendingReviewCount(count) {
+      const el = document.getElementById('bankPendingCount');
+      if (!el) return;
+      const n = Number(count) || 0;
+      if (n > 0) {
+        el.textContent = String(n);
+        el.classList.remove('hidden');
+        el.title = `${n} pergunta(s) pendente(s)`;
+      } else {
+        el.textContent = '';
+        el.classList.add('hidden');
+        el.removeAttribute('title');
+      }
+    }
+
+    function renderPendingReviewDiffCompare(requested, estimated) {
+      const req = requested != null && requested !== '' ? Number(requested) : null;
+      const est = estimated != null && estimated !== '' ? Number(estimated) : null;
+      if (req == null && est == null) {
+        return '<p class="sub" style="margin:0;font-size:0.78rem;">Sem dados de dificuldade.</p>';
+      }
+      return `
+        <div class="pending-diff-compare">
+          ${req != null ? `<span class="pending-diff-pill requested" title="Dificuldade pedida"><small>Pedida</small>${req}</span>` : ''}
+          ${req != null && est != null ? '<span class="pending-diff-arrow" aria-hidden="true">→</span>' : ''}
+          ${est != null ? `<span class="pending-diff-pill estimated" title="Dificuldade estimada pela IA"><small>Estimada</small>${est}</span>` : ''}
+        </div>
+      `;
+    }
+
     function renderPendingReviewStats(stats) {
       const el = document.getElementById('bankPendingStatsRow');
       if (!el) return;
@@ -5807,41 +6082,69 @@
       const el = document.getElementById('bankPendingList');
       if (!el) return;
       const list = Array.isArray(items) ? items : [];
+      updatePendingReviewCount(list.length);
       if (!list.length) {
-        el.innerHTML = '<p class="sub">Sem perguntas pendentes de revisão.</p>';
+        el.innerHTML = `
+          <div class="pending-review-empty">
+            <span class="pending-review-empty-icon" aria-hidden="true">📋</span>
+            <p><strong>Sem perguntas pendentes</strong></p>
+            <p class="sub" style="margin:0;">Novas entram ao jogar; usa «Importar da telemetria» para histórico.</p>
+          </div>
+        `;
         return;
       }
       el.innerHTML = list.map((row) => {
         const opts = Array.isArray(row.options) ? row.options : [];
         const when = row.createdAt ? formatPortugalDateTime(row.createdAt) : '';
-        const diffHint = `Pedida: ${row.requestedDifficulty ?? '—'} · Estimada: ${row.estimatedDifficulty ?? '—'}`;
+        const issueLabel = row.issueCodes?.length
+          ? formatPendingIssueLabel(row.issueCodes[0])
+          : 'Dificuldade';
         return `
-          <div class="pending-review-item" data-pending-id="${esc(row.id)}">
-            <div class="pending-review-meta">
-              ${when ? `${esc(when)} · ` : ''}${esc(bankCategoryLabel(row.categoryN))} · ${esc(row.ageBand || '—')}
-              · ${esc(diffHint)}
-              ${row.issueCodes?.length ? ` · ${esc(row.issueCodes.join(', '))}` : ''}
+          <article class="pending-review-item" data-pending-id="${esc(row.id)}">
+            <header class="pending-review-header">
+              <div class="pending-review-badges">
+                <span class="pending-pill pending-pill-cat">${esc(bankCategoryLabel(row.categoryN))}</span>
+                <span class="pending-pill pending-pill-age">${esc(row.ageBand || '—')}</span>
+                <span class="pending-pill pending-pill-issue">${esc(issueLabel)}</span>
+              </div>
+              ${when ? `<time class="pending-review-time" datetime="${esc(row.createdAt || '')}">${esc(when)}</time>` : ''}
+            </header>
+            <div class="pending-review-body">
+              <div class="pending-review-main">
+                <div class="pending-field">
+                  <label for="pr-q-${esc(row.id)}">Pergunta</label>
+                  <textarea id="pr-q-${esc(row.id)}" class="pending-review-question" rows="3">${esc(row.question || '')}</textarea>
+                </div>
+                <div class="pending-review-row-2">
+                  <div class="pending-field">
+                    <label for="pr-a-${esc(row.id)}">Resposta correcta</label>
+                    <input id="pr-a-${esc(row.id)}" type="text" class="pending-review-answer" value="${esc(row.correctAnswer || '')}">
+                  </div>
+                  <div class="pending-field">
+                    <label for="pr-o-${esc(row.id)}">Opções (uma por linha)</label>
+                    <textarea id="pr-o-${esc(row.id)}" class="pending-review-options" rows="4">${esc(opts.join('\n'))}</textarea>
+                  </div>
+                </div>
+              </div>
+              <aside class="pending-review-aside">
+                <div class="pending-diff-panel">
+                  <h4>Dificuldade no banco</h4>
+                  ${renderPendingReviewDiffCompare(row.requestedDifficulty, row.estimatedDifficulty)}
+                  ${renderDifficultyScaleHint(row.ageBand || '15+')}
+                  ${renderDifficultySelect(
+                    'pending-review-difficulty',
+                    row.ageBand || '15+',
+                    row.estimatedDifficulty ?? row.requestedDifficulty,
+                    'aria-label="Dificuldade no banco"',
+                  )}
+                </div>
+                <div class="pending-review-actions">
+                  <button type="button" class="primary pending-review-accept-btn" data-pending-id="${esc(row.id)}">✓ Aceitar no banco</button>
+                  <button type="button" class="secondary pending-review-dismiss-btn" data-pending-id="${esc(row.id)}">✕ Descartar</button>
+                </div>
+              </aside>
             </div>
-            <label>Pergunta</label>
-            <textarea class="pending-review-question">${esc(row.question || '')}</textarea>
-            <label>Resposta correcta</label>
-            <input type="text" class="pending-review-answer" value="${esc(row.correctAnswer || '')}">
-            <label>Opções (uma por linha)</label>
-            <textarea class="pending-review-options">${esc(opts.join('\n'))}</textarea>
-            <label class="telemetry-accept-label">Dificuldade no banco
-              <span class="telemetry-diff-hint">${esc(diffHint)}</span>
-            </label>
-            ${renderDifficultyScaleHint(row.ageBand || '15+')}
-            ${renderDifficultySelect(
-              'pending-review-difficulty',
-              row.ageBand || '15+',
-              row.estimatedDifficulty ?? row.requestedDifficulty,
-            )}
-            <div class="pending-review-actions">
-              <button type="button" class="primary pending-review-accept-btn" data-pending-id="${esc(row.id)}">✓ Aceitar no banco</button>
-              <button type="button" class="secondary pending-review-dismiss-btn" data-pending-id="${esc(row.id)}">✕ Descartar</button>
-            </div>
-          </div>
+          </article>
         `;
       }).join('');
     }
@@ -5900,7 +6203,7 @@
         if (statusEl) {
           statusEl.textContent = lastPendingReviewItems.length
             ? `${lastPendingReviewItems.length} pergunta(s) pendente(s).`
-            : 'Fila vazia.';
+            : 'Sem perguntas pendentes de revisão. Novas entram ao jogar; usa «Importar da telemetria» para histórico.';
           statusEl.className = lastPendingReviewItems.length ? 'status ok' : 'status';
         }
       } catch (err) {
@@ -6355,22 +6658,83 @@
       }
     }
 
+    function formatBankCreatedAt(iso) {
+      if (!iso) return '—';
+      return formatPortugalDateTime(iso);
+    }
+
+    function bankSearchSortValue(row, key) {
+      switch (key) {
+        case 'question':
+          return String(row.question || '').trim().toLowerCase();
+        case 'answer':
+          return String(row.correct_answer || '').trim().toLowerCase();
+        case 'category': {
+          const cats = bankRowCategoryNs(row);
+          return cats.length ? cats[0] : 999;
+        }
+        case 'age': {
+          const ages = bankRowAgeBands(row);
+          const order = { '6-9': 1, '10-15': 2, '15+': 3 };
+          return ages.length ? (order[ages[0]] || 9) : 9;
+        }
+        case 'hash':
+          return String(row.question_hash || '').trim().toLowerCase();
+        case 'created_at': {
+          const t = new Date(row.created_at).getTime();
+          return Number.isNaN(t) ? 0 : t;
+        }
+        default:
+          return '';
+      }
+    }
+
+    function sortBankSearchRows(rows) {
+      const { key, dir } = bankSearchSort;
+      const sorted = [...(rows || [])];
+      sorted.sort((a, b) => {
+        const av = bankSearchSortValue(a, key);
+        const bv = bankSearchSortValue(b, key);
+        let cmp = 0;
+        if (typeof av === 'number' && typeof bv === 'number') {
+          cmp = av - bv;
+        } else {
+          cmp = String(av).localeCompare(String(bv), 'pt', { sensitivity: 'base', numeric: true });
+        }
+        if (dir === 'desc') cmp = -cmp;
+        return cmp;
+      });
+      return sorted;
+    }
+
+    function updateBankSearchSortHeaders() {
+      document.querySelectorAll('#bankSearchTable thead th[data-bank-search-sort]').forEach((th) => {
+        const key = th.dataset.bankSearchSort;
+        const active = bankSearchSort.key === key;
+        th.classList.toggle('sort-active', active);
+        th.classList.toggle('sort-asc', active && bankSearchSort.dir === 'asc');
+        th.classList.toggle('sort-desc', active && bankSearchSort.dir === 'desc');
+        th.setAttribute('aria-sort', active ? (bankSearchSort.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+      });
+    }
+
     function renderBankSearchResults(rows) {
-      lastBankSearchRows = rows || [];
+      lastBankSearchRows = sortBankSearchRows(rows || []);
       const body = document.getElementById('bankSearchBody');
       if (!body) return;
+      updateBankSearchSortHeaders();
       if (!lastBankSearchRows.length) {
-        body.innerHTML = '<tr><td colspan="7" class="sub">Nenhuma pergunta encontrada.</td></tr>';
+        body.innerHTML = '<tr><td colspan="8" class="sub">Nenhuma pergunta encontrada.</td></tr>';
         updateBankDeleteUi();
         return;
       }
-      const catMap = Object.fromEntries(BANK_CATEGORIES.map((c) => [String(c.n), c.name]));
       body.innerHTML = lastBankSearchRows.map((row) => {
         const hash = row.question_hash || '';
         const checked = selectedBankHashes.has(hash) ? 'checked' : '';
         const reported = row.is_reported ? ' · reportada' : '';
         const isOpen = openBankHashes.has(hash);
         const optCount = Array.isArray(row.options) ? row.options.filter((o) => String(o || '').trim()).length : 0;
+        const createdLabel = formatBankCreatedAt(row.created_at);
         const releaseBtn = row.in_quarantine
           ? `<button type="button" class="secondary bank-release-quarantine" data-hash="${esc(hash)}" title="Libertar da quarentena anti-reuso">Libertar</button>`
           : '';
@@ -6381,6 +6745,7 @@
           <td>${esc(formatTaxonomyCategories(bankRowCategoryNs(row)))}</td>
           <td>${esc(formatTaxonomyAgeBands(bankRowAgeBands(row)))}</td>
           <td><code>${esc(hash || '—')}</code></td>
+          <td class="bank-created-at" title="${esc(createdLabel)}">${esc(createdLabel)}</td>
           <td class="actions-cell">
             <button type="button" class="secondary toggle-bank-detail" data-hash="${esc(hash)}" title="${isOpen ? 'Ocultar opções e detalhe' : 'Ver opções e validar se a pergunta está correcta'}">${isOpen ? 'Fechar' : 'Opções'}</button>
             ${releaseBtn}
@@ -6388,7 +6753,7 @@
           </td>
         </tr>
         <tr class="bank-detail-row${isOpen ? ' open' : ''}" data-bank-detail-for="${esc(hash)}">
-          <td colspan="7">${renderBankDetailPanel(row)}</td>
+          <td colspan="8">${renderBankDetailPanel(row)}</td>
         </tr>`;
       }).join('');
       updateBankDeleteUi();
@@ -7676,11 +8041,16 @@
         return;
       }
       if (noteEl) {
-        noteEl.innerHTML = `No período: <strong>${bucket.totalSaved || 0}</strong> guardada(s) · <strong>${bucket.totalAi || 0}</strong> via IA (jogo + teste).`;
+        noteEl.innerHTML = `No período: <strong>${bucket.totalSaved || 0}</strong> guardada(s) · <strong>${bucket.totalAi || 0}</strong> via IA · <strong>${bucket.totalManual || 0}</strong> validação manual.`;
       }
       renderDualLineChart(chartEl, bucket.saved, bucket.ai, '#f59e0b', '#3b82f6', {
         labelA: 'Guardadas no banco',
         labelB: 'Via IA (jogo + teste)',
+        extraSeries: [{
+          data: bucket.manual || [],
+          color: '#10b981',
+          label: 'Validação manual',
+        }],
         granularity: meta.granularity,
         formatLabel: formatBankTimelineLabel,
       });
@@ -8984,6 +9354,19 @@
       }
     });
     document.getElementById('bankSearchBtn')?.addEventListener('click', () => searchBankQuestions());
+    document.getElementById('bankSearchTable')?.querySelector('thead')?.addEventListener('click', (e) => {
+      const th = e.target.closest('th[data-bank-search-sort]');
+      if (!th) return;
+      const key = th.dataset.bankSearchSort;
+      if (!key) return;
+      if (bankSearchSort.key === key) {
+        bankSearchSort.dir = bankSearchSort.dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        bankSearchSort.key = key;
+        bankSearchSort.dir = BANK_SEARCH_SORT_DEFAULT_DIR[key] || 'asc';
+      }
+      renderBankSearchResults(lastBankSearchRows);
+    });
     document.getElementById('bankListCategoryBtn')?.addEventListener('click', () => listBankCategory());
     document.getElementById('bankDeleteCategoryBtn')?.addEventListener('click', () => deleteBankByCategory());
     document.getElementById('bankSearchQuery')?.addEventListener('keydown', (e) => {

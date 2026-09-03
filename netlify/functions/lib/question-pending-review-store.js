@@ -65,15 +65,15 @@ async function queuePendingReviewEntry(meta = {}) {
 async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
   const capped = Math.min(Math.max(Number(limit) || 300, 1), 1000);
   const dayCount = Math.min(Math.max(Number(days) || 90, 1), 365);
-  const since = new Date(Date.now() - dayCount * 24 * 60 * 60 * 1000).toISOString();
+  const sinceIso = new Date(Date.now() - dayCount * 24 * 60 * 60 * 1000).toISOString();
 
   const params = new URLSearchParams({
     select: 'category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options',
     outcome: 'eq.rejected',
-    event_ts: `gte.${since}`,
+    created_at: `gte.${sinceIso}`,
     question_text: 'not.is.null',
     answer_text: 'not.is.null',
-    order: 'event_ts.desc',
+    order: 'created_at.desc',
     limit: String(capped),
   });
 

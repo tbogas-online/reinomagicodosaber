@@ -5,6 +5,19 @@ const LISBON_TZ = 'Europe/Lisbon';
 
 const AI_SOURCES = new Set(['ai', 'test-page']);
 
+const MANUAL_VALIDATION_SOURCES = new Set([
+  'corrected',
+  'pending-review',
+  'telemetry-accepted',
+  'report_fields',
+  'report-corrected',
+  'manual',
+]);
+
+function isManualValidationSource(source) {
+  return MANUAL_VALIDATION_SOURCES.has(String(source || '').trim().toLowerCase());
+}
+
 function hashQuestionKey(text) {
   const s = String(text || '');
   let h = 2166136261;
@@ -129,35 +142,64 @@ async function supabaseRequest(path, options = {}) {
   return JSON.parse(text);
 }
 
-const BANK_SELECT_BASE = 'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at,difficulty';
+const BANK_SELECT_CORE = 'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at';
+const BANK_SELECT_BASE = `${BANK_SELECT_CORE},difficulty`;
 const BANK_SELECT_FULL = `${BANK_SELECT_BASE},category_ns,age_bands,knowledge_id`;
 
 let bankTaxonomyColumnsAvailable = null;
+let bankDifficultyColumnAvailable = null;
 
 async function queryBankRows(buildParams) {
-  const run = async (useTaxonomy) => {
+  const run = async (useTaxonomy, useDifficulty) => {
+    const select = useTaxonomy
+      ? (useDifficulty ? BANK_SELECT_FULL : `${BANK_SELECT_CORE},category_ns,age_bands,knowledge_id`)
+      : (useDifficulty ? BANK_SELECT_BASE : BANK_SELECT_CORE);
     const params = new URLSearchParams();
-    buildParams(params, useTaxonomy ? BANK_SELECT_FULL : BANK_SELECT_BASE, useTaxonomy);
+    buildParams(params, select, useTaxonomy);
     return supabaseRequest(`/question_bank?${params.toString()}`);
   };
 
-  if (bankTaxonomyColumnsAvailable !== false) {
-    try {
-      const rows = await run(true);
-      bankTaxonomyColumnsAvailable = true;
-      return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: true };
-    } catch (err) {
-      const msg = String(err?.message || err);
-      if (msg.includes('category_ns') || msg.includes('age_bands') || msg.includes('42703')) {
-        bankTaxonomyColumnsAvailable = false;
-      } else {
-        throw err;
+  const tryQuery = async () => {
+    if (bankTaxonomyColumnsAvailable !== false) {
+      try {
+        const rows = await run(true, bankDifficultyColumnAvailable !== false);
+        bankTaxonomyColumnsAvailable = true;
+        if (bankDifficultyColumnAvailable !== false) bankDifficultyColumnAvailable = true;
+        return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: true };
+      } catch (err) {
+        const msg = String(err?.message || err);
+        if (bankDifficultyColumnAvailable !== false
+          && (msg.includes('difficulty') || msg.includes('42703'))) {
+          bankDifficultyColumnAvailable = false;
+          const rows = await run(true, false);
+          bankTaxonomyColumnsAvailable = true;
+          return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: true };
+        }
+        if (msg.includes('category_ns') || msg.includes('age_bands') || msg.includes('42703')) {
+          bankTaxonomyColumnsAvailable = false;
+        } else {
+          throw err;
+        }
       }
     }
-  }
 
-  const rows = await run(false);
-  return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: false };
+    try {
+      const rows = await run(false, bankDifficultyColumnAvailable !== false);
+      if (bankDifficultyColumnAvailable !== false) bankDifficultyColumnAvailable = true;
+      return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: false };
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (bankDifficultyColumnAvailable !== false
+        && (msg.includes('difficulty') || msg.includes('42703'))) {
+        bankDifficultyColumnAvailable = false;
+        const rows = await run(false, false);
+        return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: false };
+      }
+      throw err;
+    }
+  };
+
+  return tryQuery();
 }
 
 function applyBankCategoryParam(params, categoryN, taxonomyColumns) {
@@ -241,7 +283,8 @@ function isAiSource(source) {
 function splitRows(rows) {
   const saved = rows || [];
   const ai = saved.filter((row) => isAiSource(row.source));
-  return { saved, ai };
+  const manual = saved.filter((row) => isManualValidationSource(row.source));
+  return { saved, ai, manual };
 }
 
 function buildMinuteSeries(rows, dateField, lookbackMs, bucketMinutes) {
@@ -340,16 +383,19 @@ function sumSeries(series) {
 }
 
 function buildTimeline(rows) {
-  const { saved, ai } = splitRows(rows);
+  const { saved, ai, manual } = splitRows(rows);
   const timeline = {};
   Object.entries(TIMELINE_RANGE_CONFIG).forEach(([key, config]) => {
     const savedSeries = buildRangeSeries(saved, config);
     const aiSeries = buildRangeSeries(ai, config);
+    const manualSeries = buildRangeSeries(manual, config);
     timeline[key] = {
       saved: savedSeries,
       ai: aiSeries,
+      manual: manualSeries,
       totalSaved: sumSeries(savedSeries),
       totalAi: sumSeries(aiSeries),
+      totalManual: sumSeries(manualSeries),
     };
   });
   return timeline;

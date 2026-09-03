@@ -269,7 +269,11 @@ exports.handler = async (event) => {
           if (msg.includes('question_pending_review') || msg.includes('gen_telemetry_events') || msg.includes('PGRST205')) {
             return json(503, { error: 'Tabelas em falta — executa supabase/question-pending-review.sql e gen-telemetry.sql no Supabase.' });
           }
-          return json(503, { error: 'Não foi possível importar da telemetria.' });
+          return json(503, {
+            error: msg.includes('question_pending_review') || msg.includes('gen_telemetry_events') || msg.includes('PGRST205')
+              ? 'Tabelas em falta — executa supabase/question-pending-review.sql e gen-telemetry.sql no Supabase.'
+              : `Não foi possível importar da telemetria.${msg ? ` (${msg.slice(0, 180)})` : ''}`,
+          });
         }
       }
 
