@@ -1720,6 +1720,50 @@
       border: 1px solid rgba(245, 158, 11, 0.35);
       vertical-align: middle;
     }
+    .bank-pending-review-details > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+    }
+    .bank-pending-review-details > summary::-webkit-details-marker {
+      display: none;
+    }
+    .bank-pending-review-summary {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 2px 0;
+    }
+    .bank-pending-review-summary::before {
+      content: '▸';
+      flex-shrink: 0;
+      margin-top: 4px;
+      font-size: 0.95rem;
+      color: var(--muted);
+      transition: transform 0.15s ease;
+    }
+    .bank-pending-review-details[open] > .bank-pending-review-summary::before {
+      content: '▾';
+      color: #fcd34d;
+    }
+    .bank-pending-review-summary-main {
+      flex: 1;
+      min-width: 0;
+    }
+    .bank-pending-review-hint {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .bank-pending-review-details[open] .bank-pending-review-hint {
+      display: none;
+    }
+    .bank-pending-review-body {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    }
     .difficulty-scale-hint {
       margin: 2px 0 6px;
       font-size: 10px;
@@ -2613,19 +2657,26 @@
         </div>
 
         <div class="card" id="bankPendingReviewSection">
-          <div class="row" style="justify-content:space-between; margin-bottom:8px; width:100%; align-items:flex-start;">
-            <div>
-              <h2 class="charts-title" style="margin:0;">Fila de revisão (dificuldade)<span id="bankPendingCount" class="pending-review-count hidden" aria-live="polite"></span></h2>
-              <p class="sub" style="margin:6px 0 0;">Perguntas com dificuldade errada — novas entram automaticamente ao jogar; as antigas podes importar da telemetria.</p>
+          <details class="bank-pending-review-details" id="bankPendingReviewDetails">
+            <summary class="bank-pending-review-summary">
+              <span class="bank-pending-review-summary-main">
+                <h2 class="charts-title" style="margin:0;">Fila de revisão (dificuldade)<span id="bankPendingCount" class="pending-review-count hidden" aria-live="polite"></span></h2>
+                <span class="bank-pending-review-hint">Clica para ver a fila, importar da telemetria ou rever perguntas.</span>
+              </span>
+            </summary>
+            <div class="bank-pending-review-body">
+              <div class="row" style="justify-content:space-between; margin-bottom:8px; width:100%; align-items:flex-start;">
+                <p class="sub" style="margin:0;">Perguntas com dificuldade errada — novas entram automaticamente ao jogar; as antigas podes importar da telemetria.</p>
+                <div class="bulk-bar" style="gap:6px; margin:0;">
+                  <button type="button" class="primary" id="bankPendingImportBtn" title="Importar rejeições de dificuldade já guardadas na telemetria IA">📥 Importar da telemetria</button>
+                  <button type="button" class="secondary" id="bankPendingRefreshBtn">↻ Actualizar fila</button>
+                </div>
+              </div>
+              <div class="card stats telemetry-kpis pending-review-kpis" id="bankPendingStatsRow"></div>
+              <p class="status" id="bankPendingStatus"></p>
+              <div id="bankPendingList" class="pending-review-list"></div>
             </div>
-            <div class="bulk-bar" style="gap:6px; margin:0;">
-              <button type="button" class="primary" id="bankPendingImportBtn" title="Importar rejeições de dificuldade já guardadas na telemetria IA">📥 Importar da telemetria</button>
-              <button type="button" class="secondary" id="bankPendingRefreshBtn">↻ Actualizar fila</button>
-            </div>
-          </div>
-          <div class="card stats telemetry-kpis pending-review-kpis" id="bankPendingStatsRow"></div>
-          <p class="status" id="bankPendingStatus"></p>
-          <div id="bankPendingList" class="pending-review-list"></div>
+          </details>
         </div>
 
         <div class="card" id="bankManageSection">
@@ -8843,6 +8894,7 @@
         <div class="stat stat-top-issue"><strong>${stats.blocked || 0}</strong><span>Hashes bloqueados</span></div>
       `;
       renderPendingReviewStats(pr);
+      updatePendingReviewCount(pr.available === false ? 0 : (pr.pending ?? 0));
       const alertEl = document.getElementById('bankInvalidAlert');
       if (alertEl) {
         const invalid = Number(stats.invalidActive) || 0;
@@ -9823,7 +9875,9 @@
         renderBankCategoryChart(lastBankStats);
         renderBankMatrix(lastBankStats);
         renderBankQuarantineMatrix(lastBankStats);
-        await loadPendingReviewQueue({ quiet: true });
+        if (document.getElementById('bankPendingReviewDetails')?.open) {
+          await loadPendingReviewQueue({ quiet: true });
+        }
         const updatedEl = document.getElementById('bankLastUpdated');
         if (updatedEl) updatedEl.textContent = `Actualizado às ${formatPortugalDateTime(new Date())}`;
         if (!quiet && statusEl) statusEl.textContent = '';
@@ -10407,6 +10461,9 @@
       const row = ageCheck.closest('.validation-age-diff-row');
       const sel = row?.querySelector('select');
       if (sel) sel.disabled = !ageCheck.checked;
+    });
+    document.getElementById('bankPendingReviewDetails')?.addEventListener('toggle', (e) => {
+      if (e.target.open) loadPendingReviewQueue({ quiet: true });
     });
     document.getElementById('bankPendingImportBtn')?.addEventListener('click', () => importPendingReviewFromTelemetry());
     document.getElementById('bankPendingRefreshBtn')?.addEventListener('click', () => loadPendingReviewQueue());
