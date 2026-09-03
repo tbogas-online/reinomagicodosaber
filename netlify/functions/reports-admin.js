@@ -5,6 +5,8 @@ const {
   listReports,
   getStats,
   updateReportStatus,
+  updateReportTaxonomy,
+  updateReportCategory,
   updateManyReportStatuses,
   deleteReport,
   deleteManyReports,
@@ -67,6 +69,62 @@ exports.handler = async (event) => {
         console.error('[reports-admin] list failed:', err);
         return json(503, { error: 'Não foi possível listar reportes.' });
       }
+    }
+
+    if (event.httpMethod === 'POST') {
+      let body = {};
+      try {
+        body = event.body ? JSON.parse(event.body) : {};
+      } catch {
+        return json(400, { error: 'Corpo JSON inválido.' });
+      }
+
+      if (body.action === 'update-taxonomy') {
+        const reportId = String(body.reportId || '').trim();
+        if (!reportId) {
+          return json(400, { error: 'Falta reportId.' });
+        }
+        try {
+          const result = await updateReportTaxonomy(reportId, {
+            categoryNs: body.categoryNs,
+            categoryN: body.categoryN,
+            ageBands: body.ageBands,
+            ageBand: body.ageBand,
+          }, event, {
+            updateBank: body.updateBank !== false,
+          });
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[reports-admin] update-taxonomy failed:', err);
+          if (err.code === 'NOT_FOUND' || err.code === 'INVALID_CATEGORY'
+            || err.code === 'INVALID_AGE_BAND' || err.code === 'INVALID_REPORT') {
+            return json(400, { error: err.message });
+          }
+          return json(503, { error: 'Não foi possível actualizar a classificação do reporte.' });
+        }
+      }
+
+      if (body.action === 'update-category') {
+        const reportId = String(body.reportId || '').trim();
+        const categoryN = Number(body.categoryN);
+        if (!reportId) {
+          return json(400, { error: 'Falta reportId.' });
+        }
+        try {
+          const result = await updateReportCategory(reportId, categoryN, event, {
+            updateBank: body.updateBank !== false,
+          });
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[reports-admin] update-category failed:', err);
+          if (err.code === 'NOT_FOUND' || err.code === 'INVALID_CATEGORY' || err.code === 'INVALID_REPORT') {
+            return json(400, { error: err.message });
+          }
+          return json(503, { error: 'Não foi possível actualizar a categoria do reporte.' });
+        }
+      }
+
+      return json(400, { error: 'Acção desconhecida.' });
     }
 
     if (event.httpMethod === 'PATCH') {

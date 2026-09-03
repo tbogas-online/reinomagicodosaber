@@ -11,6 +11,15 @@ const ATTACHMENT_PREFIX = 'attachment:';
 const MAX_ATTACHMENT_BYTES = 1.5 * 1024 * 1024;
 const ALLOWED_ATTACHMENT_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/gif']);
 
+const {
+  categoryNameFromN,
+  normalizeCategoryNs,
+  normalizeAgeBands,
+  normalizeReportCategoryNs,
+  normalizeReportAgeBands,
+  arraysEqual,
+} = require('./question-taxonomy');
+
 function isSiteIssueType(issueType) {
   return String(issueType || '').startsWith('site_');
 }
@@ -25,13 +34,225 @@ function hashQuestionKey(text) {
   return (h >>> 0).toString(36);
 }
 
+function parseGameQuestionId(value) {
+  const m = String(value || '').trim().match(/^rmq-(\d{1,2})-(.+)-([a-z0-9]{4,12})$/i);
+  if (!m) return null;
+  const categoryN = Number(m[1]);
+  const hash = String(m[3] || '').trim();
+  if (!categoryN || categoryN < 1 || categoryN > 20 || !hash) return null;
+  return { categoryN, ageBand: String(m[2] || '').trim(), hash };
+}
+
 function questionHashFromReport(report) {
+  const fromId = parseGameQuestionId(report?.questionId);
+  if (fromId?.hash) return fromId.hash;
   const q = String(report?.question || '').trim();
   const a = String(report?.correctAnswer || '').trim();
   if (q && a) return hashQuestionKey(`${q}|${a}`);
   const qid = String(report?.questionId || '').trim();
   if (/^[a-z0-9]{4,12}$/i.test(qid)) return qid;
   return '';
+}
+
+function applyCorrectionToReport(report, correction) {
+  if (!report || !correction || typeof correction !== 'object') return false;
+  const strip = (value) => String(value || '').trim();
+  let changed = false;
+
+  const nextQuestion = strip(correction.question);
+  const nextAnswer = strip(correction.answer);
+  const currentQuestion = strip(report.question);
+  const currentAnswer = strip(report.correctAnswer);
+
+  if (nextQuestion && nextQuestion !== currentQuestion) {
+    if (!report.originalQuestion) report.originalQuestion = currentQuestion;
+    report.question = nextQuestion;
+    changed = true;
+  }
+  if (nextAnswer && nextAnswer !== currentAnswer) {
+    if (!report.originalCorrectAnswer) report.originalCorrectAnswer = currentAnswer;
+    report.correctAnswer = nextAnswer;
+    changed = true;
+  }
+
+  if (Array.isArray(correction.options) && correction.options.length >= 2) {
+    const nextOptions = correction.options.map(strip).filter(Boolean);
+    const normOpts = (arr) => (arr || []).map(strip).join('\n');
+    if (normOpts(nextOptions) !== normOpts(report.options)) {
+      if (!report.originalOptions) report.originalOptions = Array.isArray(report.options) ? [...report.options] : [];
+      report.options = nextOptions;
+      changed = true;
+    }
+  }
+
+  const nextFormat = strip(correction.format);
+  if (nextFormat && nextFormat !== strip(report.format)) {
+    if (!report.originalFormat) report.originalFormat = report.format || null;
+    report.format = nextFormat;
+    changed = true;
+  } else if (Array.isArray(correction.options) && correction.options.length >= 2
+    && strip(report.format) !== 'ESCOLHA_MULTIPLA') {
+    if (!report.originalFormat) report.originalFormat = report.format || null;
+    report.format = 'ESCOLHA_MULTIPLA';
+    changed = true;
+  }
+
+  if (changed) {
+    report.correctedAt = new Date().toISOString();
+    report.questionHash = questionHashFromReport(report);
+  }
+  return changed;
+}
+
+function applyTaxonomyToReport(report, taxonomy = {}) {
+  if (!report) return false;
+  const categoryNs = normalizeCategoryNs(
+    taxonomy.categoryNs,
+    taxonomy.categoryN,
+    { category_ns: report.categoryNs, category_n: report.category?.n },
+  );
+  const ageBands = normalizeAgeBands(
+    taxonomy.ageBands,
+    taxonomy.ageBand,
+    { age_bands: report.ageBands, age_band: report.ageBand },
+  );
+  if (!categoryNs.length || !ageBands.length) return false;
+
+  const prevCats = normalizeReportCategoryNs(report);
+  const prevAges = normalizeReportAgeBands(report);
+  if (arraysEqual(prevCats, categoryNs) && arraysEqual(prevAges, ageBands)) return false;
+
+  if (!report.originalCategoryNs && prevCats.length) report.originalCategoryNs = [...prevCats];
+  if (!report.originalAgeBands && prevAges.length) report.originalAgeBands = [...prevAges];
+  if (!report.originalCategory && report.category?.n != null) {
+    report.originalCategory = { ...report.category };
+  }
+  if (!report.originalAgeBand && report.ageBand) report.originalAgeBand = report.ageBand;
+
+  report.categoryNs = categoryNs;
+  report.categories = categoryNs.map((n) => ({
+    n,
+    name: categoryNameFromN(n),
+    desc: report.category?.desc || '',
+  }));
+  report.category = report.categories[0];
+  report.ageBands = ageBands;
+  report.ageBand = ageBands[0];
+
+  const parsed = parseGameQuestionId(report.questionId);
+  if (parsed?.hash) {
+    report.questionId = `rmq-${categoryNs[0]}-${ageBands[0]}-${parsed.hash}`;
+  }
+
+  report.taxonomyUpdatedAt = new Date().toISOString();
+  return true;
+}
+
+function applyCategoryToReport(report, categoryN) {
+  const ageBands = normalizeReportAgeBands(report);
+  return applyTaxonomyToReport(report, {
+    categoryNs: [Number(categoryN)],
+    ageBands: ageBands.length ? ageBands : ['10-15'],
+  });
+}
+
+async function getReportById(reportId, event) {
+  if (useSupabase()) {
+    await maybeMigrateFromBlobs(event);
+    return supabaseStore.getReport(reportId, storeHelpers);
+  }
+  const store = getReportsStore(event);
+  try {
+    return await store.get(`report:${reportId}`, { type: 'json' });
+  } catch {
+    return null;
+  }
+}
+
+async function updateReportTaxonomy(reportId, taxonomy, event, options = {}) {
+  const report = await getReportById(reportId, event);
+  if (!report) {
+    const err = new Error('Reporte não encontrado.');
+    err.code = 'NOT_FOUND';
+    throw err;
+  }
+  if (isSiteIssueType(report.issueType) || report.source === 'site') {
+    const err = new Error('Reportes de site não têm categoria de pergunta.');
+    err.code = 'INVALID_REPORT';
+    throw err;
+  }
+
+  const categoryNs = normalizeCategoryNs(
+    taxonomy?.categoryNs,
+    taxonomy?.categoryN,
+    { category_ns: report.categoryNs, category_n: report.category?.n },
+  );
+  const ageBands = normalizeAgeBands(
+    taxonomy?.ageBands,
+    taxonomy?.ageBand,
+    { age_bands: report.ageBands, age_band: report.ageBand },
+  );
+  if (!categoryNs.length) {
+    const err = new Error('Indica pelo menos uma categoria (1–20).');
+    err.code = 'INVALID_CATEGORY';
+    throw err;
+  }
+  if (!ageBands.length) {
+    const err = new Error('Indica pelo menos uma faixa etária.');
+    err.code = 'INVALID_AGE_BAND';
+    throw err;
+  }
+
+  const previousCategoryNs = normalizeReportCategoryNs(report);
+  const previousAgeBands = normalizeReportAgeBands(report);
+  const changed = applyTaxonomyToReport(report, { categoryNs, ageBands });
+  if (!changed) {
+    return {
+      ok: true,
+      action: 'unchanged',
+      report,
+      categoryNs,
+      ageBands,
+      previousCategoryNs,
+      previousAgeBands,
+      bank: null,
+    };
+  }
+
+  await saveReport(report, event);
+
+  let bank = null;
+  if (options.updateBank !== false) {
+    const hash = questionHashFromReport(report);
+    if (hash) {
+      try {
+        const { updateQuestionBankTaxonomy } = require('./question-bank-store');
+        bank = await updateQuestionBankTaxonomy(hash, { categoryNs, ageBands });
+      } catch (err) {
+        bank = { ok: false, error: err.message || String(err), code: err.code || null };
+      }
+    }
+  }
+
+  return {
+    ok: true,
+    action: 'updated',
+    report,
+    categoryNs,
+    ageBands,
+    previousCategoryNs,
+    previousAgeBands,
+    bank,
+  };
+}
+
+async function updateReportCategory(reportId, categoryN, event, options = {}) {
+  const report = await getReportById(reportId, event);
+  const ageBands = normalizeReportAgeBands(report || {});
+  return updateReportTaxonomy(reportId, {
+    categoryNs: [Number(categoryN)],
+    ageBands: ageBands.length ? ageBands : ['10-15'],
+  }, event, options);
 }
 
 /**
@@ -93,6 +314,7 @@ const storeHelpers = {
   normalizeReportStatus,
   resolveReportCategoryName,
   questionHashFromReport,
+  applyCorrectionToReport,
   isValidDateFilter,
   reportMatchesSearch,
   computeStatsFromIndex,
@@ -607,6 +829,9 @@ async function updateReportStatus(reportId, status, event, extras = {}) {
     report.reviewDecision = extras.reviewDecision;
     report.reviewedAt = now;
     report.reviewedAtPortugal = formatPortugalDateTime(now);
+    if (extras.reviewDecision.appliedCorrection) {
+      helpers.applyCorrectionToReport(report, extras.reviewDecision.appliedCorrection);
+    }
   }
   await store.setJSON(`report:${report.reportId}`, report);
   const index = await readIndex(store);
@@ -713,6 +938,8 @@ module.exports = {
   listReports,
   getStats,
   updateReportStatus,
+  updateReportTaxonomy,
+  updateReportCategory,
   updateManyReportStatuses,
   getReportStatuses,
   deleteReport,
@@ -721,6 +948,9 @@ module.exports = {
   getQuestionHashesByReportStatus,
   hashQuestionKey,
   questionHashFromReport,
+  applyCorrectionToReport,
+  applyTaxonomyToReport,
+  applyCategoryToReport,
   MAX_ATTACHMENT_BYTES,
   isValidReportId,
   isAllowedAttachmentMime,

@@ -5,6 +5,52 @@ const LISBON_TZ = 'Europe/Lisbon';
 
 const AI_SOURCES = new Set(['ai', 'test-page']);
 
+function hashQuestionKey(text) {
+  const s = String(text || '');
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
+
+/** ID de jogo: rmq-{categoria}-{faixa}-{hash} — ex. rmq-15-15+-7yhneo */
+function parseGameQuestionId(value) {
+  const raw = String(value || '').trim();
+  const m = raw.match(/^rmq-(\d{1,2})-(.+)-([a-z0-9]{4,12})$/i);
+  if (!m) return null;
+  const categoryN = Number(m[1]);
+  const ageBand = String(m[2] || '').trim();
+  const hash = String(m[3] || '').trim();
+  if (!categoryN || categoryN < 1 || categoryN > 20 || !hash) return null;
+  return { categoryN, ageBand, hash, questionId: raw };
+}
+
+function resolveBankSearchKeys({ query = '', hash = '' } = {}) {
+  let queryTrim = String(query || '').trim();
+  let hashTrim = String(hash || '').trim();
+  let categoryN = null;
+  let ageBand = '';
+
+  const fromQuery = parseGameQuestionId(queryTrim);
+  if (fromQuery) {
+    hashTrim = fromQuery.hash;
+    queryTrim = '';
+    categoryN = fromQuery.categoryN;
+    ageBand = fromQuery.ageBand;
+  } else if (!hashTrim) {
+    const fromHash = parseGameQuestionId(hashTrim);
+    if (fromHash) {
+      hashTrim = fromHash.hash;
+      categoryN = fromHash.categoryN;
+      ageBand = fromHash.ageBand;
+    }
+  }
+
+  return { queryTrim, hashTrim, categoryN, ageBand };
+}
+
 const TIMELINE_RANGE_CONFIG = {
   '1h': { lookbackMs: 60 * 60 * 1000, bucketMinutes: 5 },
   '3h': { lookbackMs: 3 * 60 * 60 * 1000, bucketMinutes: 15 },
@@ -81,6 +127,47 @@ async function supabaseRequest(path, options = {}) {
   const text = await response.text();
   if (!text) return null;
   return JSON.parse(text);
+}
+
+const BANK_SELECT_BASE = 'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at';
+const BANK_SELECT_FULL = `${BANK_SELECT_BASE},category_ns,age_bands`;
+
+let bankTaxonomyColumnsAvailable = null;
+
+async function queryBankRows(buildParams) {
+  const run = async (useTaxonomy) => {
+    const params = new URLSearchParams();
+    buildParams(params, useTaxonomy ? BANK_SELECT_FULL : BANK_SELECT_BASE, useTaxonomy);
+    return supabaseRequest(`/question_bank?${params.toString()}`);
+  };
+
+  if (bankTaxonomyColumnsAvailable !== false) {
+    try {
+      const rows = await run(true);
+      bankTaxonomyColumnsAvailable = true;
+      return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: true };
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (msg.includes('category_ns') || msg.includes('age_bands') || msg.includes('42703')) {
+        bankTaxonomyColumnsAvailable = false;
+      } else {
+        throw err;
+      }
+    }
+  }
+
+  const rows = await run(false);
+  return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: false };
+}
+
+function applyBankCategoryParam(params, categoryN, taxonomyColumns) {
+  const cat = Number(categoryN);
+  if (!cat || cat < 1 || cat > 20) return;
+  if (taxonomyColumns) {
+    params.set('or', `(category_ns.cs.{${cat}},category_n.eq.${cat})`);
+  } else {
+    params.set('category_n', `eq.${cat}`);
+  }
 }
 
 function toLisbonDayKey(iso) {
@@ -268,7 +355,14 @@ function buildTimeline(rows) {
   return timeline;
 }
 
-const BANK_AGE_BANDS = ['6-9', '10-15', '15+'];
+const {
+  BANK_AGE_BANDS,
+  normalizeCategoryNs,
+  normalizeAgeBands,
+  buildBankTaxonomyPatch,
+  expandBankRowTaxonomy,
+  arraysEqual,
+} = require('./question-taxonomy');
 
 function rowInRange(iso, config) {
   const t = new Date(iso).getTime();
@@ -286,11 +380,14 @@ function buildTimelineByCategory(rows) {
     }
     (rows || []).forEach((row) => {
       if (!rowInRange(row.created_at, config)) return;
-      const cat = Number(row.category_n);
-      const age = row.age_band;
-      if (!cat || cat < 1 || cat > 20 || !BANK_AGE_BANDS.includes(age)) return;
-      categories[cat][age] += 1;
-      categories[cat].total += 1;
+      const { categoryNs, ageBands } = expandBankRowTaxonomy(row);
+      for (const cat of categoryNs) {
+        for (const age of ageBands) {
+          if (!cat || cat < 1 || cat > 20 || !BANK_AGE_BANDS.includes(age)) continue;
+          categories[cat][age] += 1;
+          categories[cat].total += 1;
+        }
+      }
     });
     byRange[key] = categories;
   });
@@ -302,7 +399,7 @@ async function fetchQuestionTimelineRows() {
   const pageSize = 1000;
   let offset = 0;
   while (true) {
-    const path = `/question_bank?select=created_at,source,category_n,age_band&order=created_at.asc&limit=${pageSize}&offset=${offset}`;
+    const path = `/question_bank?select=created_at,source,category_n,age_band,category_ns,age_bands&order=created_at.asc&limit=${pageSize}&offset=${offset}`;
     const batch = await supabaseRequest(path);
     if (!batch?.length) break;
     rows.push(...batch);
@@ -408,20 +505,25 @@ async function fetchAllBankRowsByCategory(categoryN, options = {}) {
   let offset = 0;
 
   while (true) {
-    const params = new URLSearchParams();
-    params.set('select', 'question_hash,is_reported,question,correct_answer');
-    params.set('category_n', `eq.${cat}`);
-    params.set('order', 'created_at.desc');
-    params.set('limit', String(pageSize));
-    params.set('offset', String(offset));
+    const { rows: batch, taxonomyColumns } = await queryBankRows((params, select, taxonomy) => {
+      params.set('select', select);
+      params.set('order', 'created_at.desc');
+      params.set('limit', String(pageSize));
+      params.set('offset', String(offset));
+      applyBankCategoryParam(params, cat, taxonomy);
+      if (!taxonomy && BANK_AGE_BANDS.includes(ageBand)) {
+        params.set('age_band', `eq.${ageBand}`);
+      }
+      if (reportFilter === 'bank-reported') params.set('is_reported', 'eq.true');
+      if (reportFilter === 'not-reported') params.set('is_reported', 'eq.false');
+    });
 
-    if (BANK_AGE_BANDS.includes(ageBand)) params.set('age_band', `eq.${ageBand}`);
-    if (reportFilter === 'bank-reported') params.set('is_reported', 'eq.true');
-    if (reportFilter === 'not-reported') params.set('is_reported', 'eq.false');
-
-    const batch = await supabaseRequest(`/question_bank?${params.toString()}`);
-    if (!batch?.length) break;
-    rows.push(...batch);
+    let pageRows = batch;
+    if (taxonomyColumns && BANK_AGE_BANDS.includes(ageBand)) {
+      pageRows = pageRows.filter((row) => normalizeAgeBands(null, null, row).includes(ageBand));
+    }
+    if (!pageRows.length) break;
+    rows.push(...pageRows);
     if (batch.length < pageSize) break;
     offset += pageSize;
   }
@@ -460,61 +562,160 @@ async function searchQuestionBank(options = {}) {
   } = options;
 
   const filter = String(reportFilter || 'all').trim() || 'all';
-  const fetchLimit = filter === 'all'
-    ? Math.min(Math.max(Number(limit) || 25, 1), 100)
-    : 1000;
+  const resolved = resolveBankSearchKeys({ query, hash });
+  const queryRaw = String(resolved.queryTrim || query || '').trim();
+  let queryTrim = escapePostgrestFilter(queryRaw);
+  let hashTrim = String(resolved.hashTrim || hash || '').trim().toLowerCase();
+  if (!hashTrim && /^[a-z0-9]{4,12}$/i.test(queryRaw)) {
+    hashTrim = queryRaw.toLowerCase();
+  }
 
-  const params = new URLSearchParams();
-  params.set(
-    'select',
-    'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at',
-  );
-  params.set('order', 'created_at.desc');
-  params.set('limit', String(fetchLimit));
-  params.set('offset', String(Math.max(Number(offset) || 0, 0)));
+  let cat = Number(categoryN);
+  if (!cat && resolved.categoryN) cat = resolved.categoryN;
+  let age = String(ageBand || '').trim();
+  if (!age && resolved.ageBand) age = resolved.ageBand;
 
-  const hashTrim = String(hash || '').trim();
-  const queryTrim = escapePostgrestFilter(query);
+  const hasCategory = cat >= 1 && cat <= 20;
+  const hasAge = BANK_AGE_BANDS.includes(age);
+  const hasText = !!(hashTrim || queryTrim);
+  const hasReportFilter = filter !== 'all';
+  const hasActiveFilter = hasCategory || hasAge || hasText || hasReportFilter;
+  const resultLimit = hasActiveFilter
+    ? 100
+    : Math.min(Math.max(Number(limit) || 25, 1), 100);
+  const fetchLimit = hasReportFilter ? 1000 : Math.max(resultLimit, hasActiveFilter ? 500 : resultLimit);
 
-  const cat = Number(categoryN);
-
-  if (hashTrim) {
-    params.set('question_hash', `eq.${hashTrim}`);
-  } else if (queryTrim) {
-    if (/^[a-z0-9]{4,12}$/i.test(queryTrim)) {
-      params.set('or', `(question_hash.eq.${queryTrim},question.ilike.*${queryTrim}*)`);
-    } else {
-      params.set('question', `ilike.*${queryTrim}*`);
-    }
-  } else if (cat >= 1 && cat <= 20) {
-    params.set('category_n', `eq.${cat}`);
-  } else {
+  if (!hasText && !hasCategory && !hasAge) {
     return { rows: [], total: 0 };
   }
 
-  if (cat >= 1 && cat <= 20 && (hashTrim || queryTrim)) {
-    params.set('category_n', `eq.${cat}`);
+  const { rows: rawRows, taxonomyColumns } = await queryBankRows((params, select, taxonomy) => {
+    params.set('select', select);
+    params.set('order', 'created_at.desc');
+    params.set('limit', String(fetchLimit));
+    params.set('offset', String(Math.max(Number(offset) || 0, 0)));
+
+    if (hashTrim) {
+      params.set('question_hash', `ilike.${hashTrim}`);
+    } else if (queryTrim) {
+      const hashNeedle = escapePostgrestFilter(queryRaw.toLowerCase());
+      if (/^[a-z0-9]{4,12}$/i.test(queryRaw)) {
+        params.set('or', `(question_hash.ilike.${hashNeedle},question.ilike.*${queryTrim}*,correct_answer.ilike.*${queryTrim}*)`);
+      } else {
+        params.set('or', `(question.ilike.*${queryTrim}*,correct_answer.ilike.*${queryTrim}*)`);
+      }
+    } else if (hasCategory) {
+      applyBankCategoryParam(params, cat, taxonomy);
+    } else if (hasAge) {
+      params.set('age_band', `eq.${age}`);
+    }
+
+    if (filter === 'bank-reported') params.set('is_reported', 'eq.true');
+    if (filter === 'not-reported') params.set('is_reported', 'eq.false');
+  });
+
+  let rows = Array.isArray(rawRows) ? rawRows : [];
+  if (hasCategory && hasText) {
+    rows = rows.filter((row) => normalizeCategoryNs(null, null, row).includes(cat));
+  }
+  if (hasAge) {
+    rows = rows.filter((row) => normalizeAgeBands(null, null, row).includes(age));
   }
 
-  const age = String(ageBand || '').trim();
-  if (BANK_AGE_BANDS.includes(age)) params.set('age_band', `eq.${age}`);
-
-  if (filter === 'bank-reported') params.set('is_reported', 'eq.true');
-  if (filter === 'not-reported') params.set('is_reported', 'eq.false');
-
-  const rawRows = await supabaseRequest(`/question_bank?${params.toString()}`);
-  const filtered = filterRowsByReportStatus(
-    Array.isArray(rawRows) ? rawRows : [],
-    filter,
-    reportHashSets,
-  );
-  const capped = filtered.slice(0, Math.min(Math.max(Number(limit) || 25, 1), 100));
+  const filtered = filterRowsByReportStatus(rows, filter, reportHashSets);
+  const capped = filtered.slice(0, resultLimit);
   const quarantined = await getQuarantinedBankHashes(capped.map((r) => r.question_hash));
 
   return {
     rows: capped.map((r) => ({ ...r, in_quarantine: quarantined.has(r.question_hash) })),
     total: filtered.length,
   };
+}
+
+async function updateQuestionBankTaxonomy(questionHash, taxonomy = {}) {
+  const hash = String(questionHash || '').trim();
+  if (!hash) {
+    const err = new Error('Falta question_hash.');
+    err.code = 'MISSING_HASH';
+    throw err;
+  }
+
+  let existingRows;
+  try {
+    existingRows = await supabaseRequest(
+      `/question_bank?question_hash=eq.${encodeURIComponent(hash)}&select=${BANK_SELECT_FULL}&limit=1`,
+    );
+  } catch {
+    existingRows = await supabaseRequest(
+      `/question_bank?question_hash=eq.${encodeURIComponent(hash)}&select=${BANK_SELECT_BASE}&limit=1`,
+    );
+  }
+  const existing = Array.isArray(existingRows) ? existingRows[0] : null;
+  if (!existing) {
+    const err = new Error('Pergunta não encontrada no banco.');
+    err.code = 'NOT_FOUND';
+    throw err;
+  }
+
+  const categoryNs = normalizeCategoryNs(taxonomy.categoryNs, taxonomy.categoryN, existing);
+  const ageBands = normalizeAgeBands(taxonomy.ageBands, taxonomy.ageBand, existing);
+  if (!categoryNs.length) {
+    const err = new Error('Indica pelo menos uma categoria (1–20).');
+    err.code = 'INVALID_CATEGORY';
+    throw err;
+  }
+  if (!ageBands.length) {
+    const err = new Error('Indica pelo menos uma faixa etária.');
+    err.code = 'INVALID_AGE_BAND';
+    throw err;
+  }
+
+  const prevCats = normalizeCategoryNs(null, null, existing);
+  const prevAges = normalizeAgeBands(null, null, existing);
+  if (arraysEqual(prevCats, categoryNs) && arraysEqual(prevAges, ageBands)) {
+    return {
+      ok: true,
+      action: 'unchanged',
+      questionHash: hash,
+      categoryNs,
+      ageBands,
+      previousCategoryNs: prevCats,
+      previousAgeBands: prevAges,
+    };
+  }
+
+  const patch = buildBankTaxonomyPatch(categoryNs, ageBands);
+  const updated = await supabaseRequest(
+    `/question_bank?question_hash=eq.${encodeURIComponent(hash)}`,
+    {
+      method: 'PATCH',
+      headers: { Prefer: 'return=representation' },
+      body: JSON.stringify(patch),
+    },
+  );
+
+  return {
+    ok: true,
+    action: 'updated',
+    questionHash: hash,
+    categoryNs,
+    ageBands,
+    previousCategoryNs: prevCats,
+    previousAgeBands: prevAges,
+    updated: Array.isArray(updated) ? updated.length : 1,
+  };
+}
+
+async function updateQuestionBankCategory(questionHash, categoryN) {
+  const existingRows = await supabaseRequest(
+    `/question_bank?question_hash=eq.${encodeURIComponent(String(questionHash || '').trim())}&select=age_band,age_bands&limit=1`,
+  );
+  const existing = Array.isArray(existingRows) ? existingRows[0] : null;
+  const ageBands = normalizeAgeBands(null, null, existing);
+  return updateQuestionBankTaxonomy(questionHash, {
+    categoryNs: [Number(categoryN)],
+    ageBands,
+  });
 }
 
 async function deleteQuestionsFromBank(hashes, block = true) {
@@ -598,39 +799,9 @@ async function deleteQuestionsByCategory(categoryN, options = {}) {
   };
 }
 
-async function applyReportCorrectionToBank(questionHash, correction = {}) {
+async function unblockQuestionHash(questionHash) {
   const hash = String(questionHash || '').trim();
-  if (!hash) {
-    const err = new Error('Falta question_hash.');
-    err.code = 'MISSING_HASH';
-    throw err;
-  }
-
-  const patch = {
-    is_reported: false,
-    reported_at: null,
-  };
-  if (correction.question) patch.question = String(correction.question).trim();
-  if (correction.answer) patch.correct_answer = String(correction.answer).trim();
-  if (Array.isArray(correction.options) && correction.options.length >= 2) {
-    patch.options = correction.options.map((o) => String(o || '').trim()).filter(Boolean);
-    patch.format = correction.format || 'ESCOLHA_MULTIPLA';
-  } else if (correction.format) {
-    patch.format = correction.format;
-  }
-
-  if (!patch.question && !patch.correct_answer && !patch.options) {
-    const err = new Error('Nada para actualizar na correcção.');
-    err.code = 'EMPTY_PATCH';
-    throw err;
-  }
-
-  await supabaseRequest(`/question_bank?question_hash=eq.${encodeURIComponent(hash)}`, {
-    method: 'PATCH',
-    headers: { Prefer: 'return=representation' },
-    body: JSON.stringify(patch),
-  });
-
+  if (!hash) return;
   try {
     await supabaseRequest(`/question_bank_blocked?question_hash=eq.${encodeURIComponent(hash)}`, {
       method: 'DELETE',
@@ -638,16 +809,122 @@ async function applyReportCorrectionToBank(questionHash, correction = {}) {
   } catch {
     /* pode não existir bloqueio */
   }
+}
 
-  return { ok: true, updated: 1, questionHash: hash };
+async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) {
+  const lookupHash = String(oldHash || '').trim();
+  if (!lookupHash) {
+    const err = new Error('Falta question_hash.');
+    err.code = 'MISSING_HASH';
+    throw err;
+  }
+
+  const finalQuestion = String(correction.question || '').trim();
+  const finalAnswer = String(correction.answer || '').trim();
+  const finalOptions = Array.isArray(correction.options)
+    ? correction.options.map((o) => String(o || '').trim()).filter(Boolean)
+    : null;
+  const finalFormat = correction.format
+    || (finalOptions?.length >= 2 ? 'ESCOLHA_MULTIPLA' : null);
+
+  if (!finalQuestion && !finalAnswer && !finalOptions?.length) {
+    const err = new Error('Nada para actualizar na correcção.');
+    err.code = 'EMPTY_PATCH';
+    throw err;
+  }
+
+  const existingRows = await supabaseRequest(
+    `/question_bank?question_hash=eq.${encodeURIComponent(lookupHash)}&select=*`,
+  );
+  const existing = Array.isArray(existingRows) ? existingRows[0] : null;
+
+  const question = finalQuestion || existing?.question || '';
+  const answer = finalAnswer || existing?.correct_answer || '';
+  const options = finalOptions?.length >= 2 ? finalOptions : (existing?.options || null);
+  const format = finalFormat || existing?.format || null;
+  const newHash = hashQuestionKey(`${question}|${answer}`);
+  const categoryNs = normalizeCategoryNs(meta.categoryNs, meta.categoryN, existing);
+  const ageBands = normalizeAgeBands(meta.ageBands, meta.ageBand, existing);
+
+  await unblockQuestionHash(lookupHash);
+  if (newHash && newHash !== lookupHash) await unblockQuestionHash(newHash);
+
+  if (existing) {
+    if (lookupHash === newHash) {
+      const patch = {
+        is_reported: false,
+        reported_at: null,
+      };
+      if (finalQuestion) patch.question = finalQuestion;
+      if (finalAnswer) patch.correct_answer = finalAnswer;
+      if (finalOptions?.length >= 2) {
+        patch.options = finalOptions;
+        patch.format = format || 'ESCOLHA_MULTIPLA';
+      } else if (format) patch.format = format;
+      const updated = await supabaseRequest(
+        `/question_bank?question_hash=eq.${encodeURIComponent(lookupHash)}`,
+        {
+          method: 'PATCH',
+          headers: { Prefer: 'return=representation' },
+          body: JSON.stringify(patch),
+        },
+      );
+      return {
+        ok: true,
+        action: 'updated',
+        updated: Array.isArray(updated) ? updated.length : 1,
+        questionHash: lookupHash,
+      };
+    }
+
+    await supabaseRequest(`/question_bank?question_hash=eq.${encodeURIComponent(lookupHash)}`, {
+      method: 'DELETE',
+    });
+  }
+
+  if (!categoryNs.length || !ageBands.length) {
+    const err = new Error('Pergunta não está no banco — falta categoria ou faixa etária para inserir a correcção.');
+    err.code = 'MISSING_META';
+    throw err;
+  }
+
+  const taxonomyPatch = buildBankTaxonomyPatch(categoryNs, ageBands);
+  const inserted = await supabaseRequest('/question_bank', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify({
+      ...taxonomyPatch,
+      question,
+      correct_answer: answer,
+      options: options?.length >= 2 ? options : null,
+      format,
+      question_hash: newHash,
+      source: meta.source || 'corrected',
+      knowledge_id: meta.knowledgeId || existing?.knowledge_id || null,
+      is_reported: false,
+      reported_at: null,
+    }),
+  });
+
+  return {
+    ok: true,
+    action: existing ? 'replaced' : 'inserted',
+    updated: Array.isArray(inserted) ? inserted.length : 1,
+    questionHash: newHash,
+    previousHash: lookupHash !== newHash ? lookupHash : null,
+  };
 }
 
 module.exports = {
   getQuestionBankStats,
   purgeQuestionsWithoutOptions,
   searchQuestionBank,
+  updateQuestionBankTaxonomy,
+  updateQuestionBankCategory,
   deleteQuestionsFromBank,
   deleteQuestionsByCategory,
   filterRowsByReportStatus,
   applyReportCorrectionToBank,
+  parseGameQuestionId,
+  hashQuestionKey,
 };

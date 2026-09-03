@@ -290,6 +290,9 @@ async function updateReportStatus(reportId, status, helpers, extras = {}) {
     report.reviewDecision = extras.reviewDecision;
     report.reviewedAt = now;
     report.reviewedAtPortugal = formatPortugalDateTime(now);
+    if (extras.reviewDecision.appliedCorrection) {
+      helpers.applyCorrectionToReport(report, extras.reviewDecision.appliedCorrection);
+    }
   }
   await saveReport(report, helpers);
   return report;

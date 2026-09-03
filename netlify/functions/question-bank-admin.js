@@ -6,6 +6,8 @@ const {
   getQuestionBankStats,
   purgeQuestionsWithoutOptions,
   searchQuestionBank,
+  updateQuestionBankTaxonomy,
+  updateQuestionBankCategory,
   deleteQuestionsFromBank,
   deleteQuestionsByCategory,
   applyReportCorrectionToBank,
@@ -94,6 +96,47 @@ exports.handler = async (event) => {
         }
       }
 
+      if (body.action === 'update-taxonomy') {
+        const questionHash = String(body.questionHash || '').trim();
+        if (!questionHash) {
+          return json(400, { error: 'Indica question_hash.' });
+        }
+        try {
+          const result = await updateQuestionBankTaxonomy(questionHash, {
+            categoryNs: body.categoryNs,
+            categoryN: body.categoryN,
+            ageBands: body.ageBands,
+            ageBand: body.ageBand,
+          });
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] update-taxonomy failed:', err);
+          if (err.code === 'MISSING_HASH' || err.code === 'INVALID_CATEGORY'
+            || err.code === 'INVALID_AGE_BAND' || err.code === 'NOT_FOUND') {
+            return json(400, { error: err.message });
+          }
+          return json(503, { error: 'Não foi possível actualizar a classificação no banco.' });
+        }
+      }
+
+      if (body.action === 'update-category') {
+        const questionHash = String(body.questionHash || '').trim();
+        const categoryN = Number(body.categoryN);
+        if (!questionHash) {
+          return json(400, { error: 'Indica question_hash.' });
+        }
+        try {
+          const result = await updateQuestionBankCategory(questionHash, categoryN);
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] update-category failed:', err);
+          if (err.code === 'MISSING_HASH' || err.code === 'INVALID_CATEGORY' || err.code === 'NOT_FOUND') {
+            return json(400, { error: err.message });
+          }
+          return json(503, { error: 'Não foi possível actualizar a categoria no banco.' });
+        }
+      }
+
       if (body.action === 'delete') {
         const hashes = Array.isArray(body.hashes) ? body.hashes : [];
         if (!hashes.length) {
@@ -157,15 +200,16 @@ exports.handler = async (event) => {
       if (body.action === 'apply-report-correction') {
         const questionHash = String(body.questionHash || '').trim();
         const correction = body.correction && typeof body.correction === 'object' ? body.correction : {};
+        const meta = body.meta && typeof body.meta === 'object' ? body.meta : {};
         if (!questionHash) {
           return json(400, { error: 'Indica question_hash.' });
         }
         try {
-          const result = await applyReportCorrectionToBank(questionHash, correction);
+          const result = await applyReportCorrectionToBank(questionHash, correction, meta);
           return json(200, { ok: true, ...result });
         } catch (err) {
           console.error('[question-bank-admin] apply-report-correction failed:', err);
-          if (err.code === 'EMPTY_PATCH' || err.code === 'MISSING_HASH') {
+          if (err.code === 'EMPTY_PATCH' || err.code === 'MISSING_HASH' || err.code === 'MISSING_META') {
             return json(400, { error: err.message });
           }
           return json(503, { error: 'Não foi possível aplicar a correcção no banco.' });

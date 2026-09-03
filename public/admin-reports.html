@@ -424,6 +424,63 @@
       font-size: 13px;
       color: var(--muted);
     }
+    tr.bank-detail-row { display: none; }
+    tr.bank-detail-row.open { display: table-row; }
+    tr.bank-detail-row > td {
+      padding: 0 8px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.55);
+    }
+    .bank-detail-options {
+      margin: 0;
+      padding-left: 1.2rem;
+    }
+    .bank-detail-options li { margin: 4px 0; }
+    .bank-detail-options li.bank-opt-correct {
+      color: #6ee7b7;
+      font-weight: 600;
+    }
+    .bank-detail-options li.bank-opt-correct::marker { color: #6ee7b7; }
+    .bank-category-edit {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+    .bank-category-edit select {
+      min-width: 220px;
+      flex: 1;
+    }
+    .taxonomy-editor { margin-top: 4px; }
+    .taxonomy-check-group { margin-bottom: 10px; }
+    .taxonomy-check-group strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .taxonomy-check-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+      gap: 4px 8px;
+      max-height: 180px;
+      overflow-y: auto;
+      font-size: 12px;
+    }
+    .taxonomy-check-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      font-size: 12px;
+    }
+    .taxonomy-check-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+    }
     @media (max-width: 960px) {
       .report-detail-grid { grid-template-columns: 1fr; }
     }
@@ -2048,7 +2105,7 @@
           <h2 class="charts-title" style="margin:0 0 8px;">Pesquisar e apagar perguntas</h2>
           <p class="sub" style="margin-top:0;">Procura no Supabase por texto ou hash, lista por categoria, ou apaga em lote. Filtra por estado de reporte (em aberto, resolvido, marcada no banco).</p>
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
-            <input type="search" id="bankSearchQuery" placeholder="Texto da pergunta ou hash…" style="min-width:220px; flex:1;">
+            <input type="search" id="bankSearchQuery" placeholder="Texto, hash ou ID (rmq-15-15+-…)…" style="min-width:220px; flex:1;">
             <select id="bankSearchCategory" aria-label="Filtrar categoria">
               <option value="">Todas as categorias</option>
             </select>
@@ -2698,6 +2755,90 @@
       correctionDraftsByReportId.delete(reportId);
     }
 
+    function applyCorrectionToLocalReport(report, correction) {
+      if (!report || !correction) return false;
+      const strip = (value) => String(value || '').trim();
+      let changed = false;
+      const nextQuestion = strip(correction.question);
+      const nextAnswer = strip(correction.answer);
+      const currentQuestion = strip(report.question);
+      const currentAnswer = strip(report.correctAnswer);
+
+      if (nextQuestion && nextQuestion !== currentQuestion) {
+        if (!report.originalQuestion) report.originalQuestion = currentQuestion;
+        report.question = nextQuestion;
+        changed = true;
+      }
+      if (nextAnswer && nextAnswer !== currentAnswer) {
+        if (!report.originalCorrectAnswer) report.originalCorrectAnswer = currentAnswer;
+        report.correctAnswer = nextAnswer;
+        changed = true;
+      }
+      if (Array.isArray(correction.options) && correction.options.length >= 2) {
+        const nextOptions = correction.options.map(strip).filter(Boolean);
+        const normOpts = (arr) => (arr || []).map(strip).join('\n');
+        if (normOpts(nextOptions) !== normOpts(report.options)) {
+          if (!report.originalOptions) {
+            report.originalOptions = Array.isArray(report.options) ? [...report.options] : [];
+          }
+          report.options = nextOptions;
+          changed = true;
+        }
+      }
+      const nextFormat = strip(correction.format);
+      if (nextFormat && nextFormat !== strip(report.format)) {
+        if (!report.originalFormat) report.originalFormat = report.format || null;
+        report.format = nextFormat;
+        changed = true;
+      } else if (Array.isArray(correction.options) && correction.options.length >= 2
+        && strip(report.format) !== 'ESCOLHA_MULTIPLA') {
+        if (!report.originalFormat) report.originalFormat = report.format || null;
+        report.format = 'ESCOLHA_MULTIPLA';
+        changed = true;
+      }
+      if (changed) report.correctedAt = new Date().toISOString();
+      return changed;
+    }
+
+    function buildAppliedCorrection(draft) {
+      if (!draft) return null;
+      return {
+        question: draft.question,
+        answer: draft.answer,
+        options: draft.options,
+        notes: draft.notes,
+        format: draft.options?.length >= 2 ? 'ESCOLHA_MULTIPLA' : undefined,
+      };
+    }
+
+    function hashFromGameQuestionId(questionId) {
+      const m = String(questionId || '').trim().match(/^rmq-\d{1,2}-.+?-([a-z0-9]{4,12})$/i);
+      return m ? m[1] : '';
+    }
+
+    function bankQuestionHashFromReport(report) {
+      const fromId = hashFromGameQuestionId(report?.questionId);
+      if (fromId) return fromId;
+      return questionHashFromPair(
+        report?.originalQuestion || report?.question || '',
+        report?.originalCorrectAnswer || report?.correctAnswer || '',
+      );
+    }
+
+    let correctionSyncTimer = null;
+    function scheduleCorrectionSync(reportId) {
+      clearTimeout(correctionSyncTimer);
+      correctionSyncTimer = setTimeout(() => {
+        const draft = readCorrectionDraft(reportId);
+        const report = reportsById[reportId];
+        if (!draft || !report) return;
+        if (applyCorrectionToLocalReport(report, buildAppliedCorrection(draft))) {
+          delete report.engineDiagnosis;
+          renderReports(lastReports);
+        }
+      }, 350);
+    }
+
     function correctionDraftDiffers(report, draft) {
       if (!report || !draft) return false;
       const normOpts = (arr) => (arr || []).map((o) => String(o || '').trim()).join('\n');
@@ -2709,8 +2850,8 @@
     }
 
     async function applyCorrectionToBank(report, draft) {
-      if (!report?.source || report.source !== 'bank') return null;
-      const hash = questionHashFromPair(report.question, report.correctAnswer || '');
+      if (!report?.question) return null;
+      const hash = bankQuestionHashFromReport(report);
       if (!hash) return null;
       try {
         return await api('/api/question-bank-admin', {
@@ -2723,6 +2864,14 @@
               answer: draft.answer,
               options: draft.options,
               format: draft.options?.length >= 2 ? 'ESCOLHA_MULTIPLA' : undefined,
+            },
+            meta: {
+              categoryNs: reportCategoryNs(report),
+              ageBands: reportAgeBands(report),
+              categoryN: report.category?.n,
+              ageBand: report.ageBand,
+              knowledgeId: report.knowledgeId || null,
+              source: report.source === 'bank' ? 'bank' : 'corrected',
             },
           }),
         });
@@ -3878,7 +4027,7 @@
       });
     }
 
-    function updateLocalReportStatus(reportIds, status) {
+    function updateLocalReportStatus(reportIds, status, reviewDecision = null) {
       const now = new Date().toISOString();
       for (const id of reportIds) {
         const report = reportsById[id];
@@ -3892,6 +4041,14 @@
           report.resolvedAtPortugal = formatPortugalDateTime(now);
         }
         if (status === 'cancelled') report.cancelledAt = now;
+        if (reviewDecision && typeof reviewDecision === 'object') {
+          report.reviewDecision = reviewDecision;
+          report.reviewedAt = now;
+          report.reviewedAtPortugal = formatPortugalDateTime(now);
+          if (reviewDecision.appliedCorrection) {
+            applyCorrectionToLocalReport(report, reviewDecision.appliedCorrection);
+          }
+        }
       }
       renderReports(lastReports);
     }
@@ -3919,7 +4076,7 @@
       if (!ids.length) return;
       listStatus.textContent = 'A atualizar…';
       listStatus.className = 'status';
-      updateLocalReportStatus(ids, status);
+      updateLocalReportStatus(ids, status, reviewDecision);
       try {
         const result = await patchReportStatus(ids, status, reviewDecision);
         selectedReportIds.clear();
@@ -4794,6 +4951,7 @@
           <button type="button" class="secondary toggle-detail" data-report-id="${esc(r.reportId)}"${btnTitle('toggleDetailClose')}>▲ Esconder</button>
         </div>
         <div class="report-detail-question">${esc(r.question || '—')}</div>
+        ${r.originalQuestion ? `<p class="report-detail-meta"><strong>Original (jogador):</strong> ${esc(r.originalQuestion)}${r.originalCorrectAnswer ? ` · <strong>resposta:</strong> ${esc(r.originalCorrectAnswer)}` : ''}</p>` : ''}
         ${notes ? `<div class="report-detail-span">${notes}</div>` : ''}
         <div class="report-detail-grid">
           ${isSite ? `
@@ -4819,8 +4977,13 @@
             ${r.knowledgeId ? `<p><strong>Knowledge ID:</strong> <code>${esc(r.knowledgeId)}</code></p>` : ''}
             ${r.questionDbAddedAtPortugal ? `<p><strong>Na base desde:</strong> ${esc(r.questionDbAddedAtPortugal)}</p>` : ''}
             <p><strong>ID pergunta:</strong> <code>${esc(r.questionId || '—')}</code></p>
+            ${r.questionId ? `<p><strong>Hash banco:</strong> <code>${esc(hashFromGameQuestionId(r.questionId) || bankQuestionHashFromReport(r) || '—')}</code></p>` : ''}
             <p><strong>Versão:</strong> ${esc(r.gameVersion || r.appBuild || '—')}</p>
           </div>
+          ${!isSite ? `<div class="report-detail-section report-detail-span">
+            <h4>Classificação</h4>
+            ${renderTaxonomyEditor('report', r.reportId, reportCategoryNs(r), reportAgeBands(r))}
+          </div>` : ''}
           <div class="report-detail-section">
             <h4>Reporte do jogador</h4>
             <p><strong>Problema:</strong> ${esc(r.issueLabel || ISSUE_LABELS[r.issueType] || r.issueType || '—')}</p>
@@ -4866,8 +5029,8 @@
           <td data-label="Resolvido em" class="col-resolved">${status === 'resolved' ? esc(formatResolvidoEm(r) || '—') : '—'}</td>
           <td data-label="Problema"><span class="pill">${esc(r.issueLabel || ISSUE_LABELS[r.issueType] || r.issueType)}</span>${noteIcon}</td>
           <td data-label="Pergunta" class="col-question">${summary}${formatReportNoteBlocks(r)}</td>
-          <td data-label="Categoria">${isSite ? 'Site/app' : esc(r.category?.name || '—')}</td>
-          <td data-label="Idade">${esc(r.ageBand || '—')}</td>
+          <td data-label="Categoria">${isSite ? 'Site/app' : esc(formatTaxonomyCategories(reportCategoryNs(r)))}</td>
+          <td data-label="Idade">${esc(formatTaxonomyAgeBands(reportAgeBands(r)))}</td>
           <td data-label="Dispositivo" class="col-device">${esc(deviceSummary)}</td>
           <td data-label="Jogador"><code>${esc((r.reporterId || '—').slice(0, 12))}</code></td>
           <td data-label="Ações" class="actions-cell col-actions">
@@ -5105,6 +5268,98 @@
       '10-15': '10–15 anos',
       '15+': '15+ anos',
     };
+
+    function bankRowCategoryNs(row) {
+      if (Array.isArray(row?.category_ns) && row.category_ns.length) {
+        return [...new Set(row.category_ns.map((n) => Number(n)).filter((n) => n >= 1 && n <= 20))].sort((a, b) => a - b);
+      }
+      const n = Number(row?.category_n);
+      return n >= 1 && n <= 20 ? [n] : [];
+    }
+
+    function bankRowAgeBands(row) {
+      if (Array.isArray(row?.age_bands) && row.age_bands.length) {
+        return [...new Set(row.age_bands.map((b) => String(b || '').trim()).filter((b) => BANK_AGE_BANDS.includes(b)))];
+      }
+      const b = String(row?.age_band || '').trim();
+      return BANK_AGE_BANDS.includes(b) ? [b] : [];
+    }
+
+    function reportCategoryNs(report) {
+      if (Array.isArray(report?.categoryNs) && report.categoryNs.length) {
+        return [...new Set(report.categoryNs.map((n) => Number(n)).filter((n) => n >= 1 && n <= 20))].sort((a, b) => a - b);
+      }
+      if (Array.isArray(report?.categories) && report.categories.length) {
+        return [...new Set(report.categories.map((c) => Number(c?.n)).filter((n) => n >= 1 && n <= 20))].sort((a, b) => a - b);
+      }
+      const n = Number(report?.category?.n);
+      return n >= 1 && n <= 20 ? [n] : [];
+    }
+
+    function reportAgeBands(report) {
+      if (Array.isArray(report?.ageBands) && report.ageBands.length) {
+        return [...new Set(report.ageBands.map((b) => String(b || '').trim()).filter((b) => BANK_AGE_BANDS.includes(b)))];
+      }
+      const b = String(report?.ageBand || '').trim();
+      return BANK_AGE_BANDS.includes(b) ? [b] : [];
+    }
+
+    function formatTaxonomyCategories(categoryNs) {
+      return (categoryNs || []).map((n) => {
+        const cat = BANK_CATEGORIES.find((c) => c.n === Number(n));
+        return cat ? `${cat.n}. ${cat.name}` : String(n);
+      }).join(' · ') || '—';
+    }
+
+    function formatTaxonomyAgeBands(ageBands) {
+      return (ageBands || []).map((a) => BANK_AGE_CHART_LABELS[a] || a).join(' · ') || '—';
+    }
+
+    function renderTaxonomyEditor(prefix, id, categoryNs, ageBands) {
+      const catSet = new Set(categoryNs || []);
+      const ageSet = new Set(ageBands || []);
+      const saveClass = prefix === 'bank' ? 'bank-save-taxonomy' : 'report-save-taxonomy';
+      const idAttr = prefix === 'bank' ? `data-hash="${esc(id)}"` : `data-report-id="${esc(id)}"`;
+      const catChecks = BANK_CATEGORIES.map((cat) => {
+        const checked = catSet.has(cat.n) ? ' checked' : '';
+        return `<label class="taxonomy-check-item"><input type="checkbox" class="${prefix}-category-check" value="${cat.n}" ${idAttr}${checked}> ${cat.n}. ${esc(cat.name)}</label>`;
+      }).join('');
+      const ageChecks = BANK_AGE_BANDS.map((age) => {
+        const checked = ageSet.has(age) ? ' checked' : '';
+        return `<label class="taxonomy-check-item"><input type="checkbox" class="${prefix}-age-check" value="${age}" ${idAttr}${checked}> ${esc(BANK_AGE_CHART_LABELS[age] || age)}</label>`;
+      }).join('');
+      const bankCheckbox = prefix === 'report'
+        ? `<label class="report-detail-meta"><input type="checkbox" class="report-taxonomy-update-bank" data-report-id="${esc(id)}" checked> Também actualizar no banco de perguntas</label>`
+        : '';
+      return `<div class="taxonomy-editor" data-taxonomy-for="${esc(id)}">
+        <p class="report-detail-meta">Selecciona uma ou mais categorias e faixas etárias.</p>
+        <div class="taxonomy-check-group">
+          <strong>Categorias</strong>
+          <div class="taxonomy-check-grid">${catChecks}</div>
+        </div>
+        <div class="taxonomy-check-group">
+          <strong>Faixas etárias</strong>
+          <div class="taxonomy-check-row">${ageChecks}</div>
+        </div>
+        <div class="bank-category-edit">
+          <button type="button" class="secondary ${saveClass}" ${idAttr} title="Guardar classificação">Guardar classificação</button>
+        </div>
+        ${bankCheckbox}
+      </div>`;
+    }
+
+    function readTaxonomyFromEditor(root, prefix) {
+      if (!root) return { categoryNs: [], ageBands: [] };
+      const categoryNs = [...root.querySelectorAll(`.${prefix}-category-check:checked`)]
+        .map((el) => Number(el.value))
+        .filter((n) => n >= 1 && n <= 20)
+        .sort((a, b) => a - b);
+      const ageBands = [...root.querySelectorAll(`.${prefix}-age-check:checked`)]
+        .map((el) => String(el.value || '').trim())
+        .filter((b) => BANK_AGE_BANDS.includes(b));
+      return { categoryNs, ageBands };
+    }
+
     const BANK_AGE_COLORS = {
       '6-9': '#3b82f6',
       '10-15': '#10b981',
@@ -5124,6 +5379,7 @@
     let lastBankSearchRows = [];
     const selectedBankHashes = new Set();
     let bankSearchLoading = false;
+    const openBankHashes = new Set();
     let bankDeleteLoading = false;
 
     const LOCAL_HISTORY_KEY = 'reino_magico_q_history_v3';
@@ -5324,6 +5580,271 @@
       }
     }
 
+    function bankOptionMatchesAnswer(option, answer) {
+      return String(option || '').trim().toLowerCase() === String(answer || '').trim().toLowerCase();
+    }
+
+    function readBankContentFromPanel(panel) {
+      if (!panel) return { question: '', answer: '', options: [] };
+      const optionsRaw = panel.querySelector('.bank-corr-options')?.value || '';
+      return {
+        question: panel.querySelector('.bank-corr-question')?.value?.trim() || '',
+        answer: panel.querySelector('.bank-corr-answer')?.value?.trim() || '',
+        options: optionsRaw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
+      };
+    }
+
+    function renderBankDetailPanel(row) {
+      const hash = row.question_hash || '';
+      const opts = Array.isArray(row.options) ? row.options.filter((o) => String(o || '').trim()) : [];
+      const optionsText = opts.join('\n');
+      const answer = String(row.correct_answer || '').trim();
+      const created = row.created_at
+        ? new Date(row.created_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })
+        : '—';
+      return `<div class="report-detail-panel" data-bank-detail-for="${esc(hash)}">
+        <div class="report-detail-header">
+          <span class="report-detail-header-title">Detalhe da pergunta</span>
+          <button type="button" class="secondary toggle-bank-detail" data-hash="${esc(hash)}" title="Ocultar opções e detalhe">▲ Esconder</button>
+        </div>
+        <div class="report-detail-grid">
+          <div class="report-detail-section report-detail-span">
+            <h4>Pergunta e opções</h4>
+            <div class="report-diagnosis-correction bank-question-edit">
+              <label for="bank-q-${esc(hash)}">Pergunta</label>
+              <textarea id="bank-q-${esc(hash)}" class="bank-corr-question report-corr-question" data-hash="${esc(hash)}">${esc(row.question || '')}</textarea>
+              <label for="bank-a-${esc(hash)}">Resposta correcta</label>
+              <input id="bank-a-${esc(hash)}" type="text" class="bank-corr-answer report-corr-answer" data-hash="${esc(hash)}" value="${esc(answer)}">
+              <label for="bank-o-${esc(hash)}">Opções (uma por linha)</label>
+              <textarea id="bank-o-${esc(hash)}" class="bank-corr-options report-corr-options" data-hash="${esc(hash)}">${esc(optionsText)}</textarea>
+            </div>
+            <div class="bank-category-edit" style="margin-top:8px;">
+              <button type="button" class="primary bank-save-content" data-hash="${esc(hash)}" title="Gravar pergunta, resposta e opções no Supabase">Guardar pergunta e opções</button>
+            </div>
+          </div>
+          <div class="report-detail-section">
+            <h4>Formato</h4>
+            <p>${esc(row.format || '—')}</p>
+            <p class="report-detail-meta"><strong>Fonte:</strong> ${esc(row.source || '—')}</p>
+            <p class="report-detail-meta"><strong>Inserida:</strong> ${esc(created)}</p>
+            <p class="report-detail-meta"><strong>Hash:</strong> <code>${esc(hash || '—')}</code></p>
+          </div>
+          <div class="report-detail-section report-detail-span">
+            <h4>Classificação</h4>
+            ${renderTaxonomyEditor('bank', hash, bankRowCategoryNs(row), bankRowAgeBands(row))}
+          </div>
+        </div>
+      </div>`;
+    }
+
+    function toggleBankDetail(hash) {
+      if (!hash) return;
+      if (openBankHashes.has(hash)) openBankHashes.delete(hash);
+      else openBankHashes.add(hash);
+      const mainRow = document.querySelector(`tr.bank-main-row[data-hash="${hash}"]`);
+      const detailRow = document.querySelector(`tr.bank-detail-row[data-bank-detail-for="${hash}"]`);
+      const isOpen = openBankHashes.has(hash);
+      mainRow?.classList.toggle('open', isOpen);
+      detailRow?.classList.toggle('open', isOpen);
+      const btn = mainRow?.querySelector('.toggle-bank-detail');
+      if (btn) {
+        btn.textContent = isOpen ? 'Fechar' : 'Opções';
+        btn.title = isOpen ? 'Ocultar opções e detalhe' : 'Ver opções e validar se a pergunta está correcta';
+      }
+      if (isOpen) detailRow?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    async function updateReportQuestionTaxonomy(reportId, taxonomy, options = {}) {
+      const report = reportsById[reportId];
+      if (!report) return;
+      const { categoryNs, ageBands } = taxonomy;
+      if (!categoryNs?.length || !ageBands?.length) {
+        listStatus.textContent = 'Selecciona pelo menos uma categoria e uma faixa etária.';
+        listStatus.className = 'status err';
+        return;
+      }
+      const updateBank = options.updateBank !== false;
+      const ok = await confirmAction(
+        `Guardar classificação no reporte${updateBank ? ' (e no banco, se existir)' : ''}?`,
+        { okLabel: 'Guardar classificação' },
+      );
+      if (!ok) return;
+      listStatus.textContent = 'A guardar classificação…';
+      listStatus.className = 'status';
+      try {
+        const data = await api('/api/reports-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'update-taxonomy',
+            reportId,
+            categoryNs,
+            ageBands,
+            updateBank,
+          }),
+        });
+        if (data.report) {
+          delete data.report.engineDiagnosis;
+          reportsById[reportId] = data.report;
+          lastReports = lastReports.map((r) => (r.reportId === reportId ? data.report : r));
+          renderReports(lastReports);
+        }
+        if (updateBank) await loadBankDashboard({ quiet: true });
+        let msg = data.action === 'unchanged'
+          ? 'Classificação já estava correcta.'
+          : 'Classificação actualizada no reporte.';
+        if (updateBank && data.bank) {
+          if (data.bank.ok === false || data.bank.error) {
+            msg += ` Banco: ${data.bank.error || 'não actualizado'}.`;
+          } else if (data.bank.action === 'updated') {
+            msg += ' Banco actualizado.';
+          } else if (data.bank.action === 'unchanged') {
+            msg += ' Banco já estava correcto.';
+          }
+        }
+        listStatus.textContent = msg;
+        listStatus.className = 'status ok';
+      } catch (err) {
+        listStatus.textContent = err.message || 'Erro ao guardar classificação.';
+        listStatus.className = 'status err';
+      }
+    }
+
+    async function updateBankQuestionContent(hash) {
+      const statusEl = document.getElementById('bankSearchStatus');
+      const panel = document.querySelector(`.report-detail-panel[data-bank-detail-for="${hash}"]`);
+      const row = lastBankSearchRows.find((r) => r.question_hash === hash);
+      const content = readBankContentFromPanel(panel);
+      const taxonomy = readTaxonomyFromEditor(panel, 'bank');
+      const categoryNs = taxonomy.categoryNs.length ? taxonomy.categoryNs : bankRowCategoryNs(row || {});
+      const ageBands = taxonomy.ageBands.length ? taxonomy.ageBands : bankRowAgeBands(row || {});
+
+      if (!hash || !content.question || !content.answer) {
+        if (statusEl) {
+          statusEl.textContent = 'Preenche pergunta e resposta correcta.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+
+      const ok = await confirmAction(
+        'Guardar alterações à pergunta, resposta e opções no Supabase?',
+        { okLabel: 'Guardar' },
+      );
+      if (!ok) return;
+
+      if (statusEl) {
+        statusEl.textContent = 'A guardar pergunta…';
+        statusEl.className = 'status';
+      }
+
+      try {
+        const data = await api('/api/question-bank-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'apply-report-correction',
+            questionHash: hash,
+            correction: {
+              question: content.question,
+              answer: content.answer,
+              options: content.options,
+              format: content.options.length >= 2 ? 'ESCOLHA_MULTIPLA' : undefined,
+            },
+            meta: {
+              categoryNs,
+              ageBands,
+              knowledgeId: row?.knowledge_id || null,
+              source: 'corrected',
+            },
+          }),
+        });
+
+        const newHash = data.questionHash || hash;
+        if (row) {
+          row.question = content.question;
+          row.correct_answer = content.answer;
+          row.options = content.options;
+          row.format = content.options.length >= 2 ? 'ESCOLHA_MULTIPLA' : row.format;
+          if (newHash !== hash) {
+            row.question_hash = newHash;
+            if (selectedBankHashes.has(hash)) {
+              selectedBankHashes.delete(hash);
+              selectedBankHashes.add(newHash);
+            }
+            if (openBankHashes.has(hash)) {
+              openBankHashes.delete(hash);
+              openBankHashes.add(newHash);
+            }
+          }
+        }
+
+        renderBankSearchResults(lastBankSearchRows);
+        await loadBankDashboard({ quiet: true });
+
+        if (statusEl) {
+          const hashNote = data.previousHash ? ` Novo hash: ${newHash}.` : '';
+          statusEl.textContent = `Pergunta actualizada no banco.${hashNote}`;
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao guardar pergunta.';
+          statusEl.className = 'status err';
+        }
+      }
+    }
+
+    async function updateBankQuestionTaxonomy(hash, taxonomy) {
+      const statusEl = document.getElementById('bankSearchStatus');
+      const row = lastBankSearchRows.find((r) => r.question_hash === hash);
+      const { categoryNs, ageBands } = taxonomy;
+      if (!hash || !categoryNs?.length || !ageBands?.length) {
+        if (statusEl) {
+          statusEl.textContent = 'Selecciona pelo menos uma categoria e uma faixa etária.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      const ok = await confirmAction(
+        'Guardar classificação (categorias e faixas etárias) no Supabase?',
+        { okLabel: 'Guardar classificação' },
+      );
+      if (!ok) return;
+      if (statusEl) {
+        statusEl.textContent = 'A guardar classificação…';
+        statusEl.className = 'status';
+      }
+      try {
+        const data = await api('/api/question-bank-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'update-taxonomy',
+            questionHash: hash,
+            categoryNs,
+            ageBands,
+          }),
+        });
+        if (row) {
+          row.category_ns = categoryNs;
+          row.age_bands = ageBands;
+          row.category_n = categoryNs[0];
+          row.age_band = ageBands[0];
+        }
+        renderBankSearchResults(lastBankSearchRows);
+        await loadBankDashboard({ quiet: true });
+        if (statusEl) {
+          statusEl.textContent = data.action === 'unchanged'
+            ? 'Classificação já estava correcta.'
+            : 'Classificação actualizada no banco.';
+          statusEl.className = 'status ok';
+        }
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao guardar classificação.';
+          statusEl.className = 'status err';
+        }
+      }
+    }
+
     function renderBankSearchResults(rows) {
       lastBankSearchRows = rows || [];
       const body = document.getElementById('bankSearchBody');
@@ -5338,20 +5859,26 @@
         const hash = row.question_hash || '';
         const checked = selectedBankHashes.has(hash) ? 'checked' : '';
         const reported = row.is_reported ? ' · reportada' : '';
+        const isOpen = openBankHashes.has(hash);
+        const optCount = Array.isArray(row.options) ? row.options.filter((o) => String(o || '').trim()).length : 0;
         const releaseBtn = row.in_quarantine
           ? `<button type="button" class="secondary bank-release-quarantine" data-hash="${esc(hash)}" title="Libertar da quarentena anti-reuso">Libertar</button>`
           : '';
-        return `<tr data-hash="${esc(hash)}">
+        return `<tr class="bank-main-row${isOpen ? ' open' : ''}" data-hash="${esc(hash)}">
           <td><input type="checkbox" class="bank-row-check" data-hash="${esc(hash)}" ${checked} aria-label="Seleccionar pergunta"></td>
-          <td>${esc(row.question || '—')}${reported ? `<span class="pill" style="margin-left:6px;">reportada</span>` : ''}</td>
+          <td>${esc(row.question || '—')}${reported ? `<span class="pill" style="margin-left:6px;">reportada</span>` : ''}${optCount ? `<span class="pill" style="margin-left:6px;" title="${optCount} opção(ões)">${optCount} op.</span>` : ''}</td>
           <td>${esc(row.correct_answer || '—')}</td>
-          <td>${esc(catMap[String(row.category_n)] || row.category_n || '—')}</td>
-          <td>${esc(row.age_band || '—')}</td>
+          <td>${esc(formatTaxonomyCategories(bankRowCategoryNs(row)))}</td>
+          <td>${esc(formatTaxonomyAgeBands(bankRowAgeBands(row)))}</td>
           <td><code>${esc(hash || '—')}</code></td>
           <td class="actions-cell">
+            <button type="button" class="secondary toggle-bank-detail" data-hash="${esc(hash)}" title="${isOpen ? 'Ocultar opções e detalhe' : 'Ver opções e validar se a pergunta está correcta'}">${isOpen ? 'Fechar' : 'Opções'}</button>
             ${releaseBtn}
             <button type="button" class="danger bank-delete-one" data-hash="${esc(hash)}">Apagar</button>
           </td>
+        </tr>
+        <tr class="bank-detail-row${isOpen ? ' open' : ''}" data-bank-detail-for="${esc(hash)}">
+          <td colspan="7">${renderBankDetailPanel(row)}</td>
         </tr>`;
       }).join('');
       updateBankDeleteUi();
@@ -5387,9 +5914,9 @@
       const { query, categoryN, ageBand, reportFilter } = getBankSearchFilters();
       const requireQuery = options.requireQuery !== false;
       const statusEl = document.getElementById('bankSearchStatus');
-      if (requireQuery && !query) {
+      if (requireQuery && !query && !categoryN && !ageBand) {
         if (statusEl) {
-          statusEl.textContent = 'Indica texto ou hash para pesquisar (ou usa «Listar categoria»).';
+          statusEl.textContent = 'Indica texto/hash, categoria ou idade para pesquisar (ou usa «Listar categoria»).';
           statusEl.className = 'status err';
         }
         return;
@@ -5403,6 +5930,7 @@
       }
       bankSearchLoading = true;
       selectedBankHashes.clear();
+      openBankHashes.clear();
       if (statusEl) {
         statusEl.textContent = 'A pesquisar…';
         statusEl.className = 'status';
@@ -5500,6 +6028,7 @@
         }
 
         selectedBankHashes.clear();
+        openBankHashes.clear();
         lastBankSearchRows = [];
         renderBankSearchResults([]);
         await loadBankDashboard({ quiet: true });
@@ -5556,7 +6085,10 @@
           const local = purgeQuestionsFromLocalStorage(unique, block, metaByHash);
           localMsg = ` Local: ${local.historyRemoved} entrada(s) de histórico, ${local.gameRoundsRemoved} ronda(s) de partidas${block ? `, ${local.blocked} bloqueada(s)` : ''}.`;
         }
-        unique.forEach((h) => selectedBankHashes.delete(h));
+        unique.forEach((h) => {
+          selectedBankHashes.delete(h);
+          openBankHashes.delete(h);
+        });
         lastBankSearchRows = lastBankSearchRows.filter((r) => !unique.includes(r.question_hash));
         renderBankSearchResults(lastBankSearchRows);
         await loadBankDashboard({ quiet: true });
@@ -5638,7 +6170,7 @@
 
     async function deleteBankQuestionFromReport(report) {
       if (!report?.question) return;
-      const computedHash = questionHashFromPair(report.question, report.correctAnswer || '');
+      const computedHash = bankQuestionHashFromReport(report);
       const ok = await confirmAction(
         'Apagar esta pergunta do banco Supabase e limpar o histórico local deste browser?',
         { okLabel: 'Apagar', danger: true },
@@ -7938,6 +8470,24 @@
       updateBankDeleteUi();
     });
     document.getElementById('bankSearchBody')?.addEventListener('click', async (e) => {
+      if (e.target.classList.contains('toggle-bank-detail')) {
+        toggleBankDetail(e.target.dataset.hash);
+        return;
+      }
+      if (e.target.classList.contains('bank-save-content')) {
+        const hash = e.target.dataset.hash;
+        if (!hash) return;
+        await updateBankQuestionContent(hash);
+        return;
+      }
+      if (e.target.classList.contains('bank-save-taxonomy')) {
+        const hash = e.target.dataset.hash;
+        const panel = e.target.closest('.report-detail-panel');
+        const taxonomy = readTaxonomyFromEditor(panel, 'bank');
+        if (!hash) return;
+        await updateBankQuestionTaxonomy(hash, taxonomy);
+        return;
+      }
       if (e.target.classList.contains('bank-release-quarantine')) {
         const hash = e.target.dataset.hash;
         if (!hash) return;
@@ -8199,6 +8749,7 @@
         && !field.classList.contains('report-corr-options')
         && !field.classList.contains('report-corr-notes')) return;
       saveCorrectionDraftFromDom(field.dataset.reportId);
+      scheduleCorrectionSync(field.dataset.reportId);
     });
 
     reportsBody.addEventListener('change', (e) => {
@@ -8237,6 +8788,15 @@
           btn.textContent = '✓ Copiado';
           setTimeout(() => { btn.textContent = prev; }, 2200);
         });
+        return;
+      }
+      if (e.target.classList.contains('report-save-taxonomy')) {
+        const id = e.target.dataset.reportId || reportId;
+        const panel = e.target.closest('.report-detail-panel');
+        const updateBank = panel?.querySelector(`.report-taxonomy-update-bank[data-report-id="${id}"]`)?.checked !== false;
+        const taxonomy = readTaxonomyFromEditor(panel, 'report');
+        if (!id) return;
+        await updateReportQuestionTaxonomy(id, taxonomy, { updateBank });
         return;
       }
       if (!row) {
@@ -8294,7 +8854,7 @@
         await changeReportStatus([id], 'resolved', {
           action: 'validate',
           verdict: diagnosis?.verdict || 'valid',
-          appliedCorrection: hasEdits ? draft : null,
+          appliedCorrection: hasEdits ? buildAppliedCorrection(draft) : null,
           bankUpdate: bankResult?.ok ? { updated: bankResult.updated } : null,
           notes: hasEdits ? (draft?.notes || 'Validada com ajustes no banco.') : 'Pergunta validada pelo administrador.',
         });
@@ -8319,7 +8879,7 @@
         await changeReportStatus([id], 'resolved', {
           action: 'correct',
           verdict: diagnosis?.verdict || 'bad_formulation',
-          appliedCorrection: draft,
+          appliedCorrection: buildAppliedCorrection(draft),
           bankUpdate: bankResult?.ok ? { updated: bankResult.updated } : null,
           notes: draft.notes || '',
         });
