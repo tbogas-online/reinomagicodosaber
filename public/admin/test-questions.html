@@ -264,7 +264,7 @@
     </div>
 
     <!-- Avançado -->
-    <details>
+    <details id="advanced-options">
       <summary>Opções avançadas</summary>
       <div class="inner">
         <div class="config-grid" style="margin-top:8px;">
@@ -614,6 +614,75 @@
       const catN = catVal === 'random' ? (CATEGORIES[0]?.n || 1) : Number(catVal);
       const ageBandKey = ageVal === 'random' ? AGES[0] : ageVal;
       populateFormatSelect(catN, ageBandKey, 'mc');
+    }
+
+    function applyReportUrlParams() {
+      const params = new URLSearchParams(location.search);
+      const hasCtx = ['cat', 'age', 'q', 'a', 'opts', 'format'].some((k) => params.has(k));
+      if (!hasCtx) {
+        onConfigChange();
+        return;
+      }
+
+      const catRaw = params.get('cat');
+      const catN = Number(catRaw);
+      if (catRaw && catN >= 1 && catN <= 20 && CATEGORIES.some((c) => c.n === catN)) {
+        $('cat').value = String(catN);
+      }
+
+      const ageRaw = params.get('age');
+      if (ageRaw && AGES.includes(ageRaw)) {
+        $('age').value = ageRaw;
+      }
+
+      onConfigChange();
+
+      const formatRaw = String(params.get('format') || '').trim().toUpperCase();
+      if (formatRaw) {
+        const fmtSel = $('format');
+        if ([...fmtSel.options].some((o) => o.value === formatRaw)) {
+          fmtSel.value = formatRaw;
+        }
+      }
+
+      const q = params.get('q') || '';
+      const a = params.get('a') || '';
+      const opts = params.get('opts') || '';
+      if (q) $('q').value = q;
+      if (a) $('a').value = a;
+      if (opts) $('options').value = opts;
+
+      if (q || a || opts) {
+        $('advanced-options')?.setAttribute('open', '');
+      }
+
+      const statusEl = $('gen-status');
+      if (q && a) {
+        const catVal = $('cat').value;
+        const ageVal = $('age').value;
+        const resolvedCatN = catVal === 'random' ? (CATEGORIES[0]?.n || 1) : Number(catVal);
+        const ageBandKey = ageVal === 'random' ? AGES[0] : ageVal;
+        const catObj = CATEGORIES.find((c) => c.n === resolvedCatN) || CATEGORIES[0];
+        const formatId = $('format').value !== 'random'
+          ? $('format').value
+          : resolveFormat(resolvedCatN, ageBandKey, 'mc');
+        lastResolved = {
+          cat: catObj,
+          ageBandKey,
+          answerMode: 'mc',
+          formatId,
+          difficulty: 3,
+        };
+        const { parsed, isMC } = buildParsedFromForm();
+        const ctx = buildValidationCtx({ isMC, formatId });
+        showResult(validateParsed(parsed, ctx), parsed, lastResolved);
+        statusEl.textContent = 'Contexto do reporte carregado — revê, edita ou clica em «Gerar» para uma nova versão com IA.';
+        statusEl.className = 'result ok';
+        $('result-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } else {
+        statusEl.textContent = 'Contexto do reporte aplicado (categoria/idade). Preenche ou gera uma pergunta.';
+        statusEl.className = 'result idle';
+      }
     }
 
     function updateStats() {
@@ -1112,7 +1181,7 @@
     });
 
     populateCategorySelect();
-    onConfigChange();
+    applyReportUrlParams();
     renderFeedbackList();
     updateStats();
     ReinoAdminAuth.initGate({ appEl: document.getElementById('adminApp') });

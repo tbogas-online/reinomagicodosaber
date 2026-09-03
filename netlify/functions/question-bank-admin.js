@@ -8,6 +8,7 @@ const {
   searchQuestionBank,
   deleteQuestionsFromBank,
   deleteQuestionsByCategory,
+  applyReportCorrectionToBank,
 } = require('./lib/question-bank-store');
 const { regenerateAdivinhaBankOptions } = require('./lib/adivinha-bank-fix');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
@@ -150,6 +151,24 @@ exports.handler = async (event) => {
         } catch (err) {
           console.error('[question-bank-admin] regenerate-adivinha-options failed:', err);
           return json(503, { error: 'Não foi possível regenerar opções de adivinhas.' });
+        }
+      }
+
+      if (body.action === 'apply-report-correction') {
+        const questionHash = String(body.questionHash || '').trim();
+        const correction = body.correction && typeof body.correction === 'object' ? body.correction : {};
+        if (!questionHash) {
+          return json(400, { error: 'Indica question_hash.' });
+        }
+        try {
+          const result = await applyReportCorrectionToBank(questionHash, correction);
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] apply-report-correction failed:', err);
+          if (err.code === 'EMPTY_PATCH' || err.code === 'MISSING_HASH') {
+            return json(400, { error: err.message });
+          }
+          return json(503, { error: 'Não foi possível aplicar a correcção no banco.' });
         }
       }
 

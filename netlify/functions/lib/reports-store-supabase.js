@@ -259,10 +259,19 @@ async function listReports(filters = {}, helpers) {
 
 async function getStats(scope = 'all', filters = {}, helpers) {
   const items = await fetchIndexRows(filters, helpers);
-  return helpers.computeStatsFromIndex({ items, total: items.length }, scope, filters);
+  const base = helpers.computeStatsFromIndex({ items, total: items.length }, scope, filters);
+  try {
+    const reports = await fetchReports({ ...filters, limit: MAX_REPORTS }, helpers);
+    if (helpers.aggregateDiagnosisStats) {
+      base.diagnosis = helpers.aggregateDiagnosisStats(reports);
+    }
+  } catch (err) {
+    console.warn('[reports-store-supabase] diagnosis stats failed:', err.message || err);
+  }
+  return base;
 }
 
-async function updateReportStatus(reportId, status, helpers) {
+async function updateReportStatus(reportId, status, helpers, extras = {}) {
   const nextStatus = helpers.normalizeReportStatus(status);
   if (!helpers.VALID_STATUSES.has(nextStatus)) return null;
   const report = await getReport(reportId, helpers);
@@ -277,6 +286,11 @@ async function updateReportStatus(reportId, status, helpers) {
     report.resolvedAtPortugal = formatPortugalDateTime(now);
   }
   if (nextStatus === 'cancelled') report.cancelledAt = now;
+  if (extras.reviewDecision && typeof extras.reviewDecision === 'object') {
+    report.reviewDecision = extras.reviewDecision;
+    report.reviewedAt = now;
+    report.reviewedAtPortugal = formatPortugalDateTime(now);
+  }
   await saveReport(report, helpers);
   return report;
 }

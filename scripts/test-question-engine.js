@@ -1769,5 +1769,51 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   sandbox.globalThis.QuestionEngineIssueOverrides.setOverrides([]);
 }
 
+{
+  const RD = sandbox.globalThis.QuestionEngineReportDiagnosis;
+  assert('211. report-diagnosis carregado', !!RD?.diagnoseReport);
+  const badMc = RD.diagnoseReport({
+    issueType: 'confusing',
+    question: 'Qual é a capital de Portugal?',
+    correctAnswer: 'Lisboa',
+    options: ['Lisboa', 'Lisboa', 'Porto', 'Faro'],
+    format: 'ESCOLHA_MULTIPLA',
+    ageBand: '10-15',
+    category: { n: 2, name: 'Geografia' },
+  }, QE, { stripTags, normalizeFn: normalizeQ });
+  assert('212. diagnóstico detecta problema', badMc && badMc.verdict !== 'valid', badMc?.verdict);
+  assert('213. diagnóstico tem quality score', badMc?.qualityScore != null);
+  assert('214. diagnóstico tem confiança', badMc?.confidence >= 40 && badMc?.confidence <= 100);
+  const validQ = RD.diagnoseReport({
+    issueType: 'other',
+    question: 'Em que continente fica Portugal?',
+    correctAnswer: 'Europa',
+    options: ['Europa', 'África', 'Ásia', 'América'],
+    format: 'ESCOLHA_MULTIPLA',
+    ageBand: '10-15',
+    category: { n: 2, name: 'Geografia' },
+  }, QE, { stripTags, normalizeFn: normalizeQ });
+  assert('215. pergunta simples pode ser válida', validQ?.verdict === 'valid' || validQ?.qualityScore >= 60, validQ?.verdict);
+  const stats = RD.aggregateDiagnosisStats([
+    { status: 'open', issueType: 'confusing', engineDiagnosis: badMc },
+    { status: 'open', issueType: 'other', engineDiagnosis: validQ },
+  ]);
+  assert('216. estatísticas de diagnóstico', stats.withDiagnosis === 2 && stats.avgQualityScore != null);
+
+  const hockeyBad = RD.diagnoseReport({
+    issueType: 'bad_options',
+    question: 'Que desporto se pratica no gelo, com patins e um disco?',
+    correctAnswer: 'Hóquei no gelo',
+    options: ['Salto à vara', 'Hóquei no gelo', 'Futebol americano', 'Ténis'],
+    format: 'RESPOSTA_DIRETA',
+    source: 'bank',
+    ageBand: '10-15',
+    category: { n: 12, name: 'Desporto' },
+  }, QE, { stripTags, normalizeFn: normalizeQ });
+  assert('217. bad_options gelo detecta distractores óbvios', hockeyBad?.verdict === 'bad_formulation', hockeyBad?.verdict);
+  assert('218. bad_options gelo sugere novas opções', (hockeyBad?.suggestedCorrection?.options || []).length === 4);
+  assert('219. bad_options gelo preview válido', hockeyBad?.correctionPreview?.ok === true, hockeyBad?.correctionPreview?.issues?.join(', '));
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

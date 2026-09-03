@@ -9,6 +9,7 @@ const {
   validateReportPayload,
 } = require('./lib/report-utils');
 const { saveReport } = require('./lib/reports-store');
+const { attachEngineDiagnosis } = require('./lib/report-diagnosis');
 
 const requestLog = new Map();
 
@@ -45,6 +46,7 @@ exports.handler = async (event) => {
     }
 
     const report = buildReport(payload);
+    attachEngineDiagnosis(report);
 
     try {
       await saveReport(report, event);

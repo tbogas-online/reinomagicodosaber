@@ -598,6 +598,50 @@ async function deleteQuestionsByCategory(categoryN, options = {}) {
   };
 }
 
+async function applyReportCorrectionToBank(questionHash, correction = {}) {
+  const hash = String(questionHash || '').trim();
+  if (!hash) {
+    const err = new Error('Falta question_hash.');
+    err.code = 'MISSING_HASH';
+    throw err;
+  }
+
+  const patch = {
+    is_reported: false,
+    reported_at: null,
+  };
+  if (correction.question) patch.question = String(correction.question).trim();
+  if (correction.answer) patch.correct_answer = String(correction.answer).trim();
+  if (Array.isArray(correction.options) && correction.options.length >= 2) {
+    patch.options = correction.options.map((o) => String(o || '').trim()).filter(Boolean);
+    patch.format = correction.format || 'ESCOLHA_MULTIPLA';
+  } else if (correction.format) {
+    patch.format = correction.format;
+  }
+
+  if (!patch.question && !patch.correct_answer && !patch.options) {
+    const err = new Error('Nada para actualizar na correcção.');
+    err.code = 'EMPTY_PATCH';
+    throw err;
+  }
+
+  await supabaseRequest(`/question_bank?question_hash=eq.${encodeURIComponent(hash)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(patch),
+  });
+
+  try {
+    await supabaseRequest(`/question_bank_blocked?question_hash=eq.${encodeURIComponent(hash)}`, {
+      method: 'DELETE',
+    });
+  } catch {
+    /* pode não existir bloqueio */
+  }
+
+  return { ok: true, updated: 1, questionHash: hash };
+}
+
 module.exports = {
   getQuestionBankStats,
   purgeQuestionsWithoutOptions,
@@ -605,4 +649,5 @@ module.exports = {
   deleteQuestionsFromBank,
   deleteQuestionsByCategory,
   filterRowsByReportStatus,
+  applyReportCorrectionToBank,
 };

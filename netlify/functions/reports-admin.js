@@ -87,12 +87,16 @@ exports.handler = async (event) => {
         return json(400, { error: 'Falta reportId ou reportIds.' });
       }
       try {
+        const extras = {};
+        if (body.reviewDecision && typeof body.reviewDecision === 'object') {
+          extras.reviewDecision = body.reviewDecision;
+        }
         if (reportIds.length === 1) {
-          const report = await updateReportStatus(reportIds[0], body.status, event);
+          const report = await updateReportStatus(reportIds[0], body.status, event, extras);
           if (!report) return json(404, { error: 'Reporte não encontrado.' });
           return json(200, { ok: true, report, updated: [reportIds[0]], failed: [] });
         }
-        const result = await updateManyReportStatuses(reportIds, body.status, event);
+        const result = await updateManyReportStatuses(reportIds, body.status, event, extras);
         return json(200, { ok: true, ...result });
       } catch (err) {
         console.error('[reports-admin] patch failed:', err);

@@ -202,6 +202,41 @@ function validateMcTrivialMath(q, options, correctAnswer, stripTags) {
   return issues;
 }
 
+function detectSportSurfaceContext(q) {
+  const t = String(q || '').toLowerCase();
+  if (/\bgelo\b|\bpista de gelo\b|\bno gelo\b|\bpatins\b.*\bdisco\b|\bdisco\b.*\bpatins\b/i.test(t)) return 'ice';
+  if (/\bágua\b|\bagua\b|\bpiscina\b|\bmar\b|\bnatação\b|\bnatacao\b/i.test(t)) return 'water';
+  if (/\brelva\b|\bcampo\b|\bgrama\b/i.test(t) && /\bdesporto\b/i.test(t)) return 'field';
+  return null;
+}
+
+function isIceSportOption(text) {
+  const t = String(text || '').toLowerCase();
+  return /\bhóquei\b|\bhoquei\b|\bpatinag|\bcurling\b|\bbobsleigh\b|\bluge\b|\bpatins\b/i.test(t);
+}
+
+function isClearlyNonIceSport(text) {
+  const t = String(text || '').toLowerCase();
+  if (isIceSportOption(t)) return false;
+  return /\bténis\b|\btenis\b|\bfutebol\b|\bbasquetebol\b|\bsalto\b|\bmaratona\b|\bciclismo\b|\bgolfe\b|\bvoleibol\b|\bandebol\b|\batletismo\b/i.test(t);
+}
+
+function validateMcSportSurfaceMismatch(q, options, correctAnswer, stripTags) {
+  const issues = [];
+  if (!/\b(que|qual)\s+desporto\b/i.test(q)) return issues;
+  const surface = detectSportSurfaceContext(q);
+  if (!surface || surface !== 'ice') return issues;
+  const clean = (options || []).map((o) => stripTags(o).trim()).filter(Boolean);
+  if (clean.length < 4) return issues;
+  const correct = stripTags(correctAnswer).trim().toLowerCase();
+  const wrong = clean.filter((o) => stripTags(o).trim().toLowerCase() !== correct);
+  const nonIce = wrong.filter((o) => isClearlyNonIceSport(o));
+  if (nonIce.length >= 2) {
+    pushMcWrongClass(issues, 'distratores demasiado óbvios — com pergunta sobre gelo, as opções erradas devem ser outros desportos de gelo plausíveis');
+  }
+  return issues;
+}
+
 function validateMcTooObvious(options, correctAnswer, stripTags) {
   const issues = [];
   const correct = stripTags(correctAnswer).trim();
@@ -434,6 +469,7 @@ function collectMcIssues(parsed, ctx) {
     ...validateMcConceptualClass(options, a, stripTags),
     ...validateMcDistractorMixing(q, options, a, stripTags, formatId),
     ...validateMcTooObvious(options, a, stripTags),
+    ...validateMcSportSurfaceMismatch(q, options, a, stripTags),
     ...validateMcTrivialMath(q, options, a, stripTags),
     ...validateMcOptionsQuality(options, stripTags, collapseOptionKey, ageBandKey),
     ...validateDisneyCharacterAliases(options, a),
@@ -466,6 +502,8 @@ function collectMcIssues(parsed, ctx) {
     validateMcDistractorMixing,
     validateMcTrivialMath,
     validateMcTooObvious,
+    validateMcSportSurfaceMismatch,
+    detectSportSurfaceContext,
     validateMcOptionsCoherence,
     validateMcOptionsQuality,
     validateDisneyCharacterAliases,

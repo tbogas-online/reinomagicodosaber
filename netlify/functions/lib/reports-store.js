@@ -1,6 +1,7 @@
 const { connectLambda, getStore } = require('@netlify/blobs');
 const { formatPortugalDateTime } = require('./report-utils');
 const supabaseStore = require('./reports-store-supabase');
+const { aggregateDiagnosisStats } = require('./report-diagnosis');
 
 const STORE_NAME = 'question-reports';
 const INDEX_KEY = 'reports-index';
@@ -96,6 +97,7 @@ const storeHelpers = {
   reportMatchesSearch,
   computeStatsFromIndex,
   isSiteIssueType,
+  aggregateDiagnosisStats,
 };
 
 function useSupabase() {
@@ -581,10 +583,10 @@ async function getStats(event, scope = 'all', filters = {}) {
   return computeStatsFromIndex(index, scope, filters);
 }
 
-async function updateReportStatus(reportId, status, event) {
+async function updateReportStatus(reportId, status, event, extras = {}) {
   if (useSupabase()) {
     await maybeMigrateFromBlobs(event);
-    return supabaseStore.updateReportStatus(reportId, status, storeHelpers);
+    return supabaseStore.updateReportStatus(reportId, status, storeHelpers, extras);
   }
   const nextStatus = normalizeReportStatus(status);
   if (!VALID_STATUSES.has(nextStatus)) return null;
@@ -601,6 +603,11 @@ async function updateReportStatus(reportId, status, event) {
     report.resolvedAtPortugal = formatPortugalDateTime(now);
   }
   if (nextStatus === 'cancelled') report.cancelledAt = now;
+  if (extras.reviewDecision && typeof extras.reviewDecision === 'object') {
+    report.reviewDecision = extras.reviewDecision;
+    report.reviewedAt = now;
+    report.reviewedAtPortugal = formatPortugalDateTime(now);
+  }
   await store.setJSON(`report:${report.reportId}`, report);
   const index = await readIndex(store);
   let updatedAny = false;
@@ -621,13 +628,13 @@ async function updateReportStatus(reportId, status, event) {
   return report;
 }
 
-async function updateManyReportStatuses(reportIds, status, event) {
+async function updateManyReportStatuses(reportIds, status, event, extras = {}) {
   const ids = [...new Set(reportIds)].filter(Boolean).slice(0, 100);
   const updated = [];
   const reports = [];
   const failed = [];
   for (const reportId of ids) {
-    const report = await updateReportStatus(reportId, status, event);
+    const report = await updateReportStatus(reportId, status, event, extras);
     if (report) {
       updated.push(reportId);
       reports.push({

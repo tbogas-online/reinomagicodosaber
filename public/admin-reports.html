@@ -235,8 +235,8 @@
       font-size: 13px;
     }
     .reports-table .col-question {
-      max-width: 300px;
-      min-width: 180px;
+      max-width: 360px;
+      min-width: 200px;
       word-break: break-word;
       white-space: normal;
     }
@@ -255,6 +255,86 @@
       border-left-color: #60a5fa;
       color: #bfdbfe;
     }
+    .report-diagnosis {
+      margin-top: 0;
+      padding: 16px 18px;
+      border-radius: 10px;
+      border: 1px solid rgba(139, 92, 246, 0.45);
+      background: rgba(139, 92, 246, 0.08);
+      font-size: 14px;
+    }
+    .report-diagnosis.severity-high { border-color: rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.08); }
+    .report-diagnosis.severity-medium { border-color: rgba(245, 158, 11, 0.45); background: rgba(245, 158, 11, 0.08); }
+    .report-diagnosis.severity-low { border-color: rgba(16, 185, 129, 0.45); background: rgba(16, 185, 129, 0.08); }
+    .report-diagnosis-title { font-weight: 700; margin-bottom: 8px; font-size: 1.05rem; }
+    .report-diagnosis-meta { font-size: 13px; color: var(--muted); margin-bottom: 10px; line-height: 1.5; }
+    .report-diagnosis-problems { margin: 0 0 10px; padding-left: 1.2rem; font-size: 14px; line-height: 1.45; }
+    .report-diagnosis-correction label {
+      display: block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin: 8px 0 4px;
+    }
+    .report-diagnosis-correction textarea,
+    .report-diagnosis-correction input {
+      width: 100%;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      padding: 8px 10px;
+      font: inherit;
+      font-size: 13px;
+    }
+    .report-diagnosis-correction textarea { min-height: 72px; resize: vertical; }
+    .report-diagnosis-correction textarea.report-corr-question { min-height: 88px; }
+    .report-diagnosis-correction textarea.report-corr-options { min-height: 88px; font-family: inherit; }
+    .report-diagnosis-changes {
+      margin: 8px 0 4px;
+      padding: 8px 10px;
+      border-radius: 8px;
+      background: rgba(59, 130, 246, 0.08);
+      border: 1px solid rgba(59, 130, 246, 0.25);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+    .report-diagnosis-preview {
+      margin: 6px 0 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .report-diagnosis-correction {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 10px 20px;
+    }
+    .report-diagnosis-correction label[for^="corr-n-"],
+    .report-diagnosis-correction textarea.report-corr-question {
+      grid-column: 1 / -1;
+    }
+    @media (max-width: 720px) {
+      .report-diagnosis-correction { grid-template-columns: 1fr; }
+    }
+    .report-diagnosis-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 10px;
+    }
+    .report-diagnosis-actions button { font-size: 13px; padding: 8px 14px; }
+    .report-quality-score {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: rgba(148, 163, 184, 0.15);
+    }
+    .report-quality-score.good { color: #34d399; }
+    .report-quality-score.mid { color: #fbbf24; }
+    .report-quality-score.bad { color: #f87171; }
     .reports-table .col-device {
       white-space: nowrap;
       font-size: 12px;
@@ -276,6 +356,77 @@
     }
     .detail { display: none; margin-top: 8px; font-size: 12px; color: var(--muted); user-select: text; }
     tr.open .detail { display: block; }
+    tr.report-detail-row { display: none; }
+    tr.report-detail-row.open { display: table-row; }
+    tr.report-detail-row > td {
+      padding: 0 8px 14px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.55);
+    }
+    .report-detail-panel {
+      padding: 18px 20px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      font-size: 14px;
+      line-height: 1.55;
+      color: var(--text);
+      user-select: text;
+    }
+    .report-detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .report-detail-header-title {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .report-detail-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 14px 28px;
+    }
+    .report-detail-grid .report-detail-span { grid-column: 1 / -1; }
+    .report-detail-section {
+      min-width: 0;
+    }
+    .report-detail-section h4 {
+      margin: 0 0 8px;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .report-detail-section p,
+    .report-detail-section div { margin: 0 0 6px; }
+    .report-detail-question {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 10px;
+      line-height: 1.45;
+    }
+    .report-detail-options {
+      margin: 0;
+      padding-left: 1.2rem;
+    }
+    .report-detail-options li { margin: 4px 0; }
+    .report-detail-meta {
+      font-size: 13px;
+      color: var(--muted);
+    }
+    @media (max-width: 960px) {
+      .report-detail-grid { grid-template-columns: 1fr; }
+    }
     .detail-actions { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0 0; }
     .detail-actions button { font-size: 12px; padding: 6px 10px; }
     .report-attachment-block { margin-top: 10px; }
@@ -2315,8 +2466,35 @@
   <script src="html-escape.js"></script>
   <script src="game-stats-engine.js"></script>
   <script src="game-stats-adapters.js"></script>
-  <script src="question-engine/issue-codes.js?v=20260902-123822"></script>
-  <script src="question-engine/known-facts.js?v=20260902-123822"></script>
+  <script src="question-engine/engine-config.js?v=20260903-085100"></script>
+  <script src="question-engine/issue-codes.js?v=20260903-085100"></script>
+  <script src="question-engine/knowledge-key.js?v=20260903-085100"></script>
+  <script src="question-engine/retry-strategy.js?v=20260903-085100"></script>
+  <script src="question-engine/telemetry.js?v=20260903-085100"></script>
+  <script src="question-engine/known-facts.js?v=20260903-085100"></script>
+  <script src="question-engine/factual-verify.js?v=20260903-085100"></script>
+  <script src="question-engine/adivinha-verify.js?v=20260903-085100"></script>
+  <script src="question-engine/adivinha-answer-pool.js?v=20260903-085100"></script>
+  <script src="question-engine/content-safety-data.js?v=20260903-085100"></script>
+  <script src="question-engine/content-safety.js?v=20260903-085100"></script>
+  <script src="question-engine/adivinha-distractors.js?v=20260903-085100"></script>
+  <script src="question-engine/difficulty-estimate.js?v=20260903-085100"></script>
+  <script src="question-engine/pt-pt-validators.js?v=20260903-085100"></script>
+  <script src="question-engine/format-validators.js?v=20260903-085100"></script>
+  <script src="question-engine/mc-validators.js?v=20260903-085100"></script>
+  <script src="question-engine/age-validators.js?v=20260903-085100"></script>
+  <script src="question-engine/category-validators.js?v=20260903-085100"></script>
+  <script src="question-engine/semantic-validators.js?v=20260903-085100"></script>
+  <script src="question-engine/reported-content.js?v=20260903-085100"></script>
+  <script src="question-engine/repetition-validators.js?v=20260903-085100"></script>
+  <script src="question-engine/knowledge-key-compute.js?v=20260903-085100"></script>
+  <script src="question-engine/persistent-history.js?v=20260903-085100"></script>
+  <script src="question-engine/prompt-builder.js?v=20260903-085100"></script>
+  <script src="question-engine/mc-assembly.js?v=20260903-085100"></script>
+  <script src="question-engine/issue-overrides.js?v=20260903-085100"></script>
+  <script src="question-engine/question-scoring.js?v=20260903-085100"></script>
+  <script src="question-engine/report-diagnosis.js?v=20260903-085100"></script>
+  <script src="question-engine.js?v=20260903-085100"></script>
   <script>
     const AUTH_KEY = 'reino_admin_reports_auth';
     const ISSUE_LABELS = {
@@ -2341,6 +2519,26 @@
       resolved: 'Resolvido',
       cancelled: 'Cancelado',
     };
+    const REPORT_BTN_TITLES = {
+      toggleDetailOpen: 'Mostrar pergunta completa, diagnóstico da IA e acções de revisão.',
+      toggleDetailClose: 'Ocultar o painel de detalhe deste reporte.',
+      copyReport: 'Copiar pergunta, opções, comentário e metadados para a área de transferência.',
+      validate: 'A pergunta está correcta — o reporte do jogador não procede. Se editaste opções ou texto, pergunta se gravas no banco.',
+      correct: 'Há um problema real na pergunta — grava a correcção no banco (se aplicável) e marca o reporte como resolvido.',
+      reject: 'O reporte do jogador é inválido ou infundado — cancela sem alterar a pergunta no banco.',
+      regenerate: 'Abre o gerador de perguntas com o contexto deste reporte para criar uma nova versão.',
+      resolve: 'Marcar como resolvido rapidamente, sem usar o fluxo de diagnóstico (não grava alterações no banco).',
+      cancel: 'Arquivar o reporte sem tratar o problema — fica como cancelado.',
+      reopen: 'Voltar a abrir um reporte que estava resolvido ou cancelado.',
+      deleteBank: 'Remove a pergunta do banco Supabase, impede que volte a ser usada e marca o reporte como resolvido.',
+      disableKnowledge: 'Desactiva o facto de conhecimento associado, deixa de ser usado para gerar perguntas e marca o reporte como resolvido.',
+      deleteReport: 'Apaga permanentemente este reporte (só disponível quando está cancelado).',
+      loadImage: 'Carregar e mostrar a captura de ecrã enviada pelo jogador.',
+    };
+    function btnTitle(key) {
+      const text = REPORT_BTN_TITLES[key];
+      return text ? ` title="${esc(text)}"` : '';
+    }
     const STATUS_CHART_LABELS = {
       open: 'Por tratar',
       resolved: 'Resolvidos',
@@ -2349,6 +2547,217 @@
       open: '#f59e0b',
       resolved: '#10b981',
     };
+    const QE = () => window.QuestionEngine;
+    const ReportDx = () => window.QuestionEngineReportDiagnosis;
+    const DIAGNOSIS_VERDICT_LABELS = {
+      factual_error: 'Erro factual',
+      ambiguity: 'Ambiguidade',
+      bad_formulation: 'Má formulação',
+      incomplete: 'Informação incompleta',
+      pt_pt: 'Problemas de PT-PT',
+      valid: 'Pergunta válida',
+    };
+
+    function stripTagsAdmin(value) {
+      return String(value || '').replace(/<[^>]*>/g, '').trim();
+    }
+
+    function normalizeQAdmin(value) {
+      return stripTagsAdmin(value).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    }
+
+    function reportDiagnosisHelpers() {
+      return {
+        stripTags: stripTagsAdmin,
+        normalizeFn: normalizeQAdmin,
+        validateTrueFalseQuestion: () => ({ ok: true, issues: [] }),
+      };
+    }
+
+    function ensureReportDiagnosis(report, { force = false } = {}) {
+      if (!report || String(report.issueType || '').startsWith('site_') || report.source === 'site') return null;
+      const engine = QE();
+      const dx = ReportDx();
+      if (!engine || !dx?.enrichReportDiagnosis) return report.engineDiagnosis || null;
+      return dx.enrichReportDiagnosis(report, engine, { ...reportDiagnosisHelpers(), force });
+    }
+
+    function qualityScoreClass(score) {
+      const n = Number(score) || 0;
+      if (n >= 75) return 'good';
+      if (n >= 50) return 'mid';
+      return 'bad';
+    }
+
+    function renderReportDiagnosis(report) {
+      const diagnosis = ensureReportDiagnosis(report, { force: !report.engineDiagnosis });
+      if (!diagnosis) return '';
+      const problems = (diagnosis.problems || []).slice(0, 4).map((p) => (
+        `<li>${p.emoji} ${esc(p.label)}${p.message ? ` — ${esc(p.message)}` : ''}</li>`
+      )).join('');
+      const correction = mergeCorrectionWithDraft(report.reportId, diagnosis.suggestedCorrection || {});
+      const alignNote = diagnosis.alignsWithPlayerReport === true
+        ? 'Concorda com o jogador'
+        : (diagnosis.alignsWithPlayerReport === false ? 'Diverge do jogador' : 'Sem comparação');
+      const optionsText = Array.isArray(correction.options) ? correction.options.join('\n') : '';
+      const changes = (diagnosis.suggestedChanges || correction.suggestedChanges || []).map((ch) => {
+        if (ch.field === 'options') {
+          return `<li><strong>Opções:</strong> ${esc((ch.from || []).join(' · '))} → ${esc((ch.to || []).join(' · '))}</li>`;
+        }
+        if (ch.field === 'format') {
+          return `<li><strong>Formato:</strong> ${esc(ch.from || '—')} → ${esc(ch.to || '—')}</li>`;
+        }
+        return `<li><strong>${esc(ch.field)}:</strong> ${esc(ch.from || '—')} → ${esc(ch.to || '—')}</li>`;
+      }).join('');
+      const preview = diagnosis.correctionPreview;
+      const previewHtml = preview
+        ? `<div class="report-diagnosis-preview">Após correcção sugerida: Quality Score <span class="report-quality-score ${qualityScoreClass(preview.qualityScore)}">${preview.qualityScore}/100</span>${preview.ok ? ' ✓' : ` — ${esc((preview.issues || []).join('; '))}`}</div>`
+        : '';
+      return `<div class="report-diagnosis severity-${esc(diagnosis.severity || 'medium')}" data-report-id="${esc(report.reportId)}">
+        <div class="report-diagnosis-title">🤖 Diagnóstico provável: ${esc(diagnosis.verdictLabel || DIAGNOSIS_VERDICT_LABELS[diagnosis.verdict] || diagnosis.verdict)}</div>
+        <div class="report-diagnosis-meta">
+          Confiança: <strong>${diagnosis.confidence}%</strong>
+          · Severidade: <strong>${esc(diagnosis.severityLabel || '—')}</strong>
+          · Quality Score: <span class="report-quality-score ${qualityScoreClass(diagnosis.qualityScore)}">${diagnosis.qualityScore}/100</span>
+          · ${esc(alignNote)}
+        </div>
+        <div><strong>Ação recomendada:</strong> ${esc(diagnosis.recommendedActionLabel || '—')}</div>
+        ${problems ? `<ul class="report-diagnosis-problems">${problems}</ul>` : ''}
+        ${changes ? `<div class="report-diagnosis-changes"><strong>Alterações sugeridas</strong><ul>${changes}</ul></div>` : ''}
+        ${previewHtml}
+        <div class="report-diagnosis-correction">
+          <label for="corr-q-${esc(report.reportId)}">Pergunta (correcção sugerida)</label>
+          <textarea id="corr-q-${esc(report.reportId)}" class="report-corr-question" data-report-id="${esc(report.reportId)}">${esc(correction.question || '')}</textarea>
+          <label for="corr-a-${esc(report.reportId)}">Resposta</label>
+          <input id="corr-a-${esc(report.reportId)}" type="text" class="report-corr-answer" data-report-id="${esc(report.reportId)}" value="${esc(correction.answer || '')}">
+          <label for="corr-o-${esc(report.reportId)}">Opções (uma por linha)</label>
+          <textarea id="corr-o-${esc(report.reportId)}" class="report-corr-options" data-report-id="${esc(report.reportId)}">${esc(optionsText)}</textarea>
+          <label for="corr-n-${esc(report.reportId)}">Notas do motor</label>
+          <textarea id="corr-n-${esc(report.reportId)}" class="report-corr-notes" data-report-id="${esc(report.reportId)}">${esc(correction.notes || '')}</textarea>
+        </div>
+        <div class="report-diagnosis-actions">
+          <button type="button" class="success report-action-validate" data-report-id="${esc(report.reportId)}"${btnTitle('validate')}>✅ Validar</button>
+          <button type="button" class="secondary report-action-correct" data-report-id="${esc(report.reportId)}"${btnTitle('correct')}>✏️ Corrigir</button>
+          <button type="button" class="secondary report-action-reject" data-report-id="${esc(report.reportId)}"${btnTitle('reject')}>❌ Rejeitar reporte</button>
+          <button type="button" class="secondary report-action-regenerate" data-report-id="${esc(report.reportId)}"${btnTitle('regenerate')}>🔄 Regenerar</button>
+        </div>
+      </div>`;
+    }
+
+    function readCorrectionDraft(reportId) {
+      const row = document.querySelector(`.report-diagnosis[data-report-id="${reportId}"]`);
+      if (!row) return correctionDraftsByReportId.get(reportId) || null;
+      const optionsRaw = row.querySelector('.report-corr-options')?.value || '';
+      const options = optionsRaw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+      return {
+        question: row.querySelector('.report-corr-question')?.value?.trim() || '',
+        answer: row.querySelector('.report-corr-answer')?.value?.trim() || '',
+        options,
+        notes: row.querySelector('.report-corr-notes')?.value?.trim() || '',
+      };
+    }
+
+    function saveCorrectionDraftFromDom(reportId) {
+      const draft = readCorrectionDraft(reportId);
+      if (!draft) return;
+      if (!draft.question && !draft.answer && !draft.options?.length && !draft.notes) return;
+      correctionDraftsByReportId.set(reportId, draft);
+    }
+
+    function saveAllCorrectionDraftsFromDom() {
+      document.querySelectorAll('.report-diagnosis[data-report-id]').forEach((row) => {
+        const reportId = row.dataset.reportId;
+        if (!reportId) return;
+        const optionsRaw = row.querySelector('.report-corr-options')?.value || '';
+        const options = optionsRaw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+        const draft = {
+          question: row.querySelector('.report-corr-question')?.value?.trim() || '',
+          answer: row.querySelector('.report-corr-answer')?.value?.trim() || '',
+          options,
+          notes: row.querySelector('.report-corr-notes')?.value?.trim() || '',
+        };
+        if (draft.question || draft.answer || draft.options.length || draft.notes) {
+          correctionDraftsByReportId.set(reportId, draft);
+        }
+      });
+    }
+
+    function mergeCorrectionWithDraft(reportId, suggested = {}) {
+      const draft = correctionDraftsByReportId.get(reportId);
+      if (!draft) return suggested;
+      return {
+        ...suggested,
+        question: draft.question || suggested.question || '',
+        answer: draft.answer || suggested.answer || '',
+        options: draft.options?.length ? draft.options : (suggested.options || []),
+        notes: draft.notes ?? suggested.notes ?? '',
+      };
+    }
+
+    function clearCorrectionDraft(reportId) {
+      correctionDraftsByReportId.delete(reportId);
+    }
+
+    function correctionDraftDiffers(report, draft) {
+      if (!report || !draft) return false;
+      const normOpts = (arr) => (arr || []).map((o) => String(o || '').trim()).join('\n');
+      if (draft.question && draft.question !== String(report.question || '').trim()) return true;
+      if (draft.answer && draft.answer !== String(report.correctAnswer || '').trim()) return true;
+      const reportOpts = Array.isArray(report.options) ? report.options : [];
+      if (draft.options?.length >= 2 && normOpts(draft.options) !== normOpts(reportOpts)) return true;
+      return false;
+    }
+
+    async function applyCorrectionToBank(report, draft) {
+      if (!report?.source || report.source !== 'bank') return null;
+      const hash = questionHashFromPair(report.question, report.correctAnswer || '');
+      if (!hash) return null;
+      try {
+        return await api('/api/question-bank-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'apply-report-correction',
+            questionHash: hash,
+            correction: {
+              question: draft.question,
+              answer: draft.answer,
+              options: draft.options,
+              format: draft.options?.length >= 2 ? 'ESCOLHA_MULTIPLA' : undefined,
+            },
+          }),
+        });
+      } catch (err) {
+        console.warn('applyCorrectionToBank failed:', err);
+        return { ok: false, error: String(err?.message || err) };
+      }
+    }
+
+    function openRegenerateForReport(report) {
+      if (!report) return;
+      const params = new URLSearchParams();
+      if (report.category?.n) params.set('cat', String(report.category.n));
+      if (report.ageBand) params.set('age', report.ageBand);
+      if (report.question) params.set('q', report.question.slice(0, 200));
+      if (report.correctAnswer) params.set('a', report.correctAnswer.slice(0, 120));
+      if (Array.isArray(report.options) && report.options.length) {
+        params.set('opts', report.options.join('\n').slice(0, 500));
+      }
+      if (report.format) params.set('format', String(report.format).trim().toUpperCase());
+      const url = `/admin/test-questions.html${params.toString() ? `?${params.toString()}` : ''}`;
+      window.open(url, '_blank', 'noopener');
+    }
+
+    async function submitReportReview(reportId, status, reviewDecision) {
+      return api('/api/reports-admin', {
+        method: 'PATCH',
+        body: JSON.stringify({
+          reportIds: [reportId],
+          status,
+          reviewDecision,
+        }),
+      });
+    }
+
     const AGE_ORDER = ['6-9', '10-15', '15+', '—'];
     const DEVICE_LABELS = {
       telefone: 'Telefone',
@@ -3164,6 +3573,9 @@
     let dashboardLoading = false;
     let refreshTimer = null;
     const selectedReportIds = new Set();
+    const openReportIds = new Set();
+    /** Rascunhos de correcção por reportId — sobrevivem a refresh/re-render da tabela. */
+    const correctionDraftsByReportId = new Map();
 
     const loginCard = document.getElementById('loginCard');
     const dashboard = document.getElementById('dashboard');
@@ -3412,6 +3824,33 @@
       }
     }
 
+    function resolveReportIdFromEvent(e) {
+      const mainRow = e.target.closest('tr.report-main-row');
+      if (mainRow?.dataset?.id) return mainRow.dataset.id;
+      const detailRow = e.target.closest('tr.report-detail-row');
+      if (detailRow?.dataset?.detailFor) return detailRow.dataset.detailFor;
+      const btn = e.target.closest('[data-report-id]');
+      if (btn?.dataset?.reportId) return btn.dataset.reportId;
+      return '';
+    }
+
+    function toggleReportDetail(reportId) {
+      if (!reportId) return;
+      if (openReportIds.has(reportId)) openReportIds.delete(reportId);
+      else openReportIds.add(reportId);
+      const mainRow = reportsBody.querySelector(`tr.report-main-row[data-id="${reportId}"]`);
+      const detailRow = reportsBody.querySelector(`tr.report-detail-row[data-detail-for="${reportId}"]`);
+      const isOpen = openReportIds.has(reportId);
+      mainRow?.classList.toggle('open', isOpen);
+      detailRow?.classList.toggle('open', isOpen);
+      const btn = mainRow?.querySelector('.toggle-detail');
+      if (btn) {
+        btn.textContent = isOpen ? 'Fechar' : 'Detalhe';
+        btn.title = REPORT_BTN_TITLES[isOpen ? 'toggleDetailClose' : 'toggleDetailOpen'] || '';
+      }
+      if (isOpen) detailRow?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
     function getReportStatus(report) {
       const status = report?.status || 'open';
       if (status === 'resolved' || status === 'cancelled') return status;
@@ -3423,10 +3862,12 @@
       return `<span class="pill status-${status}">${esc(STATUS_LABELS[status] || status)}</span>`;
     }
 
-    async function patchReportStatus(reportIds, status) {
+    async function patchReportStatus(reportIds, status, reviewDecision = null) {
+      const body = { reportIds, status };
+      if (reviewDecision) body.reviewDecision = reviewDecision;
       return api('/api/reports-admin', {
         method: 'PATCH',
-        body: JSON.stringify({ reportIds, status }),
+        body: JSON.stringify(body),
       });
     }
 
@@ -3464,14 +3905,23 @@
       updatePager();
     }
 
-    async function changeReportStatus(reportIds, status) {
+    async function resolveOpenReportAfterAction(reportId, reviewDecision = {}) {
+      if (!reportId) return false;
+      const report = reportsById[reportId];
+      if (!report || getReportStatus(report) !== 'open') return false;
+      await changeReportStatus([reportId], 'resolved', reviewDecision);
+      clearCorrectionDraft(reportId);
+      return true;
+    }
+
+    async function changeReportStatus(reportIds, status, reviewDecision = null) {
       const ids = [...new Set(reportIds)].filter(Boolean);
       if (!ids.length) return;
       listStatus.textContent = 'A atualizar…';
       listStatus.className = 'status';
       updateLocalReportStatus(ids, status);
       try {
-        const result = await patchReportStatus(ids, status);
+        const result = await patchReportStatus(ids, status, reviewDecision);
         selectedReportIds.clear();
         await loadDashboard({ quiet: true });
         const count = result.updated?.length || ids.length;
@@ -3636,12 +4086,18 @@
         return;
       }
       const topIssue = Object.entries(stats.byIssueType || {}).sort((a, b) => b[1] - a[1])[0];
+      const dx = stats.diagnosis || {};
+      const topVerdict = Object.entries(dx.byVerdict || {}).sort((a, b) => b[1] - a[1])[0];
+      const topEngineFail = (dx.topEngineFailures || [])[0];
       statsRow.innerHTML = `
         <div class="stat stat-open"><strong>${stats.openCount ?? '—'}</strong><span>Por tratar</span></div>
         <div class="stat stat-resolved"><strong>${stats.resolvedCount ?? '—'}</strong><span>Resolvidos</span></div>
         <div class="stat stat-cancelled"><strong>${stats.cancelledCount ?? '—'}</strong><span>Cancelados</span></div>
         <div class="stat stat-total"><strong>${stats.total || 0}</strong><span>Total</span></div>
         <div class="stat stat-top-issue"><strong>${topIssue ? esc(ISSUE_LABELS[topIssue[0]] || topIssue[0]) : '—'}</strong><span>Tipo mais comum</span></div>
+        <div class="stat stat-repository"><strong>${dx.avgQualityScore ?? '—'}</strong><span>Quality Score médio</span></div>
+        <div class="stat stat-open"><strong>${topVerdict ? esc(DIAGNOSIS_VERDICT_LABELS[topVerdict[0]] || topVerdict[0]) : '—'}</strong><span>Diagnóstico mais comum</span></div>
+        <div class="stat stat-top-issue"><strong>${topEngineFail ? esc(GEN_ISSUE_LABELS[topEngineFail.code] || topEngineFail.code) : '—'}</strong><span>Falha do motor (#1)</span></div>
       `;
     }
 
@@ -4323,12 +4779,73 @@
 
     function formatReportQuestionSummary(r, isSite) {
       if (isSite) return esc(r.comment || r.suggestion || r.question || '—');
-      const question = esc(r.question || '—');
+      return esc(r.question || '—');
+    }
+
+    function renderReportDetailPanel(r, isSite) {
+      const opts = Array.isArray(r.options) && r.options.length ? r.options : [];
+      const optsHtml = opts.length
+        ? `<ul class="report-detail-options">${opts.map((o) => `<li>${esc(o)}</li>`).join('')}</ul>`
+        : '<p class="report-detail-meta">—</p>';
       const notes = formatReportNoteBlocks(r);
-      return `${question}${notes}`;
+      return `<div class="report-detail-panel" data-detail-for="${esc(r.reportId)}">
+        <div class="report-detail-header">
+          <span class="report-detail-header-title">Detalhe do reporte</span>
+          <button type="button" class="secondary toggle-detail" data-report-id="${esc(r.reportId)}"${btnTitle('toggleDetailClose')}>▲ Esconder</button>
+        </div>
+        <div class="report-detail-question">${esc(r.question || '—')}</div>
+        ${notes ? `<div class="report-detail-span">${notes}</div>` : ''}
+        <div class="report-detail-grid">
+          ${isSite ? `
+          <div class="report-detail-section">
+            <h4>Site</h4>
+            <p><strong>Página:</strong> ${esc(r.page || 'about')}</p>
+            <p><strong>Origem:</strong> site</p>
+          </div>` : `
+          <div class="report-detail-section">
+            <h4>Respostas</h4>
+            <p><strong>Correta:</strong> ${esc(r.correctAnswer || '—')}</p>
+            <p><strong>Escolhida:</strong> ${esc(r.selectedAnswer || '—')}</p>
+          </div>
+          <div class="report-detail-section">
+            <h4>Opções</h4>
+            ${optsHtml}
+          </div>`}
+          <div class="report-detail-section">
+            <h4>Contexto</h4>
+            <p><strong>Formato:</strong> ${esc(r.format || '—')}</p>
+            <p><strong>Fonte:</strong> ${esc(r.source || '—')}</p>
+            ${r.sourceId ? `<p><strong>Source ID:</strong> <code>${esc(r.sourceId)}</code></p>` : ''}
+            ${r.knowledgeId ? `<p><strong>Knowledge ID:</strong> <code>${esc(r.knowledgeId)}</code></p>` : ''}
+            ${r.questionDbAddedAtPortugal ? `<p><strong>Na base desde:</strong> ${esc(r.questionDbAddedAtPortugal)}</p>` : ''}
+            <p><strong>ID pergunta:</strong> <code>${esc(r.questionId || '—')}</code></p>
+            <p><strong>Versão:</strong> ${esc(r.gameVersion || r.appBuild || '—')}</p>
+          </div>
+          <div class="report-detail-section">
+            <h4>Reporte do jogador</h4>
+            <p><strong>Problema:</strong> ${esc(r.issueLabel || ISSUE_LABELS[r.issueType] || r.issueType || '—')}</p>
+            ${r.comment ? `<p><strong>Comentário:</strong> ${esc(r.comment)}</p>` : ''}
+            ${r.suggestion ? `<p><strong>Sugestão:</strong> ${esc(r.suggestion)}</p>` : ''}
+            ${r.device ? `<div style="margin-top:8px;"><strong>Dispositivo</strong>${formatDeviceDetail(r.device)}</div>` : ''}
+          </div>
+          ${!isSite ? `<div class="report-detail-span">${renderReportDiagnosis(r)}</div>` : ''}
+          ${Array.isArray(r.attachments) && r.attachments.length ? `
+          <div class="report-detail-section report-detail-span">
+            <h4>Anexo</h4>
+            <p>${esc(r.attachments[0].filename || 'imagem')}</p>
+            <button type="button" class="secondary load-report-image" data-report-id="${esc(r.reportId)}"${btnTitle('loadImage')}>🖼 Ver imagem</button>
+            <img class="report-attachment-img hidden" data-report-id="${esc(r.reportId)}" alt="Captura do reporte">
+          </div>` : ''}
+        </div>
+        <div class="detail-actions">
+          <button type="button" class="secondary copy-report-detail" data-report-id="${esc(r.reportId)}"${btnTitle('copyReport')}>📋 Copiar tudo</button>
+          <button type="button" class="secondary toggle-detail" data-report-id="${esc(r.reportId)}"${btnTitle('toggleDetailClose')}>▲ Esconder detalhe</button>
+        </div>
+      </div>`;
     }
 
     function renderReports(reports) {
+      saveAllCorrectionDraftsFromDom();
       if (!reports.length) {
         reportsBody.innerHTML = '<tr><td colspan="11">Sem reportes com estes filtros.</td></tr>';
         updateBulkUi();
@@ -4336,54 +4853,35 @@
       }
       reportsBody.innerHTML = reports.map((r) => {
         const isSite = String(r.source) === 'site' || String(r.format) === 'SITE' || String(r.issueType || '').startsWith('site_');
-        const opts = Array.isArray(r.options) && r.options.length ? r.options.join(' · ') : '—';
         const deviceSummary = formatDeviceSummary(r.device);
         const status = getReportStatus(r);
         const checked = selectedReportIds.has(r.reportId) ? 'checked' : '';
+        const isOpen = openReportIds.has(r.reportId);
         const summary = formatReportQuestionSummary(r, isSite);
-        return `<tr data-id="${esc(r.reportId)}" class="${status === 'resolved' ? 'is-resolved' : ''}${status === 'cancelled' ? ' is-cancelled' : ''}">
+        const noteIcon = (r.comment || r.suggestion) ? ' <span class="pill" title="Tem comentário ou sugestão">💬</span>' : '';
+        return `<tr data-id="${esc(r.reportId)}" class="report-main-row${isOpen ? ' open' : ''}${status === 'resolved' ? ' is-resolved' : ''}${status === 'cancelled' ? ' is-cancelled' : ''}">
           <td data-label="Selecionar"><input type="checkbox" class="row-check report-select" data-id="${esc(r.reportId)}" ${checked} aria-label="Selecionar reporte"></td>
           <td data-label="Data" class="col-date">${esc(r.createdAtPortugal || r.receivedAt || '')}</td>
           <td data-label="Estado">${statusPill(r)}</td>
           <td data-label="Resolvido em" class="col-resolved">${status === 'resolved' ? esc(formatResolvidoEm(r) || '—') : '—'}</td>
-          <td data-label="Problema"><span class="pill">${esc(r.issueLabel || ISSUE_LABELS[r.issueType] || r.issueType)}</span>${(r.comment || r.suggestion) ? ' <span class="pill" title="Tem comentário ou sugestão">💬</span>' : ''}</td>
-          <td data-label="Pergunta" class="col-question">${summary}
-            <div class="detail">
-              ${isSite ? `<div><strong>Página:</strong> ${esc(r.page || 'about')} · <strong>Origem:</strong> site</div>` : `
-              <div><strong>Correta:</strong> ${esc(r.correctAnswer || '—')}</div>
-              <div><strong>Escolhida:</strong> ${esc(r.selectedAnswer || '—')}</div>
-              <div><strong>Opções:</strong> ${esc(opts)}</div>`}
-              <div><strong>Formato:</strong> ${esc(r.format || '—')} · <strong>Fonte:</strong> ${esc(r.source || '—')}${r.sourceId ? ` · <strong>Source ID:</strong> <code>${esc(r.sourceId)}</code>` : ''}</div>
-              ${r.knowledgeId ? `<div><strong>Knowledge ID:</strong> <code>${esc(r.knowledgeId)}</code></div>` : ''}
-              ${r.questionDbAddedAtPortugal ? `<div><strong>Na base de dados desde:</strong> ${esc(r.questionDbAddedAtPortugal)}</div>` : ''}
-              ${r.comment ? `<div><strong>Comentário:</strong> ${esc(r.comment)}</div>` : ''}
-              ${r.suggestion ? `<div><strong>Sugestão:</strong> ${esc(r.suggestion)}</div>` : ''}
-              ${Array.isArray(r.attachments) && r.attachments.length ? `
-              <div class="report-attachment-block">
-                <div><strong>Imagem anexada:</strong> ${esc(r.attachments[0].filename || 'imagem')}</div>
-                <button type="button" class="secondary load-report-image" data-report-id="${esc(r.reportId)}">🖼 Ver imagem</button>
-                <img class="report-attachment-img hidden" data-report-id="${esc(r.reportId)}" alt="Captura do reporte">
-              </div>` : ''}
-              <div><strong>ID pergunta:</strong> ${esc(r.questionId || '—')} · <strong>Versão:</strong> ${esc(r.gameVersion || r.appBuild || '—')}</div>
-              ${r.device ? `<div style="margin-top:8px;"><strong>Dispositivo</strong>${formatDeviceDetail(r.device)}</div>` : ''}
-              <div class="detail-actions">
-                <button type="button" class="secondary copy-report-detail">📋 Copiar tudo</button>
-              </div>
-            </div>
-          </td>
+          <td data-label="Problema"><span class="pill">${esc(r.issueLabel || ISSUE_LABELS[r.issueType] || r.issueType)}</span>${noteIcon}</td>
+          <td data-label="Pergunta" class="col-question">${summary}${formatReportNoteBlocks(r)}</td>
           <td data-label="Categoria">${isSite ? 'Site/app' : esc(r.category?.name || '—')}</td>
           <td data-label="Idade">${esc(r.ageBand || '—')}</td>
           <td data-label="Dispositivo" class="col-device">${esc(deviceSummary)}</td>
           <td data-label="Jogador"><code>${esc((r.reporterId || '—').slice(0, 12))}</code></td>
           <td data-label="Ações" class="actions-cell col-actions">
-            <button type="button" class="secondary toggle-detail">Detalhe</button>
-            ${status !== 'resolved' ? `<button type="button" class="success resolve-report">Resolver</button>` : ''}
-            ${status !== 'cancelled' ? `<button type="button" class="secondary cancel-report">Cancelar</button>` : ''}
-            ${status !== 'open' ? `<button type="button" class="secondary reopen-report">Reabrir</button>` : ''}
-              ${!isSite && r.question ? `<button type="button" class="danger delete-bank-question">Apagar do banco</button>` : ''}
-              ${!isSite && r.knowledgeId ? `<button type="button" class="danger disable-knowledge-report">Desactivar facto</button>` : ''}
-            ${status === 'cancelled' ? `<button type="button" class="danger delete-report">Apagar</button>` : ''}
+            <button type="button" class="secondary toggle-detail"${btnTitle(isOpen ? 'toggleDetailClose' : 'toggleDetailOpen')}>${isOpen ? 'Fechar' : 'Detalhe'}</button>
+            ${status !== 'resolved' ? `<button type="button" class="success resolve-report"${btnTitle('resolve')}>Resolver</button>` : ''}
+            ${status !== 'cancelled' ? `<button type="button" class="secondary cancel-report"${btnTitle('cancel')}>Cancelar</button>` : ''}
+            ${status !== 'open' ? `<button type="button" class="secondary reopen-report"${btnTitle('reopen')}>Reabrir</button>` : ''}
+              ${!isSite && r.question ? `<button type="button" class="danger delete-bank-question"${btnTitle('deleteBank')}>Apagar do banco</button>` : ''}
+              ${!isSite && r.knowledgeId ? `<button type="button" class="danger disable-knowledge-report"${btnTitle('disableKnowledge')}>Desactivar facto</button>` : ''}
+            ${status === 'cancelled' ? `<button type="button" class="danger delete-report"${btnTitle('deleteReport')}>Apagar</button>` : ''}
           </td>
+        </tr>
+        <tr class="report-detail-row${isOpen ? ' open' : ''}" data-detail-for="${esc(r.reportId)}">
+          <td colspan="11">${renderReportDetailPanel(r, isSite)}</td>
         </tr>`;
       }).join('');
       updateBulkUi();
@@ -5164,12 +5662,19 @@
         if (fromBank.length) hashes = [...new Set([...fromBank, computedHash])];
       } catch { /* fallback ao hash calculado */ }
 
-      await deleteBankQuestions(hashes, {
+      const deleted = await deleteBankQuestions(hashes, {
         block: document.getElementById('bankDeleteBlock')?.checked !== false,
         clearLocal: document.getElementById('bankDeleteLocal')?.checked !== false,
         reportMeta: { question: report.question, answer: report.correctAnswer || '' },
         statusEl: document.getElementById('listStatus'),
       });
+
+      if (deleted && report.reportId && getReportStatus(report) === 'open') {
+        await resolveOpenReportAfterAction(report.reportId, {
+          action: 'delete_bank',
+          notes: 'Pergunta apagada do banco pelo administrador.',
+        });
+      }
     }
     let bankTimelineRange = '24h';
     let bankMatrixSort = { key: 'cat', dir: 'asc' };
@@ -7686,6 +8191,16 @@
     document.getElementById('bulkReopen')?.addEventListener('click', () => applyBulkStatus('open'));
     document.getElementById('bulkDelete')?.addEventListener('click', () => applyBulkDelete());
 
+    reportsBody.addEventListener('input', (e) => {
+      const field = e.target;
+      if (!field?.dataset?.reportId) return;
+      if (!field.classList.contains('report-corr-question')
+        && !field.classList.contains('report-corr-answer')
+        && !field.classList.contains('report-corr-options')
+        && !field.classList.contains('report-corr-notes')) return;
+      saveCorrectionDraftFromDom(field.dataset.reportId);
+    });
+
     reportsBody.addEventListener('change', (e) => {
       if (!e.target.classList.contains('report-select')) return;
       const id = e.target.dataset.id;
@@ -7696,20 +8211,20 @@
     });
 
     reportsBody.addEventListener('click', async (e) => {
-      const row = e.target.closest('tr');
-      if (!row) return;
+      const reportId = resolveReportIdFromEvent(e);
+      const row = e.target.closest('tr.report-main-row');
       if (e.target.classList.contains('toggle-detail')) {
-        row.classList.toggle('open');
+        toggleReportDetail(reportId);
         return;
       }
       if (e.target.classList.contains('load-report-image')) {
-        const reportId = e.target.dataset.reportId;
-        const imgEl = row.querySelector(`.report-attachment-img[data-report-id="${reportId}"]`);
+        const panel = e.target.closest('.report-detail-panel');
+        const imgEl = panel?.querySelector(`.report-attachment-img[data-report-id="${reportId}"]`);
         loadReportAttachment(reportId, imgEl, e.target);
         return;
       }
       if (e.target.classList.contains('copy-report-detail')) {
-        const report = reportsById[row.dataset.id];
+        const report = reportsById[reportId];
         if (!report) return;
         const btn = e.target;
         const text = formatReportCopyText(report);
@@ -7724,7 +8239,16 @@
         });
         return;
       }
-      const reportId = row.dataset.id;
+      if (!row) {
+        if (e.target.classList.contains('report-action-validate')
+          || e.target.classList.contains('report-action-correct')
+          || e.target.classList.contains('report-action-reject')
+          || e.target.classList.contains('report-action-regenerate')) {
+          // handled below with reportId from detail panel
+        } else {
+          return;
+        }
+      }
       if (e.target.classList.contains('resolve-report')) {
         if (!reportId) return;
         const report = reportsById[reportId];
@@ -7752,6 +8276,74 @@
         await deleteBankQuestionFromReport(report);
         return;
       }
+      if (e.target.classList.contains('report-action-validate')) {
+        const id = e.target.dataset.reportId || reportId;
+        const report = reportsById[id];
+        if (!report || !confirm('Validar pergunta e marcar reporte como resolvido?')) return;
+        const diagnosis = ensureReportDiagnosis(report);
+        const draft = readCorrectionDraft(id);
+        const hasEdits = correctionDraftDiffers(report, draft);
+        let bankResult = null;
+        if (hasEdits) {
+          if (!confirm('Editaste opções ou texto — guardar também no banco de perguntas?')) return;
+          bankResult = await applyCorrectionToBank(report, draft);
+          if (bankResult && bankResult.ok === false && bankResult.error) {
+            alert(`Aviso: não foi possível actualizar o banco — ${bankResult.error}`);
+          }
+        }
+        await changeReportStatus([id], 'resolved', {
+          action: 'validate',
+          verdict: diagnosis?.verdict || 'valid',
+          appliedCorrection: hasEdits ? draft : null,
+          bankUpdate: bankResult?.ok ? { updated: bankResult.updated } : null,
+          notes: hasEdits ? (draft?.notes || 'Validada com ajustes no banco.') : 'Pergunta validada pelo administrador.',
+        });
+        clearCorrectionDraft(id);
+        return;
+      }
+      if (e.target.classList.contains('report-action-correct')) {
+        const id = e.target.dataset.reportId || reportId;
+        const report = reportsById[id];
+        if (!report) return;
+        const draft = readCorrectionDraft(id) || {};
+        if (!draft.question || !draft.answer) {
+          alert('Preenche pergunta e resposta na correcção sugerida.');
+          return;
+        }
+        if (!confirm('Guardar correcção no banco (se aplicável), marcar reporte como resolvido?')) return;
+        const diagnosis = ensureReportDiagnosis(report);
+        const bankResult = await applyCorrectionToBank(report, draft);
+        if (bankResult && bankResult.ok === false && bankResult.error) {
+          alert(`Aviso: não foi possível actualizar o banco — ${bankResult.error}`);
+        }
+        await changeReportStatus([id], 'resolved', {
+          action: 'correct',
+          verdict: diagnosis?.verdict || 'bad_formulation',
+          appliedCorrection: draft,
+          bankUpdate: bankResult?.ok ? { updated: bankResult.updated } : null,
+          notes: draft.notes || '',
+        });
+        clearCorrectionDraft(id);
+        return;
+      }
+      if (e.target.classList.contains('report-action-reject')) {
+        const id = e.target.dataset.reportId || reportId;
+        const report = reportsById[id];
+        if (!report || !confirm('Rejeitar reporte do jogador e cancelar?')) return;
+        const diagnosis = ensureReportDiagnosis(report);
+        await changeReportStatus([id], 'cancelled', {
+          action: 'reject',
+          verdict: diagnosis?.verdict || 'valid',
+          notes: 'Reporte do jogador considerado inválido.',
+        });
+        clearCorrectionDraft(id);
+        return;
+      }
+      if (e.target.classList.contains('report-action-regenerate')) {
+        const id = e.target.dataset.reportId || reportId;
+        openRegenerateForReport(reportsById[id]);
+        return;
+      }
       if (e.target.classList.contains('disable-knowledge-report')) {
         const report = reportsById[reportId];
         const kid = String(report?.knowledgeId || '').trim();
@@ -7761,7 +8353,15 @@
           { okLabel: 'Desactivar', danger: true },
         );
         if (!ok) return;
-        await disableKnowledgeRecords([kid], { statusEl: listStatus });
+        const data = await disableKnowledgeRecords([kid], { statusEl: listStatus });
+        if (data && (data.disabled || 0) > 0 && report?.reportId) {
+          await resolveOpenReportAfterAction(report.reportId, {
+            action: 'disable_knowledge',
+            knowledgeId: kid,
+            notes: `Facto ${kid} desactivado no repositório.`,
+          });
+        }
+        return;
       }
       if (e.target.classList.contains('delete-report')) {
         if (!reportId || !confirm('Apagar permanentemente este reporte cancelado?')) return;
