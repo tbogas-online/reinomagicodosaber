@@ -1,5 +1,9 @@
 const { getSupabaseAdmin } = require('./rooms-store');
-const { enrichSummaryWithCategoryDelivery } = require('../../../scripts/lib/gen-telemetry-metrics');
+const {
+  enrichSummaryWithCategoryDelivery,
+  enrichSummaryWithProviderInsights,
+  isAiProviderTelemetryEvent,
+} = require('../../../scripts/lib/gen-telemetry-metrics');
 
 const MAX_EVENTS = 10000;
 const TABLE = 'gen_telemetry_events';
@@ -256,11 +260,28 @@ function repoAcceptedCount(bySource) {
 
 function accumulateProvider(summary, ev) {
   const prov = clip(ev.provider, 24);
-  if (!prov) return;
-  if (!summary.byProvider[prov]) summary.byProvider[prov] = { total: 0, accepted: 0, rejected: 0 };
-  summary.byProvider[prov].total += 1;
-  if (ev.outcome === 'accepted') summary.byProvider[prov].accepted += 1;
-  else if (ev.outcome === 'rejected') summary.byProvider[prov].rejected += 1;
+  if (!prov || !isAiProviderTelemetryEvent(ev)) return;
+  if (!summary.byProvider[prov]) {
+    summary.byProvider[prov] = {
+      total: 0,
+      accepted: 0,
+      rejected: 0,
+      parseErrors: 0,
+      apiErrors: 0,
+      attemptSum: 0,
+      attemptCount: 0,
+    };
+  }
+  const bucket = summary.byProvider[prov];
+  bucket.total += 1;
+  if (ev.outcome === 'accepted') bucket.accepted += 1;
+  else if (ev.outcome === 'rejected') bucket.rejected += 1;
+  else if (ev.outcome === 'parse_error') bucket.parseErrors += 1;
+  else if (ev.outcome === 'api_error') bucket.apiErrors += 1;
+  if (ev.attempt != null && (ev.outcome === 'accepted' || ev.outcome === 'rejected' || ev.outcome === 'parse_error')) {
+    bucket.attemptSum += ev.attempt;
+    bucket.attemptCount += 1;
+  }
 }
 
 function accumulateModel(summary, ev) {
@@ -369,7 +390,9 @@ function computeSummaryFromItems(items) {
     accumulateAttempt(summary, ev);
   }
 
-  return enrichSummaryWithCategoryDelivery(finalizeSummaryRates(summary), items);
+  return enrichSummaryWithProviderInsights(
+    enrichSummaryWithCategoryDelivery(finalizeSummaryRates(summary), items),
+  );
 }
 
 function sumByBucket(byBucket) {

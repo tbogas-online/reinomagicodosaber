@@ -74,12 +74,78 @@ function enrichSummaryWithCategoryDelivery(summary, events) {
   return next;
 }
 
+const AI_PROVIDER_SOURCES = new Set(['ai', 'bank-replenish', 'repo-ai']);
+
+function isAiProviderTelemetryEvent(ev) {
+  const src = String(ev?.source || 'ai');
+  return AI_PROVIDER_SOURCES.has(src) && String(ev?.provider || '').trim().length > 0;
+}
+
+function enrichProviderBucket(raw = {}) {
+  const total = Number(raw.total) || 0;
+  const accepted = Number(raw.accepted) || 0;
+  const rejected = Number(raw.rejected) || 0;
+  const parseErrors = Number(raw.parseErrors) || 0;
+  const apiErrors = Number(raw.apiErrors) || 0;
+  const attemptSum = Number(raw.attemptSum) || 0;
+  const attemptCount = Number(raw.attemptCount) || 0;
+  const failures = rejected + parseErrors + apiErrors;
+  return {
+    total,
+    accepted,
+    rejected,
+    parseErrors,
+    apiErrors,
+    attemptSum,
+    attemptCount,
+    acceptanceRate: total ? accepted / total : 0,
+    rejectionRate: total ? failures / total : 0,
+    avgAttempts: attemptCount ? attemptSum / attemptCount : null,
+  };
+}
+
+function rankAiProviders(byProvider, { minSamplesForBest = 3 } = {}) {
+  const ranking = Object.entries(byProvider || {})
+    .map(([id, raw]) => ({ id, ...enrichProviderBucket(raw) }))
+    .filter((entry) => entry.total > 0)
+    .sort((a, b) => {
+      if (b.acceptanceRate !== a.acceptanceRate) return b.acceptanceRate - a.acceptanceRate;
+      const aAttempts = a.avgAttempts ?? 99;
+      const bAttempts = b.avgAttempts ?? 99;
+      if (aAttempts !== bAttempts) return aAttempts - bAttempts;
+      return b.total - a.total;
+    });
+
+  const qualified = ranking.filter((entry) => entry.total >= minSamplesForBest);
+  return {
+    ranking,
+    best: qualified[0] || null,
+    minSamplesForBest,
+  };
+}
+
+function enrichSummaryWithProviderInsights(summary) {
+  const next = summary || {};
+  const enriched = {};
+  for (const [id, bucket] of Object.entries(next.byProvider || {})) {
+    enriched[id] = enrichProviderBucket(bucket);
+  }
+  next.byProvider = enriched;
+  next.providerInsights = rankAiProviders(enriched);
+  return next;
+}
+
 module.exports = {
   CAT20_NON_AI_TARGET,
   REPOSITORY_SOURCES,
+  AI_PROVIDER_SOURCES,
   isRepositoryDeliverySource,
   isNonAiDeliverySource,
   isAiFreeDeliverySource,
+  isAiProviderTelemetryEvent,
   computeCategoryDelivery,
   enrichSummaryWithCategoryDelivery,
+  enrichProviderBucket,
+  rankAiProviders,
+  enrichSummaryWithProviderInsights,
 };

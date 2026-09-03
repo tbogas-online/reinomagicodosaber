@@ -1129,6 +1129,27 @@
       color: #86efac;
       font-weight: 600;
     }
+    .provider-insights-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+      margin-bottom: 10px;
+    }
+    .provider-insights-table th,
+    .provider-insights-table td {
+      padding: 6px 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      text-align: left;
+    }
+    .provider-insights-table th { color: #94a3b8; font-weight: 600; }
+    .provider-insights-table tr.best-row td { background: rgba(34, 197, 94, 0.1); }
+    .provider-insights-table .rank-badge {
+      display: inline-block;
+      min-width: 1.4rem;
+      text-align: center;
+      font-weight: 700;
+      color: #fcd34d;
+    }
     .telemetry-rule-overrides {
       margin-top: 12px;
       padding-top: 10px;
@@ -2208,8 +2229,10 @@
               <p class="chart-filter-note" style="margin:0 0 8px">Como cada pergunta chegou ao jogador — banco Supabase, repositório (directo vs IA), IA livre ou local.</p>
               <div id="chartGenDelivery" class="chart"></div>
             </div>
-            <div class="chart-box">
-              <h3>Por fornecedor IA</h3>
+            <div class="chart-box chart-wide">
+              <h3>Fornecedor IA — desempenho</h3>
+              <p class="chart-filter-note" style="margin:0 0 8px">Ranking por taxa de aprovação e média de tentativas (eventos de geração IA).</p>
+              <div id="chartGenProviderInsights"></div>
               <div id="chartGenProviders" class="chart"></div>
             </div>
             <div class="chart-box">
@@ -2369,7 +2392,7 @@
     }
 
     function renderBarChart(el, entries, labelFn, options = {}) {
-      const { clickable = false, activeKey = '', dataAttr = 'data-filter-key', colorFn, tooltipFn } = options;
+      const { clickable = false, activeKey = '', dataAttr = 'data-filter-key', colorFn, tooltipFn, valueSuffix = '' } = options;
       const resolveColor = colorFn || ((key, i) => getSecondaryChartColor(key, i));
       if (!entries.length) {
         el.innerHTML = '<div class="chart-empty">Sem dados.</div>';
@@ -2389,7 +2412,7 @@
         <div class="${classes}"${attrs}>
           <div class="bar-label" title="${esc(tooltip)}">${esc(label)}</div>
           <div class="bar-track"><div class="bar-fill" style="width:${(value / max) * 100}%;background:${barColor}"></div></div>
-          <div class="bar-value">${value}</div>
+          <div class="bar-value">${value}${valueSuffix}</div>
         </div>
       `;
       }).join('');
@@ -3829,6 +3852,58 @@
       anthropic: 'Anthropic',
     };
 
+    function renderProviderInsights(summary) {
+      const el = document.getElementById('chartGenProviderInsights');
+      if (!el) return;
+      const ranking = summary?.providerInsights?.ranking || [];
+      if (!ranking.length) {
+        el.innerHTML = '<p class="chart-empty">Ainda sem dados por fornecedor IA.</p>';
+        return;
+      }
+      const bestId = summary.providerInsights?.best?.id || '';
+      const minSamples = summary.providerInsights?.minSamplesForBest || 3;
+      const rows = ranking.map((entry, index) => {
+        const label = GEN_PROVIDER_LABELS[entry.id] || entry.id;
+        const acceptPct = Math.round((entry.acceptanceRate || 0) * 100);
+        const rejectPct = Math.round((entry.rejectionRate || 0) * 100);
+        const attempts = entry.avgAttempts != null ? entry.avgAttempts.toFixed(1) : '—';
+        const isBest = entry.id === bestId;
+        return `<tr class="${isBest ? 'best-row' : ''}">
+          <td><span class="rank-badge">${index + 1}</span></td>
+          <td>${esc(label)}${isBest ? ' ⭐' : ''}</td>
+          <td>${entry.total}</td>
+          <td>${entry.accepted}</td>
+          <td>${acceptPct}%</td>
+          <td>${rejectPct}%</td>
+          <td>${attempts}</td>
+        </tr>`;
+      }).join('');
+      el.innerHTML = `
+        <table class="provider-insights-table" aria-label="Ranking de fornecedores IA">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Fornecedor</th>
+              <th>Eventos</th>
+              <th>Aceites</th>
+              <th>Aprovação</th>
+              <th>Falhas</th>
+              <th>Méd. tent.</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>
+        <p class="chart-filter-note">⭐ Melhor IA com pelo menos ${minSamples} eventos — ordenação: aprovação ↓, tentativas ↑.</p>
+      `;
+    }
+
+    function buildProviderChartEntries(byProvider) {
+      return Object.entries(byProvider || {})
+        .map(([k, v]) => [k, Math.round((v.acceptanceRate || 0) * 100)])
+        .filter(([, n]) => n > 0)
+        .sort((a, b) => b[1] - a[1]);
+    }
+
     function buildDeliveryEntries(bySource) {
       const groups = {
         bank: 0,
@@ -4002,6 +4077,8 @@
         if (sourceEl) sourceEl.innerHTML = '';
         if (deliveryEl) deliveryEl.innerHTML = '';
         if (providerEl) providerEl.innerHTML = '';
+        const insightsEl = document.getElementById('chartGenProviderInsights');
+        if (insightsEl) insightsEl.innerHTML = '';
         if (modelEl) modelEl.innerHTML = '';
         if (attemptEl) attemptEl.innerHTML = '';
         return;
@@ -4020,6 +4097,16 @@
       const avgAttempts = summary.aiAvgAttempts != null
         ? summary.aiAvgAttempts.toFixed(1)
         : '—';
+      const bestProvider = summary.providerInsights?.best || null;
+      const bestProviderLabel = bestProvider
+        ? (GEN_PROVIDER_LABELS[bestProvider.id] || bestProvider.id)
+        : '—';
+      const bestProviderPct = bestProvider
+        ? `${Math.round((bestProvider.acceptanceRate || 0) * 100)}%`
+        : '—';
+      const bestProviderAttempts = bestProvider?.avgAttempts != null
+        ? bestProvider.avgAttempts.toFixed(1)
+        : '—';
       statsEl.innerHTML = `
         <div class="stat stat-total"><strong>${summary.total}</strong><span>Tentativas</span></div>
         <div class="stat stat-resolved"><strong>${summary.accepted}</strong><span>Aceites (${acceptPct}%)</span></div>
@@ -4032,6 +4119,7 @@
         <div class="stat stat-total"><strong>${nonAiPct}%</strong><span>Sem IA livre</span></div>
         <div class="stat ${cat20NonAiPct != null && cat20.meetsNonAiTarget ? 'stat-resolved' : 'stat-open'}"><strong>${cat20NonAiPct != null ? `${cat20NonAiPct}%` : '—'}</strong><span>Cat. 20 sem IA (≥95%)</span></div>
         <div class="stat stat-open"><strong>${avgAttempts}</strong><span>Média tentativas IA</span></div>
+        <div class="stat ${bestProvider ? 'stat-resolved' : 'stat-total'}"><strong>${bestProviderLabel}</strong><span>Melhor IA (${bestProviderPct} · ${bestProviderAttempts} tent.)</span></div>
       `;
 
       const detailMap = summary.byIssueDetail || {};
@@ -4100,14 +4188,13 @@
       }
 
       if (providerEl) {
-        const providerEntries = Object.entries(summary.byProvider || {})
-          .map(([k, v]) => [k, v.accepted || 0])
-          .filter(([, n]) => n > 0)
-          .sort((a, b) => b[1] - a[1]);
+        renderProviderInsights(summary);
+        const providerEntries = buildProviderChartEntries(summary.byProvider);
         renderBarChart(
           providerEl,
           providerEntries.length ? providerEntries : [['—', 0]],
           (k) => GEN_PROVIDER_LABELS[k] || k,
+          { valueSuffix: '%' },
         );
       }
 

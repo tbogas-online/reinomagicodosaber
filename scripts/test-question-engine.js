@@ -1717,6 +1717,8 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('198. telemetria bankShare', Math.round(telemetrySummary.bankShare * 100) === 25);
   assert('199. telemetria repositoryShare', Math.round(telemetrySummary.repositoryShare * 100) === 50);
   assert('200. telemetria byProvider groq', telemetrySummary.byProvider.groq?.accepted === 2);
+  assert('200b. telemetria groq aprovação', telemetrySummary.byProvider.groq?.acceptanceRate === 1);
+  assert('200c. ranking IA groq', telemetrySummary.providerInsights?.ranking?.[0]?.id === 'groq');
   assert('201. telemetria aiAvgAttempts', telemetrySummary.aiAvgAttempts === 3);
 
   const {

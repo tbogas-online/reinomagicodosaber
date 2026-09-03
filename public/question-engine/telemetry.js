@@ -229,11 +229,28 @@
       if (!summary.bySource[src]) summary.bySource[src] = { total: 0, accepted: 0 };
       summary.bySource[src].total += 1;
       if (ev.outcome === 'accepted') summary.bySource[src].accepted += 1;
-      if (ev.provider) {
-        if (!summary.byProvider[ev.provider]) summary.byProvider[ev.provider] = { total: 0, accepted: 0, rejected: 0 };
-        summary.byProvider[ev.provider].total += 1;
-        if (ev.outcome === 'accepted') summary.byProvider[ev.provider].accepted += 1;
-        else if (ev.outcome === 'rejected') summary.byProvider[ev.provider].rejected += 1;
+      if (ev.provider && isAiProviderTelemetryEvent(ev)) {
+        if (!summary.byProvider[ev.provider]) {
+          summary.byProvider[ev.provider] = {
+            total: 0,
+            accepted: 0,
+            rejected: 0,
+            parseErrors: 0,
+            apiErrors: 0,
+            attemptSum: 0,
+            attemptCount: 0,
+          };
+        }
+        const bucket = summary.byProvider[ev.provider];
+        bucket.total += 1;
+        if (ev.outcome === 'accepted') bucket.accepted += 1;
+        else if (ev.outcome === 'rejected') bucket.rejected += 1;
+        else if (ev.outcome === 'parse_error') bucket.parseErrors += 1;
+        else if (ev.outcome === 'api_error') bucket.apiErrors += 1;
+        if (ev.attempt != null && (ev.outcome === 'accepted' || ev.outcome === 'rejected' || ev.outcome === 'parse_error')) {
+          bucket.attemptSum += ev.attempt;
+          bucket.attemptCount += 1;
+        }
       }
       if (ev.model) {
         if (!summary.byModel[ev.model]) summary.byModel[ev.model] = { total: 0, accepted: 0 };
@@ -266,6 +283,61 @@
     summary.nonAiShare = summary.accepted ? nonAiAccepted / summary.accepted : 0;
     summary.aiAvgAttempts = aiAttemptCount ? aiAttemptSum / aiAttemptCount : null;
     summary.cat20Delivery = computeCat20Delivery(events);
+    return enrichClientProviderInsights(summary);
+  }
+
+  const AI_PROVIDER_SOURCES = new Set(['ai', 'bank-replenish', 'repo-ai']);
+
+  function isAiProviderTelemetryEvent(ev) {
+    const src = String(ev?.source || 'ai');
+    return AI_PROVIDER_SOURCES.has(src) && String(ev?.provider || '').trim().length > 0;
+  }
+
+  function enrichProviderBucket(raw = {}) {
+    const total = Number(raw.total) || 0;
+    const accepted = Number(raw.accepted) || 0;
+    const rejected = Number(raw.rejected) || 0;
+    const parseErrors = Number(raw.parseErrors) || 0;
+    const apiErrors = Number(raw.apiErrors) || 0;
+    const attemptSum = Number(raw.attemptSum) || 0;
+    const attemptCount = Number(raw.attemptCount) || 0;
+    const failures = rejected + parseErrors + apiErrors;
+    return {
+      total,
+      accepted,
+      rejected,
+      parseErrors,
+      apiErrors,
+      attemptSum,
+      attemptCount,
+      acceptanceRate: total ? accepted / total : 0,
+      rejectionRate: total ? failures / total : 0,
+      avgAttempts: attemptCount ? attemptSum / attemptCount : null,
+    };
+  }
+
+  function rankAiProviders(byProvider, { minSamplesForBest = 3 } = {}) {
+    const ranking = Object.entries(byProvider || {})
+      .map(([id, raw]) => ({ id, ...enrichProviderBucket(raw) }))
+      .filter((entry) => entry.total > 0)
+      .sort((a, b) => {
+        if (b.acceptanceRate !== a.acceptanceRate) return b.acceptanceRate - a.acceptanceRate;
+        const aAttempts = a.avgAttempts ?? 99;
+        const bAttempts = b.avgAttempts ?? 99;
+        if (aAttempts !== bAttempts) return aAttempts - bAttempts;
+        return b.total - a.total;
+      });
+    const qualified = ranking.filter((entry) => entry.total >= minSamplesForBest);
+    return { ranking, best: qualified[0] || null, minSamplesForBest };
+  }
+
+  function enrichClientProviderInsights(summary) {
+    const enriched = {};
+    for (const [id, bucket] of Object.entries(summary.byProvider || {})) {
+      enriched[id] = enrichProviderBucket(bucket);
+    }
+    summary.byProvider = enriched;
+    summary.providerInsights = rankAiProviders(enriched);
     return summary;
   }
 
