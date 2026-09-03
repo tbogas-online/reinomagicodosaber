@@ -3222,10 +3222,10 @@
             </div>
             <div class="timeline-filters" id="aiUsageGranularityFilters" role="group" aria-label="Granularidade dos gráficos de consumo API" style="margin-top:6px">
               <button type="button" class="secondary" data-ai-usage-granularity="1">1 min</button>
+              <button type="button" class="secondary active" data-ai-usage-granularity="5">5 min</button>
               <button type="button" class="secondary" data-ai-usage-granularity="15">15 min</button>
               <button type="button" class="secondary" data-ai-usage-granularity="30">30 min</button>
               <button type="button" class="secondary" data-ai-usage-granularity="60">1 h</button>
-              <button type="button" class="secondary active" data-ai-usage-granularity="5">5 min</button>
             </div>
             <p class="timeline-note" id="aiUsageNote">Período e granularidade aplicam-se a todos os gráficos abaixo.</p>
             <div id="chartAiUsage" class="chart"></div>
@@ -4602,6 +4602,15 @@
       });
     }
 
+    function formatLisbonDayStamp(date = new Date()) {
+      return new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'Europe/Lisbon',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(date);
+    }
+
     function formatReportDateTime(report) {
       if (!report) return '';
       if (report.createdAtPortugal) return report.createdAtPortugal;
@@ -5796,6 +5805,7 @@
       '5': { label: '5 min', bucketMinutes: 5 },
     };
     const AI_USAGE_THREE_HOURS_MS = 3 * 60 * 60 * 1000;
+    const AI_USAGE_MINUTE_ROWS_MS = 2 * 60 * 60 * 1000;
     const AI_USAGE_RANGE_STORAGE_KEY = 'reino_admin_ai_usage_range';
     const AI_USAGE_GRANULARITY_STORAGE_KEY = 'reino_admin_ai_usage_granularity';
     const AI_USAGE_PROVIDER_STORAGE_KEY = 'reino_admin_ai_usage_provider';
@@ -6076,11 +6086,13 @@
       let bucketMinutes = gran.bucketMinutes;
       const forcedFiveMin = range.lookbackMs >= AI_USAGE_THREE_HOURS_MS || bucketMinutes >= 180;
       if (forcedFiveMin) bucketMinutes = 5;
-      const useMinuteSource = !forcedFiveMin && bucketMinutes < 5;
+      const minuteRowsCoverRange = range.lookbackMs <= AI_USAGE_MINUTE_ROWS_MS;
+      const useMinuteSource = !forcedFiveMin && (bucketMinutes === 1 || minuteRowsCoverRange);
       return {
         bucketMinutes,
         lookbackMs: range.lookbackMs,
         useMinuteSource,
+        minuteRowsCoverRange,
         forcedFiveMin,
         granularityLabel: formatAiUsageBucketLabel(bucketMinutes),
       };
@@ -6096,7 +6108,10 @@
 
     function buildAiUsageBucketForRange(aiUsage, rangeKey, granularityKey = aiUsageGranularity) {
       const config = resolveAiUsageBucketConfig(rangeKey, granularityKey);
-      const rows = getAiUsageSourceRows(aiUsage, config.useMinuteSource);
+      let rows = getAiUsageSourceRows(aiUsage, config.useMinuteSource);
+      if (!rows.length && config.useMinuteSource) {
+        rows = getAiUsageSourceRows(aiUsage, false);
+      }
       if (!rows.length) {
         const canUseServerTimeline = !config.useMinuteSource
           && !aiUsageProviderFilter
@@ -6124,9 +6139,13 @@
     }
 
     function formatAiUsageGranularityNote(bucketConfig) {
-      return bucketConfig.forcedFiveMin
-        ? 'Buckets de 5 min (período ≥ 3 h).'
-        : `Buckets de ${bucketConfig.granularityLabel} (Lisboa).`;
+      if (bucketConfig.forcedFiveMin) {
+        return 'Buckets de 5 min (período ≥ 3 h).';
+      }
+      const tokenNote = bucketConfig.useMinuteSource
+        ? ''
+        : ' Tokens/quota só disponíveis na janela de 2 h (dados por minuto).';
+      return `Buckets de ${bucketConfig.granularityLabel} (Lisboa).${tokenNote}`;
     }
 
     function getAiUsageChartContext(aiUsage) {
@@ -6134,7 +6153,7 @@
       const bucketConfig = resolveAiUsageBucketConfig();
       const view = buildAiUsageView(aiUsage);
       const filterSuffix = view.filterLabel ? ` · ${view.filterLabel}` : '';
-      const bucket = view.timeline?.[aiUsageRange] || null;
+      const bucket = buildAiUsageBucketForRange(aiUsage, aiUsageRange);
       return { meta, bucketConfig, view, bucket, filterSuffix };
     }
 
@@ -6895,7 +6914,10 @@
     function buildAiUsageLatencyView(aiUsage) {
       const meta = AI_USAGE_RANGES[aiUsageRange] || AI_USAGE_RANGES['24h'];
       const bucketConfig = resolveAiUsageBucketConfig();
-      const rows = getAiUsageSourceRows(aiUsage, bucketConfig.useMinuteSource);
+      let rows = getAiUsageSourceRows(aiUsage, bucketConfig.useMinuteSource);
+      if (!rows.length && bucketConfig.useMinuteSource) {
+        rows = getAiUsageSourceRows(aiUsage, false);
+      }
       let models = buildAiUsageLatencyModelSeries(
         rows,
         meta.lookbackMs,
@@ -6904,12 +6926,11 @@
         bucketConfig.bucketMinutes,
       );
       if (!models.length) {
-        const view = buildAiUsageView(aiUsage);
-        const bucket = view.timeline?.[aiUsageRange];
+        const bucket = buildAiUsageBucketForRange(aiUsage, aiUsageRange);
         if (bucket?.latency?.some((p) => p.v > 0)) {
           models = [{
             id: 'aggregate',
-            label: view.filterLabel || 'Média',
+            label: buildAiUsageFilterLabel(aiUsageProviderFilter, aiUsageModelFilter) || 'Média',
             series: bucket.latency,
             avgLatencyMs: bucket.avgLatencyMs,
           }];
@@ -7138,7 +7159,7 @@
       }
 
       renderAiUsageFilterOptions(aiUsage);
-      const bucket = view.timeline?.[aiUsageRange];
+      const bucket = buildAiUsageBucketForRange(aiUsage, aiUsageRange);
       const hasDimensionalData = Array.isArray(aiUsage.dimensionRows) && aiUsage.dimensionRows.length > 0;
       const isEmpty = !bucket
         || ((bucket.totalRequests || 0) === 0 && (bucket.totalErrors || 0) === 0);
@@ -7581,7 +7602,7 @@
       const a = document.createElement('a');
       const suffix = telemetryGameModeFilter || 'todos';
       a.href = url;
-      a.download = `telemetria-ia-${suffix}-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `telemetria-ia-${suffix}-${formatLisbonDayStamp()}.json`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -10706,7 +10727,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `knowledge-records-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.download = `knowledge-records-${formatLisbonDayStamp()}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     }
@@ -11635,7 +11656,7 @@
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `reino-game-stats-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `reino-game-stats-${formatLisbonDayStamp()}.json`;
       a.click();
       URL.revokeObjectURL(url);
     });
