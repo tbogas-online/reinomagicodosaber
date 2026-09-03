@@ -1,5 +1,6 @@
 const { connectLambda, getStore } = require('@netlify/blobs');
 const { formatPortugalDateTime } = require('./report-utils');
+const supabaseStore = require('./reports-store-supabase');
 
 const STORE_NAME = 'question-reports';
 const INDEX_KEY = 'reports-index';
@@ -36,6 +37,10 @@ function questionHashFromReport(report) {
  * Hashes de perguntas com reportes activos (não cancelados), por estado.
  */
 async function getQuestionHashesByReportStatus(event) {
+  if (useSupabase()) {
+    await maybeMigrateFromBlobs(event);
+    return supabaseStore.getQuestionHashesByReportStatus(storeHelpers);
+  }
   const store = getReportsStore(event);
   const index = await readIndex(store);
   const open = new Set();
@@ -80,6 +85,48 @@ function resolveIndexCategoryName(item) {
 }
 
 const VALID_STATUSES = new Set(['open', 'resolved', 'cancelled']);
+let blobMigrationAttempted = false;
+
+const storeHelpers = {
+  VALID_STATUSES,
+  normalizeReportStatus,
+  resolveReportCategoryName,
+  questionHashFromReport,
+  isValidDateFilter,
+  reportMatchesSearch,
+  computeStatsFromIndex,
+  isSiteIssueType,
+};
+
+function useSupabase() {
+  return supabaseStore.isConfigured();
+}
+
+async function maybeMigrateFromBlobs(event) {
+  if (blobMigrationAttempted || !useSupabase()) return;
+  blobMigrationAttempted = true;
+  try {
+    const existing = await supabaseStore.getRowCount();
+    if (existing > 0) return;
+    const store = getReportsStore(event);
+    const index = await readIndex(store);
+    if (!index.items?.length) return;
+    const reports = [];
+    for (const item of index.items) {
+      try {
+        const report = await store.get(`report:${item.reportId}`, { type: 'json' });
+        if (report) reports.push(report);
+      } catch {
+        /* ignore */
+      }
+    }
+    if (!reports.length) return;
+    await supabaseStore.upsertManyReports(reports, storeHelpers);
+    console.log(`[reports-store] migrated ${reports.length} reportes de Blobs para Supabase`);
+  } catch (err) {
+    console.warn('[reports-store] blob migration failed:', err.message || err);
+  }
+}
 
 function normalizeReportStatus(status) {
   if (status === 'resolved') return 'resolved';
@@ -168,6 +215,10 @@ async function readIndex(store) {
 }
 
 async function saveReport(report, event) {
+  if (useSupabase()) {
+    await maybeMigrateFromBlobs(event);
+    return supabaseStore.saveReport(report, storeHelpers);
+  }
   const store = getReportsStore(event);
   await store.setJSON(`report:${report.reportId}`, report);
 
@@ -259,12 +310,49 @@ function filterIndexItems(items, filters = {}) {
   return filtered;
 }
 
+function reportMatchesSearch(report, needle) {
+  if (!needle) return true;
+  const haystack = [
+    report?.reportId,
+    report?.question,
+    report?.comment,
+    report?.suggestion,
+    report?.correctAnswer,
+    report?.selectedAnswer,
+    report?.issueLabel,
+    report?.issueType,
+    report?.category?.name,
+    report?.categoryName,
+  ].filter(Boolean).join(' ').toLowerCase();
+  return haystack.includes(needle);
+}
+
 async function listReports(filters = {}, event) {
+  if (useSupabase()) {
+    await maybeMigrateFromBlobs(event);
+    return supabaseStore.listReports(filters, storeHelpers);
+  }
   const store = getReportsStore(event);
   const index = await readIndex(store);
   const limit = Math.min(Math.max(Number(filters.limit) || 50, 1), 200);
   const offset = Math.max(Number(filters.offset) || 0, 0);
-  const filtered = filterIndexItems(index.items, filters);
+  const searchNeedle = filters.q ? String(filters.q).toLowerCase().trim() : '';
+  const filtered = filterIndexItems(index.items, searchNeedle ? { ...filters, q: '' } : filters);
+
+  if (searchNeedle) {
+    const reports = (await Promise.all(
+      filtered.map((item) => store.get(`report:${item.reportId}`, { type: 'json' })),
+    )).filter(Boolean);
+    const matched = reports.filter((report) => reportMatchesSearch(report, searchNeedle));
+    return {
+      total: matched.length,
+      offset,
+      limit,
+      reports: matched.slice(offset, offset + limit),
+      uniqueReporters: new Set(matched.map((r) => r.reporterId).filter(Boolean)).size,
+    };
+  }
+
   const slice = filtered.slice(offset, offset + limit);
   const reports = await Promise.all(
     slice.map((item) => store.get(`report:${item.reportId}`, { type: 'json' })),
@@ -484,12 +572,20 @@ function computeStatsFromIndex(index, scope = 'all', filters = {}) {
 }
 
 async function getStats(event, scope = 'all', filters = {}) {
+  if (useSupabase()) {
+    await maybeMigrateFromBlobs(event);
+    return supabaseStore.getStats(scope, filters, storeHelpers);
+  }
   const store = getReportsStore(event);
   const index = await readIndex(store);
   return computeStatsFromIndex(index, scope, filters);
 }
 
 async function updateReportStatus(reportId, status, event) {
+  if (useSupabase()) {
+    await maybeMigrateFromBlobs(event);
+    return supabaseStore.updateReportStatus(reportId, status, storeHelpers);
+  }
   const nextStatus = normalizeReportStatus(status);
   if (!VALID_STATUSES.has(nextStatus)) return null;
   const store = getReportsStore(event);
@@ -546,6 +642,10 @@ async function updateManyReportStatuses(reportIds, status, event) {
 }
 
 async function getReportStatuses(reportIds, reporterId, event) {
+  if (useSupabase()) {
+    await maybeMigrateFromBlobs(event);
+    return supabaseStore.getReportStatuses(reportIds, reporterId, storeHelpers);
+  }
   const store = getReportsStore(event);
   const statuses = {};
   const ids = [...new Set(reportIds)].filter(Boolean).slice(0, 50);
@@ -563,6 +663,12 @@ async function getReportStatuses(reportIds, reporterId, event) {
 }
 
 async function deleteReport(reportId, event) {
+  if (useSupabase()) {
+    await maybeMigrateFromBlobs(event);
+    const result = await supabaseStore.deleteReport(reportId, storeHelpers);
+    if (result.ok) await deleteReportAttachment(reportId, event);
+    return result;
+  }
   const store = getReportsStore(event);
   const report = await store.get(`report:${reportId}`, { type: 'json' });
   if (!report) return { ok: false, error: 'not_found', reportId };

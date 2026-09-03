@@ -240,6 +240,21 @@
       word-break: break-word;
       white-space: normal;
     }
+    .report-note-preview{
+      margin-top: 6px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      background: rgba(245, 158, 11, 0.12);
+      border-left: 3px solid #f59e0b;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #fde68a;
+    }
+    .report-note-preview.is-comment{
+      background: rgba(59, 130, 246, 0.12);
+      border-left-color: #60a5fa;
+      color: #bfdbfe;
+    }
     .reports-table .col-device {
       white-space: nowrap;
       font-size: 12px;
@@ -985,6 +1000,38 @@
       font-size: 12px;
     }
     .room-players-list li { margin: 2px 0; }
+    .rooms-expiry-summary {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px 14px;
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      background: #0b1220;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--muted);
+    }
+    .rooms-expiry-summary strong { color: var(--text); }
+    .rooms-expiry-summary .expiry-legend {
+      width: 100%;
+      font-size: 11px;
+      opacity: 0.85;
+    }
+    .room-expiry-cell {
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+    .room-expiry-label {
+      font-weight: 600;
+      color: var(--text);
+    }
+    .room-expiry-cell.tier-normal .room-expiry-label { color: #34d399; }
+    .room-expiry-cell.tier-attention .room-expiry-label { color: #fbbf24; }
+    .room-expiry-cell.tier-soon .room-expiry-label { color: #fb923c; }
+    .room-expiry-cell.tier-urgent .room-expiry-label { color: #f87171; }
+    .room-expiry-cell.tier-expired .room-expiry-label { color: #ef4444; }
     .pill.status-playing { border-color: #10b981; color: #34d399; }
     .pill.status-lobby { border-color: #3b82f6; color: #93c5fd; }
     .rooms-legend {
@@ -1638,6 +1685,10 @@
             <label for="filterReporter">Jogador</label>
             <input id="filterReporter" placeholder="reporterId">
           </div>
+          <div>
+            <label for="filterSearch">Pesquisar</label>
+            <input id="filterSearch" placeholder="pergunta, comentário, sugestão…" title="Pesquisa em pergunta, comentário, sugestão e respostas">
+          </div>
           <button id="refreshBtn" type="button">Atualizar</button>
           <button id="exportBtn" type="button" class="secondary" title="Exporta os reportes visíveis na tabela (respeita filtros e página actual)">Exportar CSV</button>
         </div>
@@ -1712,6 +1763,7 @@
             </div>
           </div>
           <p class="status" id="roomsListStatus"></p>
+          <div id="roomsExpirySummary" class="rooms-expiry-summary hidden" aria-live="polite"></div>
           <div class="bulk-bar">
             <label><input type="checkbox" id="selectAllRooms" class="row-check"> Selecionar todas</label>
             <span id="roomsBulkCount">0 selecionadas</span>
@@ -1726,6 +1778,7 @@
                 <th>Jogadores</th>
                 <th>Anfitrião</th>
                 <th>Última actividade</th>
+                <th>Expira em</th>
                 <th></th>
               </tr>
             </thead>
@@ -2888,6 +2941,7 @@
         || document.getElementById('filterDevice')?.value
         || document.getElementById('filterStatus')?.value
         || document.getElementById('filterReporter')?.value.trim()
+        || document.getElementById('filterSearch')?.value.trim()
       );
     }
 
@@ -2901,6 +2955,7 @@
         ['filterDevice', ''],
         ['filterStatus', ''],
         ['filterReporter', ''],
+        ['filterSearch', ''],
       ];
       fields.forEach(([id, value]) => {
         const el = document.getElementById(id);
@@ -3548,6 +3603,8 @@
       if (reporter) params.set('reporterId', reporter);
       if (deviceType) params.set('deviceType', deviceType);
       if (reportStatus) params.set('status', reportStatus);
+      const search = document.getElementById('filterSearch')?.value.trim();
+      if (search) params.set('q', search);
       return params;
     }
 
@@ -4253,6 +4310,24 @@
       }
     }
 
+    function formatReportNoteBlocks(r) {
+      const blocks = [];
+      if (r.suggestion) {
+        blocks.push(`<div class="report-note-preview"><strong>Sugestão:</strong> ${esc(r.suggestion)}</div>`);
+      }
+      if (r.comment) {
+        blocks.push(`<div class="report-note-preview is-comment"><strong>Comentário:</strong> ${esc(r.comment)}</div>`);
+      }
+      return blocks.join('');
+    }
+
+    function formatReportQuestionSummary(r, isSite) {
+      if (isSite) return esc(r.comment || r.suggestion || r.question || '—');
+      const question = esc(r.question || '—');
+      const notes = formatReportNoteBlocks(r);
+      return `${question}${notes}`;
+    }
+
     function renderReports(reports) {
       if (!reports.length) {
         reportsBody.innerHTML = '<tr><td colspan="11">Sem reportes com estes filtros.</td></tr>';
@@ -4265,16 +4340,14 @@
         const deviceSummary = formatDeviceSummary(r.device);
         const status = getReportStatus(r);
         const checked = selectedReportIds.has(r.reportId) ? 'checked' : '';
-        const summary = isSite
-          ? (r.comment || r.suggestion || r.question || '—')
-          : (r.question || '—');
+        const summary = formatReportQuestionSummary(r, isSite);
         return `<tr data-id="${esc(r.reportId)}" class="${status === 'resolved' ? 'is-resolved' : ''}${status === 'cancelled' ? ' is-cancelled' : ''}">
           <td data-label="Selecionar"><input type="checkbox" class="row-check report-select" data-id="${esc(r.reportId)}" ${checked} aria-label="Selecionar reporte"></td>
           <td data-label="Data" class="col-date">${esc(r.createdAtPortugal || r.receivedAt || '')}</td>
           <td data-label="Estado">${statusPill(r)}</td>
           <td data-label="Resolvido em" class="col-resolved">${status === 'resolved' ? esc(formatResolvidoEm(r) || '—') : '—'}</td>
-          <td data-label="Problema"><span class="pill">${esc(r.issueLabel || ISSUE_LABELS[r.issueType] || r.issueType)}</span></td>
-          <td data-label="Pergunta" class="col-question">${esc(summary)}
+          <td data-label="Problema"><span class="pill">${esc(r.issueLabel || ISSUE_LABELS[r.issueType] || r.issueType)}</span>${(r.comment || r.suggestion) ? ' <span class="pill" title="Tem comentário ou sugestão">💬</span>' : ''}</td>
+          <td data-label="Pergunta" class="col-question">${summary}
             <div class="detail">
               ${isSite ? `<div><strong>Página:</strong> ${esc(r.page || 'about')} · <strong>Origem:</strong> site</div>` : `
               <div><strong>Correta:</strong> ${esc(r.correctAnswer || '—')}</div>
@@ -4372,11 +4445,139 @@
     let roomsClosing = false;
     const selectedRoomIds = new Set();
     let roomsById = {};
+    let roomsExpiryTickTimer = null;
+
+    const ROOM_EXPIRY_MS = 24 * 60 * 60 * 1000;
+    const ROOM_EXPIRY_TICK_MS = 60000;
 
     const ROOM_STATUS_LABELS = {
       lobby: 'Sala de espera',
       playing: 'A jogar',
     };
+
+    function formatRoomExpiryRemaining(remainingMs) {
+      const totalMin = Math.max(0, Math.floor(remainingMs / 60000));
+      if (totalMin >= 60) {
+        const h = Math.floor(totalMin / 60);
+        const m = totalMin % 60;
+        return `${h}h ${m}m`;
+      }
+      if (totalMin >= 10) return `${totalMin} min`;
+      return `${String(totalMin).padStart(2, '0')} min`;
+    }
+
+    function getRoomExpiryInfo(lastActivityAt) {
+      const lastMs = lastActivityAt ? new Date(lastActivityAt).getTime() : NaN;
+      if (!Number.isFinite(lastMs)) {
+        return {
+          tier: 'unknown',
+          emoji: '⚪',
+          label: '—',
+          remainingMs: null,
+          expiresAt: null,
+          title: '',
+        };
+      }
+      const expiresAt = new Date(lastMs + ROOM_EXPIRY_MS);
+      const remainingMs = expiresAt.getTime() - Date.now();
+      const expiresLabel = formatPortugalDateTime(expiresAt);
+      if (remainingMs <= 0) {
+        return {
+          tier: 'expired',
+          emoji: '🔴',
+          label: 'Expirada',
+          remainingMs: 0,
+          expiresAt,
+          title: `Expirou às ${expiresLabel}`,
+        };
+      }
+      const hours = remainingMs / 3600000;
+      let tier;
+      let emoji;
+      if (hours > 12) {
+        tier = 'normal';
+        emoji = '🟢';
+      } else if (hours > 6) {
+        tier = 'attention';
+        emoji = '🟡';
+      } else if (hours > 1) {
+        tier = 'soon';
+        emoji = '🟠';
+      } else {
+        tier = 'urgent';
+        emoji = '🔴';
+      }
+      return {
+        tier,
+        emoji,
+        label: formatRoomExpiryRemaining(remainingMs),
+        remainingMs,
+        expiresAt,
+        title: `Expira em ${expiresLabel}`,
+      };
+    }
+
+    function renderRoomExpiryCell(lastActivityAt) {
+      const info = getRoomExpiryInfo(lastActivityAt);
+      const title = info.title ? ` title="${esc(info.title)}"` : '';
+      return `<td data-label="Expira em" class="room-expiry-cell tier-${info.tier}" data-room-expiry-base="${esc(lastActivityAt || '')}"${title}>
+        <span class="room-expiry-label">${esc(info.label)}</span> <span class="room-expiry-emoji">${info.emoji}</span>
+      </td>`;
+    }
+
+    function renderRoomsExpirySummary(rooms) {
+      const el = document.getElementById('roomsExpirySummary');
+      if (!el) return;
+      const list = rooms || [];
+      if (!list.length) {
+        el.classList.add('hidden');
+        el.innerHTML = '';
+        return;
+      }
+      const counts = { normal: 0, attention: 0, soon: 0, urgent: 0, expired: 0 };
+      list.forEach((room) => {
+        const info = getRoomExpiryInfo(room.lastActivityAt || room.updatedAt || room.createdAt);
+        if (counts[info.tier] != null) counts[info.tier] += 1;
+      });
+      el.classList.remove('hidden');
+      el.innerHTML = `
+        <strong>Sessões activas: ${list.length}</strong>
+        <span>🟢 ${counts.normal} normais</span>
+        <span>🟡 ${counts.attention} atenção</span>
+        <span>🟠 ${counts.soon} próximas</span>
+        <span>🔴 ${counts.urgent + counts.expired} expira em breve</span>
+        <span class="expiry-legend">🟢 &gt;12h · 🟡 6–12h · 🟠 1–6h · 🔴 &lt;1h (sem actividade há 24h)</span>
+      `;
+    }
+
+    function refreshRoomsExpiryDisplay() {
+      document.querySelectorAll('#roomsBody [data-room-expiry-base]').forEach((cell) => {
+        const base = cell.dataset.roomExpiryBase;
+        const info = getRoomExpiryInfo(base);
+        cell.className = `room-expiry-cell tier-${info.tier}`;
+        if (info.title) cell.title = info.title;
+        else cell.removeAttribute('title');
+        const labelEl = cell.querySelector('.room-expiry-label');
+        if (labelEl) labelEl.textContent = info.label;
+        const emojiEl = cell.querySelector('.room-expiry-emoji');
+        if (emojiEl) emojiEl.textContent = info.emoji;
+      });
+      renderRoomsExpirySummary(lastOpenRooms);
+    }
+
+    function startRoomsExpiryTick() {
+      stopRoomsExpiryTick();
+      roomsExpiryTickTimer = setInterval(() => {
+        if (activeAdminTab !== 'rooms' || document.hidden) return;
+        refreshRoomsExpiryDisplay();
+      }, ROOM_EXPIRY_TICK_MS);
+    }
+
+    function stopRoomsExpiryTick() {
+      if (!roomsExpiryTickTimer) return;
+      clearInterval(roomsExpiryTickTimer);
+      roomsExpiryTickTimer = null;
+    }
 
     const BANK_CATEGORIES = [
       { n: 1, e: '🧠', name: 'Conhecimentos Gerais' },
@@ -5001,6 +5202,8 @@
       else if (activeAdminTab === 'telemetry') loadTelemetryDashboard({ quiet: true });
       else if (activeAdminTab === 'knowledge') loadKnowledgeDashboard({ quiet: true });
       else loadBankDashboard({ quiet: true });
+      if (activeAdminTab === 'rooms') startRoomsExpiryTick();
+      else stopRoomsExpiryTick();
       if (!dashboard.classList.contains('hidden')) startAutoRefresh();
     }
 
@@ -6857,7 +7060,8 @@
       if (!body) return;
       roomsById = Object.fromEntries((rooms || []).map((r) => [r.id, r]));
       if (!rooms?.length) {
-        body.innerHTML = '<tr><td colspan="7"><div class="chart-empty">Nenhuma sala em aberto.</div></td></tr>';
+        body.innerHTML = '<tr><td colspan="8"><div class="chart-empty">Nenhuma sala em aberto.</div></td></tr>';
+        renderRoomsExpirySummary([]);
         updateRoomsBulkUi();
         return;
       }
@@ -6879,11 +7083,13 @@
           </td>
           <td data-label="Anfitrião">${esc(room.hostNickname || '—')}</td>
           <td data-label="Última actividade">${esc(formatPortugalDateTime(room.lastActivityAt || room.updatedAt || room.createdAt))}</td>
+          ${renderRoomExpiryCell(room.lastActivityAt || room.updatedAt || room.createdAt)}
           <td data-label="Ações" class="actions-cell">
             <button type="button" class="danger close-room-btn" data-room-id="${esc(room.id)}" data-room-code="${esc(room.code)}">Desligar</button>
           </td>
         </tr>`;
       }).join('');
+      renderRoomsExpirySummary(rooms);
       updateRoomsBulkUi();
     }
 
@@ -7084,7 +7290,7 @@
       e.preventDefault();
       setIssueTypeFilter(row.dataset.filterKey);
     });
-    ['filterDateFrom', 'filterDateTo', 'filterIssue', 'filterAge', 'filterCategory', 'filterDevice', 'filterStatus', 'filterReporter'].forEach((id) => {
+    ['filterDateFrom', 'filterDateTo', 'filterIssue', 'filterAge', 'filterCategory', 'filterDevice', 'filterStatus', 'filterReporter', 'filterSearch'].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       el.addEventListener('change', () => { offset = 0; loadDashboard(); });

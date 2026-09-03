@@ -1,4 +1,4 @@
-// POST /api/report — regista problemas reportados (Netlify Functions v1 + Blobs).
+// POST /api/report — regista problemas reportados (Netlify Functions v1 + Supabase).
 
 const {
   MAX_BODY_CHARS,

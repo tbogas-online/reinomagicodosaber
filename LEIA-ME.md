@@ -274,7 +274,8 @@ Ficheiros principais:
 | `netlify/functions/lib/question-bank-store.js` | Estatísticas do banco Supabase para o admin |
 | `netlify/functions/lib/rooms-store.js` | Salas abertas e estatísticas de jogos (MP + locais) |
 | `netlify/functions/generate.js` | Geração IA (Netlify) |
-| `netlify/functions/lib/reports-store.js` | Armazenamento de reportes (Blobs) |
+| `netlify/functions/lib/reports-store.js` | Armazenamento de reportes (Supabase; fallback Blobs + migração automática) |
+| `supabase/question-reports.sql` | Tabela `question_reports` — executar no SQL Editor do Supabase |
 
 ---
 
@@ -405,7 +406,7 @@ Regra detalhada: `.cursor/rules/reportes-ia.mdc`.
 
 Redirects em `netlify.toml` e `public/_redirects`.
 
-Armazenamento Netlify: **Netlify Blobs** (`question-reports`). Cloudflare: **KV** (`REPORTS_KV`).
+Armazenamento de reportes: **Supabase** (`question_reports`, ver `supabase/question-reports.sql`). Anexos de imagem continuam em **Netlify Blobs** (`question-reports`). Se Supabase não estiver configurado, usa Blobs. A migração de dados antigos corre automaticamente no primeiro pedido admin após deploy. Cloudflare: **KV** (`REPORTS_KV`).
 
 ---
 

@@ -1,4 +1,4 @@
-// GET/PATCH/DELETE /api/reports-admin — painel admin de reportes (Netlify Functions v1 + Blobs).
+// GET/PATCH/DELETE /api/reports-admin — painel admin de reportes (Netlify Functions v1 + Supabase).
 
 const { json, validateAdminAuth } = require('./lib/report-utils');
 const {
