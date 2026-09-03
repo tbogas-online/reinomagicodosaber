@@ -353,6 +353,8 @@ URL: **`/admin-reports.html`** — utilizador e palavra-passe (`REPORTS_ADMIN_US
 - Dashboard: gráficos temporais (24 h / 3 / 7 / 14 dias), por tratar vs resolvidos, tipo, idade, dispositivo, top categorias (incl. **Site/app**).
 - Clicar num tipo ou estado filtra gráficos e tabela.
 - Tabela com estado, **Resolvido em** (hora Portugal), detalhe, copiar, imagem anexada.
+- Ao expandir: **diagnóstico IA**, correcção sugerida editável, botões **Validar** / **Corrigir** (sync ao banco).
+- Classificação multi-categoria e multi-idade; opção «Também actualizar no banco».
 - Acções em lote: Resolver, Cancelar, Reabrir, Apagar (só cancelados).
 - **Exportar CSV** — exporta visíveis; colunas `estado`, `resolvidoEm`; **não marca como resolvido**.
 - Actualização automática a cada 30 s.
@@ -369,6 +371,10 @@ URL: **`/admin-reports.html`** — utilizador e palavra-passe (`REPORTS_ADMIN_US
 - Gráfico por categoria e faixa etária no período seleccionado.
 - Matriz categoria × faixa (6–9, 10–15, 15+) com cores por quantidade; destaque de **lacunas** (categorias/faixas com poucas perguntas).
 - Resumo «Lacunas no banco» e alerta para perguntas activas sem opções válidas.
+- **Pesquisar e apagar:** texto, hash ou ID `rmq-…`; filtros por categoria, idade e reportes; até **100 resultados**; pesquisa case-insensitive.
+- **Opções** (por linha): editar pergunta, resposta e opções; **Guardar pergunta e opções**.
+- **Classificação:** várias categorias e faixas etárias; correcções propagam a duplicados iguais noutras categorias/idades.
+- Botão **Libertar** só em perguntas em quarentena global (30 dias).
 
 **Estados dos reportes:** `open` (por tratar) → `resolved` (corrigido) ou `cancelled` (cancelado). Cancelados fora dos gráficos; apagáveis permanentemente.
 
@@ -377,7 +383,7 @@ Documentação de utilização do admin: secção 11 do [manual](public/manual.h
 ### Fluxo de correção (equipa / Cursor)
 
 1. Analisar reportes (texto ou CSV exportado do admin).
-2. Corrigir validação em `public/question-engine.js` (e `index.html` se necessário).
+2. Corrigir validação em `public/question-engine.js` (e `index.html` se necessário) **ou** corrigir directamente no painel admin (Validar / Corrigir / banco de perguntas).
 3. Marcar resolvidos via script (não ao exportar CSV no painel):
 
 ```text
@@ -385,6 +391,17 @@ node scripts/resolve-reports-from-csv.js --ids rpt-abc,rpt-def
 ```
 
 ou com CSV: `node scripts/resolve-reports-from-csv.js "caminho\reportes.csv"`
+
+4. **Reaplicar correcções ao banco** (reportes já resolvidos com `appliedCorrection`):
+
+```text
+node scripts/revalidate-resolved-reports.js --dry-run
+node scripts/revalidate-resolved-reports.js
+```
+
+Opções: `--limit N`, `--ids rpt-abc,rpt-def`, `--apply-suggestions`. Requer `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` em `.env.local`.
+
+**Migração Supabase (multi-taxonomia):** executar `supabase/question-bank-multi-taxonomy.sql` no SQL Editor se ainda não foi feito (colunas `category_ns`, `age_bands`).
 
 **Credenciais locais (Cursor / scripts):** copia `.env.example` → `.env.local` e preenche `REPORTS_ADMIN_USER` / `REPORTS_ADMIN_PASS` (as mesmas do painel admin). Os scripts carregam `.env.local` automaticamente. O ficheiro está no `.gitignore` — nunca o commits.
 
@@ -439,6 +456,7 @@ Página interactiva: `/admin/test-questions.html` (credenciais admin; requer IA 
 | `scripts/generate-version.js` | Versão, changelog, cache bust |
 | `scripts/test-question-engine.js` | Testes unitários do motor (57 casos) |
 | `scripts/resolve-reports-from-csv.js` | Marcar reportes como resolvidos na API |
+| `scripts/revalidate-resolved-reports.js` | Reaplicar correcções de reportes resolvidos ao banco Supabase |
 | `scripts/create-zip.js` | Zip estático (`npm run zip`) |
 
 ---

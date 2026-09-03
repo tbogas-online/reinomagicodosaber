@@ -19,8 +19,15 @@ Quando o utilizador colar reportes (texto ou CSV exportado do painel admin) para
    ```
    Ou com CSV: `node scripts/resolve-reports-from-csv.js "caminho\reportes.csv"`
 
-**Credenciais:** o utilizador deve ter `reino-magico-deploy/.env.local` (copiar de `.env.example`) com `REPORTS_ADMIN_USER` e `REPORTS_ADMIN_PASS` — os scripts carregam-no automaticamente. Não pedir nem commitar a palavra-passe.
-5. **Confirmar** ao utilizador quais `reportId` foram resolvidos e o timestamp `resolvidoEm` devolvido pela API.
+5. **Reaplicar correcções ao banco** (reportes resolvidos com texto/opções alterados):
+   ```bash
+   node scripts/revalidate-resolved-reports.js --dry-run
+   node scripts/revalidate-resolved-reports.js
+   ```
+   Propaga a todas as entradas iguais no banco (duplicados em outras categorias/idades).
+
+**Credenciais:** o utilizador deve ter `reino-magico-deploy/.env.local` (copiar de `.env.example`) com `REPORTS_ADMIN_USER` e `REPORTS_ADMIN_PASS` — os scripts carregam-no automaticamente. Para gravar no banco: `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY`. Não pedir nem commitar a palavra-passe.
+6. **Confirmar** ao utilizador quais `reportId` foram resolvidos e o timestamp `resolvidoEm` devolvido pela API.
 
 ## Não fazer
 

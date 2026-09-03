@@ -430,6 +430,10 @@
       <p>Em cada linha:</p>
       <ul>
         <li><strong>Detalhe</strong> — expande pergunta, opções, respostas, comentário, dispositivo, ID.</li>
+        <li><strong>Diagnóstico IA</strong> — qualidade (0–100), veredito e acção recomendada (validar, corrigir, rever).</li>
+        <li><strong>Correcção sugerida</strong> — editar pergunta, resposta e opções antes de gravar.</li>
+        <li><strong>✅ Validar</strong> / <strong>✏️ Corrigir</strong> — marca resolvido e, se editaste texto/opções, grava no banco de perguntas.</li>
+        <li><strong>Classificação</strong> — várias categorias e faixas etárias; opção «Também actualizar no banco».</li>
         <li><strong>📋 Copiar tudo</strong> — copia o reporte completo para a área de transferência.</li>
         <li><strong>🖼 Ver imagem</strong> — para reportes do site com anexo.</li>
         <li><strong>Resolver</strong> / <strong>Cancelar</strong> / <strong>Reabrir</strong> / <strong>Apagar</strong> (apagar só para cancelados).</li>
@@ -459,8 +463,14 @@
         <li><strong>Matriz</strong> categoria × faixa com cores por quantidade; linhas âmbar/vermelhas destacam categorias com poucas perguntas; células com contorno marcam faixas com ≤2 perguntas.</li>
         <li>Caixa <strong>Lacunas no banco</strong> — resumo das combinações categoria/faixa mais fracas.</li>
         <li>Alerta se existirem perguntas activas no Supabase sem opções válidas.</li>
+        <li><strong>Pesquisar e apagar perguntas</strong> — texto, hash ou ID <code>rmq-…</code>; filtros por categoria, idade e estado de reporte; até 100 resultados.</li>
+        <li><strong>Opções</strong> (botão por linha) — ver e editar pergunta, resposta e opções; <strong>Guardar pergunta e opções</strong> grava no Supabase.</li>
+        <li><strong>Classificação</strong> — seleccionar várias categorias (1–20) e faixas etárias; <strong>Guardar classificação</strong>.</li>
+        <li>Se a mesma pergunta existir em várias categorias ou idades, uma correcção actualiza <strong>todas as entradas iguais</strong>.</li>
+        <li><strong>Libertar</strong> — remove quarentena global (30 dias) só quando a pergunta está efectivamente em quarentena.</li>
+        <li>Apagar selecionadas, por categoria, remover sem opções, regenerar opções de adivinhas.</li>
       </ul>
-      <p>Requer <code>SUPABASE_URL</code> e <code>SUPABASE_SERVICE_ROLE_KEY</code> no alojamento (só no servidor).</p>
+      <p>Requer <code>SUPABASE_URL</code> e <code>SUPABASE_SERVICE_ROLE_KEY</code> no alojamento (só no servidor). Migração multi-taxonomia: <code>supabase/question-bank-multi-taxonomy.sql</code>.</p>
 
       <h3>Estados dos reportes</h3>
       <table>
