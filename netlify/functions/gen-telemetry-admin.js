@@ -3,6 +3,7 @@
 const { json, validateAdminAuth } = require('./lib/report-utils');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
 const { getStats, clearAll } = require('./lib/gen-telemetry-store');
+const { getAiUsageStats } = require('./lib/ai-usage-store');
 const { listActiveOverrides } = require('./lib/validation-rule-overrides-store');
 
 exports.handler = async (event) => {
@@ -26,13 +27,18 @@ exports.handler = async (event) => {
         return json(400, { error: 'Usa stats=1.' });
       }
       try {
-        const [stats, overrides] = await Promise.all([
+        const [stats, overrides, aiUsage] = await Promise.all([
           getStats(null, { gameMode: params.gameMode }),
           listActiveOverrides().catch(() => []),
+          getAiUsageStats().catch((err) => ({
+            available: false,
+            error: err?.message || 'Não foi possível ler pedidos à IA.',
+          })),
         ]);
         return json(200, {
           ok: true,
           stats,
+          aiUsage,
           overrides,
           filters: { gameMode: params.gameMode || '' },
         });

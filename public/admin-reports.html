@@ -1637,6 +1637,49 @@
     .pending-review-aside select.pending-review-difficulty {
       margin-top: 4px;
     }
+    .validation-classifier {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .validation-tax-group strong {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 6px;
+    }
+    .validation-tax-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 4px 8px;
+      max-height: 120px;
+      overflow: auto;
+    }
+    .validation-tax-check,
+    .validation-age-check-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.78rem;
+      color: var(--text);
+      cursor: pointer;
+    }
+    .validation-age-diff-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .validation-age-diff-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr);
+      gap: 8px;
+      align-items: center;
+    }
+    .validation-age-diff-row select:disabled {
+      opacity: 0.45;
+    }
     .pending-review-actions {
       display: flex;
       flex-direction: column;
@@ -1687,6 +1730,23 @@
       font-size: 10px;
       color: #86efac;
       font-weight: 600;
+    }
+    .issue-bank-validated {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #6ee7b7;
+      background: rgba(16, 185, 129, 0.14);
+      border: 1px solid rgba(16, 185, 129, 0.28);
+    }
+    .issue-occ-item.is-bank-validated {
+      border-left: 3px solid rgba(16, 185, 129, 0.55);
+      padding-left: 8px;
+      opacity: 0.92;
     }
     .provider-insights-table {
       width: 100%;
@@ -1895,6 +1955,56 @@
       fill: var(--muted);
       font-size: 10px;
       font-family: inherit;
+    }
+    .line-axis-label {
+      fill: var(--muted);
+      font-size: 9px;
+      font-family: inherit;
+    }
+    .line-axis-label-right {
+      fill: #6ee7b7;
+    }
+    .ai-usage-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 8px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .ai-usage-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ai-usage-legend i {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+    }
+    .ai-usage-dim-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: flex-end;
+      margin: 8px 0 4px;
+    }
+    .ai-usage-dim-filters label {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .ai-usage-dim-filters select {
+      min-width: 180px;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.65);
+      color: var(--text);
+      font: inherit;
     }
     .line-value-label {
       fill: var(--text);
@@ -2319,10 +2429,15 @@
           </div>
           <p class="timeline-note" id="bankTimelineNote"></p>
           <div id="bankTimelineChart" class="chart"></div>
-          <div class="rooms-legend">
+          <div class="rooms-legend" id="bankTimelineLegend" aria-label="Legenda do gráfico do banco">
             <span><i style="background:#f59e0b"></i> Guardadas no banco</span>
             <span><i style="background:#3b82f6"></i> Via IA (jogo + teste)</span>
+            <span><i style="background:#10b981"></i> Validação manual</span>
           </div>
+          <p class="chart-filter-note bank-timeline-legend-note">
+            <strong>Validação manual</strong> — perguntas inseridas no banco após revisão no painel admin
+            (aceitar na telemetria IA, fila de dificuldade ou correcção de reportes), e não geradas automaticamente durante o jogo.
+          </p>
 
           <h3 class="charts-title" id="bankCategoryChartTitle" style="font-size:1rem; margin:22px 0 6px;">Por categoria e faixa etária</h3>
           <p class="timeline-note" id="bankCategoryNote"></p>
@@ -2764,6 +2879,42 @@
           </div>
 
           <p class="status" id="telemetryListStatus"></p>
+
+          <div class="chart-box chart-wide" style="margin-top:12px">
+            <div class="chart-head">
+              <h3 id="chartAiUsageTitle" style="margin:0;font-size:0.95rem;">Pedidos à IA e quota</h3>
+            </div>
+            <div class="stats telemetry-kpis" id="aiUsageSummaryRow" style="margin:8px 0 4px"></div>
+            <div class="ai-usage-dim-filters">
+              <label>
+                Fornecedor
+                <select id="aiUsageProviderFilter" aria-label="Filtrar por fornecedor IA">
+                  <option value="">Todos</option>
+                </select>
+              </label>
+              <label>
+                Modelo
+                <select id="aiUsageModelFilter" aria-label="Filtrar por modelo IA">
+                  <option value="">Todos</option>
+                </select>
+              </label>
+            </div>
+            <div class="timeline-filters" id="aiUsageRangeFilters" role="group" aria-label="Período de pedidos à IA">
+              <button type="button" class="secondary" data-ai-usage-range="1h">1 h</button>
+              <button type="button" class="secondary" data-ai-usage-range="3h">3 h</button>
+              <button type="button" class="secondary" data-ai-usage-range="6h">6 h</button>
+              <button type="button" class="secondary" data-ai-usage-range="12h">12 h</button>
+              <button type="button" class="secondary active" data-ai-usage-range="24h">24 h</button>
+              <button type="button" class="secondary" data-ai-usage-range="48h">48 h</button>
+            </div>
+            <p class="timeline-note" id="aiUsageNote">Buckets de 5 minutos (hora de Lisboa). Linha verde = quota acumulada no dia; tracejado = limite diário do fornecedor.</p>
+            <div id="chartAiUsage" class="chart"></div>
+            <div class="chart-head" style="margin-top:16px;">
+              <h4 id="chartAiUsageMinuteTitle" style="margin:0;font-size:0.9rem;">Última hora · por minuto</h4>
+            </div>
+            <p class="timeline-note" id="aiUsageMinuteNote">Pedidos e tokens por minuto (janela móvel de 60 min). Tracejado = limite de tokens/min do fornecedor seleccionado.</p>
+            <div id="chartAiUsageMinute" class="chart"></div>
+          </div>
 
           <div class="chart-box chart-wide" style="margin-top:12px">
             <div class="chart-head">
@@ -4758,6 +4909,7 @@
     }
 
     function canShowTelemetryAccept(occ) {
+      if (occ?.bankValidatedAt) return false;
       const snap = occ?.questionSnapshot;
       if (!snap?.q || !snap?.a) return false;
       const cat = Number(occ?.category);
@@ -4794,33 +4946,102 @@
       return `<select class="${className}" ${attrs}>${options.join('')}</select>`;
     }
 
-    function renderTelemetryDifficultyField(key, occ, snapshot) {
-      const ageBand = occ?.ageBandKey || '15+';
-      const requested = occ?.difficulty;
-      const estimated = telemetryEstimatedDifficulty(occ, snapshot);
-      let hint = '';
-      if (requested != null && estimated != null && requested !== estimated) {
-        hint = `Pedida: ${requested} · Estimada: ${estimated}`;
-      } else if (requested != null) {
-        hint = `Pedida: ${requested}`;
-      } else if (estimated != null) {
-        hint = `Estimada: ${estimated}`;
-      }
+    function normalizeBankDifficultyUi(value) {
+      const n = Number(value);
+      if (!Number.isFinite(n)) return null;
+      const rounded = Math.round(n);
+      if (rounded < 1 || rounded > 5) return null;
+      return rounded;
+    }
+
+    function renderValidationClassifierEditor(prefix, id, options = {}) {
+      const {
+        categoryNs = [],
+        ageBands = [],
+        difficulties = {},
+        requestedDifficulty = null,
+        estimatedDifficulty = null,
+      } = options;
+      const catSet = new Set((categoryNs || []).filter((n) => n >= 1 && n <= 20));
+      const ageSet = new Set((ageBands || []).filter((b) => BANK_AGE_BANDS.includes(b)));
+      const idAttr = `data-validation-id="${esc(id)}"`;
+      const fallbackDiff = estimatedDifficulty ?? requestedDifficulty;
+      const catChecks = BANK_CATEGORIES.map((cat) => {
+        const checked = catSet.has(cat.n) ? ' checked' : '';
+        return `<label class="validation-tax-check"><input type="checkbox" class="${prefix}-validation-cat-check" value="${cat.n}" ${idAttr}${checked}> ${cat.n}. ${esc(cat.name)}</label>`;
+      }).join('');
+      const ageRows = BANK_AGE_BANDS.map((age) => {
+        const checked = ageSet.has(age);
+        const def = difficulties[age] ?? (checked && fallbackDiff != null ? fallbackDiff : null);
+        const range = telemetryDifficultyRange(age);
+        const value = def != null ? telemetryClampDifficulty(def, age) : range.min;
+        const opts = [];
+        for (let n = range.min; n <= range.max; n += 1) {
+          opts.push(`<option value="${n}"${n === value ? ' selected' : ''}>${n} — ${esc(difficultyLabel(n))}</option>`);
+        }
+        return `
+          <div class="validation-age-diff-row">
+            <label class="validation-age-check-label">
+              <input type="checkbox" class="${prefix}-validation-age-check" value="${esc(age)}" ${idAttr}${checked ? ' checked' : ''}>
+              <span>${esc(BANK_AGE_CHART_LABELS[age] || age)}</span>
+            </label>
+            <select class="${prefix}-validation-age-difficulty" data-age-band="${esc(age)}" ${idAttr}${checked ? '' : ' disabled'}>${opts.join('')}</select>
+          </div>
+        `;
+      }).join('');
       return `
-        <label class="telemetry-accept-label">Dificuldade (banco)
-          ${hint ? `<span class="telemetry-diff-hint">${esc(hint)}</span>` : ''}
-        </label>
-        ${renderDifficultyScaleHint(ageBand)}
-        ${renderDifficultySelect(
-          'telemetry-accept-difficulty',
-          ageBand,
-          telemetryDefaultBankDifficulty(occ, snapshot),
-          `data-occ-key="${esc(key)}"`,
-        )}
+        <div class="validation-classifier" data-validation-classifier-for="${esc(id)}">
+          <p class="report-detail-meta" style="margin:0;">Classificação no banco</p>
+          <div class="validation-tax-group">
+            <strong>Categorias</strong>
+            <div class="validation-tax-grid">${catChecks}</div>
+          </div>
+          <div class="validation-tax-group">
+            <strong>Faixas etárias e dificuldade</strong>
+            <p class="difficulty-scale-hint" style="margin-top:0;">Selecciona uma ou mais faixas; podes definir uma dificuldade diferente para cada uma.</p>
+            <div class="validation-age-diff-list">${ageRows}</div>
+          </div>
+        </div>
       `;
     }
 
+    function readValidationClassifier(root, prefix) {
+      if (!root) return { categoryNs: [], ageBands: [], difficultyByAgeBand: {}, difficulty: null };
+      const categoryNs = [...root.querySelectorAll(`.${prefix}-validation-cat-check:checked`)]
+        .map((el) => Number(el.value))
+        .filter((n) => n >= 1 && n <= 20)
+        .sort((a, b) => a - b);
+      const ageBands = [];
+      const difficultyByAgeBand = {};
+      root.querySelectorAll(`.${prefix}-validation-age-check:checked`).forEach((cb) => {
+        const age = String(cb.value || '').trim();
+        if (!BANK_AGE_BANDS.includes(age)) return;
+        ageBands.push(age);
+        const sel = [...root.querySelectorAll(`.${prefix}-validation-age-difficulty`)]
+          .find((el) => el.getAttribute('data-age-band') === age);
+        const d = normalizeBankDifficultyUi(sel?.value);
+        if (d) difficultyByAgeBand[age] = d;
+      });
+      const difficulty = ageBands.length ? (difficultyByAgeBand[ageBands[0]] ?? null) : null;
+      return { categoryNs, ageBands, difficultyByAgeBand, difficulty };
+    }
+
+    function renderTelemetryDifficultyField(key, occ, snapshot) {
+      const ageBand = occ?.ageBandKey || '15+';
+      const estimated = telemetryEstimatedDifficulty(occ, snapshot);
+      return renderValidationClassifierEditor('telemetry', key, {
+        categoryNs: Number.isFinite(Number(occ?.category)) ? [Number(occ.category)] : [],
+        ageBands: BANK_AGE_BANDS.includes(ageBand) ? [ageBand] : [],
+        requestedDifficulty: occ?.difficulty,
+        estimatedDifficulty: estimated,
+      });
+    }
+
     function renderTelemetryAcceptPanel(code, occ, index) {
+      if (occ?.bankValidatedAt) {
+        const when = formatPortugalDateTime(occ.bankValidatedAt);
+        return `<p class="issue-bank-validated" title="${esc(when)}">✓ Validada e guardada no banco</p>`;
+      }
       if (!canShowTelemetryAccept(occ)) return '';
       const key = telemetryOccurrenceKey(code, occ, index);
       const snap = occ.questionSnapshot;
@@ -4840,6 +5061,7 @@
               <button type="button" class="primary telemetry-accept-save-btn"
                 data-issue-code="${esc(code)}"
                 data-occ-key="${esc(key)}"
+                data-event-id="${esc(occ.eventId || '')}"
                 data-age-band="${esc(occ.ageBandKey || '')}"
                 data-category="${esc(String(occ.category))}"
                 data-format-id="${esc(occ.formatId || '')}">Guardar no banco</button>
@@ -4852,11 +5074,14 @@
     function readTelemetryAcceptForm(formEl) {
       if (!formEl) return null;
       const optionsRaw = formEl.querySelector('.telemetry-accept-options')?.value || '';
+      const occKey = formEl.getAttribute('data-occ-key') || '';
+      const classifier = readValidationClassifier(formEl, 'telemetry');
       return {
         question: formEl.querySelector('.telemetry-accept-question')?.value?.trim() || '',
         answer: formEl.querySelector('.telemetry-accept-answer')?.value?.trim() || '',
         options: optionsRaw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
-        difficulty: Number(formEl.querySelector('.telemetry-accept-difficulty')?.value),
+        ...classifier,
+        occKey,
       };
     }
 
@@ -4869,15 +5094,20 @@
       if (!draft?.question || !draft?.answer) {
         throw new Error('Preenche pergunta e resposta correcta.');
       }
-      if (!Number.isFinite(categoryN) || !BANK_AGE_BANDS.includes(ageBand)) {
-        throw new Error('Falta categoria ou faixa etária na ocorrência.');
+      if (!draft.categoryNs?.length) {
+        throw new Error('Selecciona pelo menos uma categoria.');
+      }
+      if (!draft.ageBands?.length) {
+        throw new Error('Selecciona pelo menos uma faixa etária.');
       }
       const hash = questionHashFromPair(draft.question, draft.answer);
+      const diffSummary = draft.ageBands
+        .map((age) => `${age}: ${draft.difficultyByAgeBand?.[age] ?? '—'}`)
+        .join(', ');
       const label = [
         issueCode,
-        bankCategoryLabel(categoryN),
-        ageBand,
-        `dificuldade ${draft.difficulty || '—'}`,
+        draft.categoryNs.map((n) => bankCategoryLabel(n)).join(' · '),
+        diffSummary,
       ].filter(Boolean).join(' · ');
       const ok = await confirmAction(
         `Aceitar esta pergunta e guardar no banco Supabase?\n\n${label}`,
@@ -4896,12 +5126,14 @@
             format: draft.options.length >= 2 ? 'ESCOLHA_MULTIPLA' : undefined,
           },
           meta: {
-            categoryNs: [categoryN],
-            ageBands: [ageBand],
-            categoryN,
-            ageBand,
+            categoryNs: draft.categoryNs,
+            ageBands: draft.ageBands,
+            categoryN: draft.categoryNs[0],
+            ageBand: draft.ageBands[0],
             difficulty: draft.difficulty,
+            difficultyByAgeBand: draft.difficultyByAgeBand,
             source: 'telemetry-accepted',
+            telemetryEventId: btn.getAttribute('data-event-id') || null,
           },
         }),
       });
@@ -4925,12 +5157,16 @@
           <div class="issue-occ-list">
             ${occurrences.map((occ, index) => {
               const overridden = isTelemetryRuleOverridden(code, occ, overrides);
+              const validated = !!occ?.bankValidatedAt;
               const when = occ?.ts ? formatPortugalDateTime(occ.ts) : '';
               const meta = formatGenIssueOccurrenceMeta(occ);
               const message = occ?.message || info?.sampleMessage || '';
+              const validatedBadge = validated
+                ? `<span class="issue-bank-validated" title="${esc(formatPortugalDateTime(occ.bankValidatedAt))}">✓ No banco</span>`
+                : '';
               return `
-                <div class="issue-occ-item">
-                  ${when ? `<div class="issue-last-meta">${esc(when)}</div>` : ''}
+                <div class="issue-occ-item${validated ? ' is-bank-validated' : ''}">
+                  ${when ? `<div class="issue-last-meta">${esc(when)} ${validatedBadge}</div>` : validatedBadge}
                   ${meta ? `<div class="issue-last-meta">${esc(meta)}</div>` : ''}
                   ${renderGenQuestionSnapshot(occ?.questionSnapshot)}
                   ${message ? `<div class="issue-last-msg">${esc(message)}</div>` : ''}
@@ -5009,7 +5245,7 @@
               <tr title="${esc(genIssueTooltip(code, info))}">
                 <td class="issue-code">${esc(code)}</td>
                 <td class="issue-desc">${esc(formatGenIssueLabel(code, info.sampleMessage))}</td>
-                <td>${info.count}</td>
+                <td>${info.count}${info.validatedCount ? ` <span class="issue-bank-validated" title="Guardadas no banco após validação">${info.validatedCount} ✓</span>` : ''}</td>
                 <td>${renderGenIssueOccurrenceCell(code, info, overrides)}</td>
               </tr>
             `).join('')}
@@ -5148,8 +5384,26 @@
     const TELEMETRY_TIMELINE_STORAGE_KEY = 'reino_admin_telemetry_timeline_range';
     const TELEMETRY_TIMELINE_CHART_STORAGE_KEY = 'reino_admin_telemetry_timeline_chart';
 
+    const AI_USAGE_RANGES = {
+      '1h': { label: 'última hora', granularity: 'minute', lookbackMs: 60 * 60 * 1000 },
+      '3h': { label: 'últimas 3 horas', granularity: 'minute', lookbackMs: 3 * 60 * 60 * 1000 },
+      '6h': { label: 'últimas 6 horas', granularity: 'minute', lookbackMs: 6 * 60 * 60 * 1000 },
+      '12h': { label: 'últimas 12 horas', granularity: 'minute', lookbackMs: 12 * 60 * 60 * 1000 },
+      '24h': { label: 'últimas 24 horas', granularity: 'minute', lookbackMs: 24 * 60 * 60 * 1000 },
+      '48h': { label: 'últimas 48 horas', granularity: 'minute', lookbackMs: 48 * 60 * 60 * 1000 },
+    };
+    const AI_USAGE_RANGE_STORAGE_KEY = 'reino_admin_ai_usage_range';
+    const AI_USAGE_PROVIDER_STORAGE_KEY = 'reino_admin_ai_usage_provider';
+    const AI_USAGE_MODEL_STORAGE_KEY = 'reino_admin_ai_usage_model';
+    const AI_USAGE_BUCKET_MINUTES = 5;
+    const AI_USAGE_LISBON_TZ = 'Europe/Lisbon';
+
     let lastTelemetryPayload = null;
     let lastTelemetryOverrides = [];
+    let lastAiStatusPayload = null;
+    let aiUsageRange = '24h';
+    let aiUsageProviderFilter = '';
+    let aiUsageModelFilter = '';
     let telemetryGameModeFilter = '';
     let telemetryTimelineRange = '14d';
     let telemetryTimelineChartType = 'stacked';
@@ -5162,6 +5416,10 @@
       if (savedTelemetryChart === 'line' || savedTelemetryChart === 'stacked') {
         telemetryTimelineChartType = savedTelemetryChart;
       }
+      const savedAiUsageRange = localStorage.getItem(AI_USAGE_RANGE_STORAGE_KEY);
+      if (savedAiUsageRange && AI_USAGE_RANGES[savedAiUsageRange]) aiUsageRange = savedAiUsageRange;
+      aiUsageProviderFilter = localStorage.getItem(AI_USAGE_PROVIDER_STORAGE_KEY) || '';
+      aiUsageModelFilter = localStorage.getItem(AI_USAGE_MODEL_STORAGE_KEY) || '';
     } catch { /* ignore */ }
 
     function telemetryStatsQuery() {
@@ -5188,6 +5446,592 @@
 
     function getGenOutcomeColor(outcome, index = 0) {
       return GEN_OUTCOME_COLORS[outcome] || CHART_COLORS[index % CHART_COLORS.length];
+    }
+
+    function aiUsageProviderLabel(id) {
+      const key = String(id || '').trim().toLowerCase();
+      if (!key) return 'Pré-IA / erro';
+      return GEN_PROVIDER_LABELS[key] || key;
+    }
+
+    function aiUsageToLisbonBucketKey(date, bucketMinutes = AI_USAGE_BUCKET_MINUTES) {
+      const d = date instanceof Date ? date : new Date(date);
+      if (Number.isNaN(d.getTime())) return null;
+      const parts = new Intl.DateTimeFormat('sv-SE', {
+        timeZone: AI_USAGE_LISBON_TZ,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }).formatToParts(d);
+      const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+      let minute = Number(map.minute) || 0;
+      if (bucketMinutes > 1) minute = Math.floor(minute / bucketMinutes) * bucketMinutes;
+      return `${map.year}-${map.month}-${map.day}T${map.hour}:${String(minute).padStart(2, '0')}`;
+    }
+
+    function aiUsageToLisbonDayKey(date) {
+      const key = aiUsageToLisbonBucketKey(date, 60);
+      return key ? key.slice(0, 10) : null;
+    }
+
+    function aiUsageBucketKeyToUtcMs(key) {
+      if (!key || !String(key).includes('T')) return NaN;
+      const [datePart, timePart] = String(key).split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      const [hour, minute] = timePart.split(':').map(Number);
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: AI_USAGE_LISBON_TZ,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      for (const offsetHours of [-2, -1, 0, 1, 2]) {
+        const probe = new Date(Date.UTC(year, month - 1, day, hour + offsetHours, minute, 0, 0));
+        const parts = formatter.formatToParts(probe);
+        const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+        const probeMinute = Math.floor((Number(map.minute) || 0) / AI_USAGE_BUCKET_MINUTES) * AI_USAGE_BUCKET_MINUTES;
+        const probeKey = `${map.year}-${map.month}-${map.day}T${map.hour}:${String(probeMinute).padStart(2, '0')}`;
+        if (probeKey === key) return probe.getTime();
+      }
+      return Date.UTC(year, month - 1, day, hour, minute, 0, 0);
+    }
+
+    function filterAiUsageDimensionRows(rows, provider, model) {
+      const p = String(provider || '').trim().toLowerCase();
+      const m = String(model || '').trim();
+      return (rows || []).filter((row) => {
+        const rp = String(row.provider || '').trim().toLowerCase();
+        const rm = String(row.model || '').trim();
+        if (p && rp !== p) return false;
+        if (m && rm !== m) return false;
+        return true;
+      });
+    }
+
+    function aggregateAiUsageRows(rows) {
+      const map = new Map();
+      (rows || []).forEach((row) => {
+        const key = row.bucket_start;
+        if (!key) return;
+        const slot = map.get(key) || { bucket_start: key, request_count: 0, error_count: 0, token_count: 0 };
+        slot.request_count += Number(row.request_count) || 0;
+        slot.error_count += Number(row.error_count) || 0;
+        slot.token_count += Number(row.token_count) || 0;
+        map.set(key, slot);
+      });
+      return [...map.values()];
+    }
+
+    function buildAiUsageBucketSeries(rows, lookbackMs, bucketMinutes = AI_USAGE_BUCKET_MINUTES) {
+      const now = new Date();
+      const endKey = aiUsageToLisbonBucketKey(now, bucketMinutes);
+      const endMs = aiUsageBucketKeyToUtcMs(endKey);
+      const startMs = endMs - lookbackMs + bucketMinutes * 60 * 1000;
+      const counts = new Map();
+      for (let t = startMs; t <= endMs; t += bucketMinutes * 60 * 1000) {
+        const key = aiUsageToLisbonBucketKey(new Date(t), bucketMinutes);
+        if (key) counts.set(key, { requests: 0, errors: 0, tokens: 0 });
+      }
+      (rows || []).forEach((row) => {
+        const key = aiUsageToLisbonBucketKey(row.bucket_start, bucketMinutes);
+        if (!key || !counts.has(key)) return;
+        const slot = counts.get(key);
+        slot.requests += Number(row.request_count) || 0;
+        slot.errors += Number(row.error_count) || 0;
+        slot.tokens += Number(row.token_count) || 0;
+      });
+      const sortedKeys = [...counts.keys()].sort();
+      let daySum = 0;
+      let currentDay = '';
+      const requests = [];
+      const cumulative = [];
+      const errors = [];
+      const tokens = [];
+      sortedKeys.forEach((key) => {
+        const slot = counts.get(key);
+        const day = key.slice(0, 10);
+        if (day !== currentDay) {
+          currentDay = day;
+          daySum = 0;
+        }
+        daySum += slot.requests;
+        requests.push({ t: key, v: slot.requests });
+        cumulative.push({ t: key, v: daySum });
+        errors.push({ t: key, v: slot.errors });
+        tokens.push({ t: key, v: slot.tokens });
+      });
+      return {
+        requests,
+        cumulative,
+        errors,
+        tokens,
+        totalRequests: requests.reduce((sum, p) => sum + p.v, 0),
+        totalErrors: errors.reduce((sum, p) => sum + p.v, 0),
+        totalTokens: tokens.reduce((sum, p) => sum + p.v, 0),
+      };
+    }
+
+    function computeAiUsageSummary(rows) {
+      const now = Date.now();
+      const cut1h = now - 60 * 60 * 1000;
+      const cut24h = now - 24 * 60 * 60 * 1000;
+      const cut48h = now - 48 * 60 * 60 * 1000;
+      const todayKey = aiUsageToLisbonDayKey(new Date());
+      let last1h = 0;
+      let last24h = 0;
+      let last48h = 0;
+      let errors48h = 0;
+      let quotaUsedToday = 0;
+      (rows || []).forEach((row) => {
+        const t = new Date(row.bucket_start).getTime();
+        if (Number.isNaN(t)) return;
+        const reqs = Number(row.request_count) || 0;
+        const errs = Number(row.error_count) || 0;
+        if (t >= cut48h) {
+          last48h += reqs;
+          errors48h += errs;
+        }
+        if (t >= cut24h) last24h += reqs;
+        if (t >= cut1h) last1h += reqs;
+        if (aiUsageToLisbonDayKey(row.bucket_start) === todayKey) quotaUsedToday += reqs;
+      });
+      const successRate = last48h > 0
+        ? Math.round(((last48h - errors48h) / last48h) * 1000) / 10
+        : null;
+      return { last1h, last24h, last48h, errors: errors48h, successRate, quotaUsedToday };
+    }
+
+    function buildAiUsageFilterLabel(provider, model) {
+      const parts = [];
+      if (provider) parts.push(aiUsageProviderLabel(provider));
+      if (model) parts.push(model);
+      return parts.join(' · ');
+    }
+
+    function buildAiUsageView(aiUsage) {
+      if (!aiUsage?.available) return { timeline: null, summary: null, filterLabel: '' };
+      const dimensionRows = Array.isArray(aiUsage.dimensionRows) ? aiUsage.dimensionRows : [];
+      if (!dimensionRows.length) {
+        return {
+          timeline: aiUsage.timeline,
+          summary: aiUsage.summary,
+          filterLabel: '',
+        };
+      }
+      const filtered = filterAiUsageDimensionRows(
+        dimensionRows,
+        aiUsageProviderFilter,
+        aiUsageModelFilter,
+      );
+      const aggregated = aggregateAiUsageRows(filtered);
+      const timeline = {};
+      Object.entries(AI_USAGE_RANGES).forEach(([key, cfg]) => {
+        timeline[key] = buildAiUsageBucketSeries(aggregated, cfg.lookbackMs);
+      });
+      return {
+        timeline,
+        summary: computeAiUsageSummary(aggregated),
+        filterLabel: buildAiUsageFilterLabel(aiUsageProviderFilter, aiUsageModelFilter),
+      };
+    }
+
+    function renderAiUsageFilterOptions(aiUsage) {
+      const providerEl = document.getElementById('aiUsageProviderFilter');
+      const modelEl = document.getElementById('aiUsageModelFilter');
+      if (!providerEl || !modelEl) return;
+
+      const catalog = aiUsage?.catalog || { providers: [], models: [] };
+      const providerOptions = ['<option value="">Todos</option>'];
+      (catalog.providers || []).forEach((entry) => {
+        const id = String(entry.id || '');
+        const label = `${aiUsageProviderLabel(id)} (${entry.count || 0})`;
+        providerOptions.push(`<option value="${esc(id)}">${esc(label)}</option>`);
+      });
+      providerEl.innerHTML = providerOptions.join('');
+      providerEl.value = [...providerEl.options].some((o) => o.value === aiUsageProviderFilter)
+        ? aiUsageProviderFilter
+        : '';
+
+      const models = (catalog.models || []).filter((entry) => {
+        if (!aiUsageProviderFilter) return true;
+        return String(entry.provider || '').toLowerCase() === aiUsageProviderFilter;
+      });
+      const modelOptions = ['<option value="">Todos</option>'];
+      models.forEach((entry) => {
+        const model = String(entry.model || '');
+        const label = `${model || '—'} (${entry.count || 0})`;
+        modelOptions.push(`<option value="${esc(model)}">${esc(label)}</option>`);
+      });
+      modelEl.innerHTML = modelOptions.join('');
+      modelEl.value = [...modelEl.options].some((o) => o.value === aiUsageModelFilter)
+        ? aiUsageModelFilter
+        : '';
+      if (!modelEl.value) aiUsageModelFilter = '';
+    }
+
+    function buildAiUsageMinuteView(aiUsage) {
+      const minuteRows = Array.isArray(aiUsage?.minuteDimensionRows) ? aiUsage.minuteDimensionRows : [];
+      if (!minuteRows.length && aiUsage?.minuteTimeline) {
+        return { bucket: aiUsage.minuteTimeline, filterLabel: '' };
+      }
+      const filtered = filterAiUsageDimensionRows(
+        minuteRows,
+        aiUsageProviderFilter,
+        aiUsageModelFilter,
+      );
+      const aggregated = aggregateAiUsageRows(filtered);
+      return {
+        bucket: buildAiUsageBucketSeries(aggregated, 60 * 60 * 1000, 1),
+        filterLabel: buildAiUsageFilterLabel(aiUsageProviderFilter, aiUsageModelFilter),
+      };
+    }
+
+    function extractAiMinuteTokenLimit(aiStatus, providerFilter = '') {
+      const provider = String(providerFilter || aiUsageProviderFilter || '').trim().toLowerCase();
+      if (!provider || !aiStatus?.providers?.[provider]) return null;
+      const prov = aiStatus.providers[provider];
+      const models = Array.isArray(prov.models) ? prov.models : [];
+      for (const model of models) {
+        const limit = Number(model.tokens_limit);
+        if (Number.isFinite(limit) && limit > 0) return Math.round(limit);
+      }
+      const summaryLimit = Number(prov.summary?.tokens_limit);
+      if (Number.isFinite(summaryLimit) && summaryLimit > 0) return Math.round(summaryLimit);
+      return null;
+    }
+
+    function formatAiUsageTokenCount(n) {
+      const v = Number(n) || 0;
+      if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
+      if (v >= 1000) return `${Math.round(v / 1000)}k`;
+      return String(v);
+    }
+
+    function renderAiUsageMinuteChart(aiUsage, aiStatus) {
+      const chartEl = document.getElementById('chartAiUsageMinute');
+      const noteEl = document.getElementById('aiUsageMinuteNote');
+      const titleEl = document.getElementById('chartAiUsageMinuteTitle');
+      if (!chartEl) return;
+      if (!aiUsage?.available) {
+        chartEl.innerHTML = '<div class="chart-empty">Indisponível — executa ai-usage-minute-buckets.sql.</div>';
+        return;
+      }
+      const minuteView = buildAiUsageMinuteView(aiUsage);
+      const bucket = minuteView.bucket;
+      const filterSuffix = minuteView.filterLabel ? ` · ${minuteView.filterLabel}` : '';
+      if (titleEl) titleEl.textContent = `Última hora · por minuto${filterSuffix}`;
+      const isEmpty = !bucket
+        || ((bucket.totalRequests || 0) === 0 && (bucket.totalTokens || 0) === 0 && (bucket.totalErrors || 0) === 0);
+      if (isEmpty) {
+        chartEl.innerHTML = '<div class="chart-empty">Sem dados minuto a minuto — aparecem após pedidos com a migração e deploy activos.</div>';
+        if (noteEl) {
+          noteEl.textContent = 'Executa supabase/ai-usage-minute-buckets.sql e faz deploy para registar tokens por minuto.';
+        }
+        return;
+      }
+      const minuteTokenLimit = extractAiMinuteTokenLimit(aiStatus, aiUsageProviderFilter);
+      if (noteEl) {
+        const tokenNote = minuteTokenLimit
+          ? ` Limite tokens/min (${aiUsageProviderLabel(aiUsageProviderFilter)}): <strong>${formatAiUsageTokenCount(minuteTokenLimit)}</strong>.`
+          : (aiUsageProviderFilter ? ' Sem limite tokens/min conhecido para este fornecedor.' : ' Selecciona um fornecedor para ver o limite tokens/min.');
+        noteEl.innerHTML = `Últimos 60 min: <strong>${bucket.totalRequests || 0}</strong> pedido(s) · <strong>${formatAiUsageTokenCount(bucket.totalTokens || 0)}</strong> tokens.${tokenNote}`;
+      }
+      renderAiUsageDualChart(chartEl, bucket.requests, bucket.tokens, minuteTokenLimit, {
+        labelA: 'Pedidos / min',
+        labelB: 'Tokens / min',
+        granularity: 'minute',
+        formatLabel: formatBankTimelineLabel,
+        refLabel: minuteTokenLimit ? 'Limite tokens/min' : undefined,
+        formatValueB: formatAiUsageTokenCount,
+      });
+    }
+
+    function extractAiQuotaLimit(aiStatus, aiUsage, providerFilter = '') {
+      const provider = String(providerFilter || aiUsageProviderFilter || '').trim().toLowerCase();
+      if (provider && aiStatus?.providers?.[provider]) {
+        const prov = aiStatus.providers[provider];
+        const models = Array.isArray(prov.models) ? prov.models : [];
+        let best = null;
+        for (const model of models) {
+          const limit = Number(model.requests_limit);
+          if (Number.isFinite(limit) && limit > 0 && (!best || limit > best)) best = Math.round(limit);
+        }
+        const summaryLimit = Number(prov.summary?.requests_limit || prov.summary?.tokens_day_limit);
+        if (Number.isFinite(summaryLimit) && summaryLimit > 0) best = Math.round(summaryLimit);
+        if (best) return best;
+      }
+      const envLimit = Number(aiUsage?.quotaLimit || aiUsage?.summary?.quotaLimit);
+      if (Number.isFinite(envLimit) && envLimit > 0) return Math.round(envLimit);
+      if (!aiStatus?.providers) return null;
+      let best = null;
+      for (const key of ['groq', 'openai', 'anthropic']) {
+        const provider = aiStatus.providers[key];
+        if (!provider) continue;
+        const models = Array.isArray(provider.models) ? provider.models : [];
+        for (const model of models) {
+          const limit = Number(model.requests_limit);
+          if (Number.isFinite(limit) && limit > 0 && (!best || limit > best)) best = Math.round(limit);
+        }
+        const summaryLimit = Number(provider.summary?.requests_limit || provider.summary?.tokens_day_limit);
+        if (Number.isFinite(summaryLimit) && summaryLimit > 0 && (!best || summaryLimit > best)) {
+          best = Math.round(summaryLimit);
+        }
+      }
+      return best;
+    }
+
+    function renderAiUsageSummary(aiUsage, aiStatus) {
+      const el = document.getElementById('aiUsageSummaryRow');
+      if (!el) return;
+      if (!aiUsage?.available) {
+        el.innerHTML = `<div class="stat stat-top-issue"><strong>—</strong><span>${esc(aiUsage?.error || 'Pedidos à IA indisponíveis (executa ai-usage-buckets.sql)')}</span></div>`;
+        return;
+      }
+      renderAiUsageFilterOptions(aiUsage);
+      const view = buildAiUsageView(aiUsage);
+      const s = view.summary || aiUsage.summary || {};
+      const quotaLimit = extractAiQuotaLimit(aiStatus, aiUsage, aiUsageProviderFilter);
+      const quotaPct = quotaLimit && s.quotaUsedToday != null
+        ? Math.min(100, Math.round((s.quotaUsedToday / quotaLimit) * 1000) / 10)
+        : null;
+      const successLabel = s.successRate != null ? `${s.successRate}%` : '—';
+      const filterNote = view.filterLabel ? ` · ${esc(view.filterLabel)}` : '';
+      el.innerHTML = `
+        <div class="stat stat-open"><strong>${s.last1h ?? 0}</strong><span>Última hora${filterNote}</span></div>
+        <div class="stat stat-total"><strong>${s.last24h ?? 0}</strong><span>Últimas 24 h</span></div>
+        <div class="stat stat-resolved"><strong>${s.last48h ?? 0}</strong><span>Últimas 48 h</span></div>
+        <div class="stat stat-cancelled"><strong>${s.errors ?? 0}</strong><span>Erros (48 h)</span></div>
+        <div class="stat stat-top-issue"><strong>${successLabel}</strong><span>Taxa de sucesso</span></div>
+        ${quotaLimit ? `<div class="stat stat-open"><strong>${s.quotaUsedToday ?? 0}/${quotaLimit}</strong><span>Quota hoje${quotaPct != null ? ` (${quotaPct}%)` : ''}</span></div>` : ''}
+      `;
+    }
+
+    function renderAiUsageChart(aiUsage, aiStatus) {
+      const chartEl = document.getElementById('chartAiUsage');
+      const titleEl = document.getElementById('chartAiUsageTitle');
+      const noteEl = document.getElementById('aiUsageNote');
+      if (!chartEl) return;
+
+      document.querySelectorAll('#aiUsageRangeFilters [data-ai-usage-range]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.aiUsageRange === aiUsageRange);
+      });
+
+      const meta = AI_USAGE_RANGES[aiUsageRange] || AI_USAGE_RANGES['24h'];
+      const view = buildAiUsageView(aiUsage);
+      const filterSuffix = view.filterLabel ? ` · ${view.filterLabel}` : '';
+      if (titleEl) titleEl.textContent = `Pedidos à IA e quota — ${meta.label}${filterSuffix}`;
+
+      if (!aiUsage?.available) {
+        chartEl.innerHTML = `<div class="chart-empty">${esc(aiUsage?.error || 'Executa supabase/ai-usage-buckets.sql no Supabase.')}</div>`;
+        if (noteEl) noteEl.textContent = 'Contadores agregados por POST /api/generate (buckets de 5 min, retenção 48 h).';
+        renderAiUsageMinuteChart(aiUsage, aiStatus);
+        return;
+      }
+
+      renderAiUsageFilterOptions(aiUsage);
+      const bucket = view.timeline?.[aiUsageRange];
+      const hasDimensionalData = Array.isArray(aiUsage.dimensionRows) && aiUsage.dimensionRows.length > 0;
+      const isEmpty = !bucket
+        || ((bucket.totalRequests || 0) === 0 && (bucket.totalErrors || 0) === 0);
+      if (isEmpty) {
+        chartEl.innerHTML = '<div class="chart-empty">Ainda sem pedidos registados — gera perguntas com IA para popular o gráfico.</div>';
+        if (noteEl) {
+          noteEl.textContent = hasDimensionalData && (aiUsageProviderFilter || aiUsageModelFilter)
+            ? 'Sem pedidos para este fornecedor/modelo no período.'
+            : 'Buckets de 5 minutos (Lisboa). Os dados aparecem após o primeiro pedido a /api/generate.';
+        }
+        renderAiUsageMinuteChart(aiUsage, aiStatus);
+        return;
+      }
+
+      const quotaLimit = extractAiQuotaLimit(aiStatus, aiUsage, aiUsageProviderFilter);
+      const periodRequests = bucket.totalRequests || 0;
+      const periodErrors = bucket.totalErrors || 0;
+      if (noteEl) {
+        const quotaNote = quotaLimit
+          ? ` Limite diário de referência: <strong>${quotaLimit}</strong> pedidos.`
+          : ' Define AI_DAILY_REQUEST_QUOTA no Netlify ou consulta /api/ai-status para linha de quota.';
+        const filterNote = view.filterLabel ? ` Filtro: <strong>${esc(view.filterLabel)}</strong>.` : '';
+        noteEl.innerHTML = `No período: <strong>${periodRequests}</strong> pedido(s) · <strong>${periodErrors}</strong> erro(s).${filterNote}${quotaNote}`;
+      }
+
+      renderAiUsageDualChart(chartEl, bucket.requests, bucket.cumulative, quotaLimit, {
+        labelA: 'Pedidos / 5 min',
+        labelB: 'Quota acumulada (dia)',
+        granularity: meta.granularity,
+        formatLabel: formatBankTimelineLabel,
+      });
+      renderAiUsageMinuteChart(aiUsage, aiStatus);
+    }
+
+    function niceAxisMax(value, min = 5) {
+      const v = Math.max(Number(value) || 0, 0);
+      if (v <= 0) return min;
+      const magnitude = 10 ** Math.floor(Math.log10(v));
+      const rounded = Math.ceil(v / magnitude) * magnitude;
+      return Math.max(rounded, min);
+    }
+
+    function renderAiUsageDualChart(el, seriesA, seriesB, quotaLimit, options = {}) {
+      const labelA = options.labelA || 'Pedidos / 5 min';
+      const labelB = options.labelB || 'Quota acumulada (dia)';
+      const granularity = options.granularity || 'minute';
+      const formatLabel = options.formatLabel || formatBankTimelineLabel;
+      const formatValueB = typeof options.formatValueB === 'function' ? options.formatValueB : (v) => String(v);
+      const refLabel = options.refLabel || 'Quota máx.';
+      const colorA = '#3b82f6';
+      const colorB = '#10b981';
+      const refColor = '#ef4444';
+
+      const labels = [...new Set([
+        ...(seriesA || []).map((p) => p.t),
+        ...(seriesB || []).map((p) => p.t),
+      ])].sort();
+      if (!labels.length) {
+        el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
+        return;
+      }
+
+      const mapA = Object.fromEntries((seriesA || []).map((p) => [p.t, p.v]));
+      const mapB = Object.fromEntries((seriesB || []).map((p) => [p.t, p.v]));
+      const maxA = niceAxisMax(Math.max(...labels.map((t) => mapA[t] || 0), 0), 5);
+      const maxB = niceAxisMax(
+        Math.max(
+          ...labels.map((t) => mapB[t] || 0),
+          Number.isFinite(Number(quotaLimit)) ? Number(quotaLimit) : 0,
+          1,
+        ),
+        Number.isFinite(Number(quotaLimit)) ? Number(quotaLimit) : 10,
+      );
+
+      const w = 640;
+      const h = 200;
+      const padLeft = 40;
+      const padRight = 46;
+      const padY = 22;
+      const innerW = w - padLeft - padRight;
+      const innerH = h - padY * 2;
+      const xAt = (i) => padLeft + (i / Math.max(labels.length - 1, 1)) * innerW;
+      const yAtA = (v) => padY + innerH - (v / maxA) * innerH;
+      const yAtB = (v) => padY + innerH - (v / maxB) * innerH;
+
+      const pointsA = labels.map((t, i) => ({
+        t, i, x: xAt(i), y: yAtA(mapA[t] || 0), v: mapA[t] || 0,
+      }));
+      const pointsB = labels.map((t, i) => ({
+        t, i, x: xAt(i), y: yAtB(mapB[t] || 0), v: mapB[t] || 0,
+      }));
+      const lineA = pointsA.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+      const lineB = pointsB.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+      const gridLines = [0, 0.5, 1].map((frac) => {
+        const y = padY + innerH * (1 - frac);
+        const valA = Math.round(maxA * frac);
+        const valB = formatValueB(Math.round(maxB * frac));
+        return `
+          <line class="line-grid" x1="${padLeft}" y1="${y}" x2="${w - padRight}" y2="${y}" />
+          <text class="line-axis-label" x="${padLeft - 6}" y="${y + 4}" text-anchor="end">${valA}</text>
+          <text class="line-axis-label line-axis-label-right" x="${w - padRight + 6}" y="${y + 4}" text-anchor="start">${esc(valB)}</text>
+        `;
+      }).join('');
+
+      const refY = Number.isFinite(Number(quotaLimit)) ? yAtB(Number(quotaLimit)) : null;
+      const refLineSvg = refY != null
+        ? `<line x1="${padLeft}" y1="${refY.toFixed(1)}" x2="${(w - padRight).toFixed(1)}" y2="${refY.toFixed(1)}" stroke="${refColor}" stroke-dasharray="6 4" stroke-width="1.5" opacity="0.85" />
+           <text class="line-label" x="${w - padRight - 4}" y="${Math.max(padY + 12, refY - 6)}" text-anchor="end" fill="${refColor}">${esc(refLabel)} (${esc(formatValueB(quotaLimit))})</text>`
+        : '';
+
+      const labelStep = Math.max(1, Math.ceil(labels.length / 8));
+      const xLabels = labels.map((t, i) => {
+        if (i % labelStep !== 0 && i !== labels.length - 1) return '';
+        return `<text class="line-label" x="${xAt(i).toFixed(1)}" y="${h - 6}" text-anchor="middle">${esc(formatLabel(t, granularity))}</text>`;
+      }).join('');
+
+      const hitBands = labels.map((t, i) => {
+        const cx = xAt(i);
+        const bandW = labels.length <= 1 ? innerW : innerW / (labels.length - 1);
+        const x = Math.max(padLeft, cx - bandW / 2);
+        const width = Math.min(bandW, w - padRight - x);
+        return `<rect class="chart-hit" data-index="${i}" x="${x.toFixed(1)}" y="${padY}" width="${width.toFixed(1)}" height="${innerH}" fill="transparent" />`;
+      }).join('');
+
+      el.innerHTML = `
+        <div class="chart-interactive ai-usage-chart">
+          <div class="chart-legend ai-usage-legend">
+            <span><i style="background:${colorA}"></i>${esc(labelA)} (esq.)</span>
+            <span><i style="background:${colorB}"></i>${esc(labelB)} (dir.)</span>
+            ${quotaLimit ? `<span><i style="background:${refColor};opacity:0.7"></i>${esc(refLabel)}</span>` : ''}
+          </div>
+          <div class="chart-tooltip" hidden></div>
+          <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Pedidos à IA e quota">
+            ${gridLines}
+            <line class="chart-focus-line" hidden x1="0" y1="0" x2="0" y2="0" />
+            ${refLineSvg}
+            <polyline class="line-path" points="${lineB}" style="stroke:${colorB}" />
+            <polyline class="line-path" points="${lineA}" style="stroke:${colorA}" />
+            ${pointsB.map((p) => `<circle class="line-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${colorB}" />`).join('')}
+            ${pointsA.map((p) => `<circle class="line-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${colorA}" />`).join('')}
+            ${xLabels}
+            ${hitBands}
+          </svg>
+        </div>
+      `;
+
+      const container = el.querySelector('.chart-interactive');
+      const tooltip = container?.querySelector('.chart-tooltip');
+      const focusLine = container?.querySelector('.chart-focus-line');
+      const svg = container?.querySelector('svg');
+      if (!tooltip || !svg) return;
+
+      function hideTooltip() {
+        tooltip.hidden = true;
+        if (focusLine) focusLine.setAttribute('hidden', '');
+      }
+
+      function showTooltip(i, clientX, clientY) {
+        const t = labels[Math.max(0, Math.min(i, labels.length - 1))];
+        const x = xAt(Math.max(0, Math.min(i, labels.length - 1)));
+        if (focusLine) {
+          focusLine.setAttribute('x1', x);
+          focusLine.setAttribute('x2', x);
+          focusLine.setAttribute('y1', padY);
+          focusLine.setAttribute('y2', padY + innerH);
+          focusLine.removeAttribute('hidden');
+        }
+        tooltip.hidden = false;
+        const quotaPct = quotaLimit ? Math.round(((mapB[t] || 0) / quotaLimit) * 1000) / 10 : null;
+        tooltip.innerHTML = `
+          <div><strong>${esc(formatLabel(t, granularity))}</strong></div>
+          <div><span style="color:${colorA}">●</span> ${esc(labelA)}: <strong>${mapA[t] || 0}</strong></div>
+          <div><span style="color:${colorB}">●</span> ${esc(labelB)}: <strong>${esc(formatValueB(mapB[t] || 0))}</strong>${quotaPct != null ? ` (${quotaPct}%)` : ''}</div>
+        `;
+        const rect = container.getBoundingClientRect();
+        tooltip.style.left = `${Math.min(Math.max(clientX - rect.left + 12, 8), Math.max(8, rect.width - 190))}px`;
+        tooltip.style.top = `${Math.max(clientY - rect.top - 72, 8)}px`;
+      }
+
+      svg.addEventListener('mousemove', (e) => {
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const ctm = svg.getScreenCTM();
+        if (!ctm) return;
+        const svgPt = pt.matrixTransform(ctm.inverse());
+        const relX = svgPt.x - padLeft;
+        if (relX < 0 || relX > innerW) {
+          hideTooltip();
+          return;
+        }
+        const idx = labels.length <= 1 ? 0 : Math.round((relX / innerW) * (labels.length - 1));
+        showTooltip(idx, e.clientX, e.clientY);
+      });
+      svg.addEventListener('mouseleave', hideTooltip);
     }
 
     function renderGenTelemetryTimeline(summary) {
@@ -5243,7 +6087,7 @@
       URL.revokeObjectURL(url);
     }
 
-    function renderGenTelemetry(summary, overrides = lastTelemetryOverrides) {
+    function renderGenTelemetry(summary, overrides = lastTelemetryOverrides, aiUsage = lastTelemetryPayload?.aiUsage, aiStatus = lastAiStatusPayload) {
       const statsEl = document.getElementById('genTelemetryStats');
       const issueEl = document.getElementById('chartGenIssueCodes');
       const detailEl = document.getElementById('chartGenIssueDetail');
@@ -5256,6 +6100,9 @@
       const modelEl = document.getElementById('chartGenModels');
       const attemptEl = document.getElementById('chartGenAttempts');
       if (!statsEl || !issueEl || !catEl || !fmtEl || !modeEl) return;
+
+      renderAiUsageSummary(aiUsage, aiStatus);
+      renderAiUsageChart(aiUsage, aiStatus);
 
       if (!summary?.total) {
         statsEl.innerHTML = '<div class="stat stat-total"><strong>0</strong><span>Sem eventos ainda</span></div>';
@@ -5286,6 +6133,7 @@
       const cat20 = summary.cat20Delivery || {};
       const cat20NonAiPct = cat20.accepted ? Math.round((cat20.nonAiShare || 0) * 100) : null;
       const techErrors = (summary.parseErrors || 0) + (summary.apiErrors || 0);
+      const validatedInBank = Number(summary.validatedInBank) || 0;
       const avgAttempts = summary.aiAvgAttempts != null
         ? summary.aiAvgAttempts.toFixed(1)
         : '—';
@@ -5303,6 +6151,7 @@
         <div class="stat stat-total"><strong>${summary.total}</strong><span>Tentativas</span></div>
         <div class="stat stat-resolved"><strong>${summary.accepted}</strong><span>Aceites (${acceptPct}%)</span></div>
         <div class="stat stat-open"><strong>${summary.rejected}</strong><span>Rejeit. validação</span></div>
+        <div class="stat stat-resolved"><strong>${validatedInBank}</strong><span>Validadas no banco</span></div>
         <div class="stat stat-cancelled"><strong>${techErrors}</strong><span>Erros parse/API</span></div>
         <div class="stat stat-top-issue"><strong>${rejectPct}%</strong><span>Taxa rejeição</span></div>
         <div class="stat stat-repository"><strong>${bankPct}%</strong><span>Banco Supabase</span></div>
@@ -5419,10 +6268,14 @@
         statusEl.className = 'status';
       }
       try {
-        const data = await api(`/api/gen-telemetry-admin?${telemetryStatsQuery()}`);
+        const [data, aiStatus] = await Promise.all([
+          api(`/api/gen-telemetry-admin?${telemetryStatsQuery()}`),
+          api('/api/ai-status').catch(() => null),
+        ]);
         lastTelemetryPayload = data;
+        lastAiStatusPayload = aiStatus;
         lastTelemetryOverrides = data.overrides || [];
-        renderGenTelemetry(data.stats || {}, lastTelemetryOverrides);
+        renderGenTelemetry(data.stats || {}, lastTelemetryOverrides, data.aiUsage, aiStatus);
         updateTelemetryModeFilterUi();
         const updatedEl = document.getElementById('telemetryLastUpdated');
         const modeLabel = telemetryGameModeFilter
@@ -6070,11 +6923,12 @@
     function readPendingReviewForm(itemEl) {
       if (!itemEl) return null;
       const optionsRaw = itemEl.querySelector('.pending-review-options')?.value || '';
+      const classifier = readValidationClassifier(itemEl, 'pending');
       return {
         question: itemEl.querySelector('.pending-review-question')?.value?.trim() || '',
         answer: itemEl.querySelector('.pending-review-answer')?.value?.trim() || '',
         options: optionsRaw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
-        difficulty: Number(itemEl.querySelector('.pending-review-difficulty')?.value),
+        ...classifier,
       };
     }
 
@@ -6128,15 +6982,14 @@
               </div>
               <aside class="pending-review-aside">
                 <div class="pending-diff-panel">
-                  <h4>Dificuldade no banco</h4>
+                  <h4>Classificação e dificuldade</h4>
                   ${renderPendingReviewDiffCompare(row.requestedDifficulty, row.estimatedDifficulty)}
-                  ${renderDifficultyScaleHint(row.ageBand || '15+')}
-                  ${renderDifficultySelect(
-                    'pending-review-difficulty',
-                    row.ageBand || '15+',
-                    row.estimatedDifficulty ?? row.requestedDifficulty,
-                    'aria-label="Dificuldade no banco"',
-                  )}
+                  ${renderValidationClassifierEditor('pending', row.id, {
+                    categoryNs: row.categoryN ? [row.categoryN] : [],
+                    ageBands: row.ageBand ? [row.ageBand] : [],
+                    requestedDifficulty: row.requestedDifficulty,
+                    estimatedDifficulty: row.estimatedDifficulty,
+                  })}
                 </div>
                 <div class="pending-review-actions">
                   <button type="button" class="primary pending-review-accept-btn" data-pending-id="${esc(row.id)}">✓ Aceitar no banco</button>
@@ -6167,7 +7020,10 @@
         });
         await loadPendingReviewQueue({ quiet: true });
         await loadBankDashboard({ quiet: true });
-        const msg = `Importação concluída: ${data.inserted || 0} nova(s), ${data.updated || 0} actualizada(s), ${data.skipped || 0} ignorada(s) (${data.scanned || 0} analisadas).`;
+        const reviewedNote = data.alreadyReviewed
+          ? `, ${data.alreadyReviewed} já revista(s)`
+          : '';
+        const msg = `Importação concluída: ${data.inserted || 0} nova(s), ${data.updated || 0} actualizada(s), ${data.skipped || 0} ignorada(s)${reviewedNote} (${data.scanned || 0} analisadas).`;
         if (statusEl) {
           statusEl.textContent = msg;
           statusEl.className = (data.inserted || data.updated) ? 'status ok' : 'status';
@@ -6223,6 +7079,12 @@
       if (!draft?.question || !draft?.answer) {
         throw new Error('Preenche pergunta e resposta correcta.');
       }
+      if (!draft.categoryNs?.length) {
+        throw new Error('Selecciona pelo menos uma categoria.');
+      }
+      if (!draft.ageBands?.length) {
+        throw new Error('Selecciona pelo menos uma faixa etária.');
+      }
       const ok = await confirmAction(
         'Aceitar esta pergunta e guardá-la no banco Supabase?',
         { okLabel: 'Aceitar no banco' },
@@ -6239,12 +7101,15 @@
             options: draft.options,
             format: draft.options.length >= 2 ? 'ESCOLHA_MULTIPLA' : undefined,
             difficulty: draft.difficulty,
+            difficultyByAgeBand: draft.difficultyByAgeBand,
           },
           meta: {
-            categoryN: row?.categoryN,
-            ageBand: row?.ageBand,
-            categoryNs: row?.categoryN ? [row.categoryN] : [],
-            ageBands: row?.ageBand ? [row.ageBand] : [],
+            categoryN: draft.categoryNs[0],
+            ageBand: draft.ageBands[0],
+            categoryNs: draft.categoryNs,
+            ageBands: draft.ageBands,
+            difficulty: draft.difficulty,
+            difficultyByAgeBand: draft.difficultyByAgeBand,
             knowledgeId: row?.knowledgeId || null,
             source: 'pending-review',
           },
@@ -9318,6 +10183,20 @@
         reloadKnowledge: true,
       });
     });
+    document.getElementById('bankPendingReviewSection')?.addEventListener('change', (e) => {
+      const ageCheck = e.target.closest('.pending-validation-age-check');
+      if (!ageCheck) return;
+      const row = ageCheck.closest('.validation-age-diff-row');
+      const sel = row?.querySelector('select');
+      if (sel) sel.disabled = !ageCheck.checked;
+    });
+    document.getElementById('chartGenIssueDetail')?.addEventListener('change', (e) => {
+      const ageCheck = e.target.closest('.telemetry-validation-age-check');
+      if (!ageCheck) return;
+      const row = ageCheck.closest('.validation-age-diff-row');
+      const sel = row?.querySelector('select');
+      if (sel) sel.disabled = !ageCheck.checked;
+    });
     document.getElementById('bankPendingImportBtn')?.addEventListener('click', () => importPendingReviewFromTelemetry());
     document.getElementById('bankPendingRefreshBtn')?.addEventListener('click', () => loadPendingReviewQueue());
     document.getElementById('bankPendingList')?.addEventListener('click', async (e) => {
@@ -9344,6 +10223,9 @@
         }
         await loadPendingReviewQueue({ quiet: true });
         await loadBankDashboard({ quiet: true });
+        if (activeAdminTab === 'telemetry') {
+          await loadTelemetryDashboard({ quiet: true });
+        }
       } catch (err) {
         if (statusEl) {
           statusEl.textContent = err.message || 'Erro na fila de revisão.';
@@ -9578,11 +10460,17 @@
           }
           if (statusEl) {
             const action = data.action === 'inserted' ? 'inserida' : 'actualizada';
-            statusEl.textContent = `Pergunta ${action} no banco (${data.questionHash || 'ok'}).`;
+            const telemetryNote = data.telemetryValidated
+              ? ` · ${data.telemetryValidated} evento(s) marcado(s) na telemetria`
+              : '';
+            statusEl.textContent = `Pergunta ${action} no banco (${data.questionHash || 'ok'})${telemetryNote}.`;
             statusEl.className = 'status ok';
           }
           await loadPendingReviewQueue({ quiet: true });
           await loadBankDashboard({ quiet: true });
+          if (activeAdminTab === 'telemetry') {
+            await loadTelemetryDashboard({ quiet: true });
+          }
         } catch (err) {
           if (statusEl) {
             statusEl.textContent = err.message || 'Erro ao guardar no banco.';
@@ -9660,6 +10548,29 @@
       telemetryTimelineChartType = btn.dataset.telemetryChartType;
       try { localStorage.setItem(TELEMETRY_TIMELINE_CHART_STORAGE_KEY, telemetryTimelineChartType); } catch { /* ignore */ }
       if (lastTelemetryPayload?.stats) renderGenTelemetryTimeline(lastTelemetryPayload.stats);
+    });
+    document.getElementById('aiUsageRangeFilters')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-ai-usage-range]');
+      if (!btn || !AI_USAGE_RANGES[btn.dataset.aiUsageRange]) return;
+      aiUsageRange = btn.dataset.aiUsageRange;
+      try { localStorage.setItem(AI_USAGE_RANGE_STORAGE_KEY, aiUsageRange); } catch { /* ignore */ }
+      renderAiUsageChart(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
+    });
+    document.getElementById('aiUsageProviderFilter')?.addEventListener('change', (e) => {
+      aiUsageProviderFilter = e.target.value || '';
+      aiUsageModelFilter = '';
+      try {
+        localStorage.setItem(AI_USAGE_PROVIDER_STORAGE_KEY, aiUsageProviderFilter);
+        localStorage.setItem(AI_USAGE_MODEL_STORAGE_KEY, '');
+      } catch { /* ignore */ }
+      renderAiUsageSummary(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
+      renderAiUsageChart(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
+    });
+    document.getElementById('aiUsageModelFilter')?.addEventListener('change', (e) => {
+      aiUsageModelFilter = e.target.value || '';
+      try { localStorage.setItem(AI_USAGE_MODEL_STORAGE_KEY, aiUsageModelFilter); } catch { /* ignore */ }
+      renderAiUsageSummary(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
+      renderAiUsageChart(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
     });
     document.getElementById('clearGenTelemetryBtn')?.addEventListener('click', async () => {
       if (!confirm('Limpar toda a telemetria de geração IA no servidor?')) return;

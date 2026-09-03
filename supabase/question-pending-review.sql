@@ -74,6 +74,14 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'reason', 'reported');
   END IF;
 
+  IF EXISTS (
+    SELECT 1 FROM public.question_pending_review
+    WHERE question_hash = p_question_hash
+      AND status IN ('accepted', 'dismissed')
+  ) THEN
+    RETURN jsonb_build_object('ok', false, 'reason', 'already_reviewed');
+  END IF;
+
   SELECT id INTO v_id
   FROM public.question_pending_review
   WHERE question_hash = p_question_hash AND status = 'pending';

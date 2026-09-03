@@ -931,6 +931,12 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   })));
   assert('104c. telemetria recentOccurrences', recentSummary.byIssueDetail.AGE_TOO_HARD?.recentOccurrences?.length === 10
     && recentSummary.byIssueDetail.AGE_TOO_HARD.recentOccurrences[0].message === 'msg 11');
+  const validatedSummary = computeSummaryFromItems([
+    { outcome: 'rejected', issueCodes: ['DIFFICULTY_HARDER_THAN_REQUESTED'], issueMessages: ['dif'], bankValidatedAt: '2026-01-01T00:00:00Z' },
+    { outcome: 'rejected', issueCodes: ['DIFFICULTY_HARDER_THAN_REQUESTED'], issueMessages: ['dif2'] },
+  ]);
+  assert('104d. telemetria validatedInBank', validatedSummary.validatedInBank === 1
+    && validatedSummary.byIssueDetail.DIFFICULTY_HARDER_THAN_REQUESTED?.validatedCount === 1);
 }
 
 // 105–110. Fase 4 — pushIssue em ADIVINHA, PT-PT e idade

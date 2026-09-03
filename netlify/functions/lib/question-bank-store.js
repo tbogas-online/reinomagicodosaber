@@ -143,37 +143,51 @@ async function supabaseRequest(path, options = {}) {
 }
 
 const BANK_SELECT_CORE = 'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at';
-const BANK_SELECT_BASE = `${BANK_SELECT_CORE},difficulty`;
+const BANK_SELECT_BASE = `${BANK_SELECT_CORE},difficulty,difficulty_by_age_band`;
 const BANK_SELECT_FULL = `${BANK_SELECT_BASE},category_ns,age_bands,knowledge_id`;
 
 let bankTaxonomyColumnsAvailable = null;
 let bankDifficultyColumnAvailable = null;
+let bankDifficultyByAgeColumnAvailable = null;
 
 async function queryBankRows(buildParams) {
-  const run = async (useTaxonomy, useDifficulty) => {
-    const select = useTaxonomy
-      ? (useDifficulty ? BANK_SELECT_FULL : `${BANK_SELECT_CORE},category_ns,age_bands,knowledge_id`)
-      : (useDifficulty ? BANK_SELECT_BASE : BANK_SELECT_CORE);
+  const buildSelect = (useTaxonomy, useDifficulty, useDifficultyByAge) => {
+    let select = BANK_SELECT_CORE;
+    if (useDifficulty) select += ',difficulty';
+    if (useDifficultyByAge) select += ',difficulty_by_age_band';
+    if (useTaxonomy) select += ',category_ns,age_bands,knowledge_id';
+    return select;
+  };
+
+  const run = async (useTaxonomy, useDifficulty, useDifficultyByAge) => {
     const params = new URLSearchParams();
-    buildParams(params, select, useTaxonomy);
+    buildParams(params, buildSelect(useTaxonomy, useDifficulty, useDifficultyByAge), useTaxonomy);
     return supabaseRequest(`/question_bank?${params.toString()}`);
   };
 
   const tryQuery = async () => {
     if (bankTaxonomyColumnsAvailable !== false) {
       try {
-        const rows = await run(true, bankDifficultyColumnAvailable !== false);
+        const rows = await run(
+          true,
+          bankDifficultyColumnAvailable !== false,
+          bankDifficultyByAgeColumnAvailable !== false,
+        );
         bankTaxonomyColumnsAvailable = true;
         if (bankDifficultyColumnAvailable !== false) bankDifficultyColumnAvailable = true;
+        if (bankDifficultyByAgeColumnAvailable !== false) bankDifficultyByAgeColumnAvailable = true;
         return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: true };
       } catch (err) {
         const msg = String(err?.message || err);
+        if (bankDifficultyByAgeColumnAvailable !== false
+          && (msg.includes('difficulty_by_age_band') || msg.includes('42703'))) {
+          bankDifficultyByAgeColumnAvailable = false;
+          return tryQuery();
+        }
         if (bankDifficultyColumnAvailable !== false
           && (msg.includes('difficulty') || msg.includes('42703'))) {
           bankDifficultyColumnAvailable = false;
-          const rows = await run(true, false);
-          bankTaxonomyColumnsAvailable = true;
-          return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: true };
+          return tryQuery();
         }
         if (msg.includes('category_ns') || msg.includes('age_bands') || msg.includes('42703')) {
           bankTaxonomyColumnsAvailable = false;
@@ -184,16 +198,25 @@ async function queryBankRows(buildParams) {
     }
 
     try {
-      const rows = await run(false, bankDifficultyColumnAvailable !== false);
+      const rows = await run(
+        false,
+        bankDifficultyColumnAvailable !== false,
+        bankDifficultyByAgeColumnAvailable !== false,
+      );
       if (bankDifficultyColumnAvailable !== false) bankDifficultyColumnAvailable = true;
+      if (bankDifficultyByAgeColumnAvailable !== false) bankDifficultyByAgeColumnAvailable = true;
       return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: false };
     } catch (err) {
       const msg = String(err?.message || err);
+      if (bankDifficultyByAgeColumnAvailable !== false
+        && (msg.includes('difficulty_by_age_band') || msg.includes('42703'))) {
+        bankDifficultyByAgeColumnAvailable = false;
+        return tryQuery();
+      }
       if (bankDifficultyColumnAvailable !== false
         && (msg.includes('difficulty') || msg.includes('42703'))) {
         bankDifficultyColumnAvailable = false;
-        const rows = await run(false, false);
-        return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: false };
+        return tryQuery();
       }
       throw err;
     }
@@ -956,8 +979,33 @@ function normalizeBankDifficulty(value) {
   return rounded;
 }
 
+function normalizeDifficultyByAgeBand(raw, ageBands = []) {
+  if (!raw || typeof raw !== 'object') return null;
+  const normalized = {};
+  const allowedAges = ageBands.length ? ageBands : BANK_AGE_BANDS;
+  for (const age of allowedAges) {
+    if (!BANK_AGE_BANDS.includes(age)) continue;
+    const difficulty = normalizeBankDifficulty(raw[age]);
+    if (difficulty) normalized[age] = difficulty;
+  }
+  return Object.keys(normalized).length ? normalized : null;
+}
+
 function applyDifficultyToPatch(patch, meta) {
-  if (!patch || meta?.difficulty == null || meta?.difficulty === '') return;
+  if (!patch) return;
+  const ageBands = normalizeAgeBands(meta?.ageBands, meta?.ageBand, null);
+  const byAge = normalizeDifficultyByAgeBand(meta?.difficultyByAgeBand, ageBands);
+  if (byAge) {
+    patch.difficulty_by_age_band = byAge;
+    const primaryAge = String(meta?.ageBand || ageBands[0] || '').trim();
+    if (primaryAge && byAge[primaryAge]) {
+      patch.difficulty = byAge[primaryAge];
+    } else {
+      patch.difficulty = Object.values(byAge)[0];
+    }
+    return;
+  }
+  if (meta?.difficulty == null || meta?.difficulty === '') return;
   const difficulty = normalizeBankDifficulty(meta.difficulty);
   if (difficulty) patch.difficulty = difficulty;
 }
@@ -1026,7 +1074,11 @@ async function applyContentCorrectionToBankRow(row, correction, oldQuestion, old
   };
 }
 
-async function finishReportCorrection(result, { question = '', answer = '' } = {}) {
+async function finishReportCorrection(result, {
+  question = '',
+  answer = '',
+  telemetryEventId = null,
+} = {}) {
   if (!result?.ok) return result;
   try {
     const { resolvePendingReviewOnBankSave } = require('./question-pending-review-store');
@@ -1039,6 +1091,20 @@ async function finishReportCorrection(result, { question = '', answer = '' } = {
     });
   } catch (err) {
     console.warn('[question-bank-store] resolve pending review:', err?.message || err);
+  }
+  try {
+    const { markTelemetryBankValidated } = require('./gen-telemetry-store');
+    const telemetry = await markTelemetryBankValidated({
+      eventId: telemetryEventId,
+      question,
+      answer,
+      questionHash: result.questionHash,
+    });
+    if (telemetry?.marked) {
+      result.telemetryValidated = telemetry.marked;
+    }
+  } catch (err) {
+    console.warn('[question-bank-store] mark telemetry validated:', err?.message || err);
   }
   return result;
 }
@@ -1110,6 +1176,7 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
     }, {
       question: finalQuestion || oldQuestion,
       answer: finalAnswer || oldAnswer,
+      telemetryEventId: meta.telemetryEventId || null,
     });
   }
 
@@ -1168,7 +1235,11 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
     duplicateCount: 0,
     questionHash: newHash,
     previousHash: lookupHash !== newHash ? lookupHash : null,
-  }, { question, answer });
+  }, {
+    question,
+    answer,
+    telemetryEventId: meta.telemetryEventId || null,
+  });
 }
 
 module.exports = {

@@ -1,5 +1,6 @@
 const { getSupabaseAdmin } = require('./rooms-store');
 const { applyReportCorrectionToBank, hashQuestionKey } = require('./question-bank-store');
+const { normalizeCategoryNs, normalizeAgeBands } = require('./question-taxonomy');
 
 const TABLE = 'question_pending_review';
 const TELEMETRY_TABLE = 'gen_telemetry_events';
@@ -62,6 +63,18 @@ async function queuePendingReviewEntry(meta = {}) {
   });
 }
 
+async function fetchReviewedQuestionHashes() {
+  const rows = await supabaseRequest(
+    `/${TABLE}?status=in.(accepted,dismissed)&select=question_hash&limit=5000`,
+    { prefer: 'return=representation' },
+  ).catch(() => []);
+  return new Set(
+    (Array.isArray(rows) ? rows : [])
+      .map((row) => String(row.question_hash || '').trim())
+      .filter(Boolean),
+  );
+}
+
 async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
   const capped = Math.min(Math.max(Number(limit) || 300, 1), 1000);
   const dayCount = Math.min(Math.max(Number(days) || 90, 1), 365);
@@ -77,12 +90,16 @@ async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
     limit: String(capped),
   });
 
-  const rows = await supabaseRequest(`/${TELEMETRY_TABLE}?${params.toString()}`);
+  const [rows, reviewedHashes] = await Promise.all([
+    supabaseRequest(`/${TELEMETRY_TABLE}?${params.toString()}`),
+    fetchReviewedQuestionHashes(),
+  ]);
   const list = Array.isArray(rows) ? rows : [];
 
   let inserted = 0;
   let updated = 0;
   let skipped = 0;
+  let alreadyReviewed = 0;
   const seen = new Set();
 
   for (const row of list) {
@@ -98,6 +115,10 @@ async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
       continue;
     }
     const hash = hashQuestionKey(`${question}|${answer}`);
+    if (reviewedHashes.has(hash)) {
+      alreadyReviewed += 1;
+      continue;
+    }
     if (seen.has(hash)) {
       skipped += 1;
       continue;
@@ -131,6 +152,7 @@ async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
     const reason = String(result?.reason || '');
     if (reason === 'inserted') inserted += 1;
     else if (reason === 'updated') updated += 1;
+    else if (reason === 'already_reviewed') alreadyReviewed += 1;
     else skipped += 1;
   }
 
@@ -139,6 +161,7 @@ async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
     inserted,
     updated,
     skipped,
+    alreadyReviewed,
     candidates: seen.size,
   };
 }
@@ -375,9 +398,12 @@ async function acceptPendingReview(id, correction = {}, meta = {}) {
   const difficulty = correction.difficulty != null
     ? correction.difficulty
     : (row.estimatedDifficulty ?? row.requestedDifficulty);
+  const difficultyByAgeBand = correction.difficultyByAgeBand || meta.difficultyByAgeBand || null;
 
   const categoryN = Number(meta.categoryN ?? row.categoryN);
   const ageBand = String(meta.ageBand || row.ageBand || '').trim();
+  const categoryNs = normalizeCategoryNs(meta.categoryNs, meta.categoryN ?? row.categoryN, null);
+  const ageBands = normalizeAgeBands(meta.ageBands, meta.ageBand ?? row.ageBand, null);
 
   const bankResult = await applyReportCorrectionToBank(row.questionHash, {
     question,
@@ -385,11 +411,12 @@ async function acceptPendingReview(id, correction = {}, meta = {}) {
     options,
     format: correction.format || row.formatId || (options?.length >= 2 ? 'ESCOLHA_MULTIPLA' : undefined),
   }, {
-    categoryNs: meta.categoryNs || (categoryN ? [categoryN] : []),
-    ageBands: meta.ageBands || (ageBand ? [ageBand] : []),
+    categoryNs: categoryNs.length ? categoryNs : (categoryN ? [categoryN] : []),
+    ageBands: ageBands.length ? ageBands : (ageBand ? [ageBand] : []),
     categoryN,
     ageBand,
     difficulty,
+    difficultyByAgeBand,
     knowledgeId: meta.knowledgeId || row.knowledgeId || null,
     source: meta.source || 'pending-review',
   });

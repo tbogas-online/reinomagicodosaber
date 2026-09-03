@@ -27,6 +27,35 @@ function clipIssueMessage(value) {
   return String(value || '').trim().slice(0, MAX_ISSUE_MESSAGE_LEN);
 }
 
+function stripTags(str) {
+  return String(str || '').replace(/<[^>]*>/g, '').trim();
+}
+
+function hashQuestionKey(text) {
+  const s = String(text || '');
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
+
+function normalizeTelemetryContent(question, answer) {
+  const q = stripTags(question);
+  const a = stripTags(answer);
+  if (!q || !a) return null;
+  return { q, a, hash: hashQuestionKey(`${q}|${a}`) };
+}
+
+function telemetryContentMatches(row, content) {
+  if (!content || !row) return false;
+  const rq = stripTags(row.question_text);
+  const ra = stripTags(row.answer_text);
+  if (!rq || !ra) return false;
+  return rq === content.q && ra === content.a;
+}
+
 function normalizeQuestionSnapshot(raw) {
   const src = raw?.questionSnapshot && typeof raw.questionSnapshot === 'object'
     ? raw.questionSnapshot
@@ -69,6 +98,7 @@ function accumulateIssueDetail(summary, ev) {
     if (!summary.byIssueDetail[code]) {
       summary.byIssueDetail[code] = {
         count: 0,
+        validatedCount: 0,
         sampleMessage: msg,
         lastOccurrence: null,
         recentOccurrences: [],
@@ -76,6 +106,9 @@ function accumulateIssueDetail(summary, ev) {
     }
     const entry = summary.byIssueDetail[code];
     entry.count += 1;
+    if (ev.bankValidatedAt) {
+      entry.validatedCount = (entry.validatedCount || 0) + 1;
+    }
     if (msg && !entry.sampleMessage) {
       entry.sampleMessage = msg;
     }
@@ -95,6 +128,8 @@ function accumulateIssueDetail(summary, ev) {
       difficulty: ev.difficulty != null ? Number(ev.difficulty) : null,
       attempt: ev.attempt != null ? Number(ev.attempt) : null,
       questionSnapshot: ev.questionSnapshot || null,
+      bankValidatedAt: ev.bankValidatedAt || null,
+      bankQuestionHash: ev.bankQuestionHash || null,
     };
     pushIssueOccurrence(entry, occurrence);
   }
@@ -244,6 +279,8 @@ function rowToItem(row) {
     difficulty: row.difficulty != null ? Number(row.difficulty) : null,
     attempt: row.attempt != null ? Number(row.attempt) : null,
     questionSnapshot,
+    bankValidatedAt: row.bank_validated_at || null,
+    bankQuestionHash: row.bank_question_hash || null,
   };
 }
 
@@ -355,6 +392,7 @@ function computeSummaryFromItems(items) {
     bankShare: 0,
     nonAiShare: 0,
     aiAvgAttempts: null,
+    validatedInBank: 0,
   };
 
   for (const ev of items) {
@@ -362,6 +400,7 @@ function computeSummaryFromItems(items) {
     else if (ev.outcome === 'rejected') summary.rejected += 1;
     else if (ev.outcome === 'parse_error') summary.parseErrors += 1;
     else if (ev.outcome === 'api_error') summary.apiErrors += 1;
+    if (ev.bankValidatedAt) summary.validatedInBank += 1;
 
     for (const code of ev.issueCodes || []) {
       summary.byIssueCode[code] = (summary.byIssueCode[code] || 0) + 1;
@@ -523,14 +562,96 @@ async function fetchEventItems(filters = {}) {
   const gameMode = filters.gameMode && VALID_GAME_MODES.has(String(filters.gameMode))
     ? String(filters.gameMode)
     : '';
+  const baseSelect = 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options,provider,model,attempt';
+  const extendedSelect = `${baseSelect},bank_validated_at,bank_question_hash`;
   const params = new URLSearchParams({
-    select: 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options,provider,model,attempt',
     order: 'created_at.desc',
     limit: String(MAX_EVENTS),
   });
   if (gameMode) params.set('game_mode', `eq.${gameMode}`);
-  const rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+
+  let rows;
+  try {
+    params.set('select', extendedSelect);
+    rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+  } catch (err) {
+    const msg = String(err?.message || err);
+    if (!msg.includes('bank_validated_at') && !msg.includes('bank_question_hash') && !msg.includes('42703')) {
+      throw err;
+    }
+    params.set('select', baseSelect);
+    rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+  }
   return (rows || []).map(rowToItem);
+}
+
+async function markTelemetryBankValidated({
+  eventId = null,
+  question = '',
+  answer = '',
+  questionHash = '',
+} = {}) {
+  const cfg = getSupabaseAdmin();
+  if (!cfg) return { marked: 0, ids: [] };
+
+  const content = normalizeTelemetryContent(question, answer);
+  const hash = String(questionHash || '').trim() || content?.hash || '';
+  const now = new Date().toISOString();
+  const patch = { bank_validated_at: now };
+  if (hash) patch.bank_question_hash = hash;
+
+  const markedIds = [];
+
+  const patchRows = async (ids) => {
+    const unique = [...new Set((ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+    if (!unique.length) return;
+    for (const id of unique) {
+      await supabaseRequest(`/${TABLE}?id=eq.${encodeURIComponent(id)}&outcome=eq.rejected`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+        prefer: 'return=minimal',
+      });
+      markedIds.push(id);
+    }
+  };
+
+  const eventRowId = String(eventId || '').trim();
+  if (eventRowId) {
+    try {
+      await patchRows([eventRowId]);
+      if (markedIds.length) return { marked: markedIds.length, ids: markedIds };
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (msg.includes('bank_validated_at') || msg.includes('42703')) {
+        return { marked: 0, ids: [], skipped: 'column_missing' };
+      }
+      throw err;
+    }
+  }
+
+  if (!content) return { marked: 0, ids: [] };
+
+  try {
+    const params = new URLSearchParams({
+      select: 'id,question_text,answer_text,bank_validated_at',
+      outcome: 'eq.rejected',
+      bank_validated_at: 'is.null',
+      question_text: 'not.is.null',
+      answer_text: 'not.is.null',
+      order: 'created_at.desc',
+      limit: '800',
+    });
+    const rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+    const matches = (Array.isArray(rows) ? rows : []).filter((row) => telemetryContentMatches(row, content));
+    await patchRows(matches.map((row) => row.id));
+    return { marked: markedIds.length, ids: markedIds };
+  } catch (err) {
+    const msg = String(err?.message || err);
+    if (msg.includes('bank_validated_at') || msg.includes('42703')) {
+      return { marked: 0, ids: [], skipped: 'column_missing' };
+    }
+    throw err;
+  }
 }
 
 async function getStats(_event, filters = {}) {
@@ -585,4 +706,5 @@ module.exports = {
   accumulateSource,
   isRepoSource,
   repoAcceptedCount,
+  markTelemetryBankValidated,
 };

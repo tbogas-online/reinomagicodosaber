@@ -1,5 +1,25 @@
 const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
 const { validateGameClient } = require('./lib/report-utils');
+const { recordAiRequest, extractUsageTokens } = require('./lib/ai-usage-store');
+
+function trackAiUsage(ok, enabled, meta = {}) {
+  if (!enabled) return;
+  recordAiRequest({
+    ok: !!ok,
+    provider: meta.provider || '',
+    model: meta.model || '',
+    tokens: meta.tokens || 0,
+  }).catch((err) => {
+    console.warn('[generate] usage bucket:', err?.message || err);
+  });
+}
+
+function parseModelsAttemptedTail(modelsAttempted = []) {
+  const last = Array.isArray(modelsAttempted) ? modelsAttempted[modelsAttempted.length - 1] : '';
+  if (!last || !String(last).includes(':')) return { provider: '', model: '' };
+  const [provider, ...modelParts] = String(last).split(':');
+  return { provider: provider || '', model: modelParts.join(':') || '' };
+}
 const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const ANTHROPIC_VERSION = '2023-06-01';
@@ -40,6 +60,7 @@ const WINDOW_MS = 60 * 1000;
 const MAX_REQUESTS_PER_WINDOW = 45;
 
 exports.handler = async (event) => {
+  let trackUsage = false;
   try {
     if (event.httpMethod !== 'POST') {
       return json(405, { error: 'Método não permitido' });
@@ -49,11 +70,13 @@ exports.handler = async (event) => {
     if (!clientAuth.ok) {
       return json(clientAuth.status, { error: clientAuth.error });
     }
+    trackUsage = true;
 
     let payload;
     try {
       payload = JSON.parse(event.body || '{}');
     } catch {
+      trackAiUsage(false, trackUsage);
       return json(400, { error: 'Pedido inválido: JSON malformado.' });
     }
 
@@ -64,6 +87,7 @@ exports.handler = async (event) => {
 
     const { providers, error: configError, attempted_providers: configAttempted } = resolveProviderOrder(clientPreference, providerStrict);
     if (!providers.length) {
+      trackAiUsage(false, trackUsage);
       return json(500, {
         error: configError || 'Nenhuma chave de IA configurada no Netlify. Adiciona GROQ_API_KEY, ANTHROPIC_API_KEY e/ou OPENAI_API_KEY em Environment variables e faz um novo deploy.',
         attempted_providers: configAttempted || (normalizeClientPreference(clientPreference) !== 'auto'
@@ -90,6 +114,7 @@ exports.handler = async (event) => {
     if (recent.length >= MAX_REQUESTS_PER_WINDOW) {
       const oldest = recent[0] || now;
       const retryAfter = Math.max(1, Math.ceil((WINDOW_MS - (now - oldest)) / 1000));
+      trackAiUsage(false, trackUsage);
       return json(429, {
         error: `Demasiados pedidos neste minuto (limite da app: ${MAX_REQUESTS_PER_WINDOW}/min, não da Groq/OpenAI). Espera cerca de ${retryAfter} s.`,
         retry_after: retryAfter,
@@ -100,6 +125,7 @@ exports.handler = async (event) => {
     requestLog.set(clientKey, recent);
 
     if (!Array.isArray(payload.messages) || payload.messages.length === 0) {
+      trackAiUsage(false, trackUsage);
       return json(400, { error: 'Pedido inválido: messages é obrigatório.' });
     }
 
@@ -108,11 +134,13 @@ exports.handler = async (event) => {
       .map((m) => ({ role: m.role, content: m.content }));
 
     if (!messages.length) {
+      trackAiUsage(false, trackUsage);
       return json(400, { error: 'Pedido inválido: não existem mensagens válidas.' });
     }
 
     const totalChars = messages.reduce((sum, m) => sum + m.content.length, 0);
     if (totalChars > MAX_REQUEST_CHARS) {
+      trackAiUsage(false, trackUsage);
       return json(413, { error: 'Pedido demasiado grande.' });
     }
 
@@ -129,6 +157,11 @@ exports.handler = async (event) => {
         try {
           const maxTokens = effectiveMaxTokens(provider.name, model, requestedTokens);
           const result = await callProvider(provider.name, provider.apiKey, messages, maxTokens, model);
+          trackAiUsage(true, trackUsage, {
+            provider: provider.name,
+            model,
+            tokens: extractUsageTokens(result.usage),
+          });
           return json(200, {
             ...result,
             provider: provider.name,
@@ -148,9 +181,11 @@ exports.handler = async (event) => {
       attempted.push(provider.name);
     }
 
+    trackAiUsage(false, trackUsage, parseModelsAttemptedTail(modelsAttempted));
     return formatProviderFailure(errors, attempted, { providerStrict, modelsAttempted });
   } catch (err) {
     console.error('generate handler error:', err);
+    trackAiUsage(false, trackUsage);
     return json(500, {
       error: 'Erro interno na função de IA.',
       detail: err instanceof Error ? err.message : String(err),
