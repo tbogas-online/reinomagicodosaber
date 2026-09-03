@@ -2912,7 +2912,7 @@
             <div class="chart-head" style="margin-top:16px;">
               <h4 id="chartAiUsageMinuteTitle" style="margin:0;font-size:0.9rem;">Última hora · por minuto</h4>
             </div>
-            <p class="timeline-note" id="aiUsageMinuteNote">Pedidos e tokens por minuto (janela móvel de 60 min). Tracejado = limite de tokens/min do fornecedor seleccionado.</p>
+            <p class="timeline-note" id="aiUsageMinuteNote">Pedidos e tokens por minuto (janela móvel de 60 min). Actualiza automaticamente a cada minuto com a página aberta nesta aba.</p>
             <div id="chartAiUsageMinute" class="chart"></div>
           </div>
 
@@ -4187,7 +4187,8 @@
     let offset = 0;
     const limit = 50;
     const AUTO_REFRESH_MS = 120000; // reportes: 2 min (poupa invocações Netlify)
-    const ROOMS_AUTO_REFRESH_MS = 60000; // salas/banco/repo/telemetria: 1 min
+    const ROOMS_AUTO_REFRESH_MS = 60000; // salas/banco/repo: 1 min
+    const AI_USAGE_MINUTE_TICK_MS = 60000; // pedidos IA (última hora): alinhado ao relógio
     let lastTotal = 0;
     let lastReports = [];
     let reportsById = {};
@@ -4593,9 +4594,35 @@
       if (activeAdminTab === 'rooms') return ROOMS_AUTO_REFRESH_MS;
       if (activeAdminTab === 'bank') return ROOMS_AUTO_REFRESH_MS;
       if (activeAdminTab === 'knowledge') return ROOMS_AUTO_REFRESH_MS;
-      if (activeAdminTab === 'telemetry') return ROOMS_AUTO_REFRESH_MS;
       if (activeAdminTab === 'gamestats') return ROOMS_AUTO_REFRESH_MS;
       return AUTO_REFRESH_MS;
+    }
+
+    let telemetryMinuteRefreshTimeout = null;
+    let telemetryMinuteRefreshTimer = null;
+
+    function stopTelemetryMinuteRefresh() {
+      if (telemetryMinuteRefreshTimeout) {
+        clearTimeout(telemetryMinuteRefreshTimeout);
+        telemetryMinuteRefreshTimeout = null;
+      }
+      if (telemetryMinuteRefreshTimer) {
+        clearInterval(telemetryMinuteRefreshTimer);
+        telemetryMinuteRefreshTimer = null;
+      }
+    }
+
+    function startTelemetryMinuteRefresh() {
+      stopTelemetryMinuteRefresh();
+      const tick = () => {
+        if (activeAdminTab !== 'telemetry' || document.hidden || dashboard.classList.contains('hidden')) return;
+        loadTelemetryDashboard({ quiet: true });
+      };
+      const msToNextMinute = AI_USAGE_MINUTE_TICK_MS - (Date.now() % AI_USAGE_MINUTE_TICK_MS);
+      telemetryMinuteRefreshTimeout = setTimeout(() => {
+        tick();
+        telemetryMinuteRefreshTimer = setInterval(tick, AI_USAGE_MINUTE_TICK_MS);
+      }, msToNextMinute);
     }
 
     function startAutoRefresh() {
@@ -4611,6 +4638,7 @@
       if (!refreshTimer) return;
       clearInterval(refreshTimer);
       refreshTimer = null;
+      stopTelemetryMinuteRefresh();
     }
 
     function selectedReports() {
@@ -5774,7 +5802,7 @@
         const tokenNote = minuteTokenLimit
           ? ` Limite tokens/min (${aiUsageProviderLabel(aiUsageProviderFilter)}): <strong>${formatAiUsageTokenCount(minuteTokenLimit)}</strong>.`
           : (aiUsageProviderFilter ? ' Sem limite tokens/min conhecido para este fornecedor.' : ' Selecciona um fornecedor para ver o limite tokens/min.');
-        noteEl.innerHTML = `Últimos 60 min: <strong>${bucket.totalRequests || 0}</strong> pedido(s) · <strong>${formatAiUsageTokenCount(bucket.totalTokens || 0)}</strong> tokens.${tokenNote}`;
+        noteEl.innerHTML = `Últimos 60 min: <strong>${bucket.totalRequests || 0}</strong> pedido(s) · <strong>${formatAiUsageTokenCount(bucket.totalTokens || 0)}</strong> tokens.${tokenNote} Actualiza a cada minuto.`;
       }
       renderAiUsageDualChart(chartEl, bucket.requests, bucket.tokens, minuteTokenLimit, {
         labelA: 'Pedidos / min',
@@ -8015,6 +8043,8 @@
       else loadBankDashboard({ quiet: true });
       if (activeAdminTab === 'rooms') startRoomsExpiryTick();
       else stopRoomsExpiryTick();
+      if (activeAdminTab === 'telemetry') startTelemetryMinuteRefresh();
+      else stopTelemetryMinuteRefresh();
       if (!dashboard.classList.contains('hidden')) startAutoRefresh();
     }
 
@@ -10630,6 +10660,9 @@
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && !dashboard.classList.contains('hidden')) {
         refreshActiveTab({ quiet: true, keepSelection: true });
+        if (activeAdminTab === 'telemetry') startTelemetryMinuteRefresh();
+      } else if (document.visibilityState === 'hidden') {
+        stopTelemetryMinuteRefresh();
       }
     });
 
