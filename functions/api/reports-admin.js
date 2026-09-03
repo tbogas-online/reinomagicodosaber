@@ -118,74 +118,17 @@ async function listReports(kv, filters = {}) {
   };
 }
 
-function buildDailySeries(byDay, days = 14) {
-  const daily = [];
-  const now = new Date();
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  for (let i = days - 1; i >= 0; i -= 1) {
-    const d = new Date(end.getTime() - i * 86400000);
-    const key = d.toISOString().slice(0, 10);
-    daily.push({ key, count: byDay[key] || 0 });
-  }
-  return daily;
-}
+const {
+  toLisbonDayKey,
+  toLisbonHourKey,
+  buildDailySeries,
+  buildHourlySeries,
+  buildStackedDailySeries,
+  buildStackedHourlySeries,
+} = require('../../../scripts/lib/lisbon-time');
 
 function sumByIssue(byIssue) {
   return Object.values(byIssue || {}).reduce((sum, value) => sum + value, 0);
-}
-
-function buildStackedDailySeries(byDayByIssue, days = 14) {
-  const daily = [];
-  const now = new Date();
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  for (let i = days - 1; i >= 0; i -= 1) {
-    const d = new Date(end.getTime() - i * 86400000);
-    const key = d.toISOString().slice(0, 10);
-    const byIssue = byDayByIssue[key] || {};
-    daily.push({ key, byIssue, count: sumByIssue(byIssue) });
-  }
-  return daily;
-}
-
-function buildStackedHourlySeries(byHourByIssue, hours = 24) {
-  const series = [];
-  const now = new Date();
-  const end = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate(),
-    now.getUTCHours(),
-    0,
-    0,
-    0,
-  ));
-  for (let i = hours - 1; i >= 0; i -= 1) {
-    const d = new Date(end.getTime() - i * 3600000);
-    const key = d.toISOString().slice(0, 13);
-    const byIssue = byHourByIssue[key] || {};
-    series.push({ key, byIssue, count: sumByIssue(byIssue) });
-  }
-  return series;
-}
-
-function buildHourlySeries(byHour, hours = 24) {
-  const series = [];
-  const now = new Date();
-  const end = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate(),
-    now.getUTCHours(),
-    0,
-    0,
-    0,
-  ));
-  for (let i = hours - 1; i >= 0; i -= 1) {
-    const d = new Date(end.getTime() - i * 3600000);
-    const key = d.toISOString().slice(0, 13);
-    series.push({ key, count: byHour[key] || 0 });
-  }
-  return series;
 }
 
 function computeStatsFromIndex(index, filters = {}) {
@@ -214,8 +157,9 @@ function computeStatsFromIndex(index, filters = {}) {
 
   for (const item of activeItems) {
     if (item.receivedAt) {
-      const day = item.receivedAt.slice(0, 10);
-      const hour = item.receivedAt.slice(0, 13);
+      const day = toLisbonDayKey(item.receivedAt);
+      const hour = toLisbonHourKey(item.receivedAt);
+      if (!day || !hour) continue;
       if (!byDayByIssue[day]) byDayByIssue[day] = {};
       if (!byHourByIssue[hour]) byHourByIssue[hour] = {};
       byDayByIssue[day][item.issueType] = (byDayByIssue[day][item.issueType] || 0) + 1;
@@ -234,9 +178,10 @@ function computeStatsFromIndex(index, filters = {}) {
       : String(item.categoryName || '').trim();
     if (category) byCategory[category] = (byCategory[category] || 0) + 1;
     if (item.receivedAt) {
-      const day = item.receivedAt.slice(0, 10);
+      const day = toLisbonDayKey(item.receivedAt);
+      const hour = toLisbonHourKey(item.receivedAt);
+      if (!day || !hour) continue;
       byDay[day] = (byDay[day] || 0) + 1;
-      const hour = item.receivedAt.slice(0, 13);
       byHour[hour] = (byHour[hour] || 0) + 1;
     }
     if (item.reporterId) reporters.add(item.reporterId);
@@ -256,8 +201,8 @@ function computeStatsFromIndex(index, filters = {}) {
   const timelineStacked = {
     '24h': buildStackedHourlySeries(byHourByIssue, 24),
     '3d': buildStackedHourlySeries(byHourByIssue, 72),
-    '7d': buildStackedDailySeries(byDayByIssue, 7),
-    '14d': buildStackedDailySeries(byDayByIssue, 14),
+    '7d': buildStackedDailySeries(byDayByIssue, 7, sumByIssue),
+    '14d': buildStackedDailySeries(byDayByIssue, 14, sumByIssue),
   };
 
   return {

@@ -1,5 +1,6 @@
 -- Marca rejeições da telemetria que foram validadas manualmente e guardadas no banco.
 -- Executar no SQL Editor do Supabase após gen-telemetry.sql.
+-- Se o PostgREST ainda não vir as colunas: Settings → API → Reload schema (ou reiniciar o projeto).
 
 ALTER TABLE public.gen_telemetry_events
   ADD COLUMN IF NOT EXISTS bank_validated_at TIMESTAMPTZ,

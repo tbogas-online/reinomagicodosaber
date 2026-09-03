@@ -1,5 +1,13 @@
 const { getSupabaseAdmin } = require('./rooms-store');
 const {
+  toLisbonDayKey,
+  toLisbonHourKey,
+  buildDailySeries,
+  buildHourlySeries,
+  buildStackedDailySeries,
+  buildStackedHourlySeries,
+} = require('./lisbon-time');
+const {
   enrichSummaryWithCategoryDelivery,
   enrichSummaryWithProviderInsights,
   isAiProviderTelemetryEvent,
@@ -65,6 +73,55 @@ function telemetryHashFromSnapshot(snapshot) {
   return hashQuestionKey(`${stripTags(snapshot.q)}|${stripTags(snapshot.a)}`);
 }
 
+function isMissingBankValidatedColumnError(msg) {
+  const text = String(msg || '');
+  return text.includes('bank_validated_at') || text.includes('42703');
+}
+
+function isMissingBankQuestionHashColumnError(msg) {
+  const text = String(msg || '');
+  return text.includes('bank_question_hash') || text.includes('PGRST204');
+}
+
+function isMissingBankValidatedSchemaError(msg) {
+  return isMissingBankValidatedColumnError(msg) || isMissingBankQuestionHashColumnError(msg);
+}
+
+async function patchBankValidatedEvent(querySuffix, hash = '') {
+  const now = new Date().toISOString();
+  const path = `/${TABLE}?${querySuffix}`;
+  const patchWithHash = { bank_validated_at: now };
+  const trimmedHash = String(hash || '').trim();
+  if (trimmedHash) patchWithHash.bank_question_hash = trimmedHash;
+  const request = (body) => supabaseRequest(path, {
+    method: 'PATCH',
+    body: JSON.stringify(body),
+    prefer: 'return=minimal',
+  });
+  try {
+    await request(patchWithHash);
+    return { ok: true };
+  } catch (err) {
+    const msg = String(err?.message || err);
+    if (trimmedHash && isMissingBankQuestionHashColumnError(msg)) {
+      try {
+        await request({ bank_validated_at: now });
+        return { ok: true, hashColumnMissing: true };
+      } catch (retryErr) {
+        const retryMsg = String(retryErr?.message || retryErr);
+        if (isMissingBankValidatedColumnError(retryMsg)) {
+          return { ok: false, skipped: 'column_missing' };
+        }
+        throw retryErr;
+      }
+    }
+    if (isMissingBankValidatedColumnError(msg)) {
+      return { ok: false, skipped: 'column_missing' };
+    }
+    throw err;
+  }
+}
+
 async function fetchExistingBankHashes(hashes) {
   const list = [...new Set((hashes || []).map((h) => String(h || '').trim()).filter(Boolean))];
   if (!list.length) return new Set();
@@ -94,27 +151,22 @@ async function fetchExistingBankHashes(hashes) {
 async function backfillBankValidatedRows(entries) {
   const cfg = getSupabaseAdmin();
   if (!cfg || !entries?.length) return { marked: 0 };
-  const now = new Date().toISOString();
   let marked = 0;
   for (const entry of entries) {
     const id = String(entry?.id || '').trim();
     if (!id) continue;
-    const patch = { bank_validated_at: now };
     const hash = String(entry.hash || '').trim();
-    if (hash) patch.bank_question_hash = hash;
     try {
-      await supabaseRequest(`/${TABLE}?id=eq.${encodeURIComponent(id)}&outcome=eq.rejected&bank_validated_at=is.null`, {
-        method: 'PATCH',
-        body: JSON.stringify(patch),
-        prefer: 'return=minimal',
-      });
-      marked += 1;
-    } catch (err) {
-      const msg = String(err?.message || err);
-      if (msg.includes('bank_validated_at') || msg.includes('42703')) {
+      const result = await patchBankValidatedEvent(
+        `id=eq.${encodeURIComponent(id)}&outcome=eq.rejected&bank_validated_at=is.null`,
+        hash,
+      );
+      if (result.skipped === 'column_missing') {
         return { marked, skipped: 'column_missing' };
       }
-      console.warn('[gen-telemetry-store] backfill bank validated:', msg);
+      if (result.ok) marked += 1;
+    } catch (err) {
+      console.warn('[gen-telemetry-store] backfill bank validated:', err?.message || err);
     }
   }
   return { marked };
@@ -541,72 +593,6 @@ function sumByBucket(byBucket) {
   return Object.values(byBucket || {}).reduce((sum, value) => sum + value, 0);
 }
 
-function buildDailySeries(byDay, days = 14) {
-  const daily = [];
-  const now = new Date();
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  for (let i = days - 1; i >= 0; i -= 1) {
-    const d = new Date(end.getTime() - i * 86400000);
-    const key = d.toISOString().slice(0, 10);
-    daily.push({ key, count: byDay[key] || 0 });
-  }
-  return daily;
-}
-
-function buildHourlySeries(byHour, hours = 24) {
-  const series = [];
-  const now = new Date();
-  const end = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate(),
-    now.getUTCHours(),
-    0,
-    0,
-    0,
-  ));
-  for (let i = hours - 1; i >= 0; i -= 1) {
-    const d = new Date(end.getTime() - i * 3600000);
-    const key = d.toISOString().slice(0, 13);
-    series.push({ key, count: byHour[key] || 0 });
-  }
-  return series;
-}
-
-function buildStackedDailySeries(byDayByBucket, days = 14) {
-  const daily = [];
-  const now = new Date();
-  const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  for (let i = days - 1; i >= 0; i -= 1) {
-    const d = new Date(end.getTime() - i * 86400000);
-    const key = d.toISOString().slice(0, 10);
-    const byIssue = byDayByBucket[key] || {};
-    daily.push({ key, byIssue, count: sumByBucket(byIssue) });
-  }
-  return daily;
-}
-
-function buildStackedHourlySeries(byHourByBucket, hours = 24) {
-  const series = [];
-  const now = new Date();
-  const end = new Date(Date.UTC(
-    now.getUTCFullYear(),
-    now.getUTCMonth(),
-    now.getUTCDate(),
-    now.getUTCHours(),
-    0,
-    0,
-    0,
-  ));
-  for (let i = hours - 1; i >= 0; i -= 1) {
-    const d = new Date(end.getTime() - i * 3600000);
-    const key = d.toISOString().slice(0, 13);
-    const byIssue = byHourByBucket[key] || {};
-    series.push({ key, byIssue, count: sumByBucket(byIssue) });
-  }
-  return series;
-}
-
 function computeTimelineFromItems(items) {
   const byDay = {};
   const byHour = {};
@@ -616,8 +602,9 @@ function computeTimelineFromItems(items) {
   for (const ev of items) {
     const ts = Number(ev.ts);
     if (!Number.isFinite(ts) || ts <= 0) continue;
-    const day = new Date(ts).toISOString().slice(0, 10);
-    const hour = new Date(ts).toISOString().slice(0, 13);
+    const day = toLisbonDayKey(new Date(ts));
+    const hour = toLisbonHourKey(new Date(ts));
+    if (!day || !hour) continue;
     byDay[day] = (byDay[day] || 0) + 1;
     byHour[hour] = (byHour[hour] || 0) + 1;
     const outcome = ev.outcome || 'unknown';
@@ -635,10 +622,10 @@ function computeTimelineFromItems(items) {
       '14d': buildDailySeries(byDay, 14),
     },
     timelineStacked: {
-      '24h': buildStackedHourlySeries(byHourByOutcome, 24),
-      '3d': buildStackedHourlySeries(byHourByOutcome, 72),
-      '7d': buildStackedDailySeries(byDayByOutcome, 7),
-      '14d': buildStackedDailySeries(byDayByOutcome, 14),
+      '24h': buildStackedHourlySeries(byHourByOutcome, 24, sumByBucket),
+      '3d': buildStackedHourlySeries(byHourByOutcome, 72, sumByBucket),
+      '7d': buildStackedDailySeries(byDayByOutcome, 7, sumByBucket),
+      '14d': buildStackedDailySeries(byDayByOutcome, 14, sumByBucket),
     },
   };
 }
@@ -679,7 +666,7 @@ async function fetchEventItems(filters = {}) {
     rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
   } catch (err) {
     const msg = String(err?.message || err);
-    if (!msg.includes('bank_validated_at') && !msg.includes('bank_question_hash') && !msg.includes('42703')) {
+    if (!isMissingBankValidatedSchemaError(msg)) {
       throw err;
     }
     params.set('select', baseSelect);
@@ -699,37 +686,32 @@ async function markTelemetryBankValidated({
 
   const content = normalizeTelemetryContent(question, answer);
   const hash = String(questionHash || '').trim() || content?.hash || '';
-  const now = new Date().toISOString();
-  const patch = { bank_validated_at: now };
-  if (hash) patch.bank_question_hash = hash;
 
   const markedIds = [];
 
   const patchRows = async (ids) => {
     const unique = [...new Set((ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
-    if (!unique.length) return;
+    if (!unique.length) return { skipped: null };
     for (const id of unique) {
-      await supabaseRequest(`/${TABLE}?id=eq.${encodeURIComponent(id)}&outcome=eq.rejected`, {
-        method: 'PATCH',
-        body: JSON.stringify(patch),
-        prefer: 'return=minimal',
-      });
-      markedIds.push(id);
+      const result = await patchBankValidatedEvent(
+        `id=eq.${encodeURIComponent(id)}&outcome=eq.rejected`,
+        hash,
+      );
+      if (result.skipped === 'column_missing') {
+        return { skipped: 'column_missing' };
+      }
+      if (result.ok) markedIds.push(id);
     }
+    return { skipped: null };
   };
 
   const eventRowId = String(eventId || '').trim();
   if (eventRowId) {
-    try {
-      await patchRows([eventRowId]);
-      if (markedIds.length) return { marked: markedIds.length, ids: markedIds };
-    } catch (err) {
-      const msg = String(err?.message || err);
-      if (msg.includes('bank_validated_at') || msg.includes('42703')) {
-        return { marked: 0, ids: [], skipped: 'column_missing' };
-      }
-      throw err;
+    const result = await patchRows([eventRowId]);
+    if (result.skipped === 'column_missing') {
+      return { marked: 0, ids: [], skipped: 'column_missing' };
     }
+    if (markedIds.length) return { marked: markedIds.length, ids: markedIds };
   }
 
   if (!content) return { marked: 0, ids: [] };
@@ -750,11 +732,14 @@ async function markTelemetryBankValidated({
         const rowHash = hashQuestionKey(`${stripTags(row.question_text)}|${stripTags(row.answer_text)}`);
         return rowHash === hash;
       });
-      await patchRows(matches.map((row) => row.id));
+      const patchResult = await patchRows(matches.map((row) => row.id));
+      if (patchResult.skipped === 'column_missing') {
+        return { marked: 0, ids: [], skipped: 'column_missing' };
+      }
       if (markedIds.length) return { marked: markedIds.length, ids: markedIds };
     } catch (err) {
       const msg = String(err?.message || err);
-      if (msg.includes('bank_validated_at') || msg.includes('42703')) {
+      if (isMissingBankValidatedSchemaError(msg)) {
         return { marked: 0, ids: [], skipped: 'column_missing' };
       }
       throw err;
@@ -773,11 +758,14 @@ async function markTelemetryBankValidated({
     });
     const rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
     const matches = (Array.isArray(rows) ? rows : []).filter((row) => telemetryContentMatches(row, content));
-    await patchRows(matches.map((row) => row.id));
+    const patchResult = await patchRows(matches.map((row) => row.id));
+    if (patchResult.skipped === 'column_missing') {
+      return { marked: 0, ids: [], skipped: 'column_missing' };
+    }
     return { marked: markedIds.length, ids: markedIds };
   } catch (err) {
     const msg = String(err?.message || err);
-    if (msg.includes('bank_validated_at') || msg.includes('42703')) {
+    if (isMissingBankValidatedSchemaError(msg)) {
       return { marked: 0, ids: [], skipped: 'column_missing' };
     }
     throw err;

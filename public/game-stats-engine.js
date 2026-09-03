@@ -667,6 +667,7 @@ function formatGameDateLabel(iso) {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
   return date.toLocaleString('pt-PT', {
+    timeZone: 'Europe/Lisbon',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

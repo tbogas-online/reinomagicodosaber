@@ -7742,11 +7742,36 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     return Number(value).toLocaleString('pt-PT');
   }
 
+  function hasProviderQuotaData(summary) {
+    if (!summary) return false;
+    return summary.tokens_limit != null
+      || summary.requests_limit != null
+      || summary.tokens_day_limit != null;
+  }
+
+  function isProviderNearQuotaLimit(summary, thresholdPct = 0.05) {
+    const windows = [
+      [summary?.tokens_used, summary?.tokens_limit, summary?.tokens_remaining],
+      [summary?.requests_used, summary?.requests_limit, summary?.requests_remaining],
+      [summary?.tokens_day_used, summary?.tokens_day_limit, summary?.tokens_day_remaining],
+    ];
+    return windows.some(([used, limit, remaining]) => {
+      const l = Number(limit);
+      if (!Number.isFinite(l) || l <= 0) return false;
+      const left = quotaWindowRemaining(used, limit, remaining);
+      if (left == null || left <= 0) return false;
+      return left / l <= thresholdPct;
+    });
+  }
+
   function quotaStatusMeta(summary){
     if(summary?.availability === 'billing') return { cls: 'err', label: 'sem créditos' };
     if(summary?.availability === 'error') return { cls: 'err', label: 'erro' };
     if(isProviderSummaryExhausted(summary)) return { cls: 'warn', label: 'aguardar reset' };
+    if(isProviderNearQuotaLimit(summary)) return { cls: 'warn', label: 'margem baixa' };
+    if(summary?.availability === 'limited') return { cls: 'warn', label: 'limitado' };
     if(summary?.availability === 'ok' || summary?.usable !== false) return { cls: 'ok', label: 'OK' };
+    if(hasProviderQuotaData(summary)) return { cls: 'ok', label: 'OK' };
     return { cls: 'unknown', label: 'sem dados' };
   }
 
@@ -9960,13 +9985,21 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
     return parts.join(' · ') || '—';
   }
 
+  function formatAboutReportDateTime(report){
+    if(!report) return '';
+    if(report.createdAtPortugal) return report.createdAtPortugal;
+    const raw = report.createdAt || report.receivedAt || '';
+    if(!raw) return '';
+    return formatPortugalDateTime(raw);
+  }
+
   function formatAboutReportsText(reports){
     if(!reports.length) return 'Ainda não há problemas reportados neste dispositivo.';
     return reports.map((r, i) => {
       const cat = r.category?.name ? `${r.category.name}${r.surprise ? ' (surpresa)' : ''}` : '—';
       const opts = Array.isArray(r.options) && r.options.length ? r.options.join(' | ') : '—';
       return [
-        `${i + 1}. ${r.createdAtPortugal || r.createdAt || ''} · ${r.issueLabel || r.issueType || 'Problema'} · ${formatAboutReportStatusLabel(r)}`,
+        `${i + 1}. ${formatAboutReportDateTime(r)} · ${r.issueLabel || r.issueType || 'Problema'} · ${formatAboutReportStatusLabel(r)}`,
         `Pergunta: ${r.question || '—'}`,
         `Categoria: ${cat} · Idade: ${r.ageBand || '—'} · Formato: ${r.format || '—'} · Fonte: ${r.source || '—'}`,
         `Versão: ${r.gameVersion || r.appBuild || '—'} · Tema: ${r.theme || '—'}`,
@@ -10000,7 +10033,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
         : '';
       return `<article class="game-about-report${status === 'resolved' ? ' is-resolved' : ''}">
         <div class="game-about-report-meta">
-          <span>${escapeAboutHtml(r.createdAtPortugal || r.createdAt || '')} · ${escapeAboutHtml(r.issueLabel || r.issueType || 'Problema')}</span>
+          <span>${escapeAboutHtml(formatAboutReportDateTime(r))} · ${escapeAboutHtml(r.issueLabel || r.issueType || 'Problema')}</span>
           <span class="game-about-report-status ${statusClass}">${escapeAboutHtml(formatAboutReportStatusLabel(r))}</span>
         </div>
         <p><strong>P:</strong> ${escapeAboutHtml(r.question || '—')}</p>
@@ -10031,7 +10064,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
       const detail = r.comment || r.suggestion || '—';
       return `<article class="game-about-report${status === 'resolved' ? ' is-resolved' : ''}">
         <div class="game-about-report-meta">
-          <span>${escapeAboutHtml(r.createdAtPortugal || r.createdAt || '')} · ${escapeAboutHtml(r.issueLabel || r.issueType || 'Site')}</span>
+          <span>${escapeAboutHtml(formatAboutReportDateTime(r))} · ${escapeAboutHtml(r.issueLabel || r.issueType || 'Site')}</span>
           <span class="game-about-report-status ${statusClass}">${escapeAboutHtml(formatAboutReportStatusLabel(r))}</span>
         </div>
         <p>${escapeAboutHtml(detail)}</p>
@@ -10297,7 +10330,7 @@ Só JSON, sem markdown: {"explicacao":"texto"}`;
       createdAt: now.toISOString(),
       createdAtPortugal: api?.formatPortugalDateTime
         ? api.formatPortugalDateTime(now)
-        : now.toLocaleString('pt-PT'),
+        : formatPortugalDateTime(now),
     };
     if(siteReportImageBlob && siteReportImageMeta){
       payload.attachments = [{

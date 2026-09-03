@@ -3220,22 +3220,24 @@
               <button type="button" class="secondary active" data-ai-usage-range="24h">24 h</button>
               <button type="button" class="secondary" data-ai-usage-range="48h">48 h</button>
             </div>
-            <p class="timeline-note" id="aiUsageNote">Buckets de 5 minutos (Lisboa). Linha verde = pedidos acumulados no dia; limite diário fora de escala aparece só na legenda (clicar para expandir).</p>
+            <div class="timeline-filters" id="aiUsageGranularityFilters" role="group" aria-label="Granularidade dos gráficos de consumo API" style="margin-top:6px">
+              <button type="button" class="secondary" data-ai-usage-granularity="1">1 min</button>
+              <button type="button" class="secondary" data-ai-usage-granularity="15">15 min</button>
+              <button type="button" class="secondary" data-ai-usage-granularity="30">30 min</button>
+              <button type="button" class="secondary" data-ai-usage-granularity="60">1 h</button>
+              <button type="button" class="secondary active" data-ai-usage-granularity="5">5 min</button>
+            </div>
+            <p class="timeline-note" id="aiUsageNote">Período e granularidade aplicam-se a todos os gráficos abaixo.</p>
             <div id="chartAiUsage" class="chart"></div>
             <div class="chart-head" style="margin-top:16px;">
-              <h4 id="chartAiUsageMinuteTitle" style="margin:0;font-size:0.9rem;">Pedidos · última hora (por minuto)</h4>
+              <h4 id="chartAiUsageTokensMinuteTitle" style="margin:0;font-size:0.9rem;">Tokens</h4>
             </div>
-            <p class="timeline-note" id="aiUsageMinuteNote">Pedidos por minuto (janela móvel de 60 min). Actualiza automaticamente com a página aberta nesta aba.</p>
-            <div id="chartAiUsageMinute" class="chart"></div>
-            <div class="chart-head" style="margin-top:16px;">
-              <h4 id="chartAiUsageTokensMinuteTitle" style="margin:0;font-size:0.9rem;">Tokens/min · última hora</h4>
-            </div>
-            <p class="timeline-note" id="aiUsageTokensMinuteNote">Verde = tokens desta app · âmbar = quota consumida na API (cabeçalhos) · faixas vermelhas = minutos com limite atingido.</p>
+            <p class="timeline-note" id="aiUsageTokensMinuteNote">Verde = tokens desta app · âmbar = quota API (cabeçalhos) · faixas vermelhas = limite atingido no bucket.</p>
             <div id="chartAiUsageTokensMinute" class="chart"></div>
             <div class="chart-head" style="margin-top:16px;">
               <h4 id="chartAiUsageLatencyTitle" style="margin:0;font-size:0.9rem;">Latência por modelo</h4>
             </div>
-            <p class="timeline-note" id="aiUsageLatencyNote">Média por bucket de 5 min (mesmos filtros de fornecedor/modelo). Tracejados: 600 ms e 2 s.</p>
+            <p class="timeline-note" id="aiUsageLatencyNote">Média de latência por bucket (mesmo período e granularidade). Tracejados: 600 ms e 2 s.</p>
             <div id="chartAiUsageLatency" class="chart"></div>
           </div>
 
@@ -3888,6 +3890,20 @@
       return formatShortDate(key);
     }
 
+    const CHART_LISBON_TZ_LABEL = 'Lisboa';
+
+    function chartTimelineGranularityLabel(granularity) {
+      return granularity === 'hour'
+        ? `por hora (${CHART_LISBON_TZ_LABEL})`
+        : `por dia (${CHART_LISBON_TZ_LABEL})`;
+    }
+
+    function chartTimelineGranularityNote(granularity) {
+      return granularity === 'hour'
+        ? `Granularidade por hora (${CHART_LISBON_TZ_LABEL}).`
+        : `Granularidade por dia (${CHART_LISBON_TZ_LABEL}).`;
+    }
+
     function getTimelineSeries(stats) {
       if (hasCustomDateFilter()) {
         const custom = stats?.timelineSeries?.custom;
@@ -4073,7 +4089,7 @@
       const xLabels = points.filter((_, i) => i % labelStep === 0 || i === points.length - 1).map((p) =>
         `<text class="line-label" x="${p.x}" y="${h - 6}" text-anchor="middle">${formatTimelineLabel(p.key, granularity)}</text>`
       ).join('');
-      const granLabel = granularity === 'hour' ? 'por hora (UTC)' : 'por dia (UTC)';
+      const granLabel = chartTimelineGranularityLabel(granularity);
       const gradId = 'lineGrad-' + color.replace('#', '');
       const layout = { w, h, padX, padY, innerW, innerH };
       el.innerHTML = `
@@ -4130,7 +4146,7 @@
         const y = padY + innerH - (point.count / max) * innerH;
         return `${x.toFixed(1)},${y.toFixed(1)}`;
       }).join(' ');
-      const granLabel = granularity === 'hour' ? 'por hora (UTC)' : 'por dia (UTC)';
+      const granLabel = chartTimelineGranularityLabel(granularity);
       el.innerHTML = `
         <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Reportes ${granLabel}">
           ${renderTimelineGrid(layout)}
@@ -4158,7 +4174,7 @@
         const y = padY + innerH - barH;
         return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${barH.toFixed(1)}" fill="${color}" rx="2" />`;
       }).join('');
-      const granLabel = granularity === 'hour' ? 'por hora (UTC)' : 'por dia (UTC)';
+      const granLabel = chartTimelineGranularityLabel(granularity);
       el.innerHTML = `
         <div class="chart-interactive">
           <div class="chart-tooltip" hidden></div>
@@ -4206,7 +4222,7 @@
           return rect;
         }).join('');
       }).join('');
-      const granLabel = granularity === 'hour' ? 'por hora (UTC)' : 'por dia (UTC)';
+      const granLabel = chartTimelineGranularityLabel(granularity);
       el.innerHTML = `
         <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Reportes empilhados ${granLabel}">
           ${renderTimelineGrid(layout)}
@@ -4244,7 +4260,7 @@
           return `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${barW.toFixed(1)}" height="${Math.max(barH, value ? 0 : 2).toFixed(1)}" fill="${getIssueColor(type, typeIndex)}" fill-opacity="${opacity}" rx="2" />`;
         }).join('');
       }).join('');
-      const granLabel = granularity === 'hour' ? 'por hora (UTC)' : 'por dia (UTC)';
+      const granLabel = chartTimelineGranularityLabel(granularity);
       el.innerHTML = `
         <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Reportes agrupados ${granLabel}">
           ${renderTimelineGrid(layout)}
@@ -4405,9 +4421,7 @@
           : `Reportes — ${meta.label}`;
       }
       if (noteEl) {
-        const base = meta.granularity === 'hour'
-          ? 'Granularidade por hora (UTC).'
-          : 'Granularidade por dia (UTC).';
+        const base = chartTimelineGranularityNote(meta.granularity);
         const chartLabel = TIMELINE_CHART_TYPES[timelineChartType] || timelineChartType;
         const dateNote = hasCustomDateFilter()
           ? ' Período definido pelos filtros Desde/Até.'
@@ -4588,6 +4602,14 @@
       });
     }
 
+    function formatReportDateTime(report) {
+      if (!report) return '';
+      if (report.createdAtPortugal) return report.createdAtPortugal;
+      if (report.receivedAt) return formatPortugalDateTime(report.receivedAt);
+      if (report.createdAt) return formatPortugalDateTime(report.createdAt);
+      return '';
+    }
+
     function formatResolvidoEm(report) {
       if (!report) return '';
       if (report.resolvedAtPortugal) return report.resolvedAtPortugal;
@@ -4622,7 +4644,7 @@
         `Reporte: ${r.reportId || '—'}`,
         `Estado: ${formatReportStatusLabel(r)}`,
         formatResolvidoEm(r) ? `Resolvido em: ${formatResolvidoEm(r)}` : null,
-        `Data: ${r.createdAtPortugal || r.receivedAt || '—'}`,
+        `Data: ${formatReportDateTime(r) || '—'}`,
         `Problema: ${r.issueLabel || ISSUE_LABELS[r.issueType] || r.issueType || '—'}`,
         '',
         `Pergunta: ${r.question || '—'}`,
@@ -5765,7 +5787,17 @@
       '24h': { label: 'últimas 24 horas', granularity: 'minute', lookbackMs: 24 * 60 * 60 * 1000 },
       '48h': { label: 'últimas 48 horas', granularity: 'minute', lookbackMs: 48 * 60 * 60 * 1000 },
     };
+    const AI_USAGE_GRANULARITIES = {
+      '1': { label: '1 min', bucketMinutes: 1 },
+      '15': { label: '15 min', bucketMinutes: 15 },
+      '30': { label: '30 min', bucketMinutes: 30 },
+      '60': { label: '1 h', bucketMinutes: 60 },
+      '180': { label: '3 h', bucketMinutes: 180 },
+      '5': { label: '5 min', bucketMinutes: 5 },
+    };
+    const AI_USAGE_THREE_HOURS_MS = 3 * 60 * 60 * 1000;
     const AI_USAGE_RANGE_STORAGE_KEY = 'reino_admin_ai_usage_range';
+    const AI_USAGE_GRANULARITY_STORAGE_KEY = 'reino_admin_ai_usage_granularity';
     const AI_USAGE_PROVIDER_STORAGE_KEY = 'reino_admin_ai_usage_provider';
     const AI_USAGE_MODEL_STORAGE_KEY = 'reino_admin_ai_usage_model';
     const AI_USAGE_BUCKET_MINUTES = 5;
@@ -5775,9 +5807,10 @@
     let lastTelemetryOverrides = [];
     let lastAiStatusPayload = null;
     let aiUsageRange = '24h';
+    let aiUsageGranularity = '5';
     let aiUsageProviderFilter = '';
     let aiUsageModelFilter = '';
-    let aiUsageRefScaleByChart = { main: false, minute: false, tokensMinute: false };
+    let aiUsageRefScaleByChart = { main: false, tokensMinute: false };
     let telemetryGameModeFilter = '';
     let telemetryTimelineRange = '14d';
     let telemetryTimelineChartType = 'stacked';
@@ -5792,6 +5825,10 @@
       }
       const savedAiUsageRange = localStorage.getItem(AI_USAGE_RANGE_STORAGE_KEY);
       if (savedAiUsageRange && AI_USAGE_RANGES[savedAiUsageRange]) aiUsageRange = savedAiUsageRange;
+      const savedAiUsageGranularity = localStorage.getItem(AI_USAGE_GRANULARITY_STORAGE_KEY);
+      if (savedAiUsageGranularity && AI_USAGE_GRANULARITIES[savedAiUsageGranularity]) {
+        aiUsageGranularity = savedAiUsageGranularity;
+      }
       aiUsageProviderFilter = localStorage.getItem(AI_USAGE_PROVIDER_STORAGE_KEY) || '';
       aiUsageModelFilter = localStorage.getItem(AI_USAGE_MODEL_STORAGE_KEY) || '';
     } catch { /* ignore */ }
@@ -6024,37 +6061,105 @@
       return parts.join(' · ');
     }
 
+    function formatAiUsageBucketLabel(bucketMinutes) {
+      const m = Number(bucketMinutes) || 5;
+      if (m === 1) return '1 min';
+      if (m === 5) return '5 min';
+      if (m === 60) return '1 h';
+      if (m >= 60 && m % 60 === 0) return `${m / 60} h`;
+      return `${m} min`;
+    }
+
+    function resolveAiUsageBucketConfig(rangeKey = aiUsageRange, granularityKey = aiUsageGranularity) {
+      const range = AI_USAGE_RANGES[rangeKey] || AI_USAGE_RANGES['24h'];
+      const gran = AI_USAGE_GRANULARITIES[granularityKey] || AI_USAGE_GRANULARITIES['5'];
+      let bucketMinutes = gran.bucketMinutes;
+      const forcedFiveMin = range.lookbackMs >= AI_USAGE_THREE_HOURS_MS || bucketMinutes >= 180;
+      if (forcedFiveMin) bucketMinutes = 5;
+      const useMinuteSource = !forcedFiveMin && bucketMinutes < 5;
+      return {
+        bucketMinutes,
+        lookbackMs: range.lookbackMs,
+        useMinuteSource,
+        forcedFiveMin,
+        granularityLabel: formatAiUsageBucketLabel(bucketMinutes),
+      };
+    }
+
+    function getAiUsageSourceRows(aiUsage, useMinuteSource) {
+      const rows = useMinuteSource
+        ? (Array.isArray(aiUsage?.minuteDimensionRows) ? aiUsage.minuteDimensionRows : [])
+        : (Array.isArray(aiUsage?.dimensionRows) ? aiUsage.dimensionRows : []);
+      if (!aiUsageProviderFilter && !aiUsageModelFilter) return rows;
+      return filterAiUsageDimensionRows(rows, aiUsageProviderFilter, aiUsageModelFilter);
+    }
+
+    function buildAiUsageBucketForRange(aiUsage, rangeKey, granularityKey = aiUsageGranularity) {
+      const config = resolveAiUsageBucketConfig(rangeKey, granularityKey);
+      const rows = getAiUsageSourceRows(aiUsage, config.useMinuteSource);
+      if (!rows.length) {
+        const canUseServerTimeline = !config.useMinuteSource
+          && !aiUsageProviderFilter
+          && !aiUsageModelFilter
+          && config.bucketMinutes === AI_USAGE_BUCKET_MINUTES
+          && aiUsage?.timeline?.[rangeKey];
+        if (canUseServerTimeline) return aiUsage.timeline[rangeKey];
+        return buildAiUsageBucketSeries([], config.lookbackMs, config.bucketMinutes);
+      }
+      const aggregated = aggregateAiUsageRows(rows);
+      return buildAiUsageBucketSeries(aggregated, config.lookbackMs, config.bucketMinutes);
+    }
+
+    function updateAiUsageGranularityUi() {
+      const config = resolveAiUsageBucketConfig();
+      document.querySelectorAll('#aiUsageGranularityFilters [data-ai-usage-granularity]').forEach((btn) => {
+        const key = btn.dataset.aiUsageGranularity;
+        const gran = AI_USAGE_GRANULARITIES[key];
+        const disabled = config.forcedFiveMin && key !== '5';
+        btn.disabled = disabled;
+        btn.classList.toggle('disabled', disabled);
+        const activeKey = config.forcedFiveMin ? '5' : aiUsageGranularity;
+        btn.classList.toggle('active', key === activeKey);
+      });
+    }
+
+    function formatAiUsageGranularityNote(bucketConfig) {
+      return bucketConfig.forcedFiveMin
+        ? 'Buckets de 5 min (período ≥ 3 h).'
+        : `Buckets de ${bucketConfig.granularityLabel} (Lisboa).`;
+    }
+
+    function getAiUsageChartContext(aiUsage) {
+      const meta = AI_USAGE_RANGES[aiUsageRange] || AI_USAGE_RANGES['24h'];
+      const bucketConfig = resolveAiUsageBucketConfig();
+      const view = buildAiUsageView(aiUsage);
+      const filterSuffix = view.filterLabel ? ` · ${view.filterLabel}` : '';
+      const bucket = view.timeline?.[aiUsageRange] || null;
+      return { meta, bucketConfig, view, bucket, filterSuffix };
+    }
+
     function buildAiUsageView(aiUsage) {
       if (!aiUsage?.available) return { timeline: null, summary: null, filterLabel: '' };
-      const hasFilter = !!(aiUsageProviderFilter || aiUsageModelFilter);
-      if (!hasFilter && aiUsage.timeline) {
-        return {
-          timeline: aiUsage.timeline,
-          summary: aiUsage.summary,
-          filterLabel: '',
-        };
-      }
       const dimensionRows = Array.isArray(aiUsage.dimensionRows) ? aiUsage.dimensionRows : [];
-      if (!dimensionRows.length) {
+      const minuteRows = Array.isArray(aiUsage.minuteDimensionRows) ? aiUsage.minuteDimensionRows : [];
+      const hasFilter = !!(aiUsageProviderFilter || aiUsageModelFilter);
+      if (!hasFilter && !dimensionRows.length && !minuteRows.length && aiUsage.timeline) {
         return {
           timeline: aiUsage.timeline,
           summary: aiUsage.summary,
           filterLabel: '',
         };
       }
-      const filtered = filterAiUsageDimensionRows(
-        dimensionRows,
-        aiUsageProviderFilter,
-        aiUsageModelFilter,
-      );
-      const aggregated = aggregateAiUsageRows(filtered);
       const timeline = {};
-      Object.entries(AI_USAGE_RANGES).forEach(([key, cfg]) => {
-        timeline[key] = buildAiUsageBucketSeries(aggregated, cfg.lookbackMs);
+      Object.keys(AI_USAGE_RANGES).forEach((key) => {
+        timeline[key] = buildAiUsageBucketForRange(aiUsage, key);
       });
+      const summaryRows = hasFilter
+        ? aggregateAiUsageRows(filterAiUsageDimensionRows(dimensionRows, aiUsageProviderFilter, aiUsageModelFilter))
+        : aggregateAiUsageRows(dimensionRows);
       return {
         timeline,
-        summary: computeAiUsageSummary(aggregated),
+        summary: dimensionRows.length ? computeAiUsageSummary(summaryRows) : aiUsage.summary,
         filterLabel: buildAiUsageFilterLabel(aiUsageProviderFilter, aiUsageModelFilter),
       };
     }
@@ -6142,27 +6247,111 @@
       if (!modelEl.value) aiUsageModelFilter = '';
     }
 
-    function buildAiUsageMinuteView(aiUsage) {
-      const hasFilter = !!(aiUsageProviderFilter || aiUsageModelFilter);
-      if (!hasFilter && aiUsage?.minuteTimeline) {
-        return { bucket: aiUsage.minuteTimeline, filterLabel: '' };
+    function renderAiUsageTokensMinuteChart(aiUsage, aiStatus) {
+      const tokensChartEl = document.getElementById('chartAiUsageTokensMinute');
+      const tokensNoteEl = document.getElementById('aiUsageTokensMinuteNote');
+      const tokensTitleEl = document.getElementById('chartAiUsageTokensMinuteTitle');
+      if (!tokensChartEl) return;
+      const { meta, bucketConfig, bucket, filterSuffix } = getAiUsageChartContext(aiUsage);
+      const granSuffix = ` · ${bucketConfig.granularityLabel}`;
+      if (tokensTitleEl) tokensTitleEl.textContent = `Tokens — ${meta.label}${granSuffix}${filterSuffix}`;
+      if (!aiUsage?.available) {
+        tokensChartEl.innerHTML = '<div class="chart-empty">Indisponível — executa ai-usage-minute-buckets.sql.</div>';
+        return;
       }
-      const minuteRows = Array.isArray(aiUsage?.minuteDimensionRows) ? aiUsage.minuteDimensionRows : [];
-      if (!minuteRows.length && aiUsage?.minuteTimeline) {
-        return { bucket: aiUsage.minuteTimeline, filterLabel: '' };
+      const isEmpty = !bucket
+        || ((bucket.totalTokens || 0) === 0 && !(bucket.quotaPressure || []).some((p) => (Number(p.v) || 0) > 0));
+      if (isEmpty) {
+        tokensChartEl.innerHTML = '<div class="chart-empty">Sem dados de tokens neste período.</div>';
+        if (tokensNoteEl) tokensNoteEl.textContent = `${formatAiUsageGranularityNote(bucketConfig)} Tokens aparecem após pedidos com tokens registados.`;
+        return;
       }
-      const filtered = filterAiUsageDimensionRows(
-        minuteRows,
-        aiUsageProviderFilter,
-        aiUsageModelFilter,
-      );
-      const aggregated = aggregateAiUsageRows(filtered);
-      return {
-        bucket: buildAiUsageBucketSeries(aggregated, 60 * 60 * 1000, 1),
-        filterLabel: buildAiUsageFilterLabel(aiUsageProviderFilter, aiUsageModelFilter),
-      };
+      const isMinuteBucket = bucketConfig.bucketMinutes === 1;
+      const bucketUnit = isMinuteBucket ? 'min' : bucketConfig.granularityLabel;
+      const minuteTokenLimit = isMinuteBucket
+        ? extractAiMinuteTokenLimit(aiStatus, aiUsageProviderFilter)
+        : null;
+      const providerSummary = aiUsageProviderFilter
+        ? aiStatus?.providers?.[aiUsageProviderFilter]?.summary
+        : null;
+      const peakTokens = Math.max(...(bucket.tokens || []).map((p) => Number(p.v) || 0), 0);
+      const peakQuota = bucket.peakQuotaPressure
+        || Math.max(...(bucket.quotaPressure || []).map((p) => Number(p.v) || 0), 0);
+      const chartPeak = Math.max(peakTokens, peakQuota);
+      const hasQuotaPressure = (bucket.quotaPressure || []).some((p) => (Number(p.v) || 0) > 0);
+      const totalLimitHits = bucket.totalLimitHits || 0;
+      const minuteLimitHit = isMinuteBucket && isAiProviderMinuteLimitExhausted(providerSummary);
+      if (tokensNoteEl) {
+        const parts = [`No período: <strong>${formatAiUsageTokenCount(bucket.totalTokens || 0)}</strong> tokens desta app`];
+        if (peakTokens > 0) {
+          parts.push(`pico app: <strong>${formatAiUsageTokenCount(peakTokens)}</strong>/${bucketUnit}`);
+        }
+        if (hasQuotaPressure && peakQuota > 0) {
+          parts.push(`pico quota API: <strong>${formatAiUsageTokenCountPrecise(peakQuota)}</strong>/${bucketUnit}`);
+        }
+        if (totalLimitHits > 0) {
+          parts.push(`<strong class="limit-hit-inline">${totalLimitHits} bloqueio(s) por limite</strong>`);
+        }
+        if (minuteTokenLimit) {
+          const peakPct = chartPeak > 0
+            ? Math.min(100, Math.round((chartPeak / minuteTokenLimit) * 1000) / 10)
+            : null;
+          const liveRemaining = quotaWindowRemaining(
+            providerSummary?.tokens_used,
+            providerSummary?.tokens_limit,
+            providerSummary?.tokens_remaining,
+          );
+          parts.push(`limite: <strong>${formatAiUsageTokenCount(minuteTokenLimit)}</strong>/min${peakPct != null ? ` (pico ${peakPct}%)` : ''}`);
+          if (minuteLimitHit) {
+            parts.push(`<strong class="limit-hit-inline">limite atingido agora</strong>`);
+          } else if (liveRemaining != null && providerSummary?.tokens_limit) {
+            parts.push(`<span class="quota-margin-ok">${formatAiUsageTokenCountPrecise(liveRemaining)} de margem agora</span>`);
+          }
+        } else if (isMinuteBucket && aiUsageProviderFilter) {
+          parts.push('sem limite tokens/min conhecido');
+        } else if (isMinuteBucket) {
+          parts.push('selecciona um fornecedor para ver o limite');
+        }
+        parts.push(formatAiUsageGranularityNote(bucketConfig));
+        tokensNoteEl.innerHTML = `${parts.join(' · ')}.`;
+      }
+      const tokensEmpty = (!Array.isArray(bucket.tokens) || bucket.tokens.length === 0)
+        && (!hasQuotaPressure)
+        && ((bucket.totalTokens || 0) === 0);
+      if (tokensEmpty) {
+        tokensChartEl.innerHTML = '<div class="chart-empty">Sem tokens registados nesta janela.</div>';
+        return;
+      }
+      const peakRatio = minuteTokenLimit && chartPeak > 0 ? chartPeak / minuteTokenLimit : 0;
+      const autoScaleLimit = peakRatio >= 0.12 || totalLimitHits > 0 || minuteLimitHit;
+      const scaleRefLimit = aiUsageRefScaleByChart.tokensMinute || autoScaleLimit;
+      const tokenLabelA = isMinuteBucket
+        ? 'Tokens app / min'
+        : `Tokens app / ${bucketConfig.granularityLabel}`;
+      const tokenLabelB = isMinuteBucket
+        ? 'Quota API / min'
+        : `Quota API / ${bucketConfig.granularityLabel}`;
+      renderAiUsageDualChart(tokensChartEl, bucket.tokens, hasQuotaPressure ? bucket.quotaPressure : [], minuteTokenLimit, {
+        chartKey: 'tokensMinute',
+        axisMode: hasQuotaPressure ? 'shared' : 'singleA',
+        labelA: tokenLabelA,
+        labelB: tokenLabelB,
+        granularity: meta.granularity,
+        formatLabel: formatBankTimelineLabel,
+        refLabel: minuteTokenLimit ? 'Limite tokens/min' : undefined,
+        formatValueA: formatAiUsageTokenCount,
+        formatValueB: formatAiUsageTokenCount,
+        axisLabelA: 'Tokens',
+        axisLabelB: 'Quota API',
+        limitExhaustedNow: minuteLimitHit,
+        limitMarkers: bucket.limits,
+        limitStatusHtml: isMinuteBucket
+          ? buildAiUsageLimitStatusHtml(providerSummary, minuteTokenLimit, chartPeak, 'tokens/min')
+          : '',
+        refHighlightPct: 0.95,
+        scaleRefLimit,
+      });
     }
-
     function extractAiMinuteTokenLimit(aiStatus, providerFilter = '') {
       const provider = String(providerFilter || aiUsageProviderFilter || '').trim().toLowerCase();
       if (!provider || !aiStatus?.providers?.[provider]) return null;
@@ -6266,12 +6455,39 @@
       return 'latency-fast';
     }
 
+    function hasAiProviderQuotaData(summary) {
+      if (!summary) return false;
+      return summary.tokens_limit != null
+        || summary.requests_limit != null
+        || summary.tokens_day_limit != null;
+    }
+
+    function isAiProviderNearLimit(summary, thresholdPct = 0.05) {
+      const windows = [
+        [summary?.tokens_used, summary?.tokens_limit, summary?.tokens_remaining],
+        [summary?.requests_used, summary?.requests_limit, summary?.requests_remaining],
+        [summary?.tokens_day_used, summary?.tokens_day_limit, summary?.tokens_day_remaining],
+      ];
+      return windows.some(([used, limit, remaining]) => {
+        const l = Number(limit);
+        if (!Number.isFinite(l) || l <= 0) return false;
+        const left = quotaWindowRemaining(used, limit, remaining);
+        if (left == null || left <= 0) return false;
+        return left / l <= thresholdPct;
+      });
+    }
+
     function aiProviderAvailabilityMeta(summary) {
       if (!summary) return { cls: 'unknown', label: 'sem dados' };
       if (summary.availability === 'billing') return { cls: 'err', label: 'sem créditos' };
       if (summary.availability === 'error') return { cls: 'err', label: 'erro' };
       if (isAiProviderLimitExhausted(summary)) return { cls: 'warn', label: 'aguardar reset' };
+      if (isAiProviderNearLimit(summary)) return { cls: 'warn', label: 'margem baixa' };
+      if (summary.availability === 'limited') {
+        return { cls: 'warn', label: 'limitado' };
+      }
       if (summary.availability === 'ok' || summary.usable !== false) return { cls: 'ok', label: 'OK' };
+      if (hasAiProviderQuotaData(summary)) return { cls: 'ok', label: 'OK' };
       return { cls: 'unknown', label: 'sem dados' };
     }
 
@@ -6472,6 +6688,7 @@
       const meta = aiProviderAvailabilityMeta(summary);
       const label = aiUsageProviderLabel(summary.provider) || summary.label || summary.provider;
       const exhausted = isAiProviderLimitExhausted(summary);
+      const nearLimit = !exhausted && isAiProviderNearLimit(summary);
       const badgeLabel = exhausted ? 'Limite atingido' : meta.label;
       const badgeCls = exhausted ? 'limit-hit' : meta.cls;
       const minuteExhausted = isQuotaWindowExhausted(summary.tokens_used, summary.tokens_limit, summary.tokens_remaining);
@@ -6513,7 +6730,9 @@
         : '';
       const warnLine = exhausted
         ? '<div class="ai-provider-limit-hint">Não enviar pedidos até ao reset da janela bloqueada</div>'
-        : '';
+        : (nearLimit
+          ? '<div class="ai-provider-limit-hint">Quota quase esgotada — margem muito baixa nesta janela</div>'
+          : '');
       const lineCls = exhausted ? 'exhausted' : meta.cls;
       return `<div class="ai-provider-status-line ${lineCls}">
         <div class="ai-provider-status-head">
@@ -6675,12 +6894,14 @@
 
     function buildAiUsageLatencyView(aiUsage) {
       const meta = AI_USAGE_RANGES[aiUsageRange] || AI_USAGE_RANGES['24h'];
-      const dimensionRows = Array.isArray(aiUsage?.dimensionRows) ? aiUsage.dimensionRows : [];
+      const bucketConfig = resolveAiUsageBucketConfig();
+      const rows = getAiUsageSourceRows(aiUsage, bucketConfig.useMinuteSource);
       let models = buildAiUsageLatencyModelSeries(
-        dimensionRows,
+        rows,
         meta.lookbackMs,
         aiUsageProviderFilter,
         aiUsageModelFilter,
+        bucketConfig.bucketMinutes,
       );
       if (!models.length) {
         const view = buildAiUsageView(aiUsage);
@@ -6698,6 +6919,7 @@
         models,
         filterLabel: buildAiUsageFilterLabel(aiUsageProviderFilter, aiUsageModelFilter),
         meta,
+        bucketConfig,
       };
     }
 
@@ -6728,7 +6950,7 @@
         : null;
       if (noteEl) {
         const avgNote = periodAvg != null ? ` Média no período: <strong>${formatAiLatencyMs(periodAvg)}</strong>.` : '';
-        noteEl.innerHTML = `Uma linha por modelo (até ${AI_LATENCY_COLORS.length}). Buckets de 5 min, hora de Lisboa.${avgNote} Tracejados: ${AI_LATENCY_WARN_MS} ms e ${formatAiLatencyMs(AI_LATENCY_SLOW_MS)}.`;
+        noteEl.innerHTML = `${formatAiUsageGranularityNote(latencyView.bucketConfig)}${avgNote} Uma linha por modelo (até ${AI_LATENCY_COLORS.length}). Tracejados: ${AI_LATENCY_WARN_MS} ms e ${formatAiLatencyMs(AI_LATENCY_SLOW_MS)}.`;
       }
       renderAiUsageLatencyMultiChart(chartEl, latencyView.models, latencyView.meta.granularity);
     }
@@ -6811,122 +7033,6 @@
           </svg>
         </div>
       `;
-    }
-
-    function renderAiUsageMinuteChart(aiUsage, aiStatus) {
-      const chartEl = document.getElementById('chartAiUsageMinute');
-      const tokensChartEl = document.getElementById('chartAiUsageTokensMinute');
-      const noteEl = document.getElementById('aiUsageMinuteNote');
-      const tokensNoteEl = document.getElementById('aiUsageTokensMinuteNote');
-      const titleEl = document.getElementById('chartAiUsageMinuteTitle');
-      const tokensTitleEl = document.getElementById('chartAiUsageTokensMinuteTitle');
-      if (!chartEl) return;
-      if (!aiUsage?.available) {
-        chartEl.innerHTML = '<div class="chart-empty">Indisponível — executa ai-usage-minute-buckets.sql.</div>';
-        if (tokensChartEl) tokensChartEl.innerHTML = '<div class="chart-empty">Indisponível — executa ai-usage-minute-buckets.sql.</div>';
-        return;
-      }
-      const minuteView = buildAiUsageMinuteView(aiUsage);
-      const bucket = minuteView.bucket;
-      const filterSuffix = minuteView.filterLabel ? ` · ${minuteView.filterLabel}` : '';
-      if (titleEl) titleEl.textContent = `Pedidos · última hora (por minuto)${filterSuffix}`;
-      if (tokensTitleEl) tokensTitleEl.textContent = `Tokens/min · última hora${filterSuffix}`;
-      const isEmpty = !bucket
-        || ((bucket.totalRequests || 0) === 0 && (bucket.totalTokens || 0) === 0 && (bucket.totalErrors || 0) === 0);
-      if (isEmpty) {
-        chartEl.innerHTML = '<div class="chart-empty">Sem dados minuto a minuto — aparecem após pedidos com a migração e deploy activos.</div>';
-        if (tokensChartEl) tokensChartEl.innerHTML = '<div class="chart-empty">Sem dados de tokens por minuto.</div>';
-        if (noteEl) {
-          noteEl.textContent = 'Executa supabase/ai-usage-minute-buckets.sql e faz deploy para registar pedidos por minuto.';
-        }
-        if (tokensNoteEl) tokensNoteEl.textContent = 'Tokens por minuto aparecem após pedidos com tokens registados.';
-        return;
-      }
-      const minuteTokenLimit = extractAiMinuteTokenLimit(aiStatus, aiUsageProviderFilter);
-      const providerSummary = aiUsageProviderFilter
-        ? aiStatus?.providers?.[aiUsageProviderFilter]?.summary
-        : null;
-      const peakTokensMin = Math.max(...(bucket.tokens || []).map((p) => Number(p.v) || 0), 0);
-      const peakQuotaMin = bucket.peakQuotaPressure
-        || Math.max(...(bucket.quotaPressure || []).map((p) => Number(p.v) || 0), 0);
-      const chartPeak = Math.max(peakTokensMin, peakQuotaMin);
-      const hasQuotaPressure = (bucket.quotaPressure || []).some((p) => (Number(p.v) || 0) > 0);
-      const totalLimitHits = bucket.totalLimitHits || 0;
-      const minuteLimitHit = isAiProviderMinuteLimitExhausted(providerSummary);
-      if (noteEl) {
-        noteEl.innerHTML = `Últimos 60 min: <strong>${bucket.totalRequests || 0}</strong> pedido(s) · <strong>${bucket.totalErrors || 0}</strong> erro(s). Actualiza a cada minuto.`;
-      }
-      if (tokensNoteEl) {
-        const parts = [`Últimos 60 min: <strong>${formatAiUsageTokenCount(bucket.totalTokens || 0)}</strong> tokens desta app`];
-        if (peakTokensMin > 0) {
-          parts.push(`pico app: <strong>${formatAiUsageTokenCount(peakTokensMin)}</strong>/min`);
-        }
-        if (hasQuotaPressure && peakQuotaMin > 0) {
-          parts.push(`pico quota API: <strong>${formatAiUsageTokenCountPrecise(peakQuotaMin)}</strong>/min`);
-        }
-        if (totalLimitHits > 0) {
-          parts.push(`<strong class="limit-hit-inline">${totalLimitHits} bloqueio(s) por limite</strong>`);
-        }
-        if (minuteTokenLimit) {
-          const peakPct = chartPeak > 0
-            ? Math.min(100, Math.round((chartPeak / minuteTokenLimit) * 1000) / 10)
-            : null;
-          const liveRemaining = quotaWindowRemaining(
-            providerSummary?.tokens_used,
-            providerSummary?.tokens_limit,
-            providerSummary?.tokens_remaining,
-          );
-          parts.push(`limite: <strong>${formatAiUsageTokenCount(minuteTokenLimit)}</strong>/min${peakPct != null ? ` (pico ${peakPct}%)` : ''}`);
-          if (minuteLimitHit) {
-            parts.push(`<strong class="limit-hit-inline">limite atingido agora</strong>`);
-          } else if (liveRemaining != null && providerSummary?.tokens_limit) {
-            parts.push(`<span class="quota-margin-ok">${formatAiUsageTokenCountPrecise(liveRemaining)} de margem agora</span>`);
-          }
-        } else if (aiUsageProviderFilter) {
-          parts.push('sem limite tokens/min conhecido');
-        } else {
-          parts.push('selecciona um fornecedor para ver o limite');
-        }
-        tokensNoteEl.innerHTML = `${parts.join(' · ')}.`;
-      }
-      renderAiUsageDualChart(chartEl, bucket.requests, [], null, {
-        chartKey: 'minute',
-        axisMode: 'singleA',
-        labelA: 'Pedidos / min',
-        granularity: 'minute',
-        formatLabel: formatBankTimelineLabel,
-        formatValueA: formatAiUsageAxisCount,
-        axisLabelA: 'Pedidos',
-      });
-      if (!tokensChartEl) return;
-      const tokensEmpty = (!Array.isArray(bucket.tokens) || bucket.tokens.length === 0)
-        && (!hasQuotaPressure)
-        && ((bucket.totalTokens || 0) === 0);
-      if (tokensEmpty) {
-        tokensChartEl.innerHTML = '<div class="chart-empty">Sem tokens registados nesta janela. Executa supabase/ai-usage-quota-minute.sql após deploy.</div>';
-        return;
-      }
-      const peakRatio = minuteTokenLimit && chartPeak > 0 ? chartPeak / minuteTokenLimit : 0;
-      const autoScaleLimit = peakRatio >= 0.12 || totalLimitHits > 0 || minuteLimitHit;
-      const scaleRefLimit = aiUsageRefScaleByChart.tokensMinute || autoScaleLimit;
-      renderAiUsageDualChart(tokensChartEl, bucket.tokens, hasQuotaPressure ? bucket.quotaPressure : [], minuteTokenLimit, {
-        chartKey: 'tokensMinute',
-        axisMode: hasQuotaPressure ? 'shared' : 'singleA',
-        labelA: 'Tokens app / min',
-        labelB: 'Quota API / min',
-        granularity: 'minute',
-        formatLabel: formatBankTimelineLabel,
-        refLabel: minuteTokenLimit ? 'Limite tokens/min' : undefined,
-        formatValueA: formatAiUsageTokenCount,
-        formatValueB: formatAiUsageTokenCount,
-        axisLabelA: 'Tokens',
-        axisLabelB: 'Quota API',
-        limitExhaustedNow: minuteLimitHit,
-        limitMarkers: bucket.limits,
-        limitStatusHtml: buildAiUsageLimitStatusHtml(providerSummary, minuteTokenLimit, chartPeak, 'tokens/min'),
-        refHighlightPct: 0.95,
-        scaleRefLimit,
-      });
     }
 
     function extractAiQuotaLimit(aiStatus, aiUsage, providerFilter = '') {
@@ -7013,8 +7119,10 @@
       document.querySelectorAll('#aiUsageRangeFilters [data-ai-usage-range]').forEach((btn) => {
         btn.classList.toggle('active', btn.dataset.aiUsageRange === aiUsageRange);
       });
+      updateAiUsageGranularityUi();
 
       const meta = AI_USAGE_RANGES[aiUsageRange] || AI_USAGE_RANGES['24h'];
+      const bucketConfig = resolveAiUsageBucketConfig();
       const view = buildAiUsageView(aiUsage);
       const filterSuffix = view.filterLabel ? ` · ${view.filterLabel}` : '';
       if (titleEl) titleEl.textContent = `Consumo API e quotas — ${meta.label}${filterSuffix}`;
@@ -7023,8 +7131,8 @@
 
       if (!aiUsage?.available) {
         chartEl.innerHTML = `<div class="chart-empty">${esc(aiUsage?.error || 'Executa supabase/ai-usage-buckets.sql no Supabase.')}</div>`;
-        if (noteEl) noteEl.textContent = 'Contadores agregados por POST /api/generate (buckets de 5 min, retenção 48 h).';
-        renderAiUsageMinuteChart(aiUsage, aiStatus);
+        if (noteEl) noteEl.textContent = 'Contadores agregados por POST /api/generate (retenção 48 h).';
+        renderAiUsageTokensMinuteChart(aiUsage, aiStatus);
         renderAiUsageLatencyChart(aiUsage);
         return;
       }
@@ -7037,11 +7145,14 @@
       if (isEmpty) {
         chartEl.innerHTML = '<div class="chart-empty">Ainda sem pedidos registados — gera perguntas com IA para popular o gráfico.</div>';
         if (noteEl) {
+          const granNote = bucketConfig.forcedFiveMin
+            ? 'Período ≥ 3 h: buckets fixos de 5 min.'
+            : `Buckets de ${bucketConfig.granularityLabel} (Lisboa).`;
           noteEl.textContent = hasDimensionalData && (aiUsageProviderFilter || aiUsageModelFilter)
-            ? 'Sem pedidos para este fornecedor/modelo no período.'
-            : 'Buckets de 5 minutos (Lisboa). Os dados aparecem após o primeiro pedido a /api/generate.';
+            ? `Sem pedidos para este fornecedor/modelo no período. ${granNote}`
+            : `${granNote} Os dados aparecem após o primeiro pedido a /api/generate.`;
         }
-        renderAiUsageMinuteChart(aiUsage, aiStatus);
+        renderAiUsageTokensMinuteChart(aiUsage, aiStatus);
         renderAiUsageLatencyChart(aiUsage);
         return;
       }
@@ -7066,12 +7177,15 @@
         const tokenNote = topSeries.quotaKind === 'tokens'
           ? ` · <strong>${formatAiUsageTokenCount(periodTokens)}</strong> tokens`
           : '';
-        noteEl.innerHTML = `No período: <strong>${periodRequests}</strong> pedido(s)${tokenNote} · <strong>${periodErrors}</strong> erro(s).${filterNote}${quotaNote}`;
+        const granNote = bucketConfig.forcedFiveMin
+          ? 'Buckets de 5 min (período ≥ 3 h).'
+          : `Buckets de ${bucketConfig.granularityLabel}.`;
+        noteEl.innerHTML = `No período: <strong>${periodRequests}</strong> pedido(s)${tokenNote} · <strong>${periodErrors}</strong> erro(s). ${granNote}${filterNote}${quotaNote}`;
       }
 
       renderAiUsageDualChart(chartEl, bucket.requests, topSeries.seriesB, topSeries.refLimit, {
         chartKey: 'main',
-        labelA: 'Pedidos / 5 min',
+        labelA: `Pedidos / ${bucketConfig.granularityLabel}`,
         labelB: topSeries.labelB,
         granularity: meta.granularity,
         formatLabel: formatBankTimelineLabel,
@@ -7081,7 +7195,7 @@
         axisLabelB: topSeries.axisLabelB,
         refLabel: topSeries.refLabel,
       });
-      renderAiUsageMinuteChart(aiUsage, aiStatus);
+      renderAiUsageTokensMinuteChart(aiUsage, aiStatus);
       renderAiUsageLatencyChart(aiUsage);
     }
 
@@ -7107,7 +7221,6 @@
 
     function resetAiUsageRefScale() {
       aiUsageRefScaleByChart.main = false;
-      aiUsageRefScaleByChart.minute = false;
       aiUsageRefScaleByChart.tokensMinute = false;
     }
 
@@ -7431,8 +7544,8 @@
       if (titleEl) titleEl.textContent = `Evolução temporal — ${meta.label}`;
       if (noteEl) {
         noteEl.textContent = meta.granularity === 'hour'
-          ? 'Tentativas de geração IA por hora (UTC).'
-          : 'Tentativas de geração IA por dia (UTC).';
+          ? `Tentativas de geração IA por hora (${CHART_LISBON_TZ_LABEL}).`
+          : `Tentativas de geração IA por dia (${CHART_LISBON_TZ_LABEL}).`;
       }
 
       if (!summary?.total) {
@@ -7684,7 +7797,7 @@
           ? (GEN_GAME_MODE_LABELS[telemetryGameModeFilter] || telemetryGameModeFilter)
           : 'todos os modos';
         if (updatedEl) {
-          updatedEl.textContent = `Actualizado ${new Date().toLocaleTimeString('pt-PT')} · ${modeLabel}`;
+          updatedEl.textContent = `Actualizado ${formatPortugalDateTime(new Date())} · ${modeLabel}`;
         }
         if (statusEl) {
           statusEl.textContent = data.stats?.total
@@ -7801,7 +7914,7 @@
         const noteIcon = (r.comment || r.suggestion) ? ' <span class="pill" title="Tem comentário ou sugestão">💬</span>' : '';
         return `<tr data-id="${esc(r.reportId)}" class="report-main-row${isOpen ? ' open' : ''}${status === 'resolved' ? ' is-resolved' : ''}${status === 'cancelled' ? ' is-cancelled' : ''}">
           <td data-label="Selecionar"><input type="checkbox" class="row-check report-select" data-id="${esc(r.reportId)}" ${checked} aria-label="Selecionar reporte"></td>
-          <td data-label="Data" class="col-date">${esc(r.createdAtPortugal || r.receivedAt || '')}</td>
+          <td data-label="Data" class="col-date">${esc(formatReportDateTime(r))}</td>
           <td data-label="Estado">${statusPill(r)}</td>
           <td data-label="Resolvido em" class="col-resolved">${status === 'resolved' ? esc(formatResolvidoEm(r) || '—') : '—'}</td>
           <td data-label="Problema"><span class="pill">${esc(r.issueLabel || ISSUE_LABELS[r.issueType] || r.issueType)}</span>${noteIcon}</td>
@@ -9998,7 +10111,7 @@
         renderGameStatsDashboard(stats);
         const updatedEl = document.getElementById('gameStatsLastUpdated');
         if (updatedEl) {
-          updatedEl.textContent = `Actualizado ${new Date().toLocaleString('pt-PT')}${source === 'local-fallback' ? ' (fallback local)' : ''}`;
+          updatedEl.textContent = `Actualizado ${formatPortugalDateTime(new Date())}${source === 'local-fallback' ? ' (fallback local)' : ''}`;
         }
         if (statusEl) {
           const note = stats.meta?.hasAnswerData
@@ -11414,7 +11527,7 @@
       for (const r of lastReports) {
         const isSite = String(r.source) === 'site' || String(r.format) === 'SITE' || String(r.issueType || '').startsWith('site_');
         rows.push([
-          r.createdAtPortugal || r.receivedAt || '',
+          formatReportDateTime(r) || '',
           formatReportStatusLabel(r),
           formatResolvidoEm(r),
           r.issueLabel || r.issueType || '',
@@ -11964,6 +12077,14 @@
       if (!btn || !AI_USAGE_RANGES[btn.dataset.aiUsageRange]) return;
       aiUsageRange = btn.dataset.aiUsageRange;
       try { localStorage.setItem(AI_USAGE_RANGE_STORAGE_KEY, aiUsageRange); } catch { /* ignore */ }
+      resetAiUsageRefScale();
+      renderAiUsageChart(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
+    });
+    document.getElementById('aiUsageGranularityFilters')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-ai-usage-granularity]');
+      if (!btn || btn.disabled || !AI_USAGE_GRANULARITIES[btn.dataset.aiUsageGranularity]) return;
+      aiUsageGranularity = btn.dataset.aiUsageGranularity;
+      try { localStorage.setItem(AI_USAGE_GRANULARITY_STORAGE_KEY, aiUsageGranularity); } catch { /* ignore */ }
       resetAiUsageRefScale();
       renderAiUsageChart(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
     });
