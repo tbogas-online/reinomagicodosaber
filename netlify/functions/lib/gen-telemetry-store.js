@@ -53,7 +53,110 @@ function telemetryContentMatches(row, content) {
   const rq = stripTags(row.question_text);
   const ra = stripTags(row.answer_text);
   if (!rq || !ra) return false;
-  return rq === content.q && ra === content.a;
+  if (rq === content.q && ra === content.a) return true;
+  if (content.hash) {
+    return hashQuestionKey(`${rq}|${ra}`) === content.hash;
+  }
+  return false;
+}
+
+function telemetryHashFromSnapshot(snapshot) {
+  if (!snapshot?.q || !snapshot?.a) return '';
+  return hashQuestionKey(`${stripTags(snapshot.q)}|${stripTags(snapshot.a)}`);
+}
+
+async function fetchExistingBankHashes(hashes) {
+  const list = [...new Set((hashes || []).map((h) => String(h || '').trim()).filter(Boolean))];
+  if (!list.length) return new Set();
+  const found = new Set();
+  const chunkSize = 80;
+  for (let i = 0; i < list.length; i += chunkSize) {
+    const chunk = list.slice(i, i + chunkSize);
+    const params = new URLSearchParams({
+      select: 'question_hash',
+      question_hash: `in.(${chunk.map((h) => encodeURIComponent(h)).join(',')})`,
+      limit: String(chunk.length),
+    });
+    try {
+      const rows = await supabaseRequest(`/question_bank?${params.toString()}`);
+      (Array.isArray(rows) ? rows : []).forEach((row) => {
+        const hash = String(row.question_hash || '').trim();
+        if (hash) found.add(hash);
+      });
+    } catch (err) {
+      console.warn('[gen-telemetry-store] fetch bank hashes:', err?.message || err);
+      break;
+    }
+  }
+  return found;
+}
+
+async function backfillBankValidatedRows(entries) {
+  const cfg = getSupabaseAdmin();
+  if (!cfg || !entries?.length) return { marked: 0 };
+  const now = new Date().toISOString();
+  let marked = 0;
+  for (const entry of entries) {
+    const id = String(entry?.id || '').trim();
+    if (!id) continue;
+    const patch = { bank_validated_at: now };
+    const hash = String(entry.hash || '').trim();
+    if (hash) patch.bank_question_hash = hash;
+    try {
+      await supabaseRequest(`/${TABLE}?id=eq.${encodeURIComponent(id)}&outcome=eq.rejected&bank_validated_at=is.null`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+        prefer: 'return=minimal',
+      });
+      marked += 1;
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (msg.includes('bank_validated_at') || msg.includes('42703')) {
+        return { marked, skipped: 'column_missing' };
+      }
+      console.warn('[gen-telemetry-store] backfill bank validated:', msg);
+    }
+  }
+  return { marked };
+}
+
+async function enrichItemsWithBankValidation(items) {
+  const list = Array.isArray(items) ? items : [];
+  const pending = list.filter((ev) => ev.outcome === 'rejected'
+    && !ev.bankValidatedAt
+    && ev.questionSnapshot?.q
+    && ev.questionSnapshot?.a);
+  if (!pending.length) return list;
+
+  const hashByEventId = new Map();
+  const hashSet = new Set();
+  pending.forEach((ev) => {
+    const hash = telemetryHashFromSnapshot(ev.questionSnapshot);
+    if (!hash) return;
+    hashByEventId.set(ev.id, hash);
+    hashSet.add(hash);
+  });
+  if (!hashSet.size) return list;
+
+  const inBank = await fetchExistingBankHashes([...hashSet]);
+  if (!inBank.size) return list;
+
+  const now = new Date().toISOString();
+  const toBackfill = [];
+  pending.forEach((ev) => {
+    const hash = hashByEventId.get(ev.id);
+    if (!hash || !inBank.has(hash)) return;
+    ev.bankValidatedAt = now;
+    ev.bankQuestionHash = hash;
+    toBackfill.push({ id: ev.id, hash });
+  });
+
+  if (toBackfill.length) {
+    backfillBankValidatedRows(toBackfill).catch((err) => {
+      console.warn('[gen-telemetry-store] backfill bank validated:', err?.message || err);
+    });
+  }
+  return list;
 }
 
 function normalizeQuestionSnapshot(raw) {
@@ -631,6 +734,33 @@ async function markTelemetryBankValidated({
 
   if (!content) return { marked: 0, ids: [] };
 
+  if (hash) {
+    try {
+      const params = new URLSearchParams({
+        select: 'id,question_text,answer_text,bank_validated_at',
+        outcome: 'eq.rejected',
+        bank_validated_at: 'is.null',
+        question_text: 'not.is.null',
+        answer_text: 'not.is.null',
+        order: 'created_at.desc',
+        limit: '800',
+      });
+      const rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+      const matches = (Array.isArray(rows) ? rows : []).filter((row) => {
+        const rowHash = hashQuestionKey(`${stripTags(row.question_text)}|${stripTags(row.answer_text)}`);
+        return rowHash === hash;
+      });
+      await patchRows(matches.map((row) => row.id));
+      if (markedIds.length) return { marked: markedIds.length, ids: markedIds };
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (msg.includes('bank_validated_at') || msg.includes('42703')) {
+        return { marked: 0, ids: [], skipped: 'column_missing' };
+      }
+      throw err;
+    }
+  }
+
   try {
     const params = new URLSearchParams({
       select: 'id,question_text,answer_text,bank_validated_at',
@@ -655,7 +785,7 @@ async function markTelemetryBankValidated({
 }
 
 async function getStats(_event, filters = {}) {
-  const items = await fetchEventItems(filters);
+  const items = await enrichItemsWithBankValidation(await fetchEventItems(filters));
   return {
     ...computeSummaryFromItems(items),
     ...computeTimelineFromItems(items),
@@ -707,4 +837,6 @@ module.exports = {
   isRepoSource,
   repoAcceptedCount,
   markTelemetryBankValidated,
+  enrichItemsWithBankValidation,
+  telemetryHashFromSnapshot,
 };

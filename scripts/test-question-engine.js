@@ -937,6 +937,26 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   ]);
   assert('104d. telemetria validatedInBank', validatedSummary.validatedInBank === 1
     && validatedSummary.byIssueDetail.DIFFICULTY_HARDER_THAN_REQUESTED?.validatedCount === 1);
+  const {
+    telemetryHashFromSnapshot,
+  } = require('../netlify/functions/lib/gen-telemetry-store');
+  const hashSnap = { q: 'Quando foi fundada a UEFA?', a: '1955' };
+  assert('104e. telemetria hash snapshot', telemetryHashFromSnapshot(hashSnap).length > 0);
+  const {
+    buildBucketSeries,
+    recordAiRequest,
+  } = require('../netlify/functions/lib/ai-usage-store');
+  const usageSeries = buildBucketSeries([
+    { bucket_start: new Date().toISOString(), request_count: 2, error_count: 0, token_count: 50 },
+  ], 60 * 60 * 1000, 5);
+  assert('104f. ai usage bucket series', usageSeries.totalRequests >= 2, `got ${usageSeries.totalRequests}`);
+  const minuteSeries = buildBucketSeries([
+    { bucket_start: new Date().toISOString(), request_count: 1, error_count: 0, token_count: 10 },
+  ], 60 * 60 * 1000, 1);
+  assert('104g. ai usage minute series', minuteSeries.totalRequests >= 1, `got ${minuteSeries.totalRequests}`);
+  recordAiRequest({ ok: true, provider: 'groq', model: 'gpt-4o-mini' })
+    .then((r) => assert('104h. ai usage recordAiRequest callable', r && typeof r === 'object'))
+    .catch((err) => assert('104h. ai usage recordAiRequest callable', /fetch|Supabase|not_configured/i.test(String(err?.message || err))));
 }
 
 // 105–110. Fase 4 — pushIssue em ADIVINHA, PT-PT e idade

@@ -77,6 +77,10 @@ function normalizeProvider(value) {
   return String(value || '').trim().toLowerCase();
 }
 
+function normalizeModel(value) {
+  return String(value || '').trim();
+}
+
 function normalizeTokenCount(value) {
   const n = Number(value);
   if (!Number.isFinite(n) || n <= 0) return 0;
@@ -119,7 +123,7 @@ function toLisbonDayKey(date) {
   return key ? key.slice(0, 10) : null;
 }
 
-function bucketKeyToUtcMs(key) {
+function bucketKeyToUtcMs(key, bucketMinutes = BUCKET_MINUTES) {
   if (!key || !String(key).includes('T')) return NaN;
   const [datePart, timePart] = String(key).split('T');
   const [year, month, day] = datePart.split('-').map(Number);
@@ -137,7 +141,7 @@ function bucketKeyToUtcMs(key) {
     const probe = new Date(Date.UTC(year, month - 1, day, hour + offsetHours, minute, 0, 0));
     const parts = formatter.formatToParts(probe);
     const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
-    const probeMinute = Math.floor((Number(map.minute) || 0) / BUCKET_MINUTES) * BUCKET_MINUTES;
+    const probeMinute = Math.floor((Number(map.minute) || 0) / bucketMinutes) * bucketMinutes;
     const probeKey = `${map.year}-${map.month}-${map.day}T${map.hour}:${String(probeMinute).padStart(2, '0')}`;
     if (probeKey === key) return probe.getTime();
   }
@@ -180,7 +184,7 @@ function aggregateRowsByBucket(rows) {
 function buildBucketSeries(rows, lookbackMs, bucketMinutes = BUCKET_MINUTES) {
   const now = new Date();
   const endKey = toLisbonBucketKey(now, bucketMinutes);
-  const endMs = bucketKeyToUtcMs(endKey);
+  const endMs = bucketKeyToUtcMs(endKey, bucketMinutes);
   const startMs = endMs - lookbackMs + bucketMinutes * 60 * 1000;
   const counts = new Map();
 
