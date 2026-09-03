@@ -156,12 +156,17 @@ exports.handler = async (event) => {
 
     const requestedTokens = Number(payload.max_tokens) || 300;
     const requestedModel = typeof payload.model === 'string' ? payload.model : 'auto';
+    const quotaConserve = payload.quota_conserve === true;
+    const providerList = (quotaConserve && !providerStrict) ? providers.slice(0, 1) : providers;
 
     const errors = [];
     const attempted = [];
     const modelsAttempted = [];
-    for (const provider of providers) {
-      const models = resolveModelsForProvider(provider.name, requestedModel, process.env);
+    let rateLimited = false;
+    for (const provider of providerList) {
+      if (rateLimited) break;
+      let models = resolveModelsForProvider(provider.name, requestedModel, process.env);
+      if (quotaConserve) models = models.slice(0, 1);
       for (const model of models) {
         modelsAttempted.push(`${provider.name}:${model}`);
         try {
@@ -183,6 +188,7 @@ exports.handler = async (event) => {
             models_tried: modelsAttempted,
             fallback_used: modelsAttempted.length > 1,
             provider_strict: providerStrict,
+            quota_conserve: quotaConserve,
             api_features: API_FEATURES,
           });
         } catch (err) {
@@ -195,10 +201,14 @@ exports.handler = async (event) => {
               limitHit: true,
               quotaTokensUsed: err.quotaTokensUsed,
             });
+            errors.push(localizeProviderError(provider.name, `${model}: ${message}`));
+            rateLimited = true;
+            break;
           }
           errors.push(localizeProviderError(provider.name, `${model}: ${message}`));
         }
       }
+      if (rateLimited) break;
       attempted.push(provider.name);
     }
 

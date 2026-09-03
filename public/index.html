@@ -4750,7 +4750,7 @@
     bankAiQuotaScheduler.running = true;
     bankAiQuotaScheduler.lastTickAt = Date.now();
     try {
-      const quota = await fetchAiQuotaSnapshot(true).catch(() => null);
+      const quota = await fetchAiQuotaSnapshot(false).catch(() => null);
       if(!quota) return;
       const pref = getPreferredProviderQuotaSummary(quota);
       if(!pref){
@@ -4797,7 +4797,7 @@
         jobs--;
         if(jobs <= 0) break;
 
-        const freshQuota = await fetchAiQuotaSnapshot(true).catch(() => null);
+        const freshQuota = await fetchAiQuotaSnapshot(false).catch(() => null);
         const freshPref = freshQuota ? getPreferredProviderQuotaSummary(freshQuota) : null;
         if(!freshPref || estimateBankAiReplenishJobs(freshPref.summary) <= 0) break;
         await new Promise((resolve) => setTimeout(resolve, BANK_AI_REPLENISH_JOB_GAP_MS));
@@ -6532,6 +6532,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         stopAiStatusRecovery();
         return;
       }
+      if(isAiQuotaProbeBackoffActive()) return;
       tryRestoreAiOnline();
     }, 30000);
   }
@@ -6823,6 +6824,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       model: aiModelChoice === 'auto' ? undefined : aiModelChoice,
       max_tokens: maxTokens,
       provider_preference: aiProviderChoice,
+      quota_conserve: shouldConserveAiQuota(lastAiQuotaSnapshot),
       messages,
     };
   }
@@ -6963,10 +6965,43 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   let lastAiQuotaSnapshot = null;
   let lastAiQuotaFetchedAt = 0;
-  const AI_QUOTA_CACHE_MS = 45000;
+  let aiQuotaProbeBackoffUntil = 0;
+  const AI_QUOTA_CACHE_MS = 120000;
+  const AI_QUOTA_EXHAUSTED_BACKOFF_MS = 2 * 60 * 1000;
+  const AI_QUOTA_CONSERVE_REMAINING = 8000;
+  const AI_QUOTA_CONSERVE_RATIO = 0.12;
+
+  function markAiQuotaProbeBackoff(ms = AI_QUOTA_EXHAUSTED_BACKOFF_MS){
+    aiQuotaProbeBackoffUntil = Date.now() + ms;
+  }
+
+  function isAiQuotaProbeBackoffActive(){
+    return Date.now() < aiQuotaProbeBackoffUntil;
+  }
+
+  function isAiQuotaLow(summary){
+    if(!summary || isProviderQuotaBlocked(summary)) return true;
+    const remaining = quotaWindowRemaining(summary.tokens_used, summary.tokens_limit, summary.tokens_remaining);
+    const limit = Number(summary.tokens_limit);
+    if(remaining == null || !Number.isFinite(limit) || limit <= 0) return false;
+    return remaining <= AI_QUOTA_CONSERVE_REMAINING || remaining <= limit * AI_QUOTA_CONSERVE_RATIO;
+  }
+
+  function shouldConserveAiQuota(quota){
+    if(!quota || aiProviderChoice === 'local') return false;
+    if(aiProviderChoice !== 'auto'){
+      return isAiQuotaLow(quota.providers?.[aiProviderChoice]?.summary);
+    }
+    if(!getUsableProvidersForPreference(quota, 'auto').length) return true;
+    const pref = getPreferredProviderQuotaSummary(quota);
+    return pref ? isAiQuotaLow(pref.summary) : false;
+  }
 
   async function fetchAiQuotaSnapshot(force = false){
     const now = Date.now();
+    if(!force && isAiQuotaProbeBackoffActive()){
+      return lastAiQuotaSnapshot;
+    }
     if(!force && lastAiQuotaSnapshot && (now - lastAiQuotaFetchedAt) < AI_QUOTA_CACHE_MS){
       return lastAiQuotaSnapshot;
     }
@@ -6974,6 +7009,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(!r.ok) throw new Error('HTTP ' + r.status);
     lastAiQuotaSnapshot = await r.json();
     lastAiQuotaFetchedAt = now;
+    if(!getUsableProvidersForPreference(lastAiQuotaSnapshot, aiProviderChoice).length){
+      markAiQuotaProbeBackoff();
+    }
     return lastAiQuotaSnapshot;
   }
 
@@ -7074,6 +7112,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       const err = new Error(formatAiApiError(data, response.status));
       err.aiStatus = response.status;
       err.aiData = data;
+      if(response.status === 429 || isAiRateLimitError(err.message)){
+        markAiQuotaProbeBackoff();
+      }
       throw err;
     }
     return data;
@@ -7140,6 +7181,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       renderAiQuotaPanel(quota);
       const availability = getAiAvailabilityFromQuota(quota, aiProviderChoice);
       if(!availability.online){
+        markAiQuotaProbeBackoff();
         setOnlineStatus(false, availability.message);
         return false;
       }
@@ -7176,12 +7218,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   function scheduleAiStatusProbe(){
     requestAnimationFrame(() => {
-      probeAiStatusQuick().then((online) => {
-        if(!online) return;
-        const runDeep = () => probeAiStatusDeep();
-        if('requestIdleCallback' in window) requestIdleCallback(runDeep, { timeout: 5000 });
-        else setTimeout(runDeep, 2500);
-      });
+      probeAiStatusQuick();
     });
   }
 

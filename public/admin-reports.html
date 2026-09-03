@@ -2325,6 +2325,7 @@
       pointer-events: none;
       z-index: 12;
       min-width: 140px;
+      max-width: 280px;
       padding: 8px 10px;
       border-radius: 8px;
       border: 1px solid var(--border);
@@ -2335,6 +2336,26 @@
       box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35);
     }
     .chart-tooltip[hidden] { display: none !important; }
+    .chart-tooltip-note {
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--muted);
+    }
+    .chart-tooltip-limit {
+      margin-top: 5px;
+      padding: 4px 6px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #fecaca;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+    }
+    .chart-tooltip-warn {
+      margin-top: 4px;
+      font-size: 11px;
+      color: #fcd34d;
+    }
     .chart-focus-line {
       stroke: rgba(148, 163, 184, 0.45);
       stroke-width: 1;
@@ -3232,7 +3253,7 @@
             <div class="chart-head" style="margin-top:16px;">
               <h4 id="chartAiUsageTokensMinuteTitle" style="margin:0;font-size:0.9rem;">Tokens</h4>
             </div>
-            <p class="timeline-note" id="aiUsageTokensMinuteNote">Verde = tokens desta app · âmbar = quota API (cabeçalhos) · faixas vermelhas = limite atingido no bucket.</p>
+            <p class="timeline-note" id="aiUsageTokensMinuteNote">Verde = tokens desta app · âmbar = quota da conta (instantâneo) · vermelho = bloqueios no jogo (não sondagens).</p>
             <div id="chartAiUsageTokensMinute" class="chart"></div>
             <div class="chart-head" style="margin-top:16px;">
               <h4 id="chartAiUsageLatencyTitle" style="margin:0;font-size:0.9rem;">Latência por modelo</h4>
@@ -4964,10 +4985,12 @@
         clearInterval(telemetryMinuteRefreshTimer);
         telemetryMinuteRefreshTimer = null;
       }
+      stopAdminAiStatusRefresh();
     }
 
     function startTelemetryMinuteRefresh() {
       stopTelemetryMinuteRefresh();
+      startAdminAiStatusRefresh();
       const tick = () => {
         if (activeAdminTab !== 'telemetry' || document.hidden || dashboard.classList.contains('hidden')) return;
         loadTelemetryDashboard({ quiet: true });
@@ -5804,7 +5827,6 @@
       '180': { label: '3 h', bucketMinutes: 180 },
       '5': { label: '5 min', bucketMinutes: 5 },
     };
-    const AI_USAGE_THREE_HOURS_MS = 3 * 60 * 60 * 1000;
     const AI_USAGE_MINUTE_ROWS_MS = 2 * 60 * 60 * 1000;
     const AI_USAGE_RANGE_STORAGE_KEY = 'reino_admin_ai_usage_range';
     const AI_USAGE_GRANULARITY_STORAGE_KEY = 'reino_admin_ai_usage_granularity';
@@ -5812,6 +5834,67 @@
     const AI_USAGE_MODEL_STORAGE_KEY = 'reino_admin_ai_usage_model';
     const AI_USAGE_BUCKET_MINUTES = 5;
     const AI_USAGE_LISBON_TZ = 'Europe/Lisbon';
+    const AI_USAGE_QUOTA_PROBE_MODEL = '__quota__';
+    const ADMIN_AI_STATUS_CACHE_MS = 15 * 60 * 1000;
+
+    function isAiUsageQuotaProbeRow(row) {
+      return String(row?.model || '').trim() === AI_USAGE_QUOTA_PROBE_MODEL;
+    }
+
+    function sumAiUsagePointSeries(series) {
+      return (series || []).reduce((sum, point) => sum + (Number(point.v) || 0), 0);
+    }
+
+    function formatAiUsageLimitHitsNote(bucket) {
+      const game = Number(bucket?.totalLimitHitsGame) || 0;
+      const probe = Number(bucket?.totalLimitHitsProbe) || 0;
+      const total = Number(bucket?.totalLimitHits) || (game + probe);
+      if (total <= 0) return '';
+      const parts = [`<strong>${game}</strong> bloqueio(s) no jogo`];
+      if (probe > 0) parts.push(`<strong>${probe}</strong> leitura(s) sondagem quota`);
+      return parts.join(' · ');
+    }
+
+    let lastAdminAiStatusPayload = null;
+    let lastAdminAiStatusFetchedAt = 0;
+    let adminAiStatusRefreshTimer = null;
+
+    async function fetchAdminAiStatus(force = false) {
+      const now = Date.now();
+      const age = now - lastAdminAiStatusFetchedAt;
+      if (!force) {
+        return lastAdminAiStatusPayload;
+      }
+      const aiStatus = await api('/api/ai-status').catch(() => null);
+      if (aiStatus) {
+        lastAdminAiStatusPayload = aiStatus;
+        lastAdminAiStatusFetchedAt = now;
+      }
+      return lastAdminAiStatusPayload;
+    }
+
+    function stopAdminAiStatusRefresh() {
+      if (!adminAiStatusRefreshTimer) return;
+      clearInterval(adminAiStatusRefreshTimer);
+      adminAiStatusRefreshTimer = null;
+    }
+
+    function startAdminAiStatusRefresh() {
+      stopAdminAiStatusRefresh();
+      adminAiStatusRefreshTimer = setInterval(async () => {
+        if (activeAdminTab !== 'telemetry' || document.hidden || dashboard.classList.contains('hidden')) return;
+        const aiStatus = await fetchAdminAiStatus(true);
+        lastAiStatusPayload = aiStatus;
+        if (lastTelemetryPayload) {
+          renderGenTelemetry(
+            lastTelemetryPayload.stats || {},
+            lastTelemetryOverrides,
+            lastTelemetryPayload.aiUsage,
+            aiStatus,
+          );
+        }
+      }, ADMIN_AI_STATUS_CACHE_MS);
+    }
 
     let lastTelemetryPayload = null;
     let lastTelemetryOverrides = [];
@@ -5940,45 +6023,48 @@
       (rows || []).forEach((row) => {
         const key = row.bucket_start;
         if (!key) return;
-        const slot = map.get(key) || { bucket_start: key, request_count: 0, error_count: 0, token_count: 0, latency_sum_ms: 0, latency_count: 0, limit_count: 0, quota_used_peak: 0 };
+        const slot = map.get(key) || {
+          bucket_start: key,
+          request_count: 0,
+          error_count: 0,
+          token_count: 0,
+          latency_sum_ms: 0,
+          latency_count: 0,
+          limit_count: 0,
+          limit_game_count: 0,
+          limit_probe_count: 0,
+          quota_used_peak: 0,
+        };
+        const limitVal = Number(row.limit_count) || 0;
         slot.request_count += Number(row.request_count) || 0;
         slot.error_count += Number(row.error_count) || 0;
         slot.token_count += Number(row.token_count) || 0;
         slot.latency_sum_ms += Number(row.latency_sum_ms) || 0;
         slot.latency_count += Number(row.latency_count) || 0;
-        slot.limit_count += Number(row.limit_count) || 0;
+        slot.limit_count += limitVal;
+        if (isAiUsageQuotaProbeRow(row)) slot.limit_probe_count += limitVal;
+        else slot.limit_game_count += limitVal;
         slot.quota_used_peak = Math.max(slot.quota_used_peak || 0, Number(row.quota_used_peak) || 0);
         map.set(key, slot);
       });
       return [...map.values()];
     }
 
-    function buildAiUsageBucketSeries(rows, lookbackMs, bucketMinutes = AI_USAGE_BUCKET_MINUTES) {
-      const now = new Date();
-      const endKey = aiUsageToLisbonBucketKey(now, bucketMinutes);
-      const endMs = aiUsageBucketKeyToUtcMs(endKey, bucketMinutes);
-      const startMs = endMs - lookbackMs + bucketMinutes * 60 * 1000;
-      const counts = new Map();
-      for (let t = startMs; t <= endMs; t += bucketMinutes * 60 * 1000) {
-        const key = aiUsageToLisbonBucketKey(new Date(t), bucketMinutes);
-        if (key) counts.set(key, { requests: 0, errors: 0, tokens: 0, latencySum: 0, latencyCount: 0, limits: 0, quotaPressure: 0 });
-      }
-      (rows || []).forEach((row) => {
-        const key = aiUsageToLisbonBucketKey(row.bucket_start, bucketMinutes);
-        if (!key) return;
-        if (!counts.has(key)) {
-          counts.set(key, { requests: 0, errors: 0, tokens: 0, latencySum: 0, latencyCount: 0, limits: 0, quotaPressure: 0 });
-        }
-        const slot = counts.get(key);
-        slot.requests += Number(row.request_count) || 0;
-        slot.errors += Number(row.error_count) || 0;
-        slot.tokens += Number(row.token_count) || 0;
-        slot.latencySum += Number(row.latency_sum_ms) || 0;
-        slot.latencyCount += Number(row.latency_count) || 0;
-        slot.limits += Number(row.limit_count) || 0;
-        slot.quotaPressure = Math.max(slot.quotaPressure || 0, Number(row.quota_used_peak) || 0);
-      });
-      const sortedKeys = [...counts.keys()].sort();
+    function emptyAiUsageBucketSlot() {
+      return {
+        requests: 0,
+        errors: 0,
+        tokens: 0,
+        latencySum: 0,
+        latencyCount: 0,
+        limits: 0,
+        limitsGame: 0,
+        limitsProbe: 0,
+        quotaPressure: 0,
+      };
+    }
+
+    function finalizeAiUsageBucketSeries(counts, sortedKeys) {
       let daySum = 0;
       let dayTokenSum = 0;
       let currentDay = '';
@@ -5988,6 +6074,8 @@
       const errors = [];
       const tokens = [];
       const limits = [];
+      const limitsGame = [];
+      const limitsProbe = [];
       const quotaPressure = [];
       const latency = [];
       sortedKeys.forEach((key) => {
@@ -6006,6 +6094,8 @@
         errors.push({ t: key, v: slot.errors });
         tokens.push({ t: key, v: slot.tokens });
         limits.push({ t: key, v: slot.limits });
+        limitsGame.push({ t: key, v: slot.limitsGame });
+        limitsProbe.push({ t: key, v: slot.limitsProbe });
         quotaPressure.push({ t: key, v: slot.quotaPressure });
         latency.push({
           t: key,
@@ -6023,15 +6113,55 @@
         errors,
         tokens,
         limits,
+        limitsGame,
+        limitsProbe,
         quotaPressure,
         latency,
         totalRequests: requests.reduce((sum, p) => sum + p.v, 0),
         totalErrors: errors.reduce((sum, p) => sum + p.v, 0),
         totalTokens: tokens.reduce((sum, p) => sum + p.v, 0),
         totalLimitHits: limits.reduce((sum, p) => sum + p.v, 0),
+        totalLimitHitsGame: limitsGame.reduce((sum, p) => sum + p.v, 0),
+        totalLimitHitsProbe: limitsProbe.reduce((sum, p) => sum + p.v, 0),
         peakQuotaPressure: quotaPressure.reduce((max, p) => Math.max(max, p.v), 0),
         avgLatencyMs,
       };
+    }
+
+    function buildAiUsageBucketSeries(rows, lookbackMs, bucketMinutes = AI_USAGE_BUCKET_MINUTES) {
+      const now = new Date();
+      const endKey = aiUsageToLisbonBucketKey(now, bucketMinutes);
+      const endMs = aiUsageBucketKeyToUtcMs(endKey, bucketMinutes);
+      const startMs = endMs - lookbackMs + bucketMinutes * 60 * 1000;
+      const counts = new Map();
+      for (let t = startMs; t <= endMs; t += bucketMinutes * 60 * 1000) {
+        const key = aiUsageToLisbonBucketKey(new Date(t), bucketMinutes);
+        if (key) counts.set(key, emptyAiUsageBucketSlot());
+      }
+      (rows || []).forEach((row) => {
+        const key = aiUsageToLisbonBucketKey(row.bucket_start, bucketMinutes);
+        if (!key) return;
+        if (!counts.has(key)) counts.set(key, emptyAiUsageBucketSlot());
+        const slot = counts.get(key);
+        const limitVal = Number(row.limit_count) || 0;
+        const limitGameVal = Number.isFinite(Number(row.limit_game_count))
+          ? Number(row.limit_game_count)
+          : (isAiUsageQuotaProbeRow(row) ? 0 : limitVal);
+        const limitProbeVal = Number.isFinite(Number(row.limit_probe_count))
+          ? Number(row.limit_probe_count)
+          : (isAiUsageQuotaProbeRow(row) ? limitVal : 0);
+        slot.requests += Number(row.request_count) || 0;
+        slot.errors += Number(row.error_count) || 0;
+        slot.tokens += Number(row.token_count) || 0;
+        slot.latencySum += Number(row.latency_sum_ms) || 0;
+        slot.latencyCount += Number(row.latency_count) || 0;
+        slot.limits += limitVal;
+        slot.limitsGame += limitGameVal;
+        slot.limitsProbe += limitProbeVal;
+        slot.quotaPressure = Math.max(slot.quotaPressure || 0, Number(row.quota_used_peak) || 0);
+      });
+      const sortedKeys = [...counts.keys()].sort();
+      return finalizeAiUsageBucketSeries(counts, sortedKeys);
     }
 
     function computeAiUsageSummary(rows) {
@@ -6083,17 +6213,16 @@
     function resolveAiUsageBucketConfig(rangeKey = aiUsageRange, granularityKey = aiUsageGranularity) {
       const range = AI_USAGE_RANGES[rangeKey] || AI_USAGE_RANGES['24h'];
       const gran = AI_USAGE_GRANULARITIES[granularityKey] || AI_USAGE_GRANULARITIES['5'];
-      let bucketMinutes = gran.bucketMinutes;
-      const forcedFiveMin = range.lookbackMs >= AI_USAGE_THREE_HOURS_MS || bucketMinutes >= 180;
-      if (forcedFiveMin) bucketMinutes = 5;
+      const bucketMinutes = gran.bucketMinutes;
       const minuteRowsCoverRange = range.lookbackMs <= AI_USAGE_MINUTE_ROWS_MS;
-      const useMinuteSource = !forcedFiveMin && (bucketMinutes === 1 || minuteRowsCoverRange);
+      const useMinuteSource = bucketMinutes === 1 || minuteRowsCoverRange;
+      const longPeriod = range.lookbackMs > AI_USAGE_MINUTE_ROWS_MS;
       return {
         bucketMinutes,
         lookbackMs: range.lookbackMs,
         useMinuteSource,
         minuteRowsCoverRange,
-        forcedFiveMin,
+        longPeriod,
         granularityLabel: formatAiUsageBucketLabel(bucketMinutes),
       };
     }
@@ -6112,35 +6241,152 @@
       if (!rows.length && config.useMinuteSource) {
         rows = getAiUsageSourceRows(aiUsage, false);
       }
+      let bucket;
       if (!rows.length) {
         const canUseServerTimeline = !config.useMinuteSource
           && !aiUsageProviderFilter
           && !aiUsageModelFilter
           && config.bucketMinutes === AI_USAGE_BUCKET_MINUTES
           && aiUsage?.timeline?.[rangeKey];
-        if (canUseServerTimeline) return aiUsage.timeline[rangeKey];
-        return buildAiUsageBucketSeries([], config.lookbackMs, config.bucketMinutes);
+        bucket = canUseServerTimeline
+          ? aiUsage.timeline[rangeKey]
+          : buildAiUsageBucketSeries([], config.lookbackMs, config.bucketMinutes);
+      } else {
+        const aggregated = aggregateAiUsageRows(rows);
+        bucket = buildAiUsageBucketSeries(aggregated, config.lookbackMs, config.bucketMinutes);
       }
-      const aggregated = aggregateAiUsageRows(rows);
-      return buildAiUsageBucketSeries(aggregated, config.lookbackMs, config.bucketMinutes);
+      return mergeMinuteLimitMetricsIntoBucket(bucket, aiUsage, config);
+    }
+
+    function aggregateAiUsageSummedSeries(series, targetBucketMinutes) {
+      const target = Number(targetBucketMinutes) || AI_USAGE_BUCKET_MINUTES;
+      if (target <= AI_USAGE_BUCKET_MINUTES) return Array.isArray(series) ? series : [];
+      const sums = new Map();
+      (series || []).forEach((point) => {
+        const key = aiUsageToLisbonBucketKey(point.t, target);
+        if (!key) return;
+        sums.set(key, (sums.get(key) || 0) + (Number(point.v) || 0));
+      });
+      return [...sums.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([t, v]) => ({ t, v }));
+    }
+
+    function aggregateAiUsageMaxSeries(series, targetBucketMinutes) {
+      const target = Number(targetBucketMinutes) || AI_USAGE_BUCKET_MINUTES;
+      if (target <= AI_USAGE_BUCKET_MINUTES) return Array.isArray(series) ? series : [];
+      const maxes = new Map();
+      (series || []).forEach((point) => {
+        const key = aiUsageToLisbonBucketKey(point.t, target);
+        if (!key) return;
+        const value = Number(point.v) || 0;
+        maxes.set(key, Math.max(maxes.get(key) || 0, value));
+      });
+      return [...maxes.entries()]
+        .sort((a, b) => a[0].localeCompare(b[0]))
+        .map(([t, v]) => ({ t, v }));
+    }
+
+    function buildAiUsageLimitMetricsFromMinuteRows(minuteRows, lookbackMs, bucketMinutes) {
+      const targetMinutes = Number(bucketMinutes) || AI_USAGE_BUCKET_MINUTES;
+      const timelineBucket = buildAiUsageBucketSeries([], lookbackMs, targetMinutes);
+      const timelineKeys = (timelineBucket.limits || []).map((point) => point.t);
+      if (!minuteRows?.length) {
+        return {
+          limits: timelineBucket.limits || [],
+          limitsGame: timelineBucket.limitsGame || [],
+          limitsProbe: timelineBucket.limitsProbe || [],
+          quotaPressure: timelineBucket.quotaPressure || [],
+          totalLimitHits: 0,
+          totalLimitHitsGame: 0,
+          totalLimitHitsProbe: 0,
+          peakQuotaPressure: 0,
+        };
+      }
+      const aggregated = aggregateAiUsageRows(minuteRows);
+      let sourceBucket;
+      if (targetMinutes === 1) {
+        sourceBucket = buildAiUsageBucketSeries(aggregated, lookbackMs, 1);
+      } else {
+        sourceBucket = buildAiUsageBucketSeries(aggregated, lookbackMs, AI_USAGE_BUCKET_MINUTES);
+        if (targetMinutes > AI_USAGE_BUCKET_MINUTES) {
+          sourceBucket = {
+            ...sourceBucket,
+            limits: aggregateAiUsageSummedSeries(sourceBucket.limits, targetMinutes),
+            limitsGame: aggregateAiUsageSummedSeries(sourceBucket.limitsGame, targetMinutes),
+            limitsProbe: aggregateAiUsageSummedSeries(sourceBucket.limitsProbe, targetMinutes),
+            quotaPressure: aggregateAiUsageMaxSeries(sourceBucket.quotaPressure, targetMinutes),
+          };
+        }
+      }
+      const limitByKey = Object.fromEntries((sourceBucket.limits || []).map((point) => [point.t, Number(point.v) || 0]));
+      const limitGameByKey = Object.fromEntries((sourceBucket.limitsGame || []).map((point) => [point.t, Number(point.v) || 0]));
+      const limitProbeByKey = Object.fromEntries((sourceBucket.limitsProbe || []).map((point) => [point.t, Number(point.v) || 0]));
+      const quotaByKey = Object.fromEntries((sourceBucket.quotaPressure || []).map((point) => [point.t, Number(point.v) || 0]));
+      const alignedLimits = timelineKeys.map((t) => ({ t, v: limitByKey[t] || 0 }));
+      const alignedLimitsGame = timelineKeys.map((t) => ({ t, v: limitGameByKey[t] || 0 }));
+      const alignedLimitsProbe = timelineKeys.map((t) => ({ t, v: limitProbeByKey[t] || 0 }));
+      const alignedQuota = timelineKeys.map((t) => ({ t, v: quotaByKey[t] || 0 }));
+      return {
+        limits: alignedLimits,
+        limitsGame: alignedLimitsGame,
+        limitsProbe: alignedLimitsProbe,
+        quotaPressure: alignedQuota,
+        totalLimitHits: sumAiUsagePointSeries(alignedLimits),
+        totalLimitHitsGame: sumAiUsagePointSeries(alignedLimitsGame),
+        totalLimitHitsProbe: sumAiUsagePointSeries(alignedLimitsProbe),
+        peakQuotaPressure: alignedQuota.reduce((max, point) => Math.max(max, point.v), 0),
+      };
+    }
+
+    function mergeMinuteLimitMetricsIntoBucket(bucket, aiUsage, config) {
+      if (!bucket) return bucket;
+      const withLimitTotals = (target) => ({
+        ...target,
+        totalLimitHits: sumAiUsagePointSeries(target.limits),
+        totalLimitHitsGame: sumAiUsagePointSeries(target.limitsGame),
+        totalLimitHitsProbe: sumAiUsagePointSeries(target.limitsProbe),
+      });
+      if (!config?.longPeriod) return withLimitTotals(bucket);
+      if (config.useMinuteSource) return withLimitTotals(bucket);
+      const minuteRows = getAiUsageSourceRows(aiUsage, true);
+      const metrics = buildAiUsageLimitMetricsFromMinuteRows(
+        minuteRows,
+        config.lookbackMs,
+        config.bucketMinutes,
+      );
+      const quotaPressure = (bucket.quotaPressure || []).map((point) => ({
+        t: point.t,
+        v: Math.max(Number(point.v) || 0, Number(metrics.quotaPressure.find((p) => p.t === point.t)?.v) || 0),
+      }));
+      return {
+        ...bucket,
+        limits: metrics.limits,
+        limitsGame: metrics.limitsGame,
+        limitsProbe: metrics.limitsProbe,
+        quotaPressure,
+        totalLimitHits: metrics.totalLimitHits,
+        totalLimitHitsGame: metrics.totalLimitHitsGame,
+        totalLimitHitsProbe: metrics.totalLimitHitsProbe,
+        peakQuotaPressure: Math.max(
+          bucket.peakQuotaPressure || 0,
+          metrics.peakQuotaPressure || 0,
+        ),
+      };
     }
 
     function updateAiUsageGranularityUi() {
-      const config = resolveAiUsageBucketConfig();
       document.querySelectorAll('#aiUsageGranularityFilters [data-ai-usage-granularity]').forEach((btn) => {
         const key = btn.dataset.aiUsageGranularity;
-        const gran = AI_USAGE_GRANULARITIES[key];
-        const disabled = config.forcedFiveMin && key !== '5';
-        btn.disabled = disabled;
-        btn.classList.toggle('disabled', disabled);
-        const activeKey = config.forcedFiveMin ? '5' : aiUsageGranularity;
-        btn.classList.toggle('active', key === activeKey);
+        btn.disabled = false;
+        btn.classList.remove('disabled');
+        btn.classList.toggle('active', key === aiUsageGranularity);
       });
     }
 
     function formatAiUsageGranularityNote(bucketConfig) {
-      if (bucketConfig.forcedFiveMin) {
-        return 'Buckets de 5 min (período ≥ 3 h).';
+      if (bucketConfig.longPeriod && !bucketConfig.useMinuteSource) {
+        return `Buckets de ${bucketConfig.granularityLabel} (Lisboa). Bloqueios: soma em 5 min, depois agregados para ${bucketConfig.granularityLabel}.`;
       }
       const tokenNote = bucketConfig.useMinuteSource
         ? ''
@@ -6278,8 +6524,51 @@
         tokensChartEl.innerHTML = '<div class="chart-empty">Indisponível — executa ai-usage-minute-buckets.sql.</div>';
         return;
       }
-      const isEmpty = !bucket
-        || ((bucket.totalTokens || 0) === 0 && !(bucket.quotaPressure || []).some((p) => (Number(p.v) || 0) > 0));
+      const limitSeries = Array.isArray(bucket?.limits) && bucket.limits.length
+        ? bucket.limits
+        : (bucket?.requests || []).map((p) => ({ t: p.t, v: 0 }));
+      const limitSeriesGame = Array.isArray(bucket?.limitsGame) && bucket.limitsGame.length
+        ? bucket.limitsGame
+        : limitSeries;
+      const limitSeriesProbe = Array.isArray(bucket?.limitsProbe) ? bucket.limitsProbe : [];
+      const totalLimitHitsGame = bucket?.totalLimitHitsGame ?? sumAiUsagePointSeries(limitSeriesGame);
+      const totalLimitHitsProbe = bucket?.totalLimitHitsProbe ?? sumAiUsagePointSeries(limitSeriesProbe);
+      const hasTokenSeriesData = (bucket?.totalTokens || 0) > 0;
+      const showLimitsChart = bucketConfig.longPeriod && !hasTokenSeriesData;
+      if (showLimitsChart) {
+        const hasProbeLimits = totalLimitHitsProbe > 0 || limitSeriesProbe.some((p) => (Number(p.v) || 0) > 0);
+        if (tokensNoteEl) {
+          const noteParts = [
+            `Jogo: <strong>${totalLimitHitsGame}</strong> bloqueio(s)`,
+          ];
+          if (hasProbeLimits) noteParts.push(`sondagens quota: <strong>${totalLimitHitsProbe}</strong>`);
+          noteParts.push(`pico jogo / ${bucketConfig.granularityLabel}: <strong>${Math.max(...limitSeriesGame.map((p) => Number(p.v) || 0), 0)}</strong>`);
+          noteParts.push(formatAiUsageGranularityNote(bucketConfig));
+          tokensNoteEl.innerHTML = `${noteParts.join(' · ')}.`;
+        }
+        renderAiUsageDualChart(tokensChartEl, limitSeriesGame, hasProbeLimits ? limitSeriesProbe : [], null, {
+          chartKey: 'tokensMinute',
+          axisMode: hasProbeLimits ? 'shared' : 'singleA',
+          labelA: `Bloqueios jogo / ${bucketConfig.granularityLabel}`,
+          labelB: `Sondagens quota / ${bucketConfig.granularityLabel}`,
+          granularity: meta.granularity,
+          formatLabel: formatBankTimelineLabel,
+          formatValueA: formatAiUsageAxisCount,
+          formatValueB: formatAiUsageAxisCount,
+          axisLabelA: 'Jogo',
+          axisLabelB: 'Sondagem',
+          limitMarkers: limitSeriesGame,
+          limitProbeMarkers: limitSeriesProbe,
+          limitStatusHtml: totalLimitHitsGame > 0
+            ? `<span class="limit-hit-inline">${totalLimitHitsGame} bloqueio(s) no jogo no período</span>`
+            : 'Sem bloqueios de jogo nas últimas 2 h.',
+          scaleRefLimit: totalLimitHitsGame > 0,
+        });
+        return;
+      }
+      const hasQuotaPressure = (bucket?.quotaPressure || []).some((p) => (Number(p.v) || 0) > 0);
+      const hasTokenData = (bucket?.totalTokens || 0) > 0 || hasQuotaPressure;
+      const isEmpty = !bucket || !hasTokenData;
       if (isEmpty) {
         tokensChartEl.innerHTML = '<div class="chart-empty">Sem dados de tokens neste período.</div>';
         if (tokensNoteEl) tokensNoteEl.textContent = `${formatAiUsageGranularityNote(bucketConfig)} Tokens aparecem após pedidos com tokens registados.`;
@@ -6297,19 +6586,22 @@
       const peakQuota = bucket.peakQuotaPressure
         || Math.max(...(bucket.quotaPressure || []).map((p) => Number(p.v) || 0), 0);
       const chartPeak = Math.max(peakTokens, peakQuota);
-      const hasQuotaPressure = (bucket.quotaPressure || []).some((p) => (Number(p.v) || 0) > 0);
-      const totalLimitHits = bucket.totalLimitHits || 0;
       const minuteLimitHit = isMinuteBucket && isAiProviderMinuteLimitExhausted(providerSummary);
       if (tokensNoteEl) {
-        const parts = [`No período: <strong>${formatAiUsageTokenCount(bucket.totalTokens || 0)}</strong> tokens desta app`];
+        const parts = [
+          `No período: <strong>${formatAiUsageTokenCount(bucket.totalTokens || 0)}</strong> tokens desta app`,
+        ];
         if (peakTokens > 0) {
           parts.push(`pico app: <strong>${formatAiUsageTokenCount(peakTokens)}</strong>/${bucketUnit}`);
         }
         if (hasQuotaPressure && peakQuota > 0) {
-          parts.push(`pico quota API: <strong>${formatAiUsageTokenCountPrecise(peakQuota)}</strong>/${bucketUnit}`);
+          parts.push(`pico quota conta: <strong>${formatAiUsageTokenCountPrecise(peakQuota)}</strong> (instantâneo)`);
         }
-        if (totalLimitHits > 0) {
-          parts.push(`<strong class="limit-hit-inline">${totalLimitHits} bloqueio(s) por limite</strong>`);
+        const limitNote = formatAiUsageLimitHitsNote(bucket);
+        if (limitNote) {
+          parts.push(`<span class="limit-hit-inline">${limitNote}</span>`);
+        } else if (totalLimitHitsGame > 0) {
+          parts.push(`<strong class="limit-hit-inline">${totalLimitHitsGame} bloqueio(s) no jogo</strong>`);
         }
         if (minuteTokenLimit) {
           const peakPct = chartPeak > 0
@@ -6326,10 +6618,10 @@
           } else if (liveRemaining != null && providerSummary?.tokens_limit) {
             parts.push(`<span class="quota-margin-ok">${formatAiUsageTokenCountPrecise(liveRemaining)} de margem agora</span>`);
           }
-        } else if (isMinuteBucket && aiUsageProviderFilter) {
-          parts.push('sem limite tokens/min conhecido');
-        } else if (isMinuteBucket) {
-          parts.push('selecciona um fornecedor para ver o limite');
+        } else if (isMinuteBucket && !minuteTokenLimit) {
+          parts.push(aiUsageProviderFilter ? 'sem limite tokens/min conhecido' : 'sem limite tokens/min nos fornecedores');
+        } else if (isMinuteBucket && !aiUsageProviderFilter && minuteTokenLimit) {
+          parts.push(`limite máx. fornecedores: <strong>${formatAiUsageTokenCount(minuteTokenLimit)}</strong>/min`);
         }
         parts.push(formatAiUsageGranularityNote(bucketConfig));
         tokensNoteEl.innerHTML = `${parts.join(' · ')}.`;
@@ -6341,15 +6633,13 @@
         tokensChartEl.innerHTML = '<div class="chart-empty">Sem tokens registados nesta janela.</div>';
         return;
       }
-      const peakRatio = minuteTokenLimit && chartPeak > 0 ? chartPeak / minuteTokenLimit : 0;
-      const autoScaleLimit = peakRatio >= 0.12 || totalLimitHits > 0 || minuteLimitHit;
+      const peakRatio = minuteTokenLimit && peakTokens > 0 ? peakTokens / minuteTokenLimit : 0;
+      const autoScaleLimit = peakRatio >= 0.12 || totalLimitHitsGame > 0 || minuteLimitHit;
       const scaleRefLimit = aiUsageRefScaleByChart.tokensMinute || autoScaleLimit;
       const tokenLabelA = isMinuteBucket
         ? 'Tokens app / min'
         : `Tokens app / ${bucketConfig.granularityLabel}`;
-      const tokenLabelB = isMinuteBucket
-        ? 'Quota API / min'
-        : `Quota API / ${bucketConfig.granularityLabel}`;
+      const tokenLabelB = 'Quota conta (instantâneo)';
       renderAiUsageDualChart(tokensChartEl, bucket.tokens, hasQuotaPressure ? bucket.quotaPressure : [], minuteTokenLimit, {
         chartKey: 'tokensMinute',
         axisMode: hasQuotaPressure ? 'shared' : 'singleA',
@@ -6360,10 +6650,13 @@
         refLabel: minuteTokenLimit ? 'Limite tokens/min' : undefined,
         formatValueA: formatAiUsageTokenCount,
         formatValueB: formatAiUsageTokenCount,
-        axisLabelA: 'Tokens',
-        axisLabelB: 'Quota API',
+        axisLabelA: 'Tokens app',
+        axisLabelB: 'Quota conta',
         limitExhaustedNow: minuteLimitHit,
-        limitMarkers: bucket.limits,
+        limitMarkers: limitSeriesGame,
+        limitProbeMarkers: limitSeriesProbe,
+        limitBreakdown: true,
+        quotaInstantTooltip: true,
         limitStatusHtml: isMinuteBucket
           ? buildAiUsageLimitStatusHtml(providerSummary, minuteTokenLimit, chartPeak, 'tokens/min')
           : '',
@@ -6373,35 +6666,51 @@
     }
     function extractAiMinuteTokenLimit(aiStatus, providerFilter = '') {
       const provider = String(providerFilter || aiUsageProviderFilter || '').trim().toLowerCase();
-      if (!provider || !aiStatus?.providers?.[provider]) return null;
-      const prov = aiStatus.providers[provider];
-      const models = Array.isArray(prov.models) ? prov.models : [];
+      const pickFromProvider = (prov) => {
+        if (!prov) return null;
+        const models = Array.isArray(prov.models) ? prov.models : [];
+        let best = null;
+        for (const model of models) {
+          const limit = Number(model.tokens_limit);
+          if (Number.isFinite(limit) && limit > 0 && (!best || limit > best)) best = Math.round(limit);
+        }
+        const summaryLimit = Number(prov.summary?.tokens_limit);
+        if (Number.isFinite(summaryLimit) && summaryLimit > 0) {
+          best = best ? Math.max(best, Math.round(summaryLimit)) : Math.round(summaryLimit);
+        }
+        return best;
+      };
+      if (provider) return pickFromProvider(aiStatus?.providers?.[provider]);
       let best = null;
-      for (const model of models) {
-        const limit = Number(model.tokens_limit);
-        if (Number.isFinite(limit) && limit > 0 && (!best || limit > best)) best = Math.round(limit);
-      }
-      const summaryLimit = Number(prov.summary?.tokens_limit);
-      if (Number.isFinite(summaryLimit) && summaryLimit > 0) {
-        best = best ? Math.max(best, Math.round(summaryLimit)) : Math.round(summaryLimit);
-      }
+      Object.values(aiStatus?.providers || {}).forEach((prov) => {
+        const limit = pickFromProvider(prov);
+        if (limit && (!best || limit > best)) best = limit;
+      });
       return best;
     }
 
     function extractAiDailyTokenLimit(aiStatus, providerFilter = '') {
       const provider = String(providerFilter || aiUsageProviderFilter || '').trim().toLowerCase();
-      if (!provider || !aiStatus?.providers?.[provider]) return null;
-      const prov = aiStatus.providers[provider];
-      const models = Array.isArray(prov.models) ? prov.models : [];
+      const pickFromProvider = (prov) => {
+        if (!prov) return null;
+        const models = Array.isArray(prov.models) ? prov.models : [];
+        let best = null;
+        for (const model of models) {
+          const limit = Number(model.tokens_day_limit);
+          if (Number.isFinite(limit) && limit > 0 && (!best || limit > best)) best = Math.round(limit);
+        }
+        const summaryLimit = Number(prov.summary?.tokens_day_limit);
+        if (Number.isFinite(summaryLimit) && summaryLimit > 0) {
+          best = best ? Math.max(best, Math.round(summaryLimit)) : Math.round(summaryLimit);
+        }
+        return best;
+      };
+      if (provider) return pickFromProvider(aiStatus?.providers?.[provider]);
       let best = null;
-      for (const model of models) {
-        const limit = Number(model.tokens_day_limit);
-        if (Number.isFinite(limit) && limit > 0 && (!best || limit > best)) best = Math.round(limit);
-      }
-      const summaryLimit = Number(prov.summary?.tokens_day_limit);
-      if (Number.isFinite(summaryLimit) && summaryLimit > 0) {
-        best = best ? Math.max(best, Math.round(summaryLimit)) : Math.round(summaryLimit);
-      }
+      Object.values(aiStatus?.providers || {}).forEach((prov) => {
+        const limit = pickFromProvider(prov);
+        if (limit && (!best || limit > best)) best = limit;
+      });
       return best;
     }
 
@@ -6410,7 +6719,7 @@
       const requestQuotaLimit = extractAiQuotaLimit(aiStatus, null, providerFilter);
       const minuteTokenLimit = extractAiMinuteTokenLimit(aiStatus, providerFilter);
       const hasTokens = (bucket?.totalTokens || 0) > 0;
-      const useTokenSeries = !!(providerFilter && hasTokens && Array.isArray(bucket?.cumulativeTokens));
+      const useTokenSeries = hasTokens && Array.isArray(bucket?.cumulativeTokens);
 
       if (useTokenSeries) {
         return {
@@ -6437,7 +6746,7 @@
         axisLabelB: 'Pedidos dia',
         formatValueB: formatAiUsageAxisCount,
         refLabel: requestQuotaLimit ? 'Limite pedidos/dia' : undefined,
-        minuteTokenLimit: providerFilter ? minuteTokenLimit : null,
+        minuteTokenLimit,
         usedToday: cumulative.length ? cumulative[cumulative.length - 1].v : 0,
         quotaLimit: requestQuotaLimit,
         quotaKind: 'requests',
@@ -6765,12 +7074,18 @@
     }
 
     function applyAiUsageAutoRefScaleForLimitedProvider(aiStatus, providerFilter) {
-      if (!providerFilter) return;
-      const summary = aiStatus?.providers?.[providerFilter]?.summary;
-      if (isAiProviderLimitExhausted(summary)) {
-        // Só o gráfico diário (pedidos/dia); tokens/min mantém escala dos dados até clicar na legenda.
-        aiUsageRefScaleByChart.main = true;
+      if (providerFilter) {
+        const summary = aiStatus?.providers?.[providerFilter]?.summary;
+        if (isAiProviderLimitExhausted(summary)) {
+          // Só o gráfico diário (pedidos/dia); tokens/min mantém escala dos dados até clicar na legenda.
+          aiUsageRefScaleByChart.main = true;
+        }
+        return;
       }
+      const anyExhausted = Object.values(aiStatus?.providers || {}).some(
+        (prov) => isAiProviderLimitExhausted(prov?.summary),
+      );
+      if (anyExhausted) aiUsageRefScaleByChart.main = true;
     }
 
     function renderAiGameImpact(summary, aiUsage, aiStatus) {
@@ -7166,9 +7481,7 @@
       if (isEmpty) {
         chartEl.innerHTML = '<div class="chart-empty">Ainda sem pedidos registados — gera perguntas com IA para popular o gráfico.</div>';
         if (noteEl) {
-          const granNote = bucketConfig.forcedFiveMin
-            ? 'Período ≥ 3 h: buckets fixos de 5 min.'
-            : `Buckets de ${bucketConfig.granularityLabel} (Lisboa).`;
+          const granNote = `Buckets de ${bucketConfig.granularityLabel} (Lisboa).`;
           noteEl.textContent = hasDimensionalData && (aiUsageProviderFilter || aiUsageModelFilter)
             ? `Sem pedidos para este fornecedor/modelo no período. ${granNote}`
             : `${granNote} Os dados aparecem após o primeiro pedido a /api/generate.`;
@@ -7195,12 +7508,10 @@
           ? ` ${quotaParts.join(' · ')}.`
           : ' Consulta /api/ai-status para limites do fornecedor.';
         const filterNote = view.filterLabel ? ` Filtro: <strong>${esc(view.filterLabel)}</strong>.` : '';
-        const tokenNote = topSeries.quotaKind === 'tokens'
+        const tokenNote = topSeries.quotaKind === 'tokens' || periodTokens > 0
           ? ` · <strong>${formatAiUsageTokenCount(periodTokens)}</strong> tokens`
           : '';
-        const granNote = bucketConfig.forcedFiveMin
-          ? 'Buckets de 5 min (período ≥ 3 h).'
-          : `Buckets de ${bucketConfig.granularityLabel}.`;
+        const granNote = `Buckets de ${bucketConfig.granularityLabel} (Lisboa).`;
         noteEl.innerHTML = `No período: <strong>${periodRequests}</strong> pedido(s)${tokenNote} · <strong>${periodErrors}</strong> erro(s). ${granNote}${filterNote}${quotaNote}`;
       }
 
@@ -7283,7 +7594,10 @@
       const limitStatusHtml = options.limitStatusHtml || '';
       const refHighlightPct = options.refHighlightPct ?? 0.95;
       const limitMarkers = Array.isArray(options.limitMarkers) ? options.limitMarkers : [];
+      const limitProbeMarkers = Array.isArray(options.limitProbeMarkers) ? options.limitProbeMarkers : [];
+      const limitBreakdown = options.limitBreakdown === true;
       const mapLimits = Object.fromEntries(limitMarkers.map((p) => [p.t, p.v]));
+      const mapLimitProbes = Object.fromEntries(limitProbeMarkers.map((p) => [p.t, p.v]));
       const scaleRefLimit = options.scaleRefLimit ?? !!aiUsageRefScaleByChart[chartKey];
       aiUsageRefScaleByChart[chartKey] = scaleRefLimit;
       const colorA = (axisMode === 'singleA' || axisMode === 'shared') && refLimit ? '#10b981' : '#3b82f6';
@@ -7434,7 +7748,9 @@
       }).join('');
 
       const limitBands = labels.map((t, i) => {
-        if (!(mapLimits[t] > 0)) return '';
+        const quotaVal = showSeriesB ? (mapB[t] || 0) : 0;
+        const quotaAtLimit = refLimit && quotaVal >= refLimit * refHighlightPct;
+        if (!(mapLimits[t] > 0 || quotaAtLimit)) return '';
         const cx = xAt(i);
         const bandW = labels.length <= 1 ? innerW : innerW / (labels.length - 1);
         const x = Math.max(padLeft, cx - bandW / 2);
@@ -7457,12 +7773,20 @@
               ${refLineSvg}
               ${showSeriesB ? `<polyline class="line-path quota-pressure-line" points="${lineB}" style="stroke:${colorB}" />` : ''}
               ${showAxisA ? `<polyline class="line-path" points="${lineA}" style="stroke:${colorA}" />` : ''}
-              ${showSeriesB ? pointsB.map((p) => `<circle class="line-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${colorB}" />`).join('') : ''}
+              ${showSeriesB ? pointsB.map((p) => {
+                const quotaVal = mapB[p.t] || 0;
+                const atQuotaLimit = refLimit && quotaVal >= refLimit * refHighlightPct;
+                const fill = atQuotaLimit ? refColor : colorB;
+                const r = atQuotaLimit ? 4.5 : 2.5;
+                const cls = atQuotaLimit ? 'line-dot quota-limit-dot' : 'line-dot';
+                return `<circle class="${cls}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="${r}" fill="${fill}" />`;
+              }).join('') : ''}
               ${showAxisA ? pointsA.map((p) => {
                 const quotaVal = mapB[p.t] || 0;
                 const compareVal = axisMode === 'shared' ? Math.max(p.v, quotaVal) : p.v;
+                const quotaAtLimit = refLimit && quotaVal >= refLimit * refHighlightPct;
                 const hitDot = refLimit && compareVal >= refLimit * refHighlightPct;
-                const limitHit = mapLimits[p.t] > 0;
+                const limitHit = mapLimits[p.t] > 0 || quotaAtLimit;
                 const fill = (hitDot || limitHit) ? refColor : colorA;
                 const r = (hitDot || limitHit) ? 4 : 2.5;
                 const cls = (hitDot || limitHit) ? 'line-dot limit-hit-dot' : 'line-dot';
@@ -7509,18 +7833,50 @@
           tooltipLines.push(`<div><span style="color:${colorA}">●</span> ${esc(labelA)}: <strong>${esc(formatValueA(mapA[t] || 0))}</strong></div>`);
         }
         if (showSeriesB) {
-          const quotaPctB = refLimit ? Math.round(((mapB[t] || 0) / refLimit) * 1000) / 10 : null;
-          tooltipLines.push(`<div><span style="color:${colorB}">●</span> ${esc(labelB)}: <strong>${esc(formatValueB(mapB[t] || 0))}</strong>${quotaPctB != null ? ` (${quotaPctB}%)` : ''}</div>`);
+          const quotaVal = mapB[t] || 0;
+          const quotaPctB = refLimit ? Math.round((quotaVal / refLimit) * 1000) / 10 : null;
+          const atQuotaLimit = !!(refLimit && quotaVal >= refLimit * refHighlightPct);
+          const quotaSuffix = options.quotaInstantTooltip === true
+            ? ' (leitura instantânea)'
+            : '';
+          const quotaColor = atQuotaLimit ? refColor : colorB;
+          const quotaVsLimit = refLimit && options.quotaInstantTooltip === true
+            ? ` / ${esc(formatValueB(refLimit))} limite`
+            : '';
+          tooltipLines.push(`<div><span style="color:${quotaColor}">●</span> ${esc(labelB)}${esc(quotaSuffix)}: <strong style="color:${atQuotaLimit ? refColor : 'inherit'}">${esc(formatValueB(quotaVal))}</strong>${quotaVsLimit}${quotaPctB != null ? ` (${quotaPctB}%)` : ''}</div>`);
         }
-        if (mapLimits[t] > 0) {
+        if (limitBreakdown) {
+          const gameHits = Number(mapLimits[t]) || 0;
+          const probeHits = Number(mapLimitProbes[t]) || 0;
+          const quotaVal = Number(mapB[t]) || 0;
+          const atQuotaLimit = !!(refLimit && quotaVal >= refLimit * refHighlightPct);
+          const nearQuotaLimit = !!(refLimit && quotaVal >= refLimit * 0.8 && !atQuotaLimit);
+          tooltipLines.push(`<div>Bloqueios jogo: <strong>${gameHits}</strong></div>`);
+          tooltipLines.push(`<div>Sondagens quota: <strong>${probeHits}</strong></div>`);
+          if (gameHits > 0) {
+            tooltipLines.push(`<div><span style="color:${refColor}">■</span> Pedido do jogo bloqueado por limite</div>`);
+          } else if (atQuotaLimit) {
+            const margin = Math.max(0, refLimit - quotaVal);
+            const marginNote = margin > 0 && margin < refLimit * 0.05
+              ? ` · ${esc(formatValueB(margin))} de margem`
+              : (quotaVal >= refLimit ? ' · 100% do limite' : '');
+            tooltipLines.push(`<div class="chart-tooltip-limit"><span style="color:${refColor}">■</span> No limite — leitura ${esc(formatValueB(quotaVal))} / ${esc(formatValueB(refLimit))}${marginNote}</div>`);
+          } else if (nearQuotaLimit) {
+            const pct = Math.round((quotaVal / refLimit) * 1000) / 10;
+            tooltipLines.push(`<div class="chart-tooltip-warn">Perto do limite (${pct}% da quota conta)</div>`);
+          } else if (probeHits > 0) {
+            tooltipLines.push('<div class="chart-tooltip-note">Sondagem quota neste bucket (sem bloqueio de jogo)</div>');
+          }
+        } else if (mapLimits[t] > 0) {
           tooltipLines.push(`<div><span style="color:${refColor}">■</span> Limite atingido neste minuto</div>`);
         } else if (refLimit && quotaPct != null && axisMode !== 'dual') {
           tooltipLines.push(`<div>Máx. vs limite: <strong>${quotaPct}%</strong></div>`);
         }
         tooltip.innerHTML = tooltipLines.join('');
         const rect = container.getBoundingClientRect();
-        tooltip.style.left = `${Math.min(Math.max(clientX - rect.left + 12, 8), Math.max(8, rect.width - 190))}px`;
-        tooltip.style.top = `${Math.max(clientY - rect.top - 72, 8)}px`;
+        const tooltipWidth = limitBreakdown && refLimit ? 240 : 190;
+        tooltip.style.left = `${Math.min(Math.max(clientX - rect.left + 12, 8), Math.max(8, rect.width - tooltipWidth))}px`;
+        tooltip.style.top = `${Math.max(clientY - rect.top - 88, 8)}px`;
       }
 
       svg.addEventListener('mousemove', (e) => {
@@ -7797,17 +8153,18 @@
     }
 
     async function loadTelemetryDashboard(options = {}) {
-      const { quiet = false } = options;
+      const { quiet = false, refreshQuota = false } = options;
       const statusEl = document.getElementById('telemetryListStatus');
       if (!quiet && statusEl) {
         statusEl.textContent = 'A carregar estatísticas…';
         statusEl.className = 'status';
       }
       try {
-        const [data, aiStatus] = await Promise.all([
-          api(`/api/gen-telemetry-admin?${telemetryStatsQuery()}`),
-          api('/api/ai-status').catch(() => null),
-        ]);
+        const dataPromise = api(`/api/gen-telemetry-admin?${telemetryStatsQuery()}`);
+        const aiStatusPromise = refreshQuota
+          ? fetchAdminAiStatus(true)
+          : Promise.resolve(lastAiStatusPayload);
+        const [data, aiStatus] = await Promise.all([dataPromise, aiStatusPromise]);
         lastTelemetryPayload = data;
         lastAiStatusPayload = aiStatus;
         lastTelemetryOverrides = data.overrides || [];
@@ -11988,8 +12345,8 @@
       closeRoomsAdmin([...selectedRoomIds]);
     });
     document.getElementById('logoutBtn').onclick = logout;
-    document.getElementById('telemetryLoadStatsBtn')?.addEventListener('click', () => loadTelemetryDashboard());
-    document.getElementById('telemetryRefreshBtn')?.addEventListener('click', () => loadTelemetryDashboard());
+    document.getElementById('telemetryLoadStatsBtn')?.addEventListener('click', () => loadTelemetryDashboard({ refreshQuota: true }));
+    document.getElementById('telemetryRefreshBtn')?.addEventListener('click', () => loadTelemetryDashboard({ refreshQuota: true }));
     document.getElementById('telemetryExportBtn')?.addEventListener('click', exportTelemetryJson);
     document.getElementById('chartGenIssueDetail')?.addEventListener('click', async (e) => {
       const acceptBtn = e.target.closest('.telemetry-accept-save-btn');

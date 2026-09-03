@@ -63,12 +63,11 @@ exports.handler = async (event) => {
     const used = Number.isFinite(summary.tokens_used)
       ? summary.tokens_used
       : (Number.isFinite(limit) && Number.isFinite(remaining) ? Math.max(0, limit - remaining) : null);
-    const limitHit = Number.isFinite(remaining) && remaining <= 0;
-    if (used == null && !limitHit) return;
+    if (used == null) return;
     recordAiQuotaMinutePressure({
       provider: providerId,
       quotaTokensUsed: used,
-      limitHit,
+      limitHit: false,
     }).catch(() => {});
   });
 

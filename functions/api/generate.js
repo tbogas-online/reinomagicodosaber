@@ -68,6 +68,13 @@ const MODEL_FALLBACK_ORDER = {
   anthropic: ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-20241022', 'claude-sonnet-4-5-20250929'],
 };
 
+function isProviderRateLimitError(err) {
+  if (!err) return false;
+  if (err.isRateLimit) return true;
+  const msg = err instanceof Error ? err.message : String(err);
+  return /rate limit|limite de pedidos atingido|tokens per min|too many requests/i.test(msg);
+}
+
 // Best-effort per-isolate protection. Os Workers da Cloudflare podem criar
 // vários isolates em paralelo, por isso isto não é uma quota global rígida,
 // mas ajuda a prevenir loops de pedidos acidentais dentro do mesmo isolate.
@@ -141,12 +148,17 @@ export async function onRequestPost(context) {
 
   const requestedTokens = Number(payload.max_tokens) || 300;
   const requestedModel = typeof payload.model === 'string' ? payload.model : 'auto';
+  const quotaConserve = payload.quota_conserve === true;
+  const providerList = (quotaConserve && !providerStrict) ? providers.slice(0, 1) : providers;
 
   const errors = [];
   const attempted = [];
   const modelsAttempted = [];
-  for (const provider of providers) {
-    const models = resolveModelsForProvider(provider.name, requestedModel, env);
+  let rateLimited = false;
+  for (const provider of providerList) {
+    if (rateLimited) break;
+    let models = resolveModelsForProvider(provider.name, requestedModel, env);
+    if (quotaConserve) models = models.slice(0, 1);
     for (const model of models) {
       modelsAttempted.push(`${provider.name}:${model}`);
       try {
@@ -160,13 +172,20 @@ export async function onRequestPost(context) {
           models_tried: modelsAttempted,
           fallback_used: modelsAttempted.length > 1,
           provider_strict: providerStrict,
+          quota_conserve: quotaConserve,
         });
       } catch (err) {
         console.error(`${provider.name}/${model} request failed:`, err);
         const message = err instanceof Error ? err.message : String(err);
+        if (isProviderRateLimitError(err)) {
+          errors.push(localizeProviderError(provider.name, `${model}: ${message}`));
+          rateLimited = true;
+          break;
+        }
         errors.push(localizeProviderError(provider.name, `${model}: ${message}`));
       }
     }
+    if (rateLimited) break;
     attempted.push(provider.name);
   }
 
