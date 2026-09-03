@@ -1,6 +1,7 @@
 {
-  "version": "20260902-184844",
-  "updatedAt": "2026-09-02T17:48:44.659Z",
-  "updatedAtPortugal": "02/09/2026 18:48:44",
-  "timezone": "Europe/Lisbon"
+  "version": "20260903-081616",
+  "updatedAt": "2026-09-03T07:16:16.188Z",
+  "updatedAtPortugal": "03/09/2026 08:16:16",
+  "timezone": "Europe/Lisbon",
+  "environment": "local"
 }
