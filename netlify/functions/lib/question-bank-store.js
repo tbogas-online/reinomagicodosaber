@@ -565,10 +565,8 @@ async function searchQuestionBank(options = {}) {
   const resolved = resolveBankSearchKeys({ query, hash });
   const queryRaw = String(resolved.queryTrim || query || '').trim();
   let queryTrim = escapePostgrestFilter(queryRaw);
-  let hashTrim = String(resolved.hashTrim || hash || '').trim().toLowerCase();
-  if (!hashTrim && /^[a-z0-9]{4,12}$/i.test(queryRaw)) {
-    hashTrim = queryRaw.toLowerCase();
-  }
+  const hashTrim = String(resolved.hashTrim || hash || '').trim().toLowerCase();
+  const explicitHashSearch = !!hashTrim;
 
   let cat = Number(categoryN);
   if (!cat && resolved.categoryN) cat = resolved.categoryN;
@@ -577,7 +575,7 @@ async function searchQuestionBank(options = {}) {
 
   const hasCategory = cat >= 1 && cat <= 20;
   const hasAge = BANK_AGE_BANDS.includes(age);
-  const hasText = !!(hashTrim || queryTrim);
+  const hasText = !!(explicitHashSearch || queryTrim);
   const hasReportFilter = filter !== 'all';
   const hasActiveFilter = hasCategory || hasAge || hasText || hasReportFilter;
   const resultLimit = hasActiveFilter
@@ -595,12 +593,12 @@ async function searchQuestionBank(options = {}) {
     params.set('limit', String(fetchLimit));
     params.set('offset', String(Math.max(Number(offset) || 0, 0)));
 
-    if (hashTrim) {
-      params.set('question_hash', `ilike.${hashTrim}`);
+    if (explicitHashSearch) {
+      params.set('question_hash', `ilike.*${hashTrim}*`);
     } else if (queryTrim) {
       const hashNeedle = escapePostgrestFilter(queryRaw.toLowerCase());
       if (/^[a-z0-9]{4,12}$/i.test(queryRaw)) {
-        params.set('or', `(question_hash.ilike.${hashNeedle},question.ilike.*${queryTrim}*,correct_answer.ilike.*${queryTrim}*)`);
+        params.set('or', `(question_hash.ilike.*${hashNeedle}*,question.ilike.*${queryTrim}*,correct_answer.ilike.*${queryTrim}*)`);
       } else {
         params.set('or', `(question.ilike.*${queryTrim}*,correct_answer.ilike.*${queryTrim}*)`);
       }
