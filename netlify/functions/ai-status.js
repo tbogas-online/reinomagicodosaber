@@ -63,7 +63,12 @@ exports.handler = async (event) => {
   });
 };
 
+function elapsedMs(started) {
+  return Math.max(0, Math.round(Date.now() - started));
+}
+
 async function probeGroqAccountLimits(apiKey) {
+  const started = Date.now();
   try {
     const response = await fetch('https://api.groq.com/openai/v1/models', {
       headers: { authorization: `Bearer ${apiKey}` },
@@ -82,6 +87,7 @@ async function probeGroqAccountLimits(apiKey) {
       message: response.ok ? null : localizeAiErrorText(msg),
       headers,
       fromBody: parseLimitFromBody(msg),
+      latency_ms: elapsedMs(started),
     });
   } catch {
     return null;
@@ -110,6 +116,7 @@ async function probeOpenAiModel(apiKey, model) {
 }
 
 async function probeOpenAiCompatible({ endpoint, apiKey, model, resolved, provider }) {
+  const started = Date.now();
   try {
     const response = await fetch(endpoint, {
       method: 'POST',
@@ -145,6 +152,7 @@ async function probeOpenAiCompatible({ endpoint, apiKey, model, resolved, provid
         message: localizeAiErrorText(msg),
         headers,
         fromBody,
+        latency_ms: elapsedMs(started),
       });
     }
 
@@ -156,6 +164,7 @@ async function probeOpenAiCompatible({ endpoint, apiKey, model, resolved, provid
       http_status: 200,
       headers,
       usage: parsed?.usage || null,
+      latency_ms: elapsedMs(started),
     });
   } catch (err) {
     return buildModelStatus({
@@ -164,11 +173,13 @@ async function probeOpenAiCompatible({ endpoint, apiKey, model, resolved, provid
       resolved,
       status: 'error',
       message: localizeAiErrorText(err instanceof Error ? err.message : String(err)),
+      latency_ms: elapsedMs(started),
     });
   }
 }
 
 async function probeAnthropicModel(apiKey, model) {
+  const started = Date.now();
   try {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -205,6 +216,7 @@ async function probeAnthropicModel(apiKey, model) {
         message: localizeAiErrorText(msg),
         headers,
         fromBody,
+        latency_ms: elapsedMs(started),
       });
     }
 
@@ -216,6 +228,7 @@ async function probeAnthropicModel(apiKey, model) {
       http_status: 200,
       headers,
       usage: parsed?.usage || null,
+      latency_ms: elapsedMs(started),
     });
   } catch (err) {
     return buildModelStatus({
@@ -224,11 +237,12 @@ async function probeAnthropicModel(apiKey, model) {
       resolved: model,
       status: 'error',
       message: localizeAiErrorText(err instanceof Error ? err.message : String(err)),
+      latency_ms: elapsedMs(started),
     });
   }
 }
 
-function buildModelStatus({ provider, model, resolved, status, http_status, message, headers = {}, fromBody = {}, usage = null }) {
+function buildModelStatus({ provider, model, resolved, status, http_status, message, headers = {}, fromBody = {}, usage = null, latency_ms = null }) {
   const minuteTokens = buildQuotaWindow({
     limit: fromBody.tokens_limit ?? headers.tokens_limit ?? null,
     remaining: fromBody.tokens_remaining ?? headers.tokens_remaining ?? null,
@@ -288,6 +302,7 @@ function buildModelStatus({ provider, model, resolved, status, http_status, mess
     usable: blockers.length === 0 && effectiveStatus === 'ok',
     message: message || null,
     usage,
+    latency_ms: Number.isFinite(latency_ms) ? Math.round(latency_ms) : null,
   };
 }
 
@@ -391,6 +406,7 @@ function summarizeProvider(providerId, models) {
     reset_at_label: model.reset_at_label,
     reset_in_label: model.reset_in_label,
     message: model.message,
+    latency_ms: model.latency_ms,
   };
 }
 

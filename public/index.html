@@ -7571,7 +7571,17 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       ? ' · não enviar pedidos até ao reset'
       : '';
     const requestsNote = requestsReset ? ` · reset pedidos/dia: ${requestsReset}` : '';
-    return `<div class="quota-line ${state.cls}"><strong>${label}</strong> · <span class="quota-status ${state.cls}">${state.label}</span> · ${usage} · reset minuto: ${minuteReset}${requestsNote}${usableNote}</div>`;
+    const latencyNote = summary.latency_ms != null
+      ? ` · latência: ${formatQuotaLatency(summary.latency_ms)}`
+      : '';
+    return `<div class="quota-line ${state.cls}"><strong>${label}</strong> · <span class="quota-status ${state.cls}">${state.label}</span> · ${usage} · reset minuto: ${minuteReset}${requestsNote}${latencyNote}${usableNote}</div>`;
+  }
+
+  function formatQuotaLatency(ms) {
+    const value = Number(ms);
+    if (!Number.isFinite(value) || value < 0) return '—';
+    if (value >= 1000) return `${(value / 1000).toFixed(1)} s`;
+    return `${Math.round(value)} ms`;
   }
 
   function renderAiServerKeys(configured){

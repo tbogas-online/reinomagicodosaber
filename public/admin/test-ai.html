@@ -1153,6 +1153,13 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
       return parts.join(' ') || 'em breve';
     }
 
+    function formatLatencyLabel(ms) {
+      const value = Number(ms);
+      if (!Number.isFinite(value) || value < 0) return '—';
+      if (value >= 1000) return `${(value / 1000).toFixed(1)} s`;
+      return `${Math.round(value)} ms`;
+    }
+
     function formatCheckedAt(iso) {
       if (!iso) return '';
       try {
@@ -1211,6 +1218,9 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
       const statusHint = summary.usable === false
         ? `<div class="usage-row"><span class="usage-key">Aviso</span><span class="usage-val quota-status-hint ${meta.cls}">Não enviar pedidos até ao reset</span></div>`
         : '';
+      const latencyLine = summary.latency_ms != null
+        ? `<div class="usage-row"><span class="usage-key">Latência</span><span class="usage-val">${formatLatencyLabel(summary.latency_ms)}</span></div>`
+        : '';
 
       return `
         <div class="quota-provider quota-state-${meta.cls}" data-provider="${summary.provider}">
@@ -1224,6 +1234,7 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
           ${statusHint}
           ${pct != null ? `<div class="quota-bar ${barClass}"><span style="width:${Math.max(4, pct)}%"></span></div>` : ''}
           ${requestsLine ? `<div class="usage-row"><span class="usage-key">Pedidos</span><span class="usage-val">${requestsLine}</span></div>` : ''}
+          ${latencyLine}
           <div class="usage-row"><span class="usage-key">Reset janela minuto</span><span class="usage-val" id="${resetInId}">${minuteReset}</span></div>
           <div class="usage-row"><span class="usage-key">Reset janela minuto às</span><span class="usage-val" id="${resetAtId}">${minuteResetAt}</span></div>
           ${requestsReset ? `<div class="usage-row"><span class="usage-key">Reset pedidos/dia</span><span class="usage-val">${requestsReset}</span></div>` : ''}

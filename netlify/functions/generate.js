@@ -9,6 +9,7 @@ function trackAiUsage(ok, enabled, meta = {}) {
     provider: meta.provider || '',
     model: meta.model || '',
     tokens: meta.tokens || 0,
+    latencyMs: meta.latencyMs,
   }).catch((err) => {
     console.warn('[generate] usage bucket:', err?.message || err);
   });
@@ -156,11 +157,13 @@ exports.handler = async (event) => {
         modelsAttempted.push(`${provider.name}:${model}`);
         try {
           const maxTokens = effectiveMaxTokens(provider.name, model, requestedTokens);
+          const started = Date.now();
           const result = await callProvider(provider.name, provider.apiKey, messages, maxTokens, model);
           trackAiUsage(true, trackUsage, {
             provider: provider.name,
             model,
             tokens: extractUsageTokens(result.usage),
+            latencyMs: Date.now() - started,
           });
           return json(200, {
             ...result,

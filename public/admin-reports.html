@@ -2142,6 +2142,32 @@
       color: var(--text);
       font: inherit;
     }
+    .ai-provider-status-panel {
+      margin: 8px 0 4px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.35);
+      font-size: 0.8rem;
+      line-height: 1.45;
+    }
+    .ai-provider-status-panel h4 {
+      margin: 0 0 8px;
+      font-size: 0.85rem;
+      color: var(--text);
+    }
+    .ai-provider-status-line {
+      padding: 6px 0 6px 10px;
+      border-left: 3px solid rgba(148, 163, 184, 0.45);
+      margin-bottom: 6px;
+    }
+    .ai-provider-status-line:last-child { margin-bottom: 0; }
+    .ai-provider-status-line.ok { border-left-color: #22c55e; }
+    .ai-provider-status-line.warn { border-left-color: #f59e0b; }
+    .ai-provider-status-line.err { border-left-color: #ef4444; }
+    .ai-provider-status-line .latency-fast { color: #86efac; }
+    .ai-provider-status-line .latency-mid { color: #fde68a; }
+    .ai-provider-status-line .latency-slow { color: #fca5a5; }
     .line-value-label {
       fill: var(--text);
       font-size: 9px;
@@ -3027,6 +3053,7 @@
             <div class="chart-head">
               <h3 id="chartAiUsageTitle" style="margin:0;font-size:0.95rem;">Pedidos à IA e quota</h3>
             </div>
+            <div id="aiProviderStatusPanel" class="ai-provider-status-panel" hidden></div>
             <div class="stats telemetry-kpis" id="aiUsageSummaryRow" style="margin:8px 0 4px"></div>
             <div class="ai-usage-dim-filters">
               <label>
@@ -3050,13 +3077,18 @@
               <button type="button" class="secondary active" data-ai-usage-range="24h">24 h</button>
               <button type="button" class="secondary" data-ai-usage-range="48h">48 h</button>
             </div>
-            <p class="timeline-note" id="aiUsageNote">Buckets de 5 minutos (hora de Lisboa). Linha verde = quota acumulada no dia; tracejado = limite diário do fornecedor.</p>
+            <p class="timeline-note" id="aiUsageNote">Buckets de 5 minutos (hora de Lisboa). Linha verde = consumo acumulado no dia; tracejado = limite diário (quando conhecido).</p>
             <div id="chartAiUsage" class="chart"></div>
             <div class="chart-head" style="margin-top:16px;">
               <h4 id="chartAiUsageMinuteTitle" style="margin:0;font-size:0.9rem;">Última hora · por minuto</h4>
             </div>
             <p class="timeline-note" id="aiUsageMinuteNote">Pedidos e tokens por minuto (janela móvel de 60 min). Actualiza automaticamente a cada minuto com a página aberta nesta aba.</p>
             <div id="chartAiUsageMinute" class="chart"></div>
+            <div class="chart-head" style="margin-top:16px;">
+              <h4 id="chartAiUsageLatencyTitle" style="margin:0;font-size:0.9rem;">Latência por modelo</h4>
+            </div>
+            <p class="timeline-note" id="aiUsageLatencyNote">Média por bucket de 5 min (mesmos filtros de fornecedor/modelo). Tracejados: 600 ms e 2 s.</p>
+            <div id="chartAiUsageLatency" class="chart"></div>
           </div>
 
           <div class="chart-box chart-wide" style="margin-top:12px">
@@ -5473,9 +5505,10 @@
     function renderProviderInsights(summary) {
       const el = document.getElementById('chartGenProviderInsights');
       if (!el) return;
-      const ranking = summary?.providerInsights?.ranking || [];
+      const ranking = (summary?.providerInsights?.ranking || [])
+        .filter((entry) => (Number(entry.total) || 0) > 0);
       if (!ranking.length) {
-        el.innerHTML = '<p class="chart-empty">Ainda sem dados por fornecedor IA.</p>';
+        el.innerHTML = '';
         return;
       }
       const bestId = summary.providerInsights?.best?.id || '';
@@ -5517,6 +5550,7 @@
 
     function buildProviderChartEntries(byProvider) {
       return Object.entries(byProvider || {})
+        .filter(([, v]) => (Number(v?.total ?? v?.accepted) || 0) > 0)
         .map(([k, v]) => [k, Math.round((v.acceptanceRate || 0) * 100)])
         .filter(([, n]) => n > 0)
         .sort((a, b) => b[1] - a[1]);
@@ -5709,10 +5743,12 @@
       (rows || []).forEach((row) => {
         const key = row.bucket_start;
         if (!key) return;
-        const slot = map.get(key) || { bucket_start: key, request_count: 0, error_count: 0, token_count: 0 };
+        const slot = map.get(key) || { bucket_start: key, request_count: 0, error_count: 0, token_count: 0, latency_sum_ms: 0, latency_count: 0 };
         slot.request_count += Number(row.request_count) || 0;
         slot.error_count += Number(row.error_count) || 0;
         slot.token_count += Number(row.token_count) || 0;
+        slot.latency_sum_ms += Number(row.latency_sum_ms) || 0;
+        slot.latency_count += Number(row.latency_count) || 0;
         map.set(key, slot);
       });
       return [...map.values()];
@@ -5726,47 +5762,66 @@
       const counts = new Map();
       for (let t = startMs; t <= endMs; t += bucketMinutes * 60 * 1000) {
         const key = aiUsageToLisbonBucketKey(new Date(t), bucketMinutes);
-        if (key) counts.set(key, { requests: 0, errors: 0, tokens: 0 });
+        if (key) counts.set(key, { requests: 0, errors: 0, tokens: 0, latencySum: 0, latencyCount: 0 });
       }
       (rows || []).forEach((row) => {
         const key = aiUsageToLisbonBucketKey(row.bucket_start, bucketMinutes);
         if (!key) return;
         if (!counts.has(key)) {
-          counts.set(key, { requests: 0, errors: 0, tokens: 0 });
+          counts.set(key, { requests: 0, errors: 0, tokens: 0, latencySum: 0, latencyCount: 0 });
         }
         const slot = counts.get(key);
         slot.requests += Number(row.request_count) || 0;
         slot.errors += Number(row.error_count) || 0;
         slot.tokens += Number(row.token_count) || 0;
+        slot.latencySum += Number(row.latency_sum_ms) || 0;
+        slot.latencyCount += Number(row.latency_count) || 0;
       });
       const sortedKeys = [...counts.keys()].sort();
       let daySum = 0;
+      let dayTokenSum = 0;
       let currentDay = '';
       const requests = [];
       const cumulative = [];
+      const cumulativeTokens = [];
       const errors = [];
       const tokens = [];
+      const latency = [];
       sortedKeys.forEach((key) => {
         const slot = counts.get(key);
         const day = key.slice(0, 10);
         if (day !== currentDay) {
           currentDay = day;
           daySum = 0;
+          dayTokenSum = 0;
         }
         daySum += slot.requests;
+        dayTokenSum += slot.tokens;
         requests.push({ t: key, v: slot.requests });
         cumulative.push({ t: key, v: daySum });
+        cumulativeTokens.push({ t: key, v: dayTokenSum });
         errors.push({ t: key, v: slot.errors });
         tokens.push({ t: key, v: slot.tokens });
+        latency.push({
+          t: key,
+          v: slot.latencyCount > 0 ? Math.round(slot.latencySum / slot.latencyCount) : 0,
+        });
       });
+      const latencySamples = latency.filter((p) => p.v > 0);
+      const avgLatencyMs = latencySamples.length
+        ? Math.round(latencySamples.reduce((sum, p) => sum + p.v, 0) / latencySamples.length)
+        : null;
       return {
         requests,
         cumulative,
+        cumulativeTokens,
         errors,
         tokens,
+        latency,
         totalRequests: requests.reduce((sum, p) => sum + p.v, 0),
         totalErrors: errors.reduce((sum, p) => sum + p.v, 0),
         totalTokens: tokens.reduce((sum, p) => sum + p.v, 0),
+        avgLatencyMs,
       };
     }
 
@@ -5842,12 +5897,55 @@
       };
     }
 
+    function filterUsedAiCatalog(catalog) {
+      const providers = (catalog?.providers || []).filter((entry) => (Number(entry.count) || 0) > 0);
+      const providerIds = new Set(providers.map((entry) => String(entry.id || '').toLowerCase()));
+      const models = (catalog?.models || []).filter((entry) => {
+        if ((Number(entry.count) || 0) <= 0) return false;
+        const providerId = String(entry.provider || '').toLowerCase();
+        return !providerId || providerIds.has(providerId);
+      });
+      return { providers, models };
+    }
+
+    function getUsedAiProviderIds(aiUsage, summary) {
+      const ids = new Set();
+      filterUsedAiCatalog(aiUsage?.catalog).providers.forEach((entry) => {
+        if (entry.id) ids.add(String(entry.id).toLowerCase());
+      });
+      Object.entries(summary?.byProvider || {}).forEach(([id, bucket]) => {
+        const total = Number(bucket?.total ?? bucket?.accepted ?? 0) || 0;
+        if (total > 0) ids.add(String(id).toLowerCase());
+      });
+      return ids;
+    }
+
+    function pruneAiUsageFilters(catalog) {
+      const used = filterUsedAiCatalog(catalog);
+      const providerIds = new Set(used.providers.map((entry) => String(entry.id || '').toLowerCase()));
+      if (aiUsageProviderFilter && !providerIds.has(aiUsageProviderFilter)) {
+        aiUsageProviderFilter = '';
+        try { localStorage.removeItem(AI_USAGE_PROVIDER_STORAGE_KEY); } catch { /* ignore */ }
+      }
+      const modelIds = new Set(used.models.map((entry) => String(entry.model || '')));
+      if (aiUsageModelFilter && !modelIds.has(aiUsageModelFilter)) {
+        aiUsageModelFilter = '';
+        try { localStorage.removeItem(AI_USAGE_MODEL_STORAGE_KEY); } catch { /* ignore */ }
+      }
+    }
+
+    function setTelemetryChartBoxVisible(containerEl, visible) {
+      const box = containerEl?.closest?.('.chart-box');
+      if (box) box.hidden = !visible;
+    }
+
     function renderAiUsageFilterOptions(aiUsage) {
       const providerEl = document.getElementById('aiUsageProviderFilter');
       const modelEl = document.getElementById('aiUsageModelFilter');
       if (!providerEl || !modelEl) return;
 
-      const catalog = aiUsage?.catalog || { providers: [], models: [] };
+      const catalog = filterUsedAiCatalog(aiUsage?.catalog || { providers: [], models: [] });
+      pruneAiUsageFilters(catalog);
       const providerOptions = ['<option value="">Todos</option>'];
       (catalog.providers || []).forEach((entry) => {
         const id = String(entry.id || '');
@@ -5859,7 +5957,7 @@
         ? aiUsageProviderFilter
         : '';
 
-      const models = (catalog.models || []).filter((entry) => {
+      const models = catalog.models.filter((entry) => {
         if (!aiUsageProviderFilter) return true;
         return String(entry.provider || '').toLowerCase() === aiUsageProviderFilter;
       });
@@ -5902,13 +6000,72 @@
       if (!provider || !aiStatus?.providers?.[provider]) return null;
       const prov = aiStatus.providers[provider];
       const models = Array.isArray(prov.models) ? prov.models : [];
+      let best = null;
       for (const model of models) {
         const limit = Number(model.tokens_limit);
-        if (Number.isFinite(limit) && limit > 0) return Math.round(limit);
+        if (Number.isFinite(limit) && limit > 0 && (!best || limit > best)) best = Math.round(limit);
       }
       const summaryLimit = Number(prov.summary?.tokens_limit);
-      if (Number.isFinite(summaryLimit) && summaryLimit > 0) return Math.round(summaryLimit);
-      return null;
+      if (Number.isFinite(summaryLimit) && summaryLimit > 0) {
+        best = best ? Math.max(best, Math.round(summaryLimit)) : Math.round(summaryLimit);
+      }
+      return best;
+    }
+
+    function extractAiDailyTokenLimit(aiStatus, providerFilter = '') {
+      const provider = String(providerFilter || aiUsageProviderFilter || '').trim().toLowerCase();
+      if (!provider || !aiStatus?.providers?.[provider]) return null;
+      const prov = aiStatus.providers[provider];
+      const models = Array.isArray(prov.models) ? prov.models : [];
+      let best = null;
+      for (const model of models) {
+        const limit = Number(model.tokens_day_limit);
+        if (Number.isFinite(limit) && limit > 0 && (!best || limit > best)) best = Math.round(limit);
+      }
+      const summaryLimit = Number(prov.summary?.tokens_day_limit);
+      if (Number.isFinite(summaryLimit) && summaryLimit > 0) {
+        best = best ? Math.max(best, Math.round(summaryLimit)) : Math.round(summaryLimit);
+      }
+      return best;
+    }
+
+    function buildAiUsageTopChartSeries(bucket, aiStatus, providerFilter = '') {
+      const dailyTokenLimit = extractAiDailyTokenLimit(aiStatus, providerFilter);
+      const requestQuotaLimit = extractAiQuotaLimit(aiStatus, null, providerFilter);
+      const minuteTokenLimit = extractAiMinuteTokenLimit(aiStatus, providerFilter);
+      const hasTokens = (bucket?.totalTokens || 0) > 0;
+      const useTokenSeries = !!(providerFilter && hasTokens && Array.isArray(bucket?.cumulativeTokens));
+
+      if (useTokenSeries) {
+        return {
+          seriesB: bucket.cumulativeTokens,
+          refLimit: dailyTokenLimit,
+          labelB: 'Tokens acumulados (dia)',
+          axisLabelB: 'Tokens dia',
+          formatValueB: formatAiUsageTokenCount,
+          refLabel: dailyTokenLimit ? 'Limite tokens/dia' : undefined,
+          minuteTokenLimit,
+          usedToday: bucket.cumulativeTokens.length
+            ? bucket.cumulativeTokens[bucket.cumulativeTokens.length - 1].v
+            : 0,
+          quotaLimit: dailyTokenLimit || null,
+          quotaKind: 'tokens',
+        };
+      }
+
+      const cumulative = bucket?.cumulative || [];
+      return {
+        seriesB: cumulative,
+        refLimit: requestQuotaLimit,
+        labelB: 'Pedidos acumulados (dia)',
+        axisLabelB: 'Pedidos dia',
+        formatValueB: formatAiUsageAxisCount,
+        refLabel: requestQuotaLimit ? 'Limite pedidos/dia' : undefined,
+        minuteTokenLimit: providerFilter ? minuteTokenLimit : null,
+        usedToday: cumulative.length ? cumulative[cumulative.length - 1].v : 0,
+        quotaLimit: requestQuotaLimit,
+        quotaKind: 'requests',
+      };
     }
 
     function formatAiUsageTokenCount(n) {
@@ -5916,6 +6073,277 @@
       if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
       if (v >= 1000) return `${Math.round(v / 1000)}k`;
       return String(v);
+    }
+
+    function formatAiLatencyMs(ms) {
+      const value = Number(ms);
+      if (!Number.isFinite(value) || value < 0) return '—';
+      if (value >= 1000) return `${(value / 1000).toFixed(1)} s`;
+      return `${Math.round(value)} ms`;
+    }
+
+    function aiLatencyClass(ms) {
+      const value = Number(ms);
+      if (!Number.isFinite(value)) return '';
+      if (value >= 2000) return 'latency-slow';
+      if (value >= 600) return 'latency-mid';
+      return 'latency-fast';
+    }
+
+    function aiProviderAvailabilityMeta(summary) {
+      if (!summary) return { cls: 'unknown', label: 'sem dados' };
+      if (summary.usable === false || summary.availability === 'limited') {
+        return { cls: 'warn', label: 'aguardar reset' };
+      }
+      if (summary.availability === 'ok') return { cls: 'ok', label: 'OK' };
+      if (summary.availability === 'billing') return { cls: 'err', label: 'sem créditos' };
+      if (summary.availability === 'error') return { cls: 'err', label: 'erro' };
+      return { cls: 'unknown', label: 'sem dados' };
+    }
+
+    function renderAiProviderStatusLine(summary) {
+      const meta = aiProviderAvailabilityMeta(summary);
+      const label = aiUsageProviderLabel(summary.provider) || summary.label || summary.provider;
+      const usage = summary.tokens_limit != null
+        ? `${formatAiUsageTokenCount(summary.tokens_used)} / ${formatAiUsageTokenCount(summary.tokens_limit)} tokens/min`
+        : 'uso desconhecido';
+      const saldo = summary.tokens_remaining != null
+        ? ` · saldo ${formatAiUsageTokenCount(summary.tokens_remaining)}`
+        : '';
+      const requests = summary.requests_limit != null
+        ? ` · pedidos/dia ${summary.requests_used ?? 0}/${summary.requests_limit}`
+        : '';
+      const latency = summary.latency_ms != null
+        ? ` · latência <span class="${aiLatencyClass(summary.latency_ms)}">${esc(formatAiLatencyMs(summary.latency_ms))}</span>`
+        : '';
+      const minuteReset = summary.tokens_minute_reset_in_label || summary.reset_in_label || '—';
+      const requestsReset = summary.requests_reset_in_label
+        ? ` · reset pedidos/dia: ${esc(summary.requests_reset_in_label)}`
+        : '';
+      return `<div class="ai-provider-status-line ${meta.cls}"><strong>${esc(label)}</strong> · ${esc(meta.label)} · ${usage}${saldo}${requests}${latency} · reset minuto: ${esc(minuteReset)}${requestsReset}</div>`;
+    }
+
+    function renderAiProviderStatus(aiStatus, aiUsage, summary) {
+      const panel = document.getElementById('aiProviderStatusPanel');
+      if (!panel) return;
+      const configured = aiStatus?.configured || {};
+      const providers = aiStatus?.providers || {};
+      const usedProviderIds = getUsedAiProviderIds(aiUsage, summary);
+      const order = ['groq', 'openai', 'anthropic'];
+      const lines = [];
+      order.forEach((id) => {
+        if (!configured[id]) return;
+        if (usedProviderIds.size > 0 && !usedProviderIds.has(id)) return;
+        const providerSummary = providers[id]?.summary;
+        if (providerSummary) lines.push(renderAiProviderStatusLine(providerSummary));
+      });
+      if (!lines.length) {
+        panel.hidden = true;
+        panel.innerHTML = '';
+        return;
+      }
+      const checked = aiStatus?.checked_at
+        ? new Date(aiStatus.checked_at).toLocaleString('pt-PT', {
+          timeZone: 'Europe/Lisbon',
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+        })
+        : '';
+      panel.hidden = false;
+      panel.innerHTML = `<h4>Quotas e latência dos servidores</h4>${lines.join('')}${checked ? `<div class="timeline-note" style="margin-top:6px">Actualizado: ${esc(checked)}</div>` : ''}`;
+    }
+
+    const AI_LATENCY_COLORS = ['#f59e0b', '#3b82f6', '#10b981', '#a855f7', '#ef4444', '#06b6d4', '#ec4899', '#84cc16'];
+    const AI_LATENCY_WARN_MS = 600;
+    const AI_LATENCY_SLOW_MS = 2000;
+
+    function groupAiUsageRowsByModel(rows) {
+      const groups = new Map();
+      (rows || []).forEach((row) => {
+        const provider = String(row.provider || '').trim().toLowerCase();
+        const model = String(row.model || '').trim();
+        if (!provider && !model) return;
+        const key = `${provider}\0${model}`;
+        if (!groups.has(key)) groups.set(key, []);
+        groups.get(key).push(row);
+      });
+      return [...groups.entries()].map(([key, modelRows]) => {
+        const [provider, model] = key.split('\0');
+        return { provider, model, rows: modelRows };
+      });
+    }
+
+    function buildAiUsageLatencyModelSeries(dimensionRows, lookbackMs, providerFilter, modelFilter, bucketMinutes = AI_USAGE_BUCKET_MINUTES) {
+      const filtered = filterAiUsageDimensionRows(dimensionRows, providerFilter, modelFilter);
+      const buildEntry = (provider, model, modelRows) => {
+        const bucket = buildAiUsageBucketSeries(aggregateAiUsageRows(modelRows), lookbackMs, bucketMinutes);
+        const label = model
+          ? `${aiUsageProviderLabel(provider)} · ${model}`
+          : aiUsageProviderLabel(provider);
+        return {
+          id: `${provider}:${model}`,
+          label,
+          series: bucket.latency || [],
+          avgLatencyMs: bucket.avgLatencyMs,
+        };
+      };
+
+      if (modelFilter) {
+        const entry = buildEntry(providerFilter, modelFilter, filtered);
+        return (entry.series || []).some((p) => p.v > 0) ? [entry] : [];
+      }
+
+      return groupAiUsageRowsByModel(filtered)
+        .map((group) => buildEntry(group.provider, group.model, group.rows))
+        .filter((entry) => (entry.series || []).some((p) => p.v > 0))
+        .sort((a, b) => {
+          const aMax = Math.max(...(a.series || []).map((p) => p.v), 0);
+          const bMax = Math.max(...(b.series || []).map((p) => p.v), 0);
+          return bMax - aMax;
+        })
+        .slice(0, AI_LATENCY_COLORS.length);
+    }
+
+    function buildAiUsageLatencyView(aiUsage) {
+      const meta = AI_USAGE_RANGES[aiUsageRange] || AI_USAGE_RANGES['24h'];
+      const dimensionRows = Array.isArray(aiUsage?.dimensionRows) ? aiUsage.dimensionRows : [];
+      let models = buildAiUsageLatencyModelSeries(
+        dimensionRows,
+        meta.lookbackMs,
+        aiUsageProviderFilter,
+        aiUsageModelFilter,
+      );
+      if (!models.length) {
+        const view = buildAiUsageView(aiUsage);
+        const bucket = view.timeline?.[aiUsageRange];
+        if (bucket?.latency?.some((p) => p.v > 0)) {
+          models = [{
+            id: 'aggregate',
+            label: view.filterLabel || 'Média',
+            series: bucket.latency,
+            avgLatencyMs: bucket.avgLatencyMs,
+          }];
+        }
+      }
+      return {
+        models,
+        filterLabel: buildAiUsageFilterLabel(aiUsageProviderFilter, aiUsageModelFilter),
+        meta,
+      };
+    }
+
+    function renderAiUsageLatencyChart(aiUsage) {
+      const chartEl = document.getElementById('chartAiUsageLatency');
+      const noteEl = document.getElementById('aiUsageLatencyNote');
+      const titleEl = document.getElementById('chartAiUsageLatencyTitle');
+      if (!chartEl) return;
+      if (!aiUsage?.available) {
+        chartEl.innerHTML = '<div class="chart-empty">Indisponível — executa ai-usage-latency-buckets.sql.</div>';
+        return;
+      }
+      const latencyView = buildAiUsageLatencyView(aiUsage);
+      const filterSuffix = latencyView.filterLabel ? ` · ${latencyView.filterLabel}` : '';
+      if (titleEl) titleEl.textContent = `Latência por modelo — ${latencyView.meta.label}${filterSuffix}`;
+      if (!latencyView.models.length) {
+        chartEl.innerHTML = '<div class="chart-empty">Sem latência registada — aparece após pedidos com a migração e deploy activos.</div>';
+        if (noteEl) {
+          noteEl.textContent = 'Executa supabase/ai-usage-latency-buckets.sql e faz deploy para registar latência por pedido.';
+        }
+        return;
+      }
+      const avgValues = latencyView.models
+        .map((m) => m.avgLatencyMs)
+        .filter((v) => Number.isFinite(v) && v > 0);
+      const periodAvg = avgValues.length
+        ? Math.round(avgValues.reduce((sum, v) => sum + v, 0) / avgValues.length)
+        : null;
+      if (noteEl) {
+        const avgNote = periodAvg != null ? ` Média no período: <strong>${formatAiLatencyMs(periodAvg)}</strong>.` : '';
+        noteEl.innerHTML = `Uma linha por modelo (até ${AI_LATENCY_COLORS.length}). Buckets de 5 min, hora de Lisboa.${avgNote} Tracejados: ${AI_LATENCY_WARN_MS} ms e ${formatAiLatencyMs(AI_LATENCY_SLOW_MS)}.`;
+      }
+      renderAiUsageLatencyMultiChart(chartEl, latencyView.models, latencyView.meta.granularity);
+    }
+
+    function renderAiUsageLatencyMultiChart(el, modelSeries, granularity = 'minute') {
+      const labels = [...new Set(modelSeries.flatMap((m) => (m.series || []).map((p) => p.t)))].sort();
+      if (!labels.length) {
+        el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
+        return;
+      }
+      const maps = modelSeries.map((m) => ({
+        ...m,
+        map: Object.fromEntries((m.series || []).map((p) => [p.t, p.v])),
+      }));
+      const maxV = Math.max(
+        AI_LATENCY_SLOW_MS,
+        ...labels.flatMap((t) => maps.map((m) => m.map[t] || 0)),
+        1,
+      );
+      const w = 640;
+      const h = 220;
+      const padLeft = 44;
+      const padRight = 16;
+      const padY = 28;
+      const innerW = w - padLeft - padRight;
+      const innerH = h - padY * 2;
+      const xAt = (i) => padLeft + (i / Math.max(labels.length - 1, 1)) * innerW;
+      const yAt = (v) => padY + innerH - (v / maxV) * innerH;
+      const gridFracs = [0, 0.25, 0.5, 0.75, 1];
+      const gridLines = gridFracs.map((frac) => {
+        const y = padY + innerH * (1 - frac);
+        const val = formatAiLatencyMs(maxV * frac);
+        return `
+          <line class="line-grid" x1="${padLeft}" y1="${y}" x2="${w - padRight}" y2="${y}" />
+          <text class="line-axis-label line-axis-label-left" x="${padLeft - 8}" y="${y + 4}" text-anchor="end">${esc(val)}</text>
+        `;
+      }).join('');
+      const refLines = [
+        { v: AI_LATENCY_WARN_MS, color: '#f59e0b', label: '600 ms' },
+        { v: AI_LATENCY_SLOW_MS, color: '#ef4444', label: '2 s' },
+      ].map((ref) => {
+        if (ref.v > maxV) return '';
+        const y = yAt(ref.v);
+        return `<line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${(w - padRight).toFixed(1)}" y2="${y.toFixed(1)}" stroke="${ref.color}" stroke-dasharray="5 4" stroke-width="1.2" opacity="0.8" />
+          <text class="line-label" x="${w - padRight - 2}" y="${Math.max(padY + 10, y - 4)}" text-anchor="end" fill="${ref.color}">${esc(ref.label)}</text>`;
+      }).join('');
+      const polylines = maps.map((m, index) => {
+        const color = AI_LATENCY_COLORS[index % AI_LATENCY_COLORS.length];
+        const points = labels.map((t, i) => ({
+          x: xAt(i),
+          y: yAt(m.map[t] || 0),
+          v: m.map[t] || 0,
+        }));
+        const line = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+        const dots = points.filter((p) => p.v > 0).map((p) =>
+          `<circle class="line-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${color}" />`
+        ).join('');
+        return `<polyline class="line-path" points="${line}" style="stroke:${color}" /><g>${dots}</g>`;
+      }).join('');
+      const legend = maps.map((m, index) => {
+        const color = AI_LATENCY_COLORS[index % AI_LATENCY_COLORS.length];
+        const avg = m.avgLatencyMs != null ? ` (${formatAiLatencyMs(m.avgLatencyMs)})` : '';
+        return `<span><i style="background:${color}"></i>${esc(m.label)}${avg}</span>`;
+      }).join('');
+      const labelStep = Math.max(1, Math.ceil(labels.length / 8));
+      const xLabels = labels.map((t, i) => {
+        if (i % labelStep !== 0 && i !== labels.length - 1) return '';
+        return `<text class="line-label" x="${xAt(i).toFixed(1)}" y="${h - 6}" text-anchor="middle">${esc(formatBankTimelineLabel(t, granularity))}</text>`;
+      }).join('');
+      el.innerHTML = `
+        <div class="ai-usage-legend">${legend}</div>
+        <div class="chart-interactive ai-usage-chart">
+          <div class="chart-tooltip" hidden></div>
+          <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Latência por modelo">
+            ${gridLines}
+            <line class="line-axis-spine-left" x1="${padLeft}" y1="${padY}" x2="${padLeft}" y2="${padY + innerH}" />
+            ${refLines}
+            ${polylines}
+            ${xLabels}
+          </svg>
+        </div>
+      `;
     }
 
     function renderAiUsageMinuteChart(aiUsage, aiStatus) {
@@ -6004,19 +6432,30 @@
       renderAiUsageFilterOptions(aiUsage);
       const view = buildAiUsageView(aiUsage);
       const s = view.summary || aiUsage.summary || {};
-      const quotaLimit = extractAiQuotaLimit(aiStatus, aiUsage, aiUsageProviderFilter);
-      const quotaPct = quotaLimit && s.quotaUsedToday != null
-        ? Math.min(100, Math.round((s.quotaUsedToday / quotaLimit) * 1000) / 10)
+      const bucketToday = view.timeline?.['24h'] || view.timeline?.['48h'];
+      const topSeries = bucketToday
+        ? buildAiUsageTopChartSeries(bucketToday, aiStatus, aiUsageProviderFilter)
+        : null;
+      const quotaLimit = topSeries?.quotaLimit || extractAiQuotaLimit(aiStatus, aiUsage, aiUsageProviderFilter);
+      const usedToday = topSeries?.quotaKind === 'tokens'
+        ? (topSeries.usedToday ?? 0)
+        : (s.quotaUsedToday ?? 0);
+      const formatQuotaUsed = topSeries?.quotaKind === 'tokens'
+        ? formatAiUsageTokenCount
+        : (v) => String(v);
+      const quotaPct = quotaLimit && usedToday != null
+        ? Math.min(100, Math.round((usedToday / quotaLimit) * 1000) / 10)
         : null;
       const successLabel = s.successRate != null ? `${s.successRate}%` : '—';
       const filterNote = view.filterLabel ? ` · ${esc(view.filterLabel)}` : '';
+      const quotaLabel = topSeries?.quotaKind === 'tokens' ? 'Tokens hoje' : 'Quota hoje';
       el.innerHTML = `
         <div class="stat stat-open"><strong>${s.last1h ?? 0}</strong><span>Última hora${filterNote}</span></div>
         <div class="stat stat-total"><strong>${s.last24h ?? 0}</strong><span>Últimas 24 h</span></div>
         <div class="stat stat-resolved"><strong>${s.last48h ?? 0}</strong><span>Últimas 48 h</span></div>
         <div class="stat stat-cancelled"><strong>${s.errors ?? 0}</strong><span>Erros (48 h)</span></div>
         <div class="stat stat-top-issue"><strong>${successLabel}</strong><span>Taxa de sucesso</span></div>
-        ${quotaLimit ? `<div class="stat stat-open"><strong>${s.quotaUsedToday ?? 0}/${quotaLimit}</strong><span>Quota hoje${quotaPct != null ? ` (${quotaPct}%)` : ''}</span></div>` : ''}
+        ${quotaLimit ? `<div class="stat stat-open"><strong>${esc(formatQuotaUsed(usedToday))}/${esc(formatQuotaUsed(quotaLimit))}</strong><span>${quotaLabel}${quotaPct != null ? ` (${quotaPct}%)` : ''}</span></div>` : ''}
       `;
     }
 
@@ -6039,6 +6478,7 @@
         chartEl.innerHTML = `<div class="chart-empty">${esc(aiUsage?.error || 'Executa supabase/ai-usage-buckets.sql no Supabase.')}</div>`;
         if (noteEl) noteEl.textContent = 'Contadores agregados por POST /api/generate (buckets de 5 min, retenção 48 h).';
         renderAiUsageMinuteChart(aiUsage, aiStatus);
+        renderAiUsageLatencyChart(aiUsage);
         return;
       }
 
@@ -6055,31 +6495,46 @@
             : 'Buckets de 5 minutos (Lisboa). Os dados aparecem após o primeiro pedido a /api/generate.';
         }
         renderAiUsageMinuteChart(aiUsage, aiStatus);
+        renderAiUsageLatencyChart(aiUsage);
         return;
       }
 
-      const quotaLimit = extractAiQuotaLimit(aiStatus, aiUsage, aiUsageProviderFilter);
+      const topSeries = buildAiUsageTopChartSeries(bucket, aiStatus, aiUsageProviderFilter);
       const periodRequests = bucket.totalRequests || 0;
       const periodErrors = bucket.totalErrors || 0;
+      const periodTokens = bucket.totalTokens || 0;
       if (noteEl) {
-        const quotaNote = quotaLimit
-          ? ` Limite diário de referência: <strong>${quotaLimit}</strong> pedidos.`
-          : ' Define AI_DAILY_REQUEST_QUOTA no Netlify ou consulta /api/ai-status para linha de quota.';
+        const quotaParts = [];
+        if (topSeries.refLimit) {
+          const fmt = topSeries.quotaKind === 'tokens' ? formatAiUsageTokenCount : (v) => String(v);
+          quotaParts.push(`Limite diário: <strong>${esc(fmt(topSeries.refLimit))}</strong> ${topSeries.quotaKind === 'tokens' ? 'tokens' : 'pedidos'}`);
+        }
+        if (topSeries.minuteTokenLimit) {
+          quotaParts.push(`Limite tokens/min: <strong>${esc(formatAiUsageTokenCount(topSeries.minuteTokenLimit))}</strong>`);
+        }
+        const quotaNote = quotaParts.length
+          ? ` ${quotaParts.join(' · ')}.`
+          : ' Consulta /api/ai-status para limites do fornecedor.';
         const filterNote = view.filterLabel ? ` Filtro: <strong>${esc(view.filterLabel)}</strong>.` : '';
-        noteEl.innerHTML = `No período: <strong>${periodRequests}</strong> pedido(s) · <strong>${periodErrors}</strong> erro(s).${filterNote}${quotaNote}`;
+        const tokenNote = topSeries.quotaKind === 'tokens'
+          ? ` · <strong>${formatAiUsageTokenCount(periodTokens)}</strong> tokens`
+          : '';
+        noteEl.innerHTML = `No período: <strong>${periodRequests}</strong> pedido(s)${tokenNote} · <strong>${periodErrors}</strong> erro(s).${filterNote}${quotaNote}`;
       }
 
-      renderAiUsageDualChart(chartEl, bucket.requests, bucket.cumulative, quotaLimit, {
+      renderAiUsageDualChart(chartEl, bucket.requests, topSeries.seriesB, topSeries.refLimit, {
         labelA: 'Pedidos / 5 min',
-        labelB: 'Quota acumulada (dia)',
+        labelB: topSeries.labelB,
         granularity: meta.granularity,
         formatLabel: formatBankTimelineLabel,
         formatValueA: formatAiUsageAxisCount,
-        formatValueB: formatAiUsageAxisCount,
+        formatValueB: topSeries.formatValueB,
         axisLabelA: 'Pedidos',
-        axisLabelB: 'Quota dia',
+        axisLabelB: topSeries.axisLabelB,
+        refLabel: topSeries.refLabel,
       });
       renderAiUsageMinuteChart(aiUsage, aiStatus);
+      renderAiUsageLatencyChart(aiUsage);
     }
 
     function niceAxisMax(value, min = 5) {
@@ -6135,14 +6590,12 @@
       const mapA = Object.fromEntries((seriesA || []).map((p) => [p.t, p.v]));
       const mapB = Object.fromEntries((seriesB || []).map((p) => [p.t, p.v]));
       const maxA = niceAxisMax(Math.max(...labels.map((t) => mapA[t] || 0), 0), 5);
-      const maxB = niceAxisMax(
-        Math.max(
-          ...labels.map((t) => mapB[t] || 0),
-          refLimit || 0,
-          1,
-        ),
-        refLimit || 10,
-      );
+      const dataMaxB = Math.max(...labels.map((t) => mapB[t] || 0), 0);
+      let maxB = niceAxisMax(Math.max(dataMaxB, 1), 5);
+      if (refLimit != null && refLimit > 0 && refLimit <= dataMaxB * 3) {
+        maxB = niceAxisMax(Math.max(dataMaxB, refLimit), 5);
+      }
+      const refOffScale = refLimit != null && refLimit > maxB;
 
       const w = 640;
       const h = 210;
@@ -6200,10 +6653,15 @@
         </aside>
       `;
 
-      const refY = refLimit != null ? yAtB(refLimit) : null;
+      const refY = refLimit != null ? (refOffScale ? padY + 1 : yAtB(refLimit)) : null;
+      const refLineLabel = refLimit != null
+        ? (refOffScale
+          ? `${refLabel} (${formatValueB(refLimit)} — acima da escala)`
+          : `${refLabel} (${formatValueB(refLimit)})`)
+        : '';
       const refLineSvg = refY != null
         ? `<line x1="${padLeft}" y1="${refY.toFixed(1)}" x2="${(w - padRight).toFixed(1)}" y2="${refY.toFixed(1)}" stroke="${refColor}" stroke-dasharray="6 4" stroke-width="1.5" opacity="0.85" />
-           <text class="line-label" x="${w - padRight - 4}" y="${Math.max(padY + 12, refY - 6)}" text-anchor="end" fill="${refColor}">${esc(refLabel)} (${esc(formatValueB(refLimit))})</text>`
+           <text class="line-label" x="${w - padRight - 4}" y="${Math.max(padY + 12, refY + (refOffScale ? 10 : -6))}" text-anchor="end" fill="${refColor}">${esc(refLineLabel)}</text>`
         : '';
 
       const labelStep = Math.max(1, Math.ceil(labels.length / 8));
@@ -6361,6 +6819,7 @@
       const attemptEl = document.getElementById('chartGenAttempts');
       if (!statsEl || !issueEl || !catEl || !fmtEl || !modeEl) return;
 
+      renderAiProviderStatus(aiStatus, aiUsage, summary);
       renderAiUsageSummary(aiUsage, aiStatus);
       renderAiUsageChart(aiUsage, aiStatus);
 
@@ -6491,12 +6950,20 @@
       if (providerEl) {
         renderProviderInsights(summary);
         const providerEntries = buildProviderChartEntries(summary.byProvider);
-        renderBarChart(
-          providerEl,
-          providerEntries.length ? providerEntries : [['—', 0]],
-          (k) => GEN_PROVIDER_LABELS[k] || k,
-          { valueSuffix: '%' },
-        );
+        const hasProviderRanking = (summary?.providerInsights?.ranking || [])
+          .some((entry) => (Number(entry.total) || 0) > 0);
+        const providerBox = providerEl.closest('.chart-box');
+        if (providerBox) providerBox.hidden = !hasProviderRanking && !providerEntries.length;
+        if (providerEntries.length) {
+          renderBarChart(
+            providerEl,
+            providerEntries,
+            (k) => GEN_PROVIDER_LABELS[k] || k,
+            { valueSuffix: '%' },
+          );
+        } else {
+          providerEl.innerHTML = '';
+        }
       }
 
       if (modelEl) {
@@ -6505,7 +6972,12 @@
           .filter(([, n]) => n > 0)
           .sort((a, b) => b[1] - a[1])
           .slice(0, 10);
-        renderBarChart(modelEl, modelEntries, (k) => k);
+        setTelemetryChartBoxVisible(modelEl, modelEntries.length > 0);
+        if (modelEntries.length) {
+          renderBarChart(modelEl, modelEntries, (k) => k);
+        } else {
+          modelEl.innerHTML = '';
+        }
       }
 
       if (attemptEl) {

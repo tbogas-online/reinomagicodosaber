@@ -172,10 +172,14 @@ function aggregateRowsByBucket(rows) {
       request_count: 0,
       error_count: 0,
       token_count: 0,
+      latency_sum_ms: 0,
+      latency_count: 0,
     };
     slot.request_count += Number(row.request_count) || 0;
     slot.error_count += Number(row.error_count) || 0;
     slot.token_count += Number(row.token_count) || 0;
+    slot.latency_sum_ms += Number(row.latency_sum_ms) || 0;
+    slot.latency_count += Number(row.latency_count) || 0;
     map.set(key, slot);
   });
   return [...map.values()].sort((a, b) => String(a.bucket_start).localeCompare(String(b.bucket_start)));
@@ -190,28 +194,33 @@ function buildBucketSeries(rows, lookbackMs, bucketMinutes = BUCKET_MINUTES) {
 
   for (let t = startMs; t <= endMs; t += bucketMinutes * 60 * 1000) {
     const key = toLisbonBucketKey(new Date(t), bucketMinutes);
-    if (key) counts.set(key, { requests: 0, errors: 0, tokens: 0 });
+    if (key) counts.set(key, { requests: 0, errors: 0, tokens: 0, latencySum: 0, latencyCount: 0 });
   }
 
   (rows || []).forEach((row) => {
     const key = toLisbonBucketKey(row.bucket_start, bucketMinutes);
     if (!key) return;
     if (!counts.has(key)) {
-      counts.set(key, { requests: 0, errors: 0, tokens: 0 });
+      counts.set(key, { requests: 0, errors: 0, tokens: 0, latencySum: 0, latencyCount: 0 });
     }
     const slot = counts.get(key);
     slot.requests += Number(row.request_count) || 0;
     slot.errors += Number(row.error_count) || 0;
     slot.tokens += Number(row.token_count) || 0;
+    slot.latencySum += Number(row.latency_sum_ms) || 0;
+    slot.latencyCount += Number(row.latency_count) || 0;
   });
 
   const sortedKeys = [...counts.keys()].sort();
   let daySum = 0;
+  let dayTokenSum = 0;
   let currentDay = '';
   const requests = [];
   const cumulative = [];
+  const cumulativeTokens = [];
   const errors = [];
   const tokens = [];
+  const latency = [];
 
   sortedKeys.forEach((key) => {
     const slot = counts.get(key);
@@ -219,19 +228,30 @@ function buildBucketSeries(rows, lookbackMs, bucketMinutes = BUCKET_MINUTES) {
     if (day !== currentDay) {
       currentDay = day;
       daySum = 0;
+      dayTokenSum = 0;
     }
     daySum += slot.requests;
+    dayTokenSum += slot.tokens;
     requests.push({ t: key, v: slot.requests });
     cumulative.push({ t: key, v: daySum });
+    cumulativeTokens.push({ t: key, v: dayTokenSum });
     errors.push({ t: key, v: slot.errors });
     tokens.push({ t: key, v: slot.tokens });
+    latency.push({
+      t: key,
+      v: slot.latencyCount > 0 ? Math.round(slot.latencySum / slot.latencyCount) : 0,
+    });
   });
 
   const totalRequests = requests.reduce((sum, p) => sum + p.v, 0);
   const totalErrors = errors.reduce((sum, p) => sum + p.v, 0);
   const totalTokens = tokens.reduce((sum, p) => sum + p.v, 0);
+  const latencySamples = latency.filter((p) => p.v > 0);
+  const avgLatencyMs = latencySamples.length
+    ? Math.round(latencySamples.reduce((sum, p) => sum + p.v, 0) / latencySamples.length)
+    : null;
   return {
-    requests, cumulative, errors, tokens, totalRequests, totalErrors, totalTokens,
+    requests, cumulative, cumulativeTokens, errors, tokens, latency, totalRequests, totalErrors, totalTokens, avgLatencyMs,
   };
 }
 
@@ -336,7 +356,7 @@ async function fetchAggregateBucketRows() {
 async function fetchDimensionBucketRows() {
   const since = new Date(Date.now() - MAX_LOOKBACK_MS).toISOString();
   const params = new URLSearchParams({
-    select: 'bucket_start,provider,model,request_count,error_count',
+    select: 'bucket_start,provider,model,request_count,error_count,latency_sum_ms,latency_count',
     bucket_start: `gte.${since}`,
     order: 'bucket_start.asc',
     limit: '5000',
@@ -361,7 +381,7 @@ async function fetchDimensionBucketRows() {
 async function fetchMinuteDimensionRows() {
   const since = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   const params = new URLSearchParams({
-    select: 'bucket_start,provider,model,request_count,error_count,token_count',
+    select: 'bucket_start,provider,model,request_count,error_count,token_count,latency_sum_ms,latency_count',
     bucket_start: `gte.${since}`,
     order: 'bucket_start.asc',
     limit: '5000',
@@ -378,13 +398,20 @@ async function fetchMinuteDimensionRows() {
   }
 }
 
-async function recordAiRequest({ ok = true, provider = '', model = '', tokens = 0 } = {}) {
+function normalizeLatencyMs(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return Math.min(Math.round(n), 600000);
+}
+
+async function recordAiRequest({ ok = true, provider = '', model = '', tokens = 0, latencyMs = 0 } = {}) {
   if (!getSupabaseAdmin()) return { recorded: false, reason: 'not_configured' };
   const payload = {
     p_ok: !!ok,
     p_provider: normalizeProvider(provider),
     p_model: normalizeModel(model),
     p_tokens: normalizeTokenCount(tokens),
+    p_latency_ms: normalizeLatencyMs(latencyMs),
   };
   try {
     await supabaseRpc('increment_ai_request_bucket', payload);
@@ -397,6 +424,8 @@ async function recordAiRequest({ ok = true, provider = '', model = '', tokens = 
           p_ok: !!ok,
           p_provider: payload.p_provider,
           p_model: payload.p_model,
+          p_tokens: payload.p_tokens,
+          p_latency_ms: payload.p_latency_ms,
         });
         return { recorded: true, legacy: true };
       } catch (legacyErr) {
