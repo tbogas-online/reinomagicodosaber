@@ -129,7 +129,7 @@ async function supabaseRequest(path, options = {}) {
   return JSON.parse(text);
 }
 
-const BANK_SELECT_BASE = 'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at';
+const BANK_SELECT_BASE = 'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at,difficulty';
 const BANK_SELECT_FULL = `${BANK_SELECT_BASE},category_ns,age_bands,knowledge_id`;
 
 let bankTaxonomyColumnsAvailable = null;
@@ -410,13 +410,24 @@ async function fetchQuestionTimelineRows() {
 }
 
 async function getQuestionBankStats() {
-  const [data, timelineRows, quarantine] = await Promise.all([
+  const pendingReviewMod = () => {
+    try {
+      return require('./question-pending-review-store');
+    } catch {
+      return null;
+    }
+  };
+  const pendingStore = pendingReviewMod();
+
+  const [data, timelineRows, quarantine, pendingReview, bankWithDifficulty] = await Promise.all([
     supabaseRpc('get_question_bank_stats'),
     fetchQuestionTimelineRows().catch((err) => {
       console.warn('[question-bank-store] timeline rows failed:', err?.message || err);
       return [];
     }),
     getQuarantineStats(30),
+    pendingStore?.getPendingReviewStats?.().catch(() => ({ available: false })) ?? { available: false },
+    pendingStore?.countBankRowsWithDifficulty?.().catch(() => null) ?? null,
   ]);
 
   const base = (!data || typeof data !== 'object')
@@ -444,6 +455,8 @@ async function getQuestionBankStats() {
     timeline: buildTimeline(timelineRows),
     timelineByCategory: buildTimelineByCategory(timelineRows),
     quarantine,
+    pendingReview,
+    bankWithDifficulty: bankWithDifficulty != null ? Number(bankWithDifficulty) || 0 : null,
   };
 }
 
@@ -889,7 +902,21 @@ async function mergeBankRowIntoTarget(targetRow, sourceRow, contentPatch) {
   });
 }
 
-async function applyContentCorrectionToBankRow(row, correction, oldQuestion, oldAnswer) {
+function normalizeBankDifficulty(value) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  const rounded = Math.round(n);
+  if (rounded < 1 || rounded > 5) return null;
+  return rounded;
+}
+
+function applyDifficultyToPatch(patch, meta) {
+  if (!patch || meta?.difficulty == null || meta?.difficulty === '') return;
+  const difficulty = normalizeBankDifficulty(meta.difficulty);
+  if (difficulty) patch.difficulty = difficulty;
+}
+
+async function applyContentCorrectionToBankRow(row, correction, oldQuestion, oldAnswer, meta = {}) {
   const finalQuestion = String(correction.question || '').trim();
   const finalAnswer = String(correction.answer || '').trim();
   const finalOptions = Array.isArray(correction.options)
@@ -913,6 +940,7 @@ async function applyContentCorrectionToBankRow(row, correction, oldQuestion, old
     patch.options = finalOptions;
     patch.format = format || 'ESCOLHA_MULTIPLA';
   } else if (format) patch.format = format;
+  applyDifficultyToPatch(patch, meta);
 
   const contentChanged = (finalQuestion && finalQuestion !== oldQuestion)
     || (finalAnswer && finalAnswer !== oldAnswer);
@@ -950,6 +978,23 @@ async function applyContentCorrectionToBankRow(row, correction, oldQuestion, old
     previousHash: newHash !== row.question_hash ? row.question_hash : null,
     rowId: row.id,
   };
+}
+
+async function finishReportCorrection(result, { question = '', answer = '' } = {}) {
+  if (!result?.ok) return result;
+  try {
+    const { resolvePendingReviewOnBankSave } = require('./question-pending-review-store');
+    await resolvePendingReviewOnBankSave({
+      questionHash: result.questionHash,
+      previousHash: result.previousHash,
+      question,
+      answer,
+      status: 'accepted',
+    });
+  } catch (err) {
+    console.warn('[question-bank-store] resolve pending review:', err?.message || err);
+  }
+  return result;
 }
 
 async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) {
@@ -995,6 +1040,7 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
         },
         oldQuestion,
         oldAnswer,
+        meta,
       ));
     }
 
@@ -1002,7 +1048,7 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
       || results.find((r) => r.questionHash === lookupHash)
       || results[0];
 
-    return {
+    return finishReportCorrection({
       ok: true,
       action: siblings.length > 1 ? 'updated-many' : (primary?.action || 'updated'),
       updated: results.length,
@@ -1015,7 +1061,10 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
         rowId: r.rowId,
         action: r.action,
       })),
-    };
+    }, {
+      question: finalQuestion || oldQuestion,
+      answer: finalAnswer || oldAnswer,
+    });
   }
 
   const question = finalQuestion || '';
@@ -1047,31 +1096,33 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
   }
 
   const taxonomyPatch = buildBankTaxonomyPatch(categoryNs, ageBands);
+  const insertBody = {
+    ...taxonomyPatch,
+    question,
+    correct_answer: answer,
+    options: options?.length >= 2 ? options : null,
+    format,
+    question_hash: newHash,
+    source: meta.source || 'corrected',
+    knowledge_id: meta.knowledgeId || null,
+    is_reported: false,
+    reported_at: null,
+  };
+  applyDifficultyToPatch(insertBody, meta);
   const inserted = await supabaseRequest('/question_bank', {
     method: 'POST',
     headers: { Prefer: 'return=representation' },
-    body: JSON.stringify({
-      ...taxonomyPatch,
-      question,
-      correct_answer: answer,
-      options: options?.length >= 2 ? options : null,
-      format,
-      question_hash: newHash,
-      source: meta.source || 'corrected',
-      knowledge_id: meta.knowledgeId || null,
-      is_reported: false,
-      reported_at: null,
-    }),
+    body: JSON.stringify(insertBody),
   });
 
-  return {
+  return finishReportCorrection({
     ok: true,
     action: 'inserted',
     updated: Array.isArray(inserted) ? inserted.length : 1,
     duplicateCount: 0,
     questionHash: newHash,
     previousHash: lookupHash !== newHash ? lookupHash : null,
-  };
+  }, { question, answer });
 }
 
 module.exports = {

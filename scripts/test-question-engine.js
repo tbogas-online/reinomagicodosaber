@@ -1131,6 +1131,19 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const hint = QE.buildRetryHint([{ code: 'DIFFICULTY_EASIER_THAN_REQUESTED', message: 'test' }], QE.FORMAT_IDS.RESPOSTA_DIRETA, '15+');
   assert('130. retry hint DIFFICULTY_EASIER_THAN_REQUESTED', hint.includes('exigência'));
 }
+{
+  assert('130b. isDifficultyOnlyRejection',
+    QE.isDifficultyOnlyRejection([{ code: 'DIFFICULTY_HARDER_THAN_REQUESTED', layer: 'difficulty', message: 'x' }])
+    && QE.isDifficultyOnlyRejection([
+      { code: 'DIFFICULTY_EASIER_THAN_REQUESTED', layer: 'difficulty', message: 'a' },
+      { code: 'DIFFICULTY_OUT_OF_RANGE', layer: 'difficulty', message: 'b' },
+    ])
+    && !QE.isDifficultyOnlyRejection([
+      { code: 'DIFFICULTY_HARDER_THAN_REQUESTED', layer: 'difficulty', message: 'x' },
+      { code: 'FACT_WRONG', layer: 'semantic', message: 'y' },
+    ])
+    && !QE.isDifficultyOnlyRejection([]));
+}
 
 // 131. Fase 7 — engine-config modular
 {

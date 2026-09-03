@@ -74,6 +74,7 @@
     scoreQuestion,
     validateSemanticQuality,
     validateQuestion,
+    isDifficultyOnlyRejection,
   } = QuestionScoring;
   const { computeKnowledgeKey, knowledgeKeysMatch } = KnowledgeKeyCompute;
   const {
@@ -143,6 +144,7 @@
     validateAgeAppropriate,
     validateSemanticQuality,
     validateQuestion,
+    isDifficultyOnlyRejection,
     validateFactualConsistency: KnownFacts.validateFactualConsistency,
     shouldRequestFactualVerify: FactualVerify.shouldRequestFactualVerify,
     buildFactualVerifyPrompt: FactualVerify.buildFactualVerifyPrompt,

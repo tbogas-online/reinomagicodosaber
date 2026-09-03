@@ -269,6 +269,7 @@
       p_knowledge_id: meta.knowledgeId || null,
       p_source_id: meta.sourceId || null,
       p_confidence: meta.confidence ?? null,
+      p_difficulty: meta.difficulty != null ? Math.round(Number(meta.difficulty)) : null,
     });
     if (error) {
       console.warn('[QuestionBank] save falhou:', error.message);
@@ -468,6 +469,73 @@
     }
   }
 
+  async function queuePendingReview(meta) {
+    const issueCodes = Array.isArray(meta.issueCodes) ? meta.issueCodes.filter(Boolean) : [];
+    if (!meta?.questionHash && (!meta?.question || !meta?.correctAnswer)) {
+      return { ok: false, reason: 'missing_content' };
+    }
+    const payload = {
+      questionHash: meta.questionHash,
+      categoryN: meta.categoryN,
+      ageBand: meta.ageBand,
+      question: meta.question,
+      correctAnswer: meta.correctAnswer,
+      options: meta.options || null,
+      format: meta.format || null,
+      requestedDifficulty: meta.requestedDifficulty,
+      estimatedDifficulty: meta.estimatedDifficulty,
+      issueCodes,
+      knowledgeKey: meta.knowledgeKey || null,
+      knowledgeId: meta.knowledgeId || null,
+      source: meta.source || null,
+      sourceId: meta.sourceId || null,
+      confidence: meta.confidence ?? null,
+      gameMode: meta.gameMode || 'local',
+    };
+
+    try {
+      const response = await fetch('/api/pending-review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (response.ok) return data;
+    } catch { /* fallback RPC */ }
+
+    const c = await ensureClient();
+    if (!c || !meta?.questionHash) return { ok: false };
+    const { data, error } = await c.rpc('queue_question_pending_review', {
+      p_question_hash: meta.questionHash,
+      p_category_n: meta.categoryN,
+      p_age_band: meta.ageBand,
+      p_question: meta.question,
+      p_correct_answer: meta.correctAnswer,
+      p_options: meta.options || null,
+      p_format_id: meta.format || null,
+      p_requested_difficulty: meta.requestedDifficulty != null
+        ? Math.round(Number(meta.requestedDifficulty))
+        : null,
+      p_estimated_difficulty: meta.estimatedDifficulty != null
+        ? Math.round(Number(meta.estimatedDifficulty))
+        : null,
+      p_issue_codes: issueCodes,
+      p_knowledge_key: meta.knowledgeKey || null,
+      p_knowledge_id: meta.knowledgeId || null,
+      p_source: meta.source || null,
+      p_source_id: meta.sourceId || null,
+      p_confidence: meta.confidence ?? null,
+      p_game_mode: meta.gameMode || 'local',
+    });
+    if (error) {
+      if (typeof console !== 'undefined' && console.debug) {
+        console.debug('[QuestionBank] queuePendingReview:', error.message);
+      }
+      return { ok: false, error };
+    }
+    return data || { ok: false };
+  }
+
   global.QuestionBank = {
     isConfigured,
     stripTags,
@@ -482,6 +550,7 @@
     replenishFromKnowledge,
     pick,
     save,
+    queuePendingReview,
     markReported,
     fetchReportedHashes,
     recordPlay,

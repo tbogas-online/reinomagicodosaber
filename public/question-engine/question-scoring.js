@@ -222,6 +222,18 @@
     return { ok: !issues.length, issues: [...new Set(issues)] };
   }
 
+  const DIFFICULTY_MISMATCH_CODES = new Set([
+    'DIFFICULTY_EASIER_THAN_REQUESTED',
+    'DIFFICULTY_HARDER_THAN_REQUESTED',
+    'DIFFICULTY_OUT_OF_RANGE',
+  ]);
+
+  function isDifficultyOnlyRejection(issueDetails) {
+    const details = normalizeIssues(issueDetails || []);
+    return details.length > 0
+      && details.every((d) => DIFFICULTY_MISMATCH_CODES.has(issueCode(d)));
+  }
+
   function validateQuestion(parsed, ctx) {
     const scored = scoreQuestion(parsed, ctx);
     const IssueOverrides = global.QuestionEngineIssueOverrides;
@@ -250,9 +262,11 @@
   }
 
   global.QuestionEngineQuestionScoring = {
+    DIFFICULTY_MISMATCH_CODES,
     layerScore,
     scoreQuestion,
     validateSemanticQuality,
     validateQuestion,
+    isDifficultyOnlyRejection,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

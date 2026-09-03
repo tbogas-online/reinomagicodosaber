@@ -56,6 +56,9 @@
 [functions."bank-replenish"]
   node_bundler = "esbuild"
 
+[functions."pending-review"]
+  node_bundler = "esbuild"
+
 [[redirects]]
   from = "/api/generate"
   to = "/.netlify/functions/generate"
@@ -119,6 +122,11 @@
 [[redirects]]
   from = "/api/bank-replenish"
   to = "/.netlify/functions/bank-replenish"
+  status = 200
+
+[[redirects]]
+  from = "/api/pending-review"
+  to = "/.netlify/functions/pending-review"
   status = 200
 
 [[redirects]]

@@ -4002,6 +4002,63 @@
     return normalized.includes(normalizeQ(correctAnswer));
   }
 
+  function salvageDifficultyMismatchForReview({
+    engine,
+    parsed,
+    qualityCheck,
+    category,
+    ageBandKey,
+    questionFormat,
+    difficulty,
+    knowledgeKey,
+    record,
+    bankReplenishOnly,
+  }) {
+    if(!engine?.isDifficultyOnlyRejection?.(qualityCheck?.issueDetails)) return false;
+    const estimation = engine.estimateDifficulty(parsed.q, parsed.a, { ageBandKey });
+    const estimatedDifficulty = estimation?.estimatedDifficulty;
+    if(!Number.isFinite(estimatedDifficulty)) return false;
+
+    const questionHash = hashQuestionKey(stripTags(parsed.q) + '|' + stripTags(parsed.a));
+    const kKey = knowledgeKey || qualityCheck.knowledgeKey || '';
+    const issueCodes = (qualityCheck.issueDetails || []).map((d) => d?.code).filter(Boolean);
+
+    if(window.QuestionBank?.queuePendingReview){
+      window.QuestionBank.queuePendingReview({
+        categoryN: category.n,
+        ageBand: ageBandKey,
+        question: parsed.q,
+        correctAnswer: parsed.a,
+        options: parsed.options || null,
+        format: questionFormat,
+        knowledgeKey: kKey,
+        questionHash,
+        requestedDifficulty: difficulty,
+        estimatedDifficulty,
+        issueCodes,
+        source: bankReplenishOnly ? 'difficulty-mismatch-replenish' : 'difficulty-mismatch',
+        knowledgeId: record?.knowledgeId || null,
+        sourceId: record?.sourceId || null,
+        confidence: record?.confidence ?? null,
+        gameMode: window.MultiplayerController?.isMultiplayer?.() ? 'multiplayer' : 'local',
+      }).catch(() => {});
+    }
+
+    rememberGlobalQuestion(ageBandKey, parsed.q);
+    if(parsed.a) rememberGlobalAnswer(ageBandKey, parsed.a);
+    if(kKey) rememberGlobalKnowledgeKey(ageBandKey, kKey);
+    if(record?.knowledgeId) rememberGlobalKnowledgeId(ageBandKey, record.knowledgeId);
+
+    if(DEBUG_MODE){
+      console.info('[Reino] Dificuldade errada — enfileirada para revisão; nova tentativa com nível pedido', {
+        requested: difficulty,
+        estimated: estimatedDifficulty,
+        q: String(parsed.q || '').slice(0, 100),
+      });
+    }
+    return true;
+  }
+
   function buildTrueFalseOptions(correctAnswer){
     const norm = normalizeQ(correctAnswer);
     if(norm !== 'verdadeiro' && norm !== 'falso') return null;
@@ -5218,6 +5275,16 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             score: qualityCheck.score,
             parsed,
           });
+          if(salvageDifficultyMismatchForReview({
+            engine,
+            parsed,
+            qualityCheck,
+            category,
+            ageBandKey,
+            questionFormat,
+            difficulty,
+            record,
+          })) continue;
           continue;
         }
 
@@ -5481,6 +5548,16 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             score: qualityCheck.score,
             parsed,
           });
+          if(salvageDifficultyMismatchForReview({
+            engine,
+            parsed,
+            qualityCheck,
+            category,
+            ageBandKey,
+            questionFormat: validateFormatId,
+            difficulty,
+            record,
+          })) continue;
           continue;
         }
 
@@ -5945,6 +6022,17 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             score: qualityCheck.score,
             parsed,
           });
+          if(salvageDifficultyMismatchForReview({
+            engine,
+            parsed,
+            qualityCheck,
+            category,
+            ageBandKey,
+            questionFormat,
+            difficulty,
+            knowledgeKey: qualityCheck.knowledgeKey,
+            bankReplenishOnly,
+          })) continue;
           if(DEBUG_MODE || attempt >= 5){
             console.warn(`Validação falhou (tentativa ${attempt}, score ${qualityCheck.score ?? '?'}):`, lastValidationIssues, parsed.q);
           }

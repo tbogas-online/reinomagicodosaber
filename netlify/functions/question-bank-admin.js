@@ -12,6 +12,12 @@ const {
   deleteQuestionsByCategory,
   applyReportCorrectionToBank,
 } = require('./lib/question-bank-store');
+const {
+  listPendingReview,
+  acceptPendingReview,
+  dismissPendingReview,
+  syncPendingReviewFromTelemetry,
+} = require('./lib/question-pending-review-store');
 const { regenerateAdivinhaBankOptions } = require('./lib/adivinha-bank-fix');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
 const { getQuestionHashesByReportStatus } = require('./lib/reports-store');
@@ -213,6 +219,72 @@ exports.handler = async (event) => {
             return json(400, { error: err.message });
           }
           return json(503, { error: 'Não foi possível aplicar a correcção no banco.' });
+        }
+      }
+
+      if (body.action === 'list-pending-review') {
+        try {
+          const result = await listPendingReview({
+            limit: body.limit,
+            status: body.status || 'pending',
+          });
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] list-pending-review failed:', err);
+          const msg = String(err?.message || '');
+          if (msg.includes('question_pending_review') || msg.includes('PGRST205')) {
+            return json(503, { error: 'Tabela question_pending_review em falta — executa supabase/question-pending-review.sql no Supabase.' });
+          }
+          return json(503, { error: 'Não foi possível listar a fila de revisão.' });
+        }
+      }
+
+      if (body.action === 'accept-pending-review') {
+        const id = String(body.id || '').trim();
+        if (!id) return json(400, { error: 'Indica o ID da fila.' });
+        try {
+          const correction = body.correction && typeof body.correction === 'object' ? body.correction : {};
+          const meta = body.meta && typeof body.meta === 'object' ? body.meta : {};
+          const result = await acceptPendingReview(id, correction, meta);
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] accept-pending-review failed:', err);
+          if (err.code === 'NOT_FOUND' || err.code === 'ALREADY_REVIEWED' || err.code === 'MISSING_META') {
+            return json(400, { error: err.message });
+          }
+          return json(503, { error: 'Não foi possível aceitar a pergunta na fila.' });
+        }
+      }
+
+      if (body.action === 'sync-pending-from-telemetry') {
+        try {
+          const result = await syncPendingReviewFromTelemetry({
+            limit: body.limit,
+            days: body.days,
+          });
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] sync-pending-from-telemetry failed:', err);
+          const msg = String(err?.message || '');
+          if (msg.includes('question_pending_review') || msg.includes('gen_telemetry_events') || msg.includes('PGRST205')) {
+            return json(503, { error: 'Tabelas em falta — executa supabase/question-pending-review.sql e gen-telemetry.sql no Supabase.' });
+          }
+          return json(503, { error: 'Não foi possível importar da telemetria.' });
+        }
+      }
+
+      if (body.action === 'dismiss-pending-review') {
+        const id = String(body.id || '').trim();
+        if (!id) return json(400, { error: 'Indica o ID da fila.' });
+        try {
+          const result = await dismissPendingReview(id);
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] dismiss-pending-review failed:', err);
+          if (err.code === 'NOT_FOUND' || err.code === 'ALREADY_REVIEWED') {
+            return json(400, { error: err.message });
+          }
+          return json(503, { error: 'Não foi possível descartar a entrada da fila.' });
         }
       }
 
