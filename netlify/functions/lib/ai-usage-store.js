@@ -174,12 +174,16 @@ function aggregateRowsByBucket(rows) {
       token_count: 0,
       latency_sum_ms: 0,
       latency_count: 0,
+      limit_count: 0,
+      quota_used_peak: 0,
     };
     slot.request_count += Number(row.request_count) || 0;
     slot.error_count += Number(row.error_count) || 0;
     slot.token_count += Number(row.token_count) || 0;
     slot.latency_sum_ms += Number(row.latency_sum_ms) || 0;
     slot.latency_count += Number(row.latency_count) || 0;
+    slot.limit_count += Number(row.limit_count) || 0;
+    slot.quota_used_peak = Math.max(slot.quota_used_peak || 0, Number(row.quota_used_peak) || 0);
     map.set(key, slot);
   });
   return [...map.values()].sort((a, b) => String(a.bucket_start).localeCompare(String(b.bucket_start)));
@@ -194,14 +198,20 @@ function buildBucketSeries(rows, lookbackMs, bucketMinutes = BUCKET_MINUTES) {
 
   for (let t = startMs; t <= endMs; t += bucketMinutes * 60 * 1000) {
     const key = toLisbonBucketKey(new Date(t), bucketMinutes);
-    if (key) counts.set(key, { requests: 0, errors: 0, tokens: 0, latencySum: 0, latencyCount: 0 });
+    if (key) {
+      counts.set(key, {
+        requests: 0, errors: 0, tokens: 0, latencySum: 0, latencyCount: 0, limits: 0, quotaPressure: 0,
+      });
+    }
   }
 
   (rows || []).forEach((row) => {
     const key = toLisbonBucketKey(row.bucket_start, bucketMinutes);
     if (!key) return;
     if (!counts.has(key)) {
-      counts.set(key, { requests: 0, errors: 0, tokens: 0, latencySum: 0, latencyCount: 0 });
+      counts.set(key, {
+        requests: 0, errors: 0, tokens: 0, latencySum: 0, latencyCount: 0, limits: 0, quotaPressure: 0,
+      });
     }
     const slot = counts.get(key);
     slot.requests += Number(row.request_count) || 0;
@@ -209,6 +219,8 @@ function buildBucketSeries(rows, lookbackMs, bucketMinutes = BUCKET_MINUTES) {
     slot.tokens += Number(row.token_count) || 0;
     slot.latencySum += Number(row.latency_sum_ms) || 0;
     slot.latencyCount += Number(row.latency_count) || 0;
+    slot.limits += Number(row.limit_count) || 0;
+    slot.quotaPressure = Math.max(slot.quotaPressure || 0, Number(row.quota_used_peak) || 0);
   });
 
   const sortedKeys = [...counts.keys()].sort();
@@ -221,6 +233,8 @@ function buildBucketSeries(rows, lookbackMs, bucketMinutes = BUCKET_MINUTES) {
   const errors = [];
   const tokens = [];
   const latency = [];
+  const limits = [];
+  const quotaPressure = [];
 
   sortedKeys.forEach((key) => {
     const slot = counts.get(key);
@@ -237,6 +251,8 @@ function buildBucketSeries(rows, lookbackMs, bucketMinutes = BUCKET_MINUTES) {
     cumulativeTokens.push({ t: key, v: dayTokenSum });
     errors.push({ t: key, v: slot.errors });
     tokens.push({ t: key, v: slot.tokens });
+    limits.push({ t: key, v: slot.limits });
+    quotaPressure.push({ t: key, v: slot.quotaPressure });
     latency.push({
       t: key,
       v: slot.latencyCount > 0 ? Math.round(slot.latencySum / slot.latencyCount) : 0,
@@ -246,12 +262,27 @@ function buildBucketSeries(rows, lookbackMs, bucketMinutes = BUCKET_MINUTES) {
   const totalRequests = requests.reduce((sum, p) => sum + p.v, 0);
   const totalErrors = errors.reduce((sum, p) => sum + p.v, 0);
   const totalTokens = tokens.reduce((sum, p) => sum + p.v, 0);
+  const totalLimitHits = limits.reduce((sum, p) => sum + p.v, 0);
+  const peakQuotaPressure = quotaPressure.reduce((max, p) => Math.max(max, p.v), 0);
   const latencySamples = latency.filter((p) => p.v > 0);
   const avgLatencyMs = latencySamples.length
     ? Math.round(latencySamples.reduce((sum, p) => sum + p.v, 0) / latencySamples.length)
     : null;
   return {
-    requests, cumulative, cumulativeTokens, errors, tokens, latency, totalRequests, totalErrors, totalTokens, avgLatencyMs,
+    requests,
+    cumulative,
+    cumulativeTokens,
+    errors,
+    tokens,
+    limits,
+    quotaPressure,
+    latency,
+    totalRequests,
+    totalErrors,
+    totalTokens,
+    totalLimitHits,
+    peakQuotaPressure,
+    avgLatencyMs,
   };
 }
 
@@ -316,8 +347,9 @@ function buildUsageCatalog(dimensionRows) {
     const provider = normalizeProvider(row.provider);
     const model = normalizeModel(row.model);
     const reqs = Number(row.request_count) || 0;
-    if (!reqs) return;
+    if (!reqs || !provider) return;
     providerCounts.set(provider, (providerCounts.get(provider) || 0) + reqs);
+    if (!model) return;
     const modelKey = `${provider}\0${model}`;
     const existing = modelCounts.get(modelKey) || { provider, model, count: 0 };
     existing.count += reqs;
@@ -381,7 +413,7 @@ async function fetchDimensionBucketRows() {
 async function fetchMinuteDimensionRows() {
   const since = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
   const params = new URLSearchParams({
-    select: 'bucket_start,provider,model,request_count,error_count,token_count,latency_sum_ms,latency_count',
+    select: 'bucket_start,provider,model,request_count,error_count,token_count,latency_sum_ms,latency_count,limit_count,quota_used_peak',
     bucket_start: `gte.${since}`,
     order: 'bucket_start.asc',
     limit: '5000',
@@ -404,7 +436,34 @@ function normalizeLatencyMs(value) {
   return Math.min(Math.round(n), 600000);
 }
 
-async function recordAiRequest({ ok = true, provider = '', model = '', tokens = 0, latencyMs = 0 } = {}) {
+function normalizeQuotaTokensUsed(value, limit) {
+  const used = Number(value);
+  if (!Number.isFinite(used) || used < 0) return null;
+  const l = Number(limit);
+  if (Number.isFinite(l) && l > 0) return Math.min(Math.round(used), Math.round(l));
+  return Math.round(used);
+}
+
+function quotaUsedFromRateLimitHeaders(headers = {}) {
+  const limit = Number(headers.tokens_limit);
+  const remaining = Number(headers.tokens_remaining);
+  if (Number.isFinite(limit) && limit > 0 && Number.isFinite(remaining)) {
+    return normalizeQuotaTokensUsed(limit - remaining, limit);
+  }
+  const used = Number(headers.tokens_used);
+  if (Number.isFinite(used) && used >= 0) return normalizeQuotaTokensUsed(used, limit);
+  return null;
+}
+
+async function recordAiRequest({
+  ok = true,
+  provider = '',
+  model = '',
+  tokens = 0,
+  latencyMs = 0,
+  limitHit = false,
+  quotaTokensUsed = null,
+} = {}) {
   if (!getSupabaseAdmin()) return { recorded: false, reason: 'not_configured' };
   const payload = {
     p_ok: !!ok,
@@ -412,6 +471,8 @@ async function recordAiRequest({ ok = true, provider = '', model = '', tokens = 
     p_model: normalizeModel(model),
     p_tokens: normalizeTokenCount(tokens),
     p_latency_ms: normalizeLatencyMs(latencyMs),
+    p_limit_hit: !!limitHit,
+    p_quota_tokens_used: quotaTokensUsed != null ? normalizeQuotaTokensUsed(quotaTokensUsed) : null,
   };
   try {
     await supabaseRpc('increment_ai_request_bucket', payload);
@@ -426,16 +487,46 @@ async function recordAiRequest({ ok = true, provider = '', model = '', tokens = 
           p_model: payload.p_model,
           p_tokens: payload.p_tokens,
           p_latency_ms: payload.p_latency_ms,
+          p_limit_hit: payload.p_limit_hit,
+          p_quota_tokens_used: payload.p_quota_tokens_used,
         });
         return { recorded: true, legacy: true };
       } catch (legacyErr) {
         try {
-          await supabaseRpc('increment_ai_request_bucket', { p_ok: !!ok });
+          await supabaseRpc('increment_ai_request_bucket', {
+            p_ok: !!ok,
+            p_provider: payload.p_provider,
+            p_model: payload.p_model,
+            p_tokens: payload.p_tokens,
+            p_latency_ms: payload.p_latency_ms,
+          });
           return { recorded: true, legacy: true };
         } catch {
           return { recorded: false, reason: 'table_missing', detail: legacyErr?.message || legacyErr };
         }
       }
+    }
+    throw err;
+  }
+}
+
+async function recordAiQuotaMinutePressure({ provider = '', quotaTokensUsed = null, limitHit = false } = {}) {
+  if (!getSupabaseAdmin()) return { recorded: false, reason: 'not_configured' };
+  const used = quotaTokensUsed != null ? normalizeQuotaTokensUsed(quotaTokensUsed) : null;
+  if (!normalizeProvider(provider) || (used == null && !limitHit)) {
+    return { recorded: false, reason: 'empty' };
+  }
+  try {
+    await supabaseRpc('record_ai_quota_minute_pressure', {
+      p_provider: normalizeProvider(provider),
+      p_quota_tokens_used: used,
+      p_limit_hit: !!limitHit,
+    });
+    return { recorded: true };
+  } catch (err) {
+    const msg = String(err?.message || err);
+    if (msg.includes('record_ai_quota_minute_pressure') || msg.includes('quota_used_peak') || msg.includes('PGRST')) {
+      return { recorded: false, reason: 'migration_missing' };
     }
     throw err;
   }
@@ -504,6 +595,8 @@ module.exports = {
   MINUTE_BUCKET_MINUTES,
   USAGE_RANGE_CONFIG,
   recordAiRequest,
+  recordAiQuotaMinutePressure,
+  quotaUsedFromRateLimitHeaders,
   extractUsageTokens,
   getAiUsageStats,
   buildBucketSeries,

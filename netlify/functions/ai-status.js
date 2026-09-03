@@ -2,6 +2,7 @@
 // GET /api/ai-status
 
 const GROQ_MODEL_ALIASES = {};
+const { recordAiQuotaMinutePressure } = require('./lib/ai-usage-store');
 
 const PROBE_MODELS = {
   groq: ['qwen/qwen3.6-27b', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
@@ -53,6 +54,23 @@ exports.handler = async (event) => {
     }
     providers.anthropic.summary = summarizeProvider('anthropic', providers.anthropic.models);
   }
+
+  Object.entries(providers).forEach(([providerId, providerData]) => {
+    const summary = providerData?.summary;
+    if (!summary) return;
+    const limit = Number(summary.tokens_limit);
+    const remaining = Number(summary.tokens_remaining);
+    const used = Number.isFinite(summary.tokens_used)
+      ? summary.tokens_used
+      : (Number.isFinite(limit) && Number.isFinite(remaining) ? Math.max(0, limit - remaining) : null);
+    const limitHit = Number.isFinite(remaining) && remaining <= 0;
+    if (used == null && !limitHit) return;
+    recordAiQuotaMinutePressure({
+      provider: providerId,
+      quotaTokensUsed: used,
+      limitHit,
+    }).catch(() => {});
+  });
 
   return json(200, {
     checked_at: checkedAt,

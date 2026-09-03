@@ -1,6 +1,6 @@
 const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
 const { validateGameClient } = require('./lib/report-utils');
-const { recordAiRequest, extractUsageTokens } = require('./lib/ai-usage-store');
+const { recordAiRequest, extractUsageTokens, quotaUsedFromRateLimitHeaders } = require('./lib/ai-usage-store');
 
 function trackAiUsage(ok, enabled, meta = {}) {
   if (!enabled) return;
@@ -10,9 +10,18 @@ function trackAiUsage(ok, enabled, meta = {}) {
     model: meta.model || '',
     tokens: meta.tokens || 0,
     latencyMs: meta.latencyMs,
+    limitHit: !!meta.limitHit,
+    quotaTokensUsed: meta.quotaTokensUsed,
   }).catch((err) => {
     console.warn('[generate] usage bucket:', err?.message || err);
   });
+}
+
+function isProviderRateLimitError(err) {
+  if (!err) return false;
+  if (err.isRateLimit) return true;
+  const msg = err instanceof Error ? err.message : String(err);
+  return /rate limit|limite de pedidos atingido|tokens per min|too many requests/i.test(msg);
 }
 
 function parseModelsAttemptedTail(modelsAttempted = []) {
@@ -164,6 +173,7 @@ exports.handler = async (event) => {
             model,
             tokens: extractUsageTokens(result.usage),
             latencyMs: Date.now() - started,
+            quotaTokensUsed: result.quotaTokensUsed,
           });
           return json(200, {
             ...result,
@@ -178,6 +188,14 @@ exports.handler = async (event) => {
         } catch (err) {
           console.error(`${provider.name}/${model} request failed:`, err);
           const message = err instanceof Error ? err.message : String(err);
+          if (isProviderRateLimitError(err)) {
+            trackAiUsage(false, trackUsage, {
+              provider: provider.name,
+              model,
+              limitHit: true,
+              quotaTokensUsed: err.quotaTokensUsed,
+            });
+          }
           errors.push(localizeProviderError(provider.name, `${model}: ${message}`));
         }
       }
@@ -435,8 +453,16 @@ async function callOpenAICompatibleOnce({ endpoint, apiKey, model, messages, max
   if (!response.ok) {
     const message = data?.error?.message || data?.error || `Erro do serviço ${providerLabel} (${response.status})`;
     console.error(`${providerLabel} API error:`, response.status, data);
-    throw new Error(localizeAiErrorText(message));
+    const err = new Error(localizeAiErrorText(message));
+    err.isRateLimit = response.status === 429 || /rate limit|too many requests/i.test(message);
+    if (err.isRateLimit) {
+      err.quotaTokensUsed = quotaUsedFromRateLimitHeaders(readOpenAiStyleHeaders(response.headers));
+    }
+    throw err;
   }
+
+  const rateLimit = readOpenAiStyleHeaders(response.headers);
+  const quotaTokensUsed = quotaUsedFromRateLimitHeaders(rateLimit);
 
   const choice = data?.choices?.[0];
   const rawContent = choice?.message?.content || '';
@@ -456,6 +482,7 @@ async function callOpenAICompatibleOnce({ endpoint, apiKey, model, messages, max
     model,
     content: [{ type: 'text', text: content }],
     usage: data.usage || undefined,
+    quotaTokensUsed,
   };
 }
 
@@ -486,8 +513,15 @@ async function callAnthropic(apiKey, messages, maxTokens, model) {
   if (!response.ok) {
     const message = data?.error?.message || data?.error || `Erro do serviço Anthropic (${response.status})`;
     console.error('Anthropic API error:', response.status, data);
-    throw new Error(localizeAiErrorText(message));
+    const err = new Error(localizeAiErrorText(message));
+    err.isRateLimit = response.status === 429 || /rate limit|too many requests/i.test(message);
+    if (err.isRateLimit) {
+      err.quotaTokensUsed = quotaUsedFromRateLimitHeaders(readAnthropicHeaders(response.headers));
+    }
+    throw err;
   }
+
+  const quotaTokensUsed = quotaUsedFromRateLimitHeaders(readAnthropicHeaders(response.headers));
 
   // A resposta da Anthropic já vem no formato { content: [{type:'text', text:'...'}] },
   // que é exatamente o que o frontend do jogo já espera.
@@ -499,6 +533,34 @@ async function callAnthropic(apiKey, messages, maxTokens, model) {
     model,
     content: data.content || [],
     usage: data.usage || undefined,
+    quotaTokensUsed,
+  };
+}
+
+function headerNumber(headers, key) {
+  const value = headers.get(key);
+  if (value == null || value === '') return null;
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
+function readOpenAiStyleHeaders(headers) {
+  return {
+    requests_limit: headerNumber(headers, 'x-ratelimit-limit-requests'),
+    requests_remaining: headerNumber(headers, 'x-ratelimit-remaining-requests'),
+    tokens_limit: headerNumber(headers, 'x-ratelimit-limit-tokens'),
+    tokens_remaining: headerNumber(headers, 'x-ratelimit-remaining-tokens'),
+    tokens_day_limit: headerNumber(headers, 'x-ratelimit-limit-tokens-day'),
+    tokens_day_remaining: headerNumber(headers, 'x-ratelimit-remaining-tokens-day'),
+  };
+}
+
+function readAnthropicHeaders(headers) {
+  return {
+    requests_limit: headerNumber(headers, 'anthropic-ratelimit-requests-limit'),
+    requests_remaining: headerNumber(headers, 'anthropic-ratelimit-requests-remaining'),
+    tokens_limit: headerNumber(headers, 'anthropic-ratelimit-tokens-limit'),
+    tokens_remaining: headerNumber(headers, 'anthropic-ratelimit-tokens-remaining'),
   };
 }
 

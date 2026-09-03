@@ -4684,8 +4684,168 @@
 
   const CAT20_LOW_STOCK_THRESHOLD = 30;
   const CAT20_REPLENISH_BATCH = 40;
+  const BANK_AI_REPLENISH_LOW_STOCK = 28;
+  const BANK_AI_REPLENISH_TARGET_STOCK = 45;
+  const BANK_AI_REPLENISH_EST_TOKENS = 6500;
+  const BANK_AI_REPLENISH_MIN_REMAINING = 8000;
+  const BANK_AI_REPLENISH_QUOTA_HEADROOM = 0.12;
+  const BANK_AI_REPLENISH_MAX_JOBS_PER_TICK = 2;
+  const BANK_AI_REPLENISH_TICK_MS = 90 * 1000;
+  const BANK_AI_REPLENISH_JOB_GAP_MS = 2000;
   const cat20ReplenishInflight = {};
   const bankAiReplenishInflight = {};
+  const bankAiQuotaScheduler = {
+    timer: null,
+    running: false,
+    lastTickAt: 0,
+    stats: { ok: 0, fail: 0, skipped: 0, quotaSkips: 0 },
+  };
+
+  function bankAiReplenishCategories(){
+    return CATEGORIES.filter((c) => c.n >= 1 && c.n <= 19);
+  }
+
+  function getPreferredProviderQuotaSummary(quota){
+    const order = getProviderOrderForPreference(aiProviderChoice);
+    for(const id of order){
+      if(quota?.configured?.[id] && quota.providers?.[id]?.summary){
+        return { id, summary: quota.providers[id].summary };
+      }
+    }
+    return null;
+  }
+
+  function estimateBankAiReplenishJobs(summary){
+    if(!summary || isProviderQuotaBlocked(summary)) return 0;
+    const remaining = quotaWindowRemaining(summary.tokens_used, summary.tokens_limit, summary.tokens_remaining);
+    if(remaining == null || remaining <= 0) return 0;
+    const safeBudget = Math.floor(remaining * (1 - BANK_AI_REPLENISH_QUOTA_HEADROOM));
+    if(safeBudget < BANK_AI_REPLENISH_MIN_REMAINING) return 0;
+    return Math.min(
+      BANK_AI_REPLENISH_MAX_JOBS_PER_TICK,
+      Math.max(1, Math.floor(safeBudget / BANK_AI_REPLENISH_EST_TOKENS)),
+    );
+  }
+
+  function hasBankAiReplenishInflight(){
+    return bankAiQuotaScheduler.running || Object.keys(bankAiReplenishInflight).length > 0;
+  }
+
+  async function canScheduleBankAiReplenish(){
+    if(aiProviderChoice === 'local') return false;
+    if(!window.QuestionBank?.isConfigured?.()) return false;
+    const quota = lastAiQuotaSnapshot || await fetchAiQuotaSnapshot().catch(() => null);
+    if(!quota) return true;
+    const pref = getPreferredProviderQuotaSummary(quota);
+    return !!(pref && estimateBankAiReplenishJobs(pref.summary) > 0);
+  }
+
+  async function runBankAiQuotaReplenishTick({ reason = 'interval' } = {}){
+    if(bankAiQuotaScheduler.running) return;
+    if(aiProviderChoice === 'local') return;
+    if(!window.QuestionBank?.isConfigured?.()) return;
+    if(document.hidden) return;
+    if(hasBankAiReplenishInflight() && reason !== 'force') return;
+
+    bankAiQuotaScheduler.running = true;
+    bankAiQuotaScheduler.lastTickAt = Date.now();
+    try {
+      const quota = await fetchAiQuotaSnapshot(true).catch(() => null);
+      if(!quota) return;
+      const pref = getPreferredProviderQuotaSummary(quota);
+      if(!pref){
+        bankAiQuotaScheduler.stats.quotaSkips++;
+        return;
+      }
+      let jobs = estimateBankAiReplenishJobs(pref.summary);
+      if(jobs <= 0){
+        bankAiQuotaScheduler.stats.quotaSkips++;
+        return;
+      }
+
+      const QB = window.QuestionBank;
+      while(jobs > 0){
+        const target = await QB.pickSparseTarget(bankAiReplenishCategories());
+        if(!target) break;
+        const playable = typeof QB.countPlayable === 'function'
+          ? await QB.countPlayable(target.categoryN, target.ageBand)
+          : null;
+        if(playable != null && playable >= BANK_AI_REPLENISH_TARGET_STOCK){
+          bankAiQuotaScheduler.stats.skipped++;
+          jobs--;
+          continue;
+        }
+        const category = CATEGORIES.find((c) => c.n === target.categoryN);
+        if(!category) break;
+        const inflightKey = `${target.categoryN}|${target.ageBand}`;
+        if(bankAiReplenishInflight[inflightKey]){
+          jobs--;
+          continue;
+        }
+
+        let result;
+        try {
+          const job = generateQuestion(category, target.ageBand, { bankReplenishOnly: true });
+          bankAiReplenishInflight[inflightKey] = job;
+          result = await job;
+        } finally {
+          delete bankAiReplenishInflight[inflightKey];
+        }
+        if(result?.replenished) bankAiQuotaScheduler.stats.ok++;
+        else bankAiQuotaScheduler.stats.fail++;
+
+        jobs--;
+        if(jobs <= 0) break;
+
+        const freshQuota = await fetchAiQuotaSnapshot(true).catch(() => null);
+        const freshPref = freshQuota ? getPreferredProviderQuotaSummary(freshQuota) : null;
+        if(!freshPref || estimateBankAiReplenishJobs(freshPref.summary) <= 0) break;
+        await new Promise((resolve) => setTimeout(resolve, BANK_AI_REPLENISH_JOB_GAP_MS));
+      }
+
+      if(DEBUG_MODE){
+        console.info('[Reino] Fila reabastecimento (quota)', {
+          reason,
+          stats: { ...bankAiQuotaScheduler.stats },
+          provider: pref.id,
+          remaining: quotaWindowRemaining(
+            pref.summary.tokens_used,
+            pref.summary.tokens_limit,
+            pref.summary.tokens_remaining,
+          ),
+        });
+      }
+    } catch(err) {
+      if(DEBUG_MODE) console.warn('[Reino] Fila reabastecimento falhou:', err?.message || err);
+    } finally {
+      bankAiQuotaScheduler.running = false;
+    }
+  }
+
+  function startBankAiQuotaScheduler(){
+    if(bankAiQuotaScheduler.timer) return;
+    bankAiQuotaScheduler.timer = setInterval(() => {
+      runBankAiQuotaReplenishTick({ reason: 'interval' });
+    }, BANK_AI_REPLENISH_TICK_MS);
+    setTimeout(() => runBankAiQuotaReplenishTick({ reason: 'startup' }), 12 * 1000);
+  }
+
+  function stopBankAiQuotaScheduler(){
+    if(bankAiQuotaScheduler.timer){
+      clearInterval(bankAiQuotaScheduler.timer);
+      bankAiQuotaScheduler.timer = null;
+    }
+  }
+
+  function syncBankAiQuotaScheduler(){
+    if(aiProviderChoice === 'local' || !aiStatusOnline){
+      stopBankAiQuotaScheduler();
+      return;
+    }
+    if(window.QuestionBank?.isConfigured?.()){
+      startBankAiQuotaScheduler();
+    }
+  }
 
   function scheduleBankAiReplenish(category, ageBandKey, servedQuestion){
     if(aiProviderChoice === 'local') return;
@@ -4695,7 +4855,12 @@
     if(!window.QuestionBank?.isConfigured?.()) return;
     const key = `${catN}|${ageBandKey}`;
     if(bankAiReplenishInflight[key]) return;
-    const run = () => {
+    const run = async () => {
+      const allowed = await canScheduleBankAiReplenish();
+      if(!allowed){
+        if(DEBUG_MODE) console.info('[Reino] Reabastecimento adiado — quota insuficiente', { category: catN, ageBand: ageBandKey });
+        return;
+      }
       const job = generateQuestion(category, ageBandKey, { bankReplenishOnly: true })
         .then((result) => {
           if(DEBUG_MODE) console.info('[Reino] Reabastecimento banco (IA)', { category: catN, ageBand: ageBandKey, ...result });
@@ -4707,9 +4872,10 @@
           delete bankAiReplenishInflight[key];
         });
       bankAiReplenishInflight[key] = job;
+      await job;
     };
-    if(typeof requestIdleCallback === 'function') requestIdleCallback(run, { timeout: 2500 });
-    else setTimeout(run, 80);
+    if(typeof requestIdleCallback === 'function') requestIdleCallback(() => { run(); }, { timeout: 2500 });
+    else setTimeout(() => { run(); }, 80);
   }
 
   async function ensureCat20Stock(categoryN, ageBandKey, { force = false } = {}){
@@ -6614,6 +6780,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
     updateAiInUseUI();
     updateAnswerModeBar();
+    syncBankAiQuotaScheduler();
   }
 
   let aiStatusOnline = false;
@@ -6810,10 +6977,38 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     return lastAiQuotaSnapshot;
   }
 
+  function isQuotaWindowExhausted(used, limit, remaining){
+    const l = Number(limit);
+    if(!Number.isFinite(l) || l <= 0) return false;
+    const r = Number(remaining);
+    if(Number.isFinite(r)) return r <= 0;
+    const u = Number(used);
+    if(Number.isFinite(u)) return u >= l;
+    return false;
+  }
+
+  function quotaWindowRemaining(used, limit, remaining){
+    const l = Number(limit);
+    if(!Number.isFinite(l) || l <= 0) return null;
+    const r = Number(remaining);
+    if(Number.isFinite(r)) return Math.max(0, r);
+    const u = Number(used);
+    if(Number.isFinite(u)) return Math.max(0, l - u);
+    return null;
+  }
+
+  function isProviderSummaryExhausted(summary){
+    if(!summary) return false;
+    if(summary.availability === 'billing') return true;
+    return isQuotaWindowExhausted(summary.tokens_used, summary.tokens_limit, summary.tokens_remaining)
+      || isQuotaWindowExhausted(summary.requests_used, summary.requests_limit, summary.requests_remaining)
+      || isQuotaWindowExhausted(summary.tokens_day_used, summary.tokens_day_limit, summary.tokens_day_remaining);
+  }
+
   function isProviderQuotaBlocked(summary){
     if(!summary) return false;
-    if(summary.usable === false) return true;
-    return summary.availability === 'limited' || summary.availability === 'billing';
+    if(summary.availability === 'billing') return true;
+    return isProviderSummaryExhausted(summary);
   }
 
   function getProviderOrderForPreference(preference){
@@ -7472,8 +7667,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   });
 
   document.addEventListener('visibilitychange', () => {
-    if(document.visibilityState === 'visible' && !aiStatusOnline){
-      tryRestoreAiOnline();
+    if(document.visibilityState === 'visible'){
+      if(!aiStatusOnline) tryRestoreAiOnline();
+      else runBankAiQuotaReplenishTick({ reason: 'visible' });
     }
   });
 
@@ -7489,6 +7685,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     selectedCategoryIds = new Set(draftSelectedCategoryIds);
     aiProviderChoice = draftAiProviderChoice;
     aiModelChoice = draftAiModelChoice;
+    syncBankAiQuotaScheduler();
     tryRestoreAiOnline();
     showScreen('menu');
   };
@@ -7546,12 +7743,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   function quotaStatusMeta(summary){
-    if(summary?.usable === false || summary?.availability === 'limited'){
-      return { cls: 'warn', label: 'aguardar reset' };
-    }
-    if(summary?.availability === 'ok') return { cls: 'ok', label: 'OK' };
     if(summary?.availability === 'billing') return { cls: 'err', label: 'sem créditos' };
     if(summary?.availability === 'error') return { cls: 'err', label: 'erro' };
+    if(isProviderSummaryExhausted(summary)) return { cls: 'warn', label: 'aguardar reset' };
+    if(summary?.availability === 'ok' || summary?.usable !== false) return { cls: 'ok', label: 'OK' };
     return { cls: 'unknown', label: 'sem dados' };
   }
 
@@ -7567,7 +7762,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       : (summary.reset_in_label || '—');
     const requestsReset = summary.requests_reset_in_label
       || (summary.requests_reset_in_seconds != null ? formatQuotaDuration(summary.requests_reset_in_seconds) : '');
-    const usableNote = summary.usable === false
+    const usableNote = isProviderSummaryExhausted(summary)
       ? ' · não enviar pedidos até ao reset'
       : '';
     const requestsNote = requestsReset ? ` · reset pedidos/dia: ${requestsReset}` : '';
