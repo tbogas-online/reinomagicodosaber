@@ -5759,21 +5759,36 @@
         });
 
         const newHash = data.questionHash || hash;
-        if (row) {
-          row.question = content.question;
-          row.correct_answer = content.answer;
-          row.options = content.options;
-          row.format = content.options.length >= 2 ? 'ESCOLHA_MULTIPLA' : row.format;
-          if (newHash !== hash) {
-            row.question_hash = newHash;
-            if (selectedBankHashes.has(hash)) {
-              selectedBankHashes.delete(hash);
-              selectedBankHashes.add(newHash);
-            }
-            if (openBankHashes.has(hash)) {
-              openBankHashes.delete(hash);
-              openBankHashes.add(newHash);
-            }
+        const affectedHashes = new Set(
+          (data.hashes || []).flatMap((entry) => [entry.previousHash, entry.questionHash].filter(Boolean)),
+        );
+        if (!affectedHashes.size) {
+          affectedHashes.add(hash);
+          if (newHash !== hash) affectedHashes.add(newHash);
+        }
+        const oldQuestion = row?.question || content.question;
+        const oldAnswer = row?.correct_answer || content.answer;
+
+        for (const bankRow of lastBankSearchRows) {
+          const sameEntry = affectedHashes.has(bankRow.question_hash)
+            || (bankRow.question === oldQuestion && bankRow.correct_answer === oldAnswer);
+          if (!sameEntry) continue;
+          bankRow.question = content.question;
+          bankRow.correct_answer = content.answer;
+          bankRow.options = content.options;
+          bankRow.format = content.options.length >= 2 ? 'ESCOLHA_MULTIPLA' : bankRow.format;
+          const entry = (data.hashes || []).find((h) => h.previousHash === bankRow.question_hash);
+          if (entry?.questionHash) bankRow.question_hash = entry.questionHash;
+        }
+
+        if (row && newHash !== hash) {
+          if (selectedBankHashes.has(hash)) {
+            selectedBankHashes.delete(hash);
+            selectedBankHashes.add(newHash);
+          }
+          if (openBankHashes.has(hash)) {
+            openBankHashes.delete(hash);
+            openBankHashes.add(newHash);
           }
         }
 
@@ -5782,7 +5797,10 @@
 
         if (statusEl) {
           const hashNote = data.previousHash ? ` Novo hash: ${newHash}.` : '';
-          statusEl.textContent = `Pergunta actualizada no banco.${hashNote}`;
+          const dupNote = Number(data.duplicateCount) > 0
+            ? ` ${data.updated} entradas actualizadas (incl. ${data.duplicateCount} duplicado(s) noutras categorias/idades).`
+            : '';
+          statusEl.textContent = `Pergunta actualizada no banco.${dupNote}${hashNote}`;
           statusEl.className = 'status ok';
         }
       } catch (err) {

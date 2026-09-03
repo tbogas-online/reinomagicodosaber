@@ -130,7 +130,7 @@ async function supabaseRequest(path, options = {}) {
 }
 
 const BANK_SELECT_BASE = 'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at';
-const BANK_SELECT_FULL = `${BANK_SELECT_BASE},category_ns,age_bands`;
+const BANK_SELECT_FULL = `${BANK_SELECT_BASE},category_ns,age_bands,knowledge_id`;
 
 let bankTaxonomyColumnsAvailable = null;
 
@@ -809,6 +809,149 @@ async function unblockQuestionHash(questionHash) {
   }
 }
 
+async function getBankRowByHash(questionHash) {
+  const hash = String(questionHash || '').trim();
+  if (!hash) return null;
+  let rows;
+  try {
+    rows = await supabaseRequest(
+      `/question_bank?question_hash=eq.${encodeURIComponent(hash)}&select=${BANK_SELECT_FULL}&limit=1`,
+    );
+  } catch {
+    rows = await supabaseRequest(
+      `/question_bank?question_hash=eq.${encodeURIComponent(hash)}&select=${BANK_SELECT_BASE}&limit=1`,
+    );
+  }
+  return Array.isArray(rows) ? rows[0] : null;
+}
+
+async function findBankRowsByContent(question, answer) {
+  const q = String(question || '').trim();
+  const a = String(answer || '').trim();
+  if (!q || !a) return [];
+
+  const { rows } = await queryBankRows((params, select) => {
+    params.set('select', select);
+    params.set('question', `eq.${q}`);
+    params.set('correct_answer', `eq.${a}`);
+    params.set('limit', '200');
+  });
+
+  return Array.isArray(rows) ? rows : [];
+}
+
+function inferBankHashScheme(row, oldQuestion, oldAnswer) {
+  const oldHash = String(row?.question_hash || '').trim();
+  const schemes = [
+    ['base', hashQuestionKey(`${oldQuestion}|${oldAnswer}`)],
+    ['age', hashQuestionKey(`${oldQuestion}|${oldAnswer}|${row.age_band}`)],
+    ['catAge', hashQuestionKey(`${oldQuestion}|${oldAnswer}|${row.age_band}|${row.category_n}`)],
+  ];
+  for (const [name, hash] of schemes) {
+    if (oldHash === hash) return name;
+  }
+  return 'base';
+}
+
+function computeBankHashForContent(question, answer, row, scheme) {
+  const q = String(question || '').trim();
+  const a = String(answer || '').trim();
+  if (scheme === 'age') return hashQuestionKey(`${q}|${a}|${row.age_band}`);
+  if (scheme === 'catAge') return hashQuestionKey(`${q}|${a}|${row.age_band}|${row.category_n}`);
+  return hashQuestionKey(`${q}|${a}`);
+}
+
+async function mergeBankRowIntoTarget(targetRow, sourceRow, contentPatch) {
+  const taxonomyPatch = buildBankTaxonomyPatch(
+    [
+      ...normalizeCategoryNs(null, null, targetRow),
+      ...normalizeCategoryNs(null, null, sourceRow),
+    ],
+    [
+      ...normalizeAgeBands(null, null, targetRow),
+      ...normalizeAgeBands(null, null, sourceRow),
+    ],
+  );
+  const patch = {
+    ...contentPatch,
+    ...taxonomyPatch,
+    is_reported: false,
+    reported_at: null,
+  };
+  await supabaseRequest(`/question_bank?id=eq.${encodeURIComponent(targetRow.id)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(patch),
+  });
+  await unblockQuestionHash(sourceRow.question_hash);
+  await supabaseRequest(`/question_bank?id=eq.${encodeURIComponent(sourceRow.id)}`, {
+    method: 'DELETE',
+  });
+}
+
+async function applyContentCorrectionToBankRow(row, correction, oldQuestion, oldAnswer) {
+  const finalQuestion = String(correction.question || '').trim();
+  const finalAnswer = String(correction.answer || '').trim();
+  const finalOptions = Array.isArray(correction.options)
+    ? correction.options.map((o) => String(o || '').trim()).filter(Boolean)
+    : null;
+  const finalFormat = correction.format
+    || (finalOptions?.length >= 2 ? 'ESCOLHA_MULTIPLA' : null);
+
+  const question = finalQuestion || oldQuestion;
+  const answer = finalAnswer || oldAnswer;
+  const options = finalOptions?.length >= 2 ? finalOptions : (row.options || null);
+  const format = finalFormat || row.format || null;
+
+  const patch = {
+    is_reported: false,
+    reported_at: null,
+  };
+  if (finalQuestion) patch.question = finalQuestion;
+  if (finalAnswer) patch.correct_answer = finalAnswer;
+  if (finalOptions?.length >= 2) {
+    patch.options = finalOptions;
+    patch.format = format || 'ESCOLHA_MULTIPLA';
+  } else if (format) patch.format = format;
+
+  const contentChanged = (finalQuestion && finalQuestion !== oldQuestion)
+    || (finalAnswer && finalAnswer !== oldAnswer);
+  let newHash = row.question_hash;
+  if (contentChanged) {
+    const scheme = inferBankHashScheme(row, oldQuestion, oldAnswer);
+    newHash = computeBankHashForContent(question, answer, row, scheme);
+  }
+
+  if (newHash !== row.question_hash) {
+    await unblockQuestionHash(row.question_hash);
+    await unblockQuestionHash(newHash);
+    const conflict = await getBankRowByHash(newHash);
+    if (conflict && conflict.id !== row.id) {
+      await mergeBankRowIntoTarget(conflict, row, patch);
+      return {
+        action: 'merged',
+        questionHash: newHash,
+        previousHash: row.question_hash,
+        rowId: conflict.id,
+      };
+    }
+    patch.question_hash = newHash;
+  }
+
+  await supabaseRequest(`/question_bank?id=eq.${encodeURIComponent(row.id)}`, {
+    method: 'PATCH',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(patch),
+  });
+
+  return {
+    action: newHash !== row.question_hash ? 'rehash' : 'updated',
+    questionHash: newHash,
+    previousHash: newHash !== row.question_hash ? row.question_hash : null,
+    rowId: row.id,
+  };
+}
+
 async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) {
   const lookupHash = String(oldHash || '').trim();
   if (!lookupHash) {
@@ -831,54 +974,71 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
     throw err;
   }
 
-  const existingRows = await supabaseRequest(
-    `/question_bank?question_hash=eq.${encodeURIComponent(lookupHash)}&select=*`,
-  );
-  const existing = Array.isArray(existingRows) ? existingRows[0] : null;
+  const existing = await getBankRowByHash(lookupHash);
+  const oldQuestion = String(existing?.question || finalQuestion || '').trim();
+  const oldAnswer = String(existing?.correct_answer || finalAnswer || '').trim();
 
-  const question = finalQuestion || existing?.question || '';
-  const answer = finalAnswer || existing?.correct_answer || '';
-  const options = finalOptions?.length >= 2 ? finalOptions : (existing?.options || null);
-  const format = finalFormat || existing?.format || null;
+  if (existing) {
+    let siblings = await findBankRowsByContent(oldQuestion, oldAnswer);
+    if (!siblings.length) siblings = [existing];
+
+    await unblockQuestionHash(lookupHash);
+    const results = [];
+    for (const row of siblings) {
+      results.push(await applyContentCorrectionToBankRow(
+        row,
+        {
+          question: finalQuestion,
+          answer: finalAnswer,
+          options: finalOptions,
+          format: finalFormat,
+        },
+        oldQuestion,
+        oldAnswer,
+      ));
+    }
+
+    const primary = results.find((r) => r.previousHash === lookupHash)
+      || results.find((r) => r.questionHash === lookupHash)
+      || results[0];
+
+    return {
+      ok: true,
+      action: siblings.length > 1 ? 'updated-many' : (primary?.action || 'updated'),
+      updated: results.length,
+      duplicateCount: Math.max(0, siblings.length - 1),
+      questionHash: primary?.questionHash || lookupHash,
+      previousHash: primary?.previousHash || null,
+      hashes: results.map((r) => ({
+        previousHash: r.previousHash,
+        questionHash: r.questionHash,
+        rowId: r.rowId,
+        action: r.action,
+      })),
+    };
+  }
+
+  const question = finalQuestion || '';
+  const answer = finalAnswer || '';
+  const options = finalOptions?.length >= 2 ? finalOptions : null;
+  const format = finalFormat || (options?.length >= 2 ? 'ESCOLHA_MULTIPLA' : null);
   const newHash = hashQuestionKey(`${question}|${answer}`);
   const categoryNs = normalizeCategoryNs(meta.categoryNs, meta.categoryN, existing);
   const ageBands = normalizeAgeBands(meta.ageBands, meta.ageBand, existing);
 
+  if (question && answer) {
+    const alreadyByHash = await getBankRowByHash(newHash);
+    if (alreadyByHash) {
+      return applyReportCorrectionToBank(alreadyByHash.question_hash, correction, meta);
+    }
+    const alreadyByContent = await findBankRowsByContent(question, answer);
+    if (alreadyByContent.length) {
+      return applyReportCorrectionToBank(alreadyByContent[0].question_hash, correction, meta);
+    }
+  }
+
   await unblockQuestionHash(lookupHash);
   if (newHash && newHash !== lookupHash) await unblockQuestionHash(newHash);
-
-  if (existing) {
-    if (lookupHash === newHash) {
-      const patch = {
-        is_reported: false,
-        reported_at: null,
-      };
-      if (finalQuestion) patch.question = finalQuestion;
-      if (finalAnswer) patch.correct_answer = finalAnswer;
-      if (finalOptions?.length >= 2) {
-        patch.options = finalOptions;
-        patch.format = format || 'ESCOLHA_MULTIPLA';
-      } else if (format) patch.format = format;
-      const updated = await supabaseRequest(
-        `/question_bank?question_hash=eq.${encodeURIComponent(lookupHash)}`,
-        {
-          method: 'PATCH',
-          headers: { Prefer: 'return=representation' },
-          body: JSON.stringify(patch),
-        },
-      );
-      return {
-        ok: true,
-        action: 'updated',
-        updated: Array.isArray(updated) ? updated.length : 1,
-        questionHash: lookupHash,
-      };
-    }
-
-    await supabaseRequest(`/question_bank?question_hash=eq.${encodeURIComponent(lookupHash)}`, {
-      method: 'DELETE',
-    });
-  }
 
   if (!categoryNs.length || !ageBands.length) {
     const err = new Error('Pergunta não está no banco — falta categoria ou faixa etária para inserir a correcção.');
@@ -898,7 +1058,7 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
       format,
       question_hash: newHash,
       source: meta.source || 'corrected',
-      knowledge_id: meta.knowledgeId || existing?.knowledge_id || null,
+      knowledge_id: meta.knowledgeId || null,
       is_reported: false,
       reported_at: null,
     }),
@@ -906,8 +1066,9 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
 
   return {
     ok: true,
-    action: existing ? 'replaced' : 'inserted',
+    action: 'inserted',
     updated: Array.isArray(inserted) ? inserted.length : 1,
+    duplicateCount: 0,
     questionHash: newHash,
     previousHash: lookupHash !== newHash ? lookupHash : null,
   };
@@ -925,4 +1086,5 @@ module.exports = {
   applyReportCorrectionToBank,
   parseGameQuestionId,
   hashQuestionKey,
+  findBankRowsByContent,
 };

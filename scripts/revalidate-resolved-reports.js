@@ -19,9 +19,14 @@ const { loadQuestionEngine, stripTags, normalizeQ } = require('./lib/load-questi
 const {
   applyReportCorrectionToBank,
   searchQuestionBank,
+  findBankRowsByContent,
   parseGameQuestionId,
   hashQuestionKey,
 } = require('../netlify/functions/lib/question-bank-store');
+const {
+  normalizeCategoryNs,
+  normalizeAgeBands,
+} = require('../netlify/functions/lib/question-taxonomy');
 
 const DEFAULT_BASE = 'https://reinomagicodosaber.netlify.app';
 
@@ -68,12 +73,14 @@ async function fetchReports(args, user, pass) {
   if (args.ids.length) {
     const reports = [];
     for (const id of args.ids) {
-      const url = `${args.baseUrl.replace(/\/$/, '')}/api/reports-admin?reportId=${encodeURIComponent(id)}&limit=1`;
+      const params = new URLSearchParams({ status: args.status, limit: '50', q: id });
+      const url = `${args.baseUrl.replace(/\/$/, '')}/api/reports-admin?${params.toString()}`;
       const response = await fetch(url, { headers: { Authorization: authHeader(user, pass) } });
       const data = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(data.error || `HTTP ${response.status} ao ler ${id}`);
-      const list = data.reports || (data.report ? [data.report] : []);
-      reports.push(...list);
+      const list = data.reports || [];
+      const report = list.find((r) => r.reportId === id) || list[0] || null;
+      if (report) reports.push(report);
     }
     return reports;
   }
@@ -210,17 +217,38 @@ async function main() {
     }
 
     let existing = null;
+    let siblings = [];
     try {
       const search = await searchQuestionBank({ hash: lookupHash, limit: 1 });
       existing = search.rows?.[0] || null;
+      if (existing?.question && existing?.correct_answer) {
+        siblings = await findBankRowsByContent(existing.question, existing.correct_answer);
+      }
+      if (!existing && correction.question && correction.answer) {
+        const byContent = await findBankRowsByContent(correction.question, correction.answer);
+        if (byContent.length) {
+          existing = byContent[0];
+          siblings = byContent;
+        } else {
+          const newHash = hashQuestionKey(`${correction.question}|${correction.answer}`);
+          const searchNew = await searchQuestionBank({ hash: newHash, limit: 1 });
+          existing = searchNew.rows?.[0] || null;
+          if (existing) {
+            siblings = await findBankRowsByContent(existing.question, existing.correct_answer);
+          }
+        }
+      }
     } catch {
       /* ignore */
     }
 
-    const needsUpdate = !existing
-      || String(existing.question || '').trim() !== String(correction.question || '').trim()
-      || String(existing.correct_answer || '').trim() !== String(correction.answer || '').trim()
-      || normOpts(existing.options) !== normOpts(correction.options);
+    const rowsToCheck = siblings.length ? siblings : (existing ? [existing] : []);
+    const needsUpdate = !rowsToCheck.length
+      || rowsToCheck.some((row) => (
+        String(row.question || '').trim() !== String(correction.question || '').trim()
+        || String(row.correct_answer || '').trim() !== String(correction.answer || '').trim()
+        || normOpts(row.options) !== normOpts(correction.options)
+      ));
 
     if (!needsUpdate) {
       summary.unchanged += 1;
@@ -237,7 +265,8 @@ async function main() {
     if (correction.options?.length) console.log(`  Opções: ${correction.options.join(' · ')}`);
     if (preview) console.log(`  ${preview}`);
     if (existing) {
-      console.log(`  Banco: actualizar (${existing.is_reported ? 'reportada' : 'ok'})`);
+      const dupNote = siblings.length > 1 ? ` · ${siblings.length} duplicados` : '';
+      console.log(`  Banco: actualizar (${existing.is_reported ? 'reportada' : 'ok'})${dupNote}`);
     } else {
       console.log('  Banco: inserir (não existia)');
     }
@@ -246,13 +275,16 @@ async function main() {
 
     try {
       const result = await applyReportCorrectionToBank(lookupHash, correction, {
+        categoryNs: normalizeCategoryNs(report.categoryNs, report.category?.n, report),
+        ageBands: normalizeAgeBands(report.ageBands, report.ageBand, report),
         categoryN,
         ageBand,
         knowledgeId: report.knowledgeId || null,
         source: report.source === 'bank' ? 'bank' : 'corrected',
       });
       summary.applied += 1;
-      console.log(`  ✓ ${result.action || 'ok'} → hash ${result.questionHash}${result.previousHash ? ` (era ${result.previousHash})` : ''}`);
+      const dupNote = Number(result.duplicateCount) > 0 ? ` (+${result.duplicateCount} dup.)` : '';
+      console.log(`  ✓ ${result.action || 'ok'} → ${result.updated || 1} entrada(s)${dupNote} · hash ${result.questionHash}${result.previousHash ? ` (era ${result.previousHash})` : ''}`);
     } catch (err) {
       summary.failed += 1;
       console.log(`  ✗ ${err.message || err}`);
