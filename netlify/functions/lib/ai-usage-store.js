@@ -98,6 +98,23 @@ function extractUsageTokens(usage) {
   return prompt + completion + input + output;
 }
 
+function apiBucketToLisbonKey(raw, bucketMinutes = BUCKET_MINUTES) {
+  if (!raw) return null;
+  const text = String(raw).trim();
+  const iso = text.match(/^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/);
+  if (iso) {
+    let minute = Number(iso[5]) || 0;
+    if (bucketMinutes > 1) minute = Math.floor(minute / bucketMinutes) * bucketMinutes;
+    return `${iso[1]}-${iso[2]}-${iso[3]}T${iso[4]}:${String(minute).padStart(2, '0')}`;
+  }
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(text)) {
+    let minute = Number(text.slice(14, 16)) || 0;
+    if (bucketMinutes > 1) minute = Math.floor(minute / bucketMinutes) * bucketMinutes;
+    return `${text.slice(0, 14)}${String(minute).padStart(2, '0')}`;
+  }
+  return toLisbonBucketKey(raw, bucketMinutes);
+}
+
 function toLisbonBucketKey(date, bucketMinutes = BUCKET_MINUTES) {
   const d = date instanceof Date ? date : new Date(date);
   if (Number.isNaN(d.getTime())) return null;
@@ -165,7 +182,7 @@ function filterDimensionRows(rows, filters = {}) {
 function aggregateRowsByBucket(rows) {
   const map = new Map();
   (rows || []).forEach((row) => {
-    const key = row.bucket_start;
+    const key = apiBucketToLisbonKey(row.bucket_start, 1);
     if (!key) return;
     const slot = map.get(key) || {
       bucket_start: key,
@@ -206,7 +223,7 @@ function buildBucketSeries(rows, lookbackMs, bucketMinutes = BUCKET_MINUTES) {
   }
 
   (rows || []).forEach((row) => {
-    const key = toLisbonBucketKey(row.bucket_start, bucketMinutes);
+    const key = apiBucketToLisbonKey(row.bucket_start, bucketMinutes);
     if (!key) return;
     if (!counts.has(key)) {
       counts.set(key, {
@@ -312,7 +329,8 @@ function computeUsageSummary(rows) {
   let quotaUsedToday = 0;
 
   (rows || []).forEach((row) => {
-    const t = new Date(row.bucket_start).getTime();
+    const bucketKey = apiBucketToLisbonKey(row.bucket_start, 1);
+    const t = bucketKey ? bucketKeyToUtcMs(bucketKey, 1) : new Date(row.bucket_start).getTime();
     if (Number.isNaN(t)) return;
     const reqs = Number(row.request_count) || 0;
     const errs = Number(row.error_count) || 0;
@@ -322,7 +340,7 @@ function computeUsageSummary(rows) {
     }
     if (t >= cut24h) last24h += reqs;
     if (t >= cut1h) last1h += reqs;
-    if (toLisbonDayKey(row.bucket_start) === todayKey) quotaUsedToday += reqs;
+    if ((apiBucketToLisbonKey(row.bucket_start, 60) || '').slice(0, 10) === todayKey) quotaUsedToday += reqs;
   });
 
   const successRate = last48h > 0
