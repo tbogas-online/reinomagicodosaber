@@ -5940,6 +5940,12 @@
       return Math.max(rounded, min);
     }
 
+    function normalizeAiUsageRefLimit(quotaLimit) {
+      const n = Number(quotaLimit);
+      if (!Number.isFinite(n) || n <= 0) return null;
+      return Math.round(n);
+    }
+
     function renderAiUsageDualChart(el, seriesA, seriesB, quotaLimit, options = {}) {
       const labelA = options.labelA || 'Pedidos / 5 min';
       const labelB = options.labelB || 'Quota acumulada (dia)';
@@ -5947,6 +5953,7 @@
       const formatLabel = options.formatLabel || formatBankTimelineLabel;
       const formatValueB = typeof options.formatValueB === 'function' ? options.formatValueB : (v) => String(v);
       const refLabel = options.refLabel || 'Quota máx.';
+      const refLimit = normalizeAiUsageRefLimit(quotaLimit);
       const colorA = '#3b82f6';
       const colorB = '#10b981';
       const refColor = '#ef4444';
@@ -5966,10 +5973,10 @@
       const maxB = niceAxisMax(
         Math.max(
           ...labels.map((t) => mapB[t] || 0),
-          Number.isFinite(Number(quotaLimit)) ? Number(quotaLimit) : 0,
+          refLimit || 0,
           1,
         ),
-        Number.isFinite(Number(quotaLimit)) ? Number(quotaLimit) : 10,
+        refLimit || 10,
       );
 
       const w = 640;
@@ -6003,10 +6010,10 @@
         `;
       }).join('');
 
-      const refY = Number.isFinite(Number(quotaLimit)) ? yAtB(Number(quotaLimit)) : null;
+      const refY = refLimit != null ? yAtB(refLimit) : null;
       const refLineSvg = refY != null
         ? `<line x1="${padLeft}" y1="${refY.toFixed(1)}" x2="${(w - padRight).toFixed(1)}" y2="${refY.toFixed(1)}" stroke="${refColor}" stroke-dasharray="6 4" stroke-width="1.5" opacity="0.85" />
-           <text class="line-label" x="${w - padRight - 4}" y="${Math.max(padY + 12, refY - 6)}" text-anchor="end" fill="${refColor}">${esc(refLabel)} (${esc(formatValueB(quotaLimit))})</text>`
+           <text class="line-label" x="${w - padRight - 4}" y="${Math.max(padY + 12, refY - 6)}" text-anchor="end" fill="${refColor}">${esc(refLabel)} (${esc(formatValueB(refLimit))})</text>`
         : '';
 
       const labelStep = Math.max(1, Math.ceil(labels.length / 8));
@@ -6028,7 +6035,7 @@
           <div class="chart-legend ai-usage-legend">
             <span><i style="background:${colorA}"></i>${esc(labelA)} (esq.)</span>
             <span><i style="background:${colorB}"></i>${esc(labelB)} (dir.)</span>
-            ${quotaLimit ? `<span><i style="background:${refColor};opacity:0.7"></i>${esc(refLabel)}</span>` : ''}
+            ${refLimit ? `<span><i style="background:${refColor};opacity:0.7"></i>${esc(refLabel)}</span>` : ''}
           </div>
           <div class="chart-tooltip" hidden></div>
           <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Pedidos à IA e quota">
@@ -6067,7 +6074,7 @@
           focusLine.removeAttribute('hidden');
         }
         tooltip.hidden = false;
-        const quotaPct = quotaLimit ? Math.round(((mapB[t] || 0) / quotaLimit) * 1000) / 10 : null;
+        const quotaPct = refLimit ? Math.round(((mapB[t] || 0) / refLimit) * 1000) / 10 : null;
         tooltip.innerHTML = `
           <div><strong>${esc(formatLabel(t, granularity))}</strong></div>
           <div><span style="color:${colorA}">●</span> ${esc(labelA)}: <strong>${mapA[t] || 0}</strong></div>
