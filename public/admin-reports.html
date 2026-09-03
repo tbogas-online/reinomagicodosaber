@@ -1961,8 +1961,31 @@
       font-size: 9px;
       font-family: inherit;
     }
+    .line-axis-label-left {
+      fill: #93c5fd;
+      font-weight: 600;
+    }
     .line-axis-label-right {
       fill: #6ee7b7;
+      font-weight: 600;
+    }
+    .line-axis-title {
+      fill: var(--muted);
+      font-size: 8px;
+      font-family: inherit;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+    .line-axis-spine-left {
+      stroke: #3b82f6;
+      stroke-width: 1.5;
+      opacity: 0.55;
+    }
+    .line-axis-spine-right {
+      stroke: #10b981;
+      stroke-width: 1.5;
+      opacity: 0.55;
     }
     .ai-usage-legend {
       display: flex;
@@ -1982,6 +2005,75 @@
       width: 10px;
       height: 10px;
       border-radius: 2px;
+    }
+    .ai-usage-legend .axis-side-tag {
+      opacity: 0.75;
+      font-size: 0.72rem;
+    }
+    .ai-usage-chart-layout {
+      display: grid;
+      grid-template-columns: minmax(78px, 92px) minmax(0, 1fr) minmax(78px, 92px);
+      gap: 6px;
+      align-items: stretch;
+    }
+    .ai-usage-axis-legend {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 4px;
+      text-align: center;
+      min-height: 210px;
+    }
+    .ai-usage-axis-legend-left {
+      color: #93c5fd;
+      border-right: 2px solid rgba(59, 130, 246, 0.45);
+    }
+    .ai-usage-axis-legend-right {
+      color: #6ee7b7;
+      border-left: 2px solid rgba(16, 185, 129, 0.45);
+    }
+    .ai-usage-axis-legend .axis-legend-bar {
+      width: 4px;
+      min-height: 52px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+    .ai-usage-axis-legend .axis-legend-title {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      line-height: 1.2;
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      max-height: 120px;
+    }
+    .ai-usage-axis-legend .axis-legend-detail {
+      font-size: 0.68rem;
+      color: var(--muted);
+      line-height: 1.25;
+      max-width: 84px;
+    }
+    .ai-usage-chart-ref-legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 6px;
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+    .ai-usage-chart-ref-legend span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ai-usage-chart-ref-legend i {
+      display: inline-block;
+      width: 14px;
+      height: 0;
+      border-top: 2px dashed #ef4444;
     }
     .ai-usage-dim-filters {
       display: flex;
@@ -5810,7 +5902,10 @@
         granularity: 'minute',
         formatLabel: formatBankTimelineLabel,
         refLabel: minuteTokenLimit ? 'Limite tokens/min' : undefined,
+        formatValueA: formatAiUsageAxisCount,
         formatValueB: formatAiUsageTokenCount,
+        axisLabelA: 'Pedidos',
+        axisLabelB: 'Tokens',
       });
     }
 
@@ -5928,6 +6023,10 @@
         labelB: 'Quota acumulada (dia)',
         granularity: meta.granularity,
         formatLabel: formatBankTimelineLabel,
+        formatValueA: formatAiUsageAxisCount,
+        formatValueB: formatAiUsageAxisCount,
+        axisLabelA: 'Pedidos',
+        axisLabelB: 'Quota dia',
       });
       renderAiUsageMinuteChart(aiUsage, aiStatus);
     }
@@ -5938,6 +6037,18 @@
       const magnitude = 10 ** Math.floor(Math.log10(v));
       const rounded = Math.ceil(v / magnitude) * magnitude;
       return Math.max(rounded, min);
+    }
+
+    function formatAiUsageAxisCount(n) {
+      const v = Number(n) || 0;
+      if (v >= 1000000) return `${(v / 1000000).toFixed(1)}M`;
+      if (v >= 1000) return `${Math.round(v / 1000)}k`;
+      return String(Math.round(v));
+    }
+
+    function shortAiUsageAxisLabel(label) {
+      const text = String(label || '').split('·')[0].split('/')[0].trim();
+      return text.length > 14 ? `${text.slice(0, 13)}…` : text;
     }
 
     function normalizeAiUsageRefLimit(quotaLimit) {
@@ -5951,7 +6062,10 @@
       const labelB = options.labelB || 'Quota acumulada (dia)';
       const granularity = options.granularity || 'minute';
       const formatLabel = options.formatLabel || formatBankTimelineLabel;
+      const formatValueA = typeof options.formatValueA === 'function' ? options.formatValueA : (v) => String(v);
       const formatValueB = typeof options.formatValueB === 'function' ? options.formatValueB : (v) => String(v);
+      const axisLabelA = options.axisLabelA || shortAiUsageAxisLabel(labelA);
+      const axisLabelB = options.axisLabelB || shortAiUsageAxisLabel(labelB);
       const refLabel = options.refLabel || 'Quota máx.';
       const refLimit = normalizeAiUsageRefLimit(quotaLimit);
       const colorA = '#3b82f6';
@@ -5980,10 +6094,10 @@
       );
 
       const w = 640;
-      const h = 200;
-      const padLeft = 40;
-      const padRight = 46;
-      const padY = 22;
+      const h = 210;
+      const padLeft = 44;
+      const padRight = 44;
+      const padY = 26;
       const innerW = w - padLeft - padRight;
       const innerH = h - padY * 2;
       const xAt = (i) => padLeft + (i / Math.max(labels.length - 1, 1)) * innerW;
@@ -5999,16 +6113,41 @@
       const lineA = pointsA.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
       const lineB = pointsB.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
 
-      const gridLines = [0, 0.5, 1].map((frac) => {
+      const gridFracs = [0, 0.25, 0.5, 0.75, 1];
+      const gridLines = gridFracs.map((frac) => {
         const y = padY + innerH * (1 - frac);
-        const valA = Math.round(maxA * frac);
-        const valB = formatValueB(Math.round(maxB * frac));
+        const valA = formatValueA(maxA * frac);
+        const valB = formatValueB(maxB * frac);
         return `
           <line class="line-grid" x1="${padLeft}" y1="${y}" x2="${w - padRight}" y2="${y}" />
-          <text class="line-axis-label" x="${padLeft - 6}" y="${y + 4}" text-anchor="end">${valA}</text>
-          <text class="line-axis-label line-axis-label-right" x="${w - padRight + 6}" y="${y + 4}" text-anchor="start">${esc(valB)}</text>
+          <text class="line-axis-label line-axis-label-left" x="${padLeft - 8}" y="${y + 4}" text-anchor="end">${esc(valA)}</text>
+          <text class="line-axis-label line-axis-label-right" x="${w - padRight + 8}" y="${y + 4}" text-anchor="start">${esc(valB)}</text>
         `;
       }).join('');
+
+      const axisSpines = `
+        <line class="line-axis-spine-left" x1="${padLeft}" y1="${padY}" x2="${padLeft}" y2="${padY + innerH}" />
+        <line class="line-axis-spine-right" x1="${w - padRight}" y1="${padY}" x2="${w - padRight}" y2="${padY + innerH}" />
+      `;
+
+      const refLegendHtml = refLimit
+        ? `<div class="ai-usage-chart-ref-legend"><span><i></i>${esc(refLabel)} (${esc(formatValueB(refLimit))})</span></div>`
+        : '';
+
+      const sideLegendLeft = `
+        <aside class="ai-usage-axis-legend ai-usage-axis-legend-left" aria-label="${esc(axisLabelA)}">
+          <span class="axis-legend-bar" style="background:${colorA}"></span>
+          <span class="axis-legend-title">${esc(axisLabelA)}</span>
+          <span class="axis-legend-detail">${esc(labelA)}</span>
+        </aside>
+      `;
+      const sideLegendRight = `
+        <aside class="ai-usage-axis-legend ai-usage-axis-legend-right" aria-label="${esc(axisLabelB)}">
+          <span class="axis-legend-bar" style="background:${colorB}"></span>
+          <span class="axis-legend-title">${esc(axisLabelB)}</span>
+          <span class="axis-legend-detail">${esc(labelB)}</span>
+        </aside>
+      `;
 
       const refY = refLimit != null ? yAtB(refLimit) : null;
       const refLineSvg = refY != null
@@ -6031,28 +6170,29 @@
       }).join('');
 
       el.innerHTML = `
-        <div class="chart-interactive ai-usage-chart">
-          <div class="chart-legend ai-usage-legend">
-            <span><i style="background:${colorA}"></i>${esc(labelA)} (esq.)</span>
-            <span><i style="background:${colorB}"></i>${esc(labelB)} (dir.)</span>
-            ${refLimit ? `<span><i style="background:${refColor};opacity:0.7"></i>${esc(refLabel)}</span>` : ''}
+        <div class="ai-usage-chart-layout">
+          ${sideLegendLeft}
+          <div class="chart-interactive ai-usage-chart">
+            ${refLegendHtml}
+            <div class="chart-tooltip" hidden></div>
+            <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Pedidos à IA e quota">
+              ${gridLines}
+              ${axisSpines}
+              <line class="chart-focus-line" hidden x1="0" y1="0" x2="0" y2="0" />
+              ${refLineSvg}
+              <polyline class="line-path" points="${lineB}" style="stroke:${colorB}" />
+              <polyline class="line-path" points="${lineA}" style="stroke:${colorA}" />
+              ${pointsB.map((p) => `<circle class="line-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${colorB}" />`).join('')}
+              ${pointsA.map((p) => `<circle class="line-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${colorA}" />`).join('')}
+              ${xLabels}
+              ${hitBands}
+            </svg>
           </div>
-          <div class="chart-tooltip" hidden></div>
-          <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Pedidos à IA e quota">
-            ${gridLines}
-            <line class="chart-focus-line" hidden x1="0" y1="0" x2="0" y2="0" />
-            ${refLineSvg}
-            <polyline class="line-path" points="${lineB}" style="stroke:${colorB}" />
-            <polyline class="line-path" points="${lineA}" style="stroke:${colorA}" />
-            ${pointsB.map((p) => `<circle class="line-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${colorB}" />`).join('')}
-            ${pointsA.map((p) => `<circle class="line-dot" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="2.5" fill="${colorA}" />`).join('')}
-            ${xLabels}
-            ${hitBands}
-          </svg>
+          ${sideLegendRight}
         </div>
       `;
 
-      const container = el.querySelector('.chart-interactive');
+      const container = el.querySelector('.ai-usage-chart');
       const tooltip = container?.querySelector('.chart-tooltip');
       const focusLine = container?.querySelector('.chart-focus-line');
       const svg = container?.querySelector('svg');
@@ -6077,7 +6217,7 @@
         const quotaPct = refLimit ? Math.round(((mapB[t] || 0) / refLimit) * 1000) / 10 : null;
         tooltip.innerHTML = `
           <div><strong>${esc(formatLabel(t, granularity))}</strong></div>
-          <div><span style="color:${colorA}">●</span> ${esc(labelA)}: <strong>${mapA[t] || 0}</strong></div>
+          <div><span style="color:${colorA}">●</span> ${esc(labelA)}: <strong>${esc(formatValueA(mapA[t] || 0))}</strong></div>
           <div><span style="color:${colorB}">●</span> ${esc(labelB)}: <strong>${esc(formatValueB(mapB[t] || 0))}</strong>${quotaPct != null ? ` (${quotaPct}%)` : ''}</div>
         `;
         const rect = container.getBoundingClientRect();
