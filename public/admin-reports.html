@@ -1051,6 +1051,32 @@
       letter-spacing: 0.03em;
       color: var(--muted);
     }
+    .game-stats-table-card .reports-table th.sortable {
+      cursor: pointer;
+      user-select: none;
+    }
+    .game-stats-table-card .reports-table th.sortable:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .game-stats-table-card .reports-table th.sort-active {
+      color: var(--gold-bright, #eecb6b);
+    }
+    .game-stats-table-card .reports-table th.sortable::after {
+      display: inline-block;
+      margin-left: 5px;
+      font-size: 9px;
+      opacity: 0.28;
+      content: '⇅';
+    }
+    .game-stats-table-card .reports-table th.sort-active.sort-asc::after {
+      content: '▲';
+      opacity: 1;
+    }
+    .game-stats-table-card .reports-table th.sort-active.sort-desc::after {
+      content: '▼';
+      opacity: 1;
+    }
     .game-stats-table-card .reports-table td {
       font-size: 13px;
     }
@@ -3087,15 +3113,15 @@
           </div>
           <div class="game-stats-table-card">
             <div class="reports-table-wrap">
-            <table class="reports-table">
+            <table class="reports-table" data-game-stats-table="players">
               <thead>
                 <tr>
-                  <th>Jogador</th>
-                  <th>Respostas</th>
-                  <th>Acertos</th>
-                  <th>Precisão</th>
-                  <th>Tempo médio</th>
-                  <th>Melhor série</th>
+                  <th class="sortable" data-game-stats-sort="name" title="Ordenar por jogador">Jogador</th>
+                  <th class="sortable" data-game-stats-sort="answersTotal" title="Ordenar por respostas">Respostas</th>
+                  <th class="sortable" data-game-stats-sort="correctTotal" title="Ordenar por acertos">Acertos</th>
+                  <th class="sortable" data-game-stats-sort="accuracyPct" title="Ordenar por precisão">Precisão</th>
+                  <th class="sortable" data-game-stats-sort="avgResponseMs" title="Ordenar por tempo médio">Tempo médio</th>
+                  <th class="sortable" data-game-stats-sort="bestStreak" title="Ordenar por melhor série">Melhor série</th>
                 </tr>
               </thead>
               <tbody id="gameStatsPlayersBody">
@@ -3116,14 +3142,14 @@
           </div>
           <div class="game-stats-table-card">
             <div class="reports-table-wrap">
-            <table class="reports-table">
+            <table class="reports-table" data-game-stats-table="ageBands">
               <thead>
                 <tr>
-                  <th>Faixa</th>
-                  <th>Rondas</th>
-                  <th>Respostas</th>
-                  <th>Precisão</th>
-                  <th>Tempo médio</th>
+                  <th class="sortable" data-game-stats-sort="ageBand" title="Ordenar por faixa">Faixa</th>
+                  <th class="sortable" data-game-stats-sort="roundsPresented" title="Ordenar por rondas">Rondas</th>
+                  <th class="sortable" data-game-stats-sort="answersTotal" title="Ordenar por respostas">Respostas</th>
+                  <th class="sortable" data-game-stats-sort="accuracyPct" title="Ordenar por precisão">Precisão</th>
+                  <th class="sortable" data-game-stats-sort="avgResponseMs" title="Ordenar por tempo médio">Tempo médio</th>
                 </tr>
               </thead>
               <tbody id="gameStatsAgeBandsBody">
@@ -3144,13 +3170,13 @@
           </div>
           <div class="game-stats-table-card">
             <div class="reports-table-wrap">
-            <table class="reports-table">
+            <table class="reports-table" data-game-stats-table="categories">
               <thead>
                 <tr>
-                  <th>Categoria</th>
-                  <th>Rondas</th>
-                  <th>Respostas</th>
-                  <th>Precisão</th>
+                  <th class="sortable" data-game-stats-sort="category" title="Ordenar por categoria">Categoria</th>
+                  <th class="sortable" data-game-stats-sort="roundsPresented" title="Ordenar por rondas">Rondas</th>
+                  <th class="sortable" data-game-stats-sort="answersTotal" title="Ordenar por respostas">Respostas</th>
+                  <th class="sortable" data-game-stats-sort="accuracyPct" title="Ordenar por precisão">Precisão</th>
                 </tr>
               </thead>
               <tbody id="gameStatsCategoriesBody">
@@ -9936,6 +9962,12 @@
 
     const GAME_HISTORY_STORAGE_KEY = 'reino_magico_game_history_v1';
     let lastGameStatsPayload = null;
+    const gameStatsSort = {
+      players: { key: 'answersTotal', dir: 'desc' },
+      ageBands: { key: 'answersTotal', dir: 'desc' },
+      categories: { key: 'answersTotal', dir: 'desc' },
+      questions: { key: 'accuracyPct', dir: 'asc' },
+    };
 
     function readLocalJson(key, fallback) {
       try {
@@ -9999,6 +10031,56 @@
       if (index === 1) return '<span class="game-stats-rank top-2" aria-hidden="true">🥈</span>';
       if (index === 2) return '<span class="game-stats-rank top-3" aria-hidden="true">🥉</span>';
       return `<span class="game-stats-rank" aria-hidden="true">${index + 1}</span>`;
+    }
+
+    const GAME_STATS_TEXT_SORT_KEYS = new Set(['name', 'category', 'ageBand', 'question', 'answer', 'difficulty']);
+
+    function sortGameStatsRows(rows, sortState, valueFor) {
+      const { key, dir } = sortState || {};
+      if (!key || !Array.isArray(rows)) return rows || [];
+      const get = typeof valueFor === 'function' ? valueFor : (row) => row?.[key];
+      return rows.slice().sort((a, b) => {
+        let av = get(a, key);
+        let bv = get(b, key);
+        if (GAME_STATS_TEXT_SORT_KEYS.has(key)) {
+          const cmp = String(av || '').localeCompare(String(bv || ''), 'pt-PT', { sensitivity: 'base' });
+          return dir === 'asc' ? cmp : -cmp;
+        }
+        const na = av == null || av === '' || !Number.isFinite(Number(av));
+        const nb = bv == null || bv === '' || !Number.isFinite(Number(bv));
+        if (na && nb) return 0;
+        if (na) return 1;
+        if (nb) return -1;
+        const cmp = Number(av) - Number(bv);
+        return dir === 'asc' ? cmp : -cmp;
+      });
+    }
+
+    function updateGameStatsSortHeaders(tableId) {
+      if (!tableId) return;
+      const sortState = gameStatsSort[tableId];
+      document.querySelectorAll(`[data-game-stats-table="${tableId}"] th[data-game-stats-sort]`).forEach((th) => {
+        const key = th.dataset.gameStatsSort;
+        const active = sortState?.key === key;
+        th.classList.toggle('sort-active', active);
+        th.classList.toggle('sort-asc', active && sortState.dir === 'asc');
+        th.classList.toggle('sort-desc', active && sortState.dir === 'desc');
+        th.setAttribute('aria-sort', active ? (sortState.dir === 'asc' ? 'ascending' : 'descending') : 'none');
+      });
+    }
+
+    function renderGameStatsQuestionTableHead() {
+      return `
+        <thead>
+          <tr>
+            <th class="sortable" data-game-stats-sort="question" title="Ordenar por pergunta">Pergunta</th>
+            <th class="sortable" data-game-stats-sort="answer" title="Ordenar por resposta">Resposta</th>
+            <th class="sortable" data-game-stats-sort="answersTotal" title="Ordenar por respostas">Respostas</th>
+            <th class="sortable" data-game-stats-sort="accuracyPct" title="Ordenar por precisão">Precisão</th>
+            <th class="sortable" data-game-stats-sort="difficulty" title="Ordenar por dificuldade">Dificuldade</th>
+          </tr>
+        </thead>
+      `;
     }
 
     function formatGameStatsAgeBandIcon(ageBand) {
@@ -10289,12 +10371,18 @@
     function renderGameStatsPlayers(stats) {
       const body = document.getElementById('gameStatsPlayersBody');
       if (!body) return;
-      const players = stats.players?.players || [];
+      const streakMap = new Map((stats.streaks?.players || []).map((s) => [s.playerId, s.bestStreak]));
+      const players = sortGameStatsRows(stats.players?.players || [], gameStatsSort.players, (p, key) => {
+        if (key === 'name') return formatGameStatsPlayerName(p);
+        if (key === 'bestStreak') return streakMap.get(p.playerId) ?? 0;
+        if (key === 'avgResponseMs') return p.avgResponseMs ?? null;
+        return p[key];
+      });
       if (!players.length) {
         body.innerHTML = '<tr><td colspan="6" class="sub">Sem respostas em partidas individuais — o multijogador aparece nos destaques por partida.</td></tr>';
+        updateGameStatsSortHeaders('players');
         return;
       }
-      const streakMap = new Map((stats.streaks?.players || []).map((s) => [s.playerId, s.bestStreak]));
       body.innerHTML = players.map((p, index) => {
         const name = formatGameStatsPlayerName(p);
         return `
@@ -10314,14 +10402,20 @@
         </tr>
       `;
       }).join('');
+      updateGameStatsSortHeaders('players');
     }
 
     function renderGameStatsAgeBands(stats) {
       const body = document.getElementById('gameStatsAgeBandsBody');
       if (!body) return;
-      const bands = stats.ageBands?.ageBands || [];
+      const bands = sortGameStatsRows(stats.ageBands?.ageBands || [], gameStatsSort.ageBands, (b, key) => {
+        if (key === 'ageBand') return formatGameStatsAgeBand(b.ageBand);
+        if (key === 'avgResponseMs') return b.avgResponseMs ?? null;
+        return b[key];
+      });
       if (!bands.length) {
         body.innerHTML = '<tr><td colspan="5" class="sub">Sem dados por faixa etária.</td></tr>';
+        updateGameStatsSortHeaders('ageBands');
         return;
       }
       body.innerHTML = bands.map((b) => `
@@ -10338,14 +10432,19 @@
           <td>${formatGameStatsMs(b.avgResponseMs)}</td>
         </tr>
       `).join('');
+      updateGameStatsSortHeaders('ageBands');
     }
 
     function renderGameStatsCategories(stats) {
       const body = document.getElementById('gameStatsCategoriesBody');
       if (!body) return;
-      const cats = (stats.categories?.categories || []).slice().sort((a, b) => (b.answersTotal || 0) - (a.answersTotal || 0));
+      const cats = sortGameStatsRows(stats.categories?.categories || [], gameStatsSort.categories, (c, key) => {
+        if (key === 'category') return formatGameStatsCategoryLabel(c);
+        return c[key];
+      });
       if (!cats.length) {
         body.innerHTML = '<tr><td colspan="4" class="sub">—</td></tr>';
+        updateGameStatsSortHeaders('categories');
         return;
       }
       body.innerHTML = cats.map((c) => {
@@ -10364,6 +10463,7 @@
         </tr>
       `;
       }).join('');
+      updateGameStatsSortHeaders('categories');
     }
 
     function renderGameStatsQuestionRow(q) {
@@ -10381,15 +10481,24 @@
       `;
     }
 
+    function sortGameStatsQuestions(questions) {
+      return sortGameStatsRows(questions, gameStatsSort.questions, (q, key) => {
+        if (key === 'question') return q.question || '';
+        if (key === 'answer') return q.correctAnswer || '';
+        if (key === 'difficulty') return formatGameStatsDifficulty(q.difficulty);
+        if (key === 'accuracyPct') return q.accuracyPct ?? null;
+        return q[key];
+      });
+    }
+
     function renderGameStatsQuestions(stats) {
       const root = document.getElementById('gameStatsQuestionsRoot');
       if (!root) return;
       const bands = stats.difficulty?.byAgeBand || [];
       if (!bands.length) {
-        const questions = (stats.difficulty?.questions || [])
-          .filter((q) => (q.answersTotal || 0) >= 1)
-          .sort((a, b) => (a.accuracyPct ?? 100) - (b.accuracyPct ?? 100))
-          .slice(0, 15);
+        const questions = sortGameStatsQuestions(
+          (stats.difficulty?.questions || []).filter((q) => (q.answersTotal || 0) >= 1),
+        ).slice(0, 15);
         if (!questions.length) {
           root.innerHTML = '<p class="sub">Sem dados de dificuldade.</p>';
           return;
@@ -10397,28 +10506,20 @@
         root.innerHTML = `
           <div class="game-stats-table-card">
             <div class="reports-table-wrap">
-            <table class="reports-table">
-              <thead>
-                <tr>
-                  <th>Pergunta</th>
-                  <th>Resposta</th>
-                  <th>Respostas</th>
-                  <th>Precisão</th>
-                  <th>Dificuldade</th>
-                </tr>
-              </thead>
+            <table class="reports-table" data-game-stats-table="questions">
+              ${renderGameStatsQuestionTableHead()}
               <tbody>${questions.map(renderGameStatsQuestionRow).join('')}</tbody>
             </table>
             </div>
           </div>
         `;
+        updateGameStatsSortHeaders('questions');
         return;
       }
       const sections = bands.map((band) => {
-        const questions = (band.questions || [])
-          .filter((q) => (q.answersTotal || 0) >= 1)
-          .sort((a, b) => (a.accuracyPct ?? 100) - (b.accuracyPct ?? 100))
-          .slice(0, 10);
+        const questions = sortGameStatsQuestions(
+          (band.questions || []).filter((q) => (q.answersTotal || 0) >= 1),
+        ).slice(0, 10);
         if (!questions.length) return '';
         return `
           <div class="game-stats-question-band">
@@ -10427,16 +10528,8 @@
           </div>
           <div class="game-stats-table-card">
             <div class="reports-table-wrap">
-            <table class="reports-table">
-              <thead>
-                <tr>
-                  <th>Pergunta</th>
-                  <th>Resposta</th>
-                  <th>Respostas</th>
-                  <th>Precisão</th>
-                  <th>Dificuldade</th>
-                </tr>
-              </thead>
+            <table class="reports-table" data-game-stats-table="questions">
+              ${renderGameStatsQuestionTableHead()}
               <tbody>${questions.map(renderGameStatsQuestionRow).join('')}</tbody>
             </table>
             </div>
@@ -10446,6 +10539,7 @@
       root.innerHTML = sections.length
         ? sections.join('')
         : '<p class="sub">Sem dados de dificuldade.</p>';
+      updateGameStatsSortHeaders('questions');
     }
 
     function renderGameStatsDashboard(stats) {
@@ -12032,6 +12126,21 @@
     document.getElementById('tabGameStats')?.addEventListener('click', () => setAdminTab('gamestats'));
     document.getElementById('tabTelemetry')?.addEventListener('click', () => setAdminTab('telemetry'));
     document.getElementById('gameStatsRefreshBtn')?.addEventListener('click', () => loadGameStatsDashboard());
+    document.getElementById('gameStatsPanel')?.addEventListener('click', (e) => {
+      const th = e.target.closest('th[data-game-stats-sort]');
+      if (!th) return;
+      const table = th.closest('[data-game-stats-table]');
+      const tableId = table?.dataset?.gameStatsTable;
+      const key = th.dataset.gameStatsSort;
+      if (!tableId || !key || !gameStatsSort[tableId]) return;
+      if (gameStatsSort[tableId].key === key) {
+        gameStatsSort[tableId].dir = gameStatsSort[tableId].dir === 'asc' ? 'desc' : 'asc';
+      } else {
+        gameStatsSort[tableId].key = key;
+        gameStatsSort[tableId].dir = GAME_STATS_TEXT_SORT_KEYS.has(key) ? 'asc' : 'desc';
+      }
+      if (lastGameStatsPayload) renderGameStatsDashboard(lastGameStatsPayload);
+    });
     document.getElementById('gameStatsClearBtn')?.addEventListener('click', () => clearGameStatsDashboard());
     document.getElementById('gameStatsExportBtn')?.addEventListener('click', () => {
       if (!lastGameStatsPayload) {
