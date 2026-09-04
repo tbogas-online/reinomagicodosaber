@@ -94,7 +94,20 @@ function isProviderRateLimitError(err) {
 // mas ajuda a prevenir loops de pedidos acidentais dentro do mesmo isolate.
 const requestLog = new Map();
 const WINDOW_MS = 60 * 1000;
-const MAX_REQUESTS_PER_WINDOW = 45;
+const MAX_REQUESTS_PER_WINDOW_PROD = 45;
+const MAX_REQUESTS_PER_WINDOW_DEV = 150;
+
+function resolveMaxRequestsPerWindow(env = {}) {
+  const explicit = Number(env.AI_MAX_REQUESTS_PER_MIN);
+  if (Number.isFinite(explicit) && explicit > 0) {
+    return Math.min(Math.round(explicit), 500);
+  }
+  const isDev = env.NETLIFY_DEV === 'true'
+    || env.CONTEXT === 'dev'
+    || env.NODE_ENV === 'development'
+    || env.NODE_ENV === 'test';
+  return isDev ? MAX_REQUESTS_PER_WINDOW_DEV : MAX_REQUESTS_PER_WINDOW_PROD;
+}
 
 export async function onRequestPost(context) {
   const { request, env } = context;
@@ -129,15 +142,17 @@ export async function onRequestPost(context) {
 
   const clientKey = request.headers.get('cf-connecting-ip') || 'unknown';
   const now = Date.now();
+  const maxRequestsPerWindow = resolveMaxRequestsPerWindow(env);
   const previous = requestLog.get(clientKey) || [];
   const recent = previous.filter((t) => now - t < WINDOW_MS);
-  if (recent.length >= MAX_REQUESTS_PER_WINDOW) {
+  if (recent.length >= maxRequestsPerWindow) {
     const oldest = recent[0] || now;
     const retryAfter = Math.max(1, Math.ceil((WINDOW_MS - (now - oldest)) / 1000));
     return json(429, {
-      error: `Demasiados pedidos neste minuto (limite da app: ${MAX_REQUESTS_PER_WINDOW}/min, não da Groq/OpenAI). Espera cerca de ${retryAfter} s.`,
+      error: `Demasiados pedidos neste minuto (limite da app: ${maxRequestsPerWindow}/min, não da Groq/OpenAI). Espera cerca de ${retryAfter} s.`,
       retry_after: retryAfter,
-      limit: MAX_REQUESTS_PER_WINDOW,
+      limit: maxRequestsPerWindow,
+      error_kind: 'app_rate_limit',
     });
   }
   recent.push(now);
