@@ -349,6 +349,22 @@ function collapseOptionKey(text, normalizeFn) {
   return s.replace(/\s+/g, ' ').trim();
 }
 
+function extractYearLikeNumbers(text) {
+  const t = String(text || '').trim();
+  if (!t) return [];
+  const found = [];
+  for (const m of t.match(/\b(\d{3,4})\b/g) || []) {
+    const v = Number.parseInt(m, 10);
+    if (Number.isFinite(v) && v >= 100 && v <= 2999) found.push(v);
+  }
+  const decade = t.match(/\b(?:anos?|década|decada)\s+(?:de\s+)?(\d{1,2})\b/i);
+  if (decade) {
+    const d = Number.parseInt(decade[1], 10);
+    if (Number.isFinite(d) && d >= 0 && d <= 99) found.push(1900 + d);
+  }
+  return found;
+}
+
 function looksLikeYearOrDateOption(text) {
   const t = String(text || '').trim();
   if (!t) return false;
@@ -356,21 +372,45 @@ function looksLikeYearOrDateOption(text) {
   if (/^\d{1,2}\s+de\s+[a-zà-ú]+\s+de\s+\d{3,4}$/i.test(t)) return true;
   if (/^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}$/.test(t)) return true;
   if (/^(século|seculo)\s+/i.test(t)) return true;
-  if (/^(ano\s+)?\d{3,4}$/i.test(t)) return true;
+  if (/^(ano(s)?\s+)?\d{3,4}$/i.test(t)) return true;
+  if (/^(em|no|de)\s+\d{3,4}\b/i.test(t)) return true;
+  if (/^ano(s)?\s+(de\s+)?\d{3,4}\b/i.test(t)) return true;
+  if (/^c\.?\s*\d{3,4}\b/i.test(t)) return true;
+  if (/^\d{3,4}\s*(d\.?c\.?|a\.?c\.?)\b/i.test(t)) return true;
+  if (/^(a\.?c\.?|d\.?c\.?)\s*\d{3,4}\b/i.test(t)) return true;
+  if (/^(anos?|década|decada)\s+(de\s+)?\d{1,2}\b/i.test(t)) return true;
+  if (extractYearLikeNumbers(t).length > 0) return true;
   return false;
+}
+
+function shouldSkipNearDuplicateYearPair(rawA, rawB) {
+  if (looksLikeYearOrDateOption(rawA) && looksLikeYearOrDateOption(rawB)) return true;
+  const yearsA = extractYearLikeNumbers(rawA);
+  const yearsB = extractYearLikeNumbers(rawB);
+  if (yearsA.length && yearsB.length) {
+    return yearsA.join(',') !== yearsB.join(',');
+  }
+  return false;
+}
+
+function allOptionsAreYearDistractors(options) {
+  const raw = (options || []).map((o) => String(o || '').trim()).filter(Boolean);
+  if (raw.length < 2) return false;
+  return raw.every((o) => looksLikeYearOrDateOption(o));
 }
 
 function hasNearDuplicateMcOptions(options) {
   const raw = (options || []).map((o) => String(o || '').trim());
   const keys = raw.map((o) => optionDedupeKey(o));
   if (new Set(keys).size !== keys.length) return true;
+  const yearDistractorSet = allOptionsAreYearDistractors(raw);
   for (let i = 0; i < keys.length; i++) {
     for (let j = i + 1; j < keys.length; j++) {
       const a = keys[i];
       const b = keys[j];
       if (!a || !b || a === b) return true;
-      // Anos/datas próximos são distractores válidos em QUANDO — só rejeitar duplicados exactos.
-      if (looksLikeYearOrDateOption(raw[i]) && looksLikeYearOrDateOption(raw[j])) continue;
+      if (yearDistractorSet) continue;
+      if (shouldSkipNearDuplicateYearPair(raw[i], raw[j])) continue;
       if (a.length >= 4 && b.length >= 4) {
         const minLen = Math.min(a.length, b.length);
         const maxLen = Math.max(a.length, b.length);

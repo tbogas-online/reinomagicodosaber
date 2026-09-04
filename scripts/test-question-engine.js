@@ -792,6 +792,36 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     && rDupYears.issueDetails?.some((i) => i.code === 'MC_NEAR_DUPLICATE'), rDupYears.issues?.join(', '));
 }
 {
+  const prefixedYears = {
+    q: 'Em que ano começou a Primeira Guerra Mundial?',
+    a: '1914',
+    options: ['Em 1914', 'Em 1915', 'Em 1916', 'Em 1918'],
+  };
+  const rPrefixed = QE.validateQuestion(prefixedYears, baseCtx({
+    isMC: true,
+    formatId: QE.FORMAT_IDS.QUANDO,
+    categoryNumber: 2,
+    ageBandKey: '10-15',
+  }));
+  assert('87d. MC_NEAR_DUPLICATE permite anos com prefixo', rPrefixed.ok
+    || !rPrefixed.issueDetails?.some((i) => i.code === 'MC_NEAR_DUPLICATE'), rPrefixed.issues?.join(', '));
+}
+{
+  const decades = {
+    q: 'Em que década surgiu o rock and roll?',
+    a: 'anos 50',
+    options: ['anos 40', 'anos 50', 'anos 60', 'anos 70'],
+  };
+  const rDecades = QE.validateQuestion(decades, baseCtx({
+    isMC: true,
+    formatId: QE.FORMAT_IDS.QUANDO,
+    categoryNumber: 2,
+    ageBandKey: '15+',
+  }));
+  assert('87e. MC_NEAR_DUPLICATE permite décadas', rDecades.ok
+    || !rDecades.issueDetails?.some((i) => i.code === 'MC_NEAR_DUPLICATE'), rDecades.issues?.join(', '));
+}
+{
   const hint = QE.buildRetryHint(['conhecimento já testado recentemente (knowledgeKey)'], QE.FORMAT_IDS.RESPOSTA_DIRETA, '10-15');
   assert('88. buildRetryHint por code', hint.includes('Não repitas conhecimento já testado'));
 }
