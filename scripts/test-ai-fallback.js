@@ -98,7 +98,7 @@ function assert(name, cond, detail = '') {
   }
 
   {
-    const { resolveModelsForProvider, getActiveModelsSnapshot } = require('../netlify/functions/lib/ai-model-config');
+    const { resolveModelsForProvider, getActiveModelsSnapshot, parseProviderToggle } = require('../netlify/functions/lib/ai-model-config');
     const ALLOWED = {
       groq: new Set(['qwen/qwen3.6-27b', 'openai/gpt-oss-20b']),
       openai: new Set(['gpt-4o-mini']),
@@ -116,11 +116,23 @@ function assert(name, cond, detail = '') {
       defaultModelFor: (p) => ORDER[p][0],
       resolveModelForProviderSingle: (_p, m) => m,
     };
-    const env = { AI_ACTIVE_MODELS_GROQ: 'qwen/qwen3.6-27b' };
-    const models = resolveModelsForProvider('groq', 'auto', env, deps);
-    assert('AI_ACTIVE_MODELS_GROQ filtra modelos', models.length === 1 && models[0] === 'qwen/qwen3.6-27b', models.join(','));
-    const snap = getActiveModelsSnapshot(env);
-    assert('snapshot configured', snap.configured === true);
+    const listEnv = { AI_ACTIVE_MODELS_GROQ: 'qwen/qwen3.6-27b' };
+    const listModels = resolveModelsForProvider('groq', 'auto', listEnv, deps);
+    assert('lista explícita filtra modelos', listModels.length === 1 && listModels[0] === 'qwen/qwen3.6-27b', listModels.join(','));
+
+    const toggleEnv = {
+      AI_ACTIVE_MODELS_GROQ: 'YES',
+      AI_ACTIVE_MODELS_OPENAI: 'YES',
+      AI_ACTIVE_MODELS_ANTHROPIC: 'NO',
+    };
+    const groqModels = resolveModelsForProvider('groq', 'auto', toggleEnv, deps);
+    assert('YES usa ordem default Groq', groqModels.length === 2, groqModels.join(','));
+    const anthropicModels = resolveModelsForProvider('anthropic', 'auto', toggleEnv, deps);
+    assert('NO desactiva Anthropic', anthropicModels.length === 0);
+    const snap = getActiveModelsSnapshot(toggleEnv);
+    assert('snapshot YES/NO', snap.groq === 'yes' && snap.openai === 'yes' && snap.anthropic === 'no');
+    assert('parseProviderToggle YES', parseProviderToggle('YES')?.mode === 'default');
+    assert('parseProviderToggle NO', parseProviderToggle('NO')?.mode === 'disabled');
   }
 
   console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

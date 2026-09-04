@@ -226,9 +226,9 @@ O selector de **modelo** nas Definições só aparece com fornecedor manual (Gro
 ```text
 AI_PROVIDER          -> "groq", "anthropic" ou "openai" (força um; desliga fallback)
 AI_PROVIDER_ORDER    -> ex.: "groq,openai,anthropic"
-AI_ACTIVE_MODELS     -> opcional; restringe modelos em modo "auto"
-                       ex.: "groq:qwen/qwen3.6-27b;openai:gpt-4o-mini"
-AI_ACTIVE_MODELS_GROQ / _OPENAI / _ANTHROPIC -> lista por provider (sobrepõe o global)
+AI_ACTIVE_MODELS     -> opcional; lista global provider:modelo;modelo (providers omitidos = NO)
+AI_ACTIVE_MODELS_GROQ / _OPENAI / _ANTHROPIC -> YES (activo, modelos default) ou NO (desactivado)
+                       ou lista: qwen/qwen3.6-27b,openai/gpt-oss-20b
 GROQ_MODEL           -> default: openai/gpt-oss-20b
 ANTHROPIC_MODEL      -> default: claude-haiku-4-5-20251001
 OPENAI_MODEL         -> default: gpt-4o-mini
