@@ -425,13 +425,14 @@ URL: **`/admin-reports.html`** — utilizador e palavra-passe (`REPORTS_ADMIN_US
 **Separador Salas multijogador**
 
 - Salas em aberto (código, estado, jogadores, anfitrião), botão **Desligar** (individual ou em lote).
-- Gráfico temporal: salas criadas, jogos multijogador e **jogos locais** (partidas single sincronizadas com `game_matches`).
+- Gráfico temporal: salas criadas, jogos multijogador e **jogos locais** (partidas single sincronizadas com `game_matches`). Legendas clicáveis para filtrar séries.
 - Totais: salas criadas, jogos MP e jogos locais.
 
 **Separador Banco de perguntas**
 
-- Gráfico de perguntas guardadas no tempo (1 h / 3 h / 6 h / 12 h / 24 h / 3 d / 7 d / total) — guardadas no banco vs geradas via IA.
+- Gráfico de perguntas guardadas no tempo (1 h / 3 h / 6 h / 12 h / 24 h / 3 d / 7 d / total) — guardadas no banco vs geradas via IA vs validação manual. Legendas clicáveis.
 - Gráfico por categoria e faixa etária no período seleccionado.
+- **Fila de revisão:** importar rejeições da telemetria por código; aceitar, editar ou descartar; descartar todas por código ou todas as pendentes na fila.
 - Matriz categoria × faixa (6–9, 10–15, 15+) com cores por quantidade; destaque de **lacunas** (categorias/faixas com poucas perguntas).
 - Resumo «Lacunas no banco» e alerta para perguntas activas sem opções válidas.
 - **Pesquisar e apagar:** texto, hash ou ID `rmq-…`; filtros por categoria, idade e reportes; até **100 resultados**; pesquisa case-insensitive.

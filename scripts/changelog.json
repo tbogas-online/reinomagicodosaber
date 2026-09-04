@@ -8,6 +8,18 @@
   "history": [
     {
       "date": "04/09/2026",
+      "version": "20260904-182520",
+      "title": "04/09/2026 · admin, reabastecimento e gráficos",
+      "items": [
+        "Jogo: créditos de reabastecimento do banco (badge 💾 +N com tooltip do modelo); oculto na categoria 20.",
+        "Reabastecimento persistente: 1 crédito por pergunta servida (banco ou IA); até 4 rondas × 5 tentativas até guardar 1 pergunta; near-miss ±1 aceite.",
+        "Painel admin — Telemetria: botão Descartar tudo nas causas; legendas clicáveis; eixos ajustados aos dados; toggles TPD/tokens por fornecedor.",
+        "Painel admin — Fila de revisão: descartar todas por código ou todas as pendentes; sincronização com telemetria.",
+        "Painel admin — Gráficos de reportes, salas e banco: legendas clicáveis para ocultar/mostrar séries."
+      ]
+    },
+    {
+      "date": "04/09/2026",
       "version": "20260904-132453",
       "title": "04/09/2026 · fallback IA e telemetria",
       "items": [

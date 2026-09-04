@@ -183,6 +183,7 @@
       <ul>
         <li><strong>⏱ Relógio</strong> — tempo desde que iniciaste o jogo actual.</li>
         <li><strong>Selo IA Online / Offline</strong> — estado da ligação à IA e fornecedor/modelo reais da última chamada com sucesso (cor conforme o fornecedor). <em>Clica no selo</em> para verificar de novo o estado (não abre as Definições).</li>
+        <li><strong>💾 +N</strong> — créditos de reabastecimento do banco (categorias 1–19): cada pergunta servida do banco ou da IA ganha 1 crédito; o jogo tenta guardar pelo menos 1 pergunta nova no Supabase por crédito. Passa o rato para ver o modelo IA usado. <em>Não aparece na categoria 20.</em></li>
       </ul>
     </section>
 
@@ -412,14 +413,14 @@
 
     <section id="admin">
       <h2>11. Painel admin</h2>
-      <p>URL: <a href="/admin-reports.html">/admin-reports.html</a> — acesso restrito com <strong>utilizador e palavra-passe</strong> configurados no alojamento (Netlify / Cloudflare). Também acessível em <strong>Definições → Administração</strong>. Três separadores: <strong>Reportes</strong>, <strong>Salas multijogador</strong> e <strong>Banco de perguntas</strong>.</p>
+      <p>URL: <a href="/admin-reports.html">/admin-reports.html</a> — acesso restrito com <strong>utilizador e palavra-passe</strong> configurados no alojamento (Netlify / Cloudflare). Também acessível em <strong>Definições → Administração</strong>. Separadores: <strong>Reportes</strong>, <strong>Salas multijogador</strong>, <strong>Banco de perguntas</strong>, <strong>Repositório</strong>, <strong>Estatísticas jogo</strong> e <strong>Telemetria IA</strong>.</p>
 
       <h3>Entrada</h3>
       <p>Introduz credenciais e <strong>Entrar</strong>. A sessão fica no browser até <strong>Sair</strong>.</p>
 
       <h3>Separador Reportes — dashboard</h3>
       <ul>
-        <li><strong>Reportes no tempo</strong> — 24 h, 3, 7 ou 14 dias; tipos de gráfico: linhas, colunas, empilhadas.</li>
+        <li><strong>Reportes no tempo</strong> — 24 h, 3, 7 ou 14 dias; tipos de gráfico: linhas, colunas, empilhadas. <strong>Legendas clicáveis</strong> — clica numa série para ocultar/mostrar (preferência guardada no browser).</li>
         <li><strong>Por tratar vs Resolvidos</strong> — clica numa barra para filtrar a tabela.</li>
         <li><strong>Por tipo de problema</strong> — clica para filtrar por tipo.</li>
         <li><strong>Por faixa etária, dispositivo, top categorias</strong> — estatísticas agregadas.</li>
@@ -454,14 +455,15 @@
       <h3>Separador Salas multijogador</h3>
       <ul>
         <li>Lista de <strong>salas em aberto</strong> (código, estado, jogadores, anfitrião) com <strong>Desligar</strong> individual ou em lote.</li>
-        <li>Gráfico temporal: <strong>salas criadas</strong>, <strong>jogos multijogador</strong> e <strong>jogos locais</strong> (partidas single-player sincronizadas ao terminar).</li>
+        <li>Gráfico temporal: <strong>salas criadas</strong>, <strong>jogos multijogador</strong> e <strong>jogos locais</strong> (partidas single-player sincronizadas ao terminar). Legendas clicáveis para filtrar séries.</li>
         <li>Totais no topo: salas em aberto, a jogar, em espera, salas criadas, jogos MP e jogos locais.</li>
       </ul>
 
       <h3>Separador Banco de perguntas</h3>
       <ul>
-        <li>Gráfico de perguntas <strong>guardadas no tempo</strong> (1 h a total) — banco vs IA (jogo + teste).</li>
+        <li>Gráfico de perguntas <strong>guardadas no tempo</strong> (1 h a total) — banco vs IA (jogo + teste) vs validação manual. Legendas clicáveis.</li>
         <li>Gráfico <strong>por categoria e faixa etária</strong> no período seleccionado (barras empilhadas 6–9 / 10–15 / 15+).</li>
+        <li><strong>Fila de revisão</strong> — perguntas rejeitadas pela IA à espera de validação manual; importar da telemetria por código; descartar uma, todas de um código ou todas as pendentes.</li>
         <li><strong>Matriz</strong> categoria × faixa com cores por quantidade; linhas âmbar/vermelhas destacam categorias com poucas perguntas; células com contorno marcam faixas com ≤2 perguntas.</li>
         <li>Caixa <strong>Lacunas no banco</strong> — resumo das combinações categoria/faixa mais fracas.</li>
         <li>Alerta se existirem perguntas activas no Supabase sem opções válidas.</li>
@@ -473,6 +475,16 @@
         <li>Apagar selecionadas, por categoria, remover sem opções, regenerar opções de adivinhas.</li>
       </ul>
       <p>Requer <code>SUPABASE_URL</code> e <code>SUPABASE_SERVICE_ROLE_KEY</code> no alojamento (só no servidor). Migração multi-taxonomia: <code>supabase/question-bank-multi-taxonomy.sql</code>.</p>
+
+      <h3>Separador Telemetria IA</h3>
+      <ul>
+        <li>Gráficos de evolução temporal, causas de rejeição, categorias, formatos e uso de IA (pedidos, tokens, erros).</li>
+        <li>Eixos dos gráficos ajustados aos dados; botões para mostrar limites de quota TPD e tokens/min por fornecedor (Groq, OpenAI, total).</li>
+        <li>Tabela de <strong>causas</strong> com ocorrências pendentes: expandir, aceitar no banco, descartar uma, <strong>Descartar todas</strong> por código ou <strong>Descartar tudo</strong> global.</li>
+        <li>Gráfico de <strong>revisão manual</strong> (aceites como estavam, com edição, descartes) com filtros por categoria e código de causa.</li>
+        <li><strong>Legendas clicáveis</strong> em todos os gráficos de linhas — clica para ocultar/mostrar séries; a preferência fica guardada no browser.</li>
+        <li>Exportar JSON das estatísticas; filtro por modo de jogo (local, multijogador, teste).</li>
+      </ul>
 
       <h3>Estados dos reportes</h3>
       <table>
