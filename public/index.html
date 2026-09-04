@@ -4725,13 +4725,70 @@
   }
 
   function getPreferredProviderQuotaSummary(quota){
-    const order = getProviderOrderForPreference(aiProviderChoice);
+    const order = getProviderOrderForPreference(aiProviderChoice, quota);
     for(const id of order){
       if(quota?.configured?.[id] && quota.providers?.[id]?.summary){
         return { id, summary: quota.providers[id].summary };
       }
     }
     return null;
+  }
+
+  function inspectBankReplenishQuota(quota){
+    if(!quota){
+      return {
+        allowed: true,
+        reason: 'quota_snapshot_missing',
+        pickedProvider: null,
+        providers: [],
+        minRemainingRequired: BANK_AI_REPLENISH_MIN_REMAINING,
+      };
+    }
+    const order = getProviderOrderForPreference(aiProviderChoice, quota);
+    const providers = order.map((id) => {
+      const summary = quota?.providers?.[id]?.summary;
+      const configured = !!quota?.configured?.[id];
+      const blocked = summary ? isProviderQuotaBlocked(summary) : true;
+      const remaining = summary
+        ? quotaWindowRemaining(summary.tokens_used, summary.tokens_limit, summary.tokens_remaining)
+        : null;
+      const jobs = summary ? estimateBankAiReplenishJobs(summary) : 0;
+      let blockReason = 'ok';
+      if(!configured) blockReason = 'not_configured';
+      else if(!summary) blockReason = 'no_summary';
+      else if(blocked) blockReason = 'quota_blocked';
+      else if(remaining == null || remaining <= 0) blockReason = 'no_remaining';
+      else {
+        const safeBudget = Math.floor(remaining * (1 - BANK_AI_REPLENISH_QUOTA_HEADROOM));
+        if(safeBudget < BANK_AI_REPLENISH_MIN_REMAINING){
+          blockReason = `safe_budget_${safeBudget}_lt_${BANK_AI_REPLENISH_MIN_REMAINING}`;
+        } else if(jobs <= 0){
+          blockReason = 'no_jobs';
+        }
+      }
+      return { id, configured, blocked, remaining, estimatedJobs: jobs, blockReason };
+    });
+    const picked = providers.find((p) => p.estimatedJobs > 0) || null;
+    let reason = 'ok';
+    if(!picked){
+      if(!providers.some((p) => p.configured)) reason = 'no_providers_configured';
+      else if(providers.every((p) => !p.configured || p.blocked)) reason = 'all_providers_blocked';
+      else reason = 'insufficient_quota_for_replenish';
+    }
+    return {
+      allowed: !!picked,
+      reason,
+      pickedProvider: picked?.id || null,
+      providers,
+      minRemainingRequired: BANK_AI_REPLENISH_MIN_REMAINING,
+    };
+  }
+
+  function getProviderForBankReplenish(quota){
+    const inspect = inspectBankReplenishQuota(quota);
+    if(!inspect.pickedProvider) return null;
+    const summary = quota?.providers?.[inspect.pickedProvider]?.summary;
+    return summary ? { id: inspect.pickedProvider, summary } : null;
   }
 
   function estimateBankAiReplenishJobs(summary){
@@ -4755,8 +4812,7 @@
     if(!window.QuestionBank?.isConfigured?.()) return false;
     const quota = lastAiQuotaSnapshot || await fetchAiQuotaSnapshot().catch(() => null);
     if(!quota) return true;
-    const pref = getPreferredProviderQuotaSummary(quota);
-    return !!(pref && estimateBankAiReplenishJobs(pref.summary) > 0);
+    return inspectBankReplenishQuota(quota).allowed;
   }
 
   async function runBankAiQuotaReplenishTick({ reason = 'interval' } = {}){
@@ -4771,14 +4827,20 @@
     try {
       const quota = await fetchAiQuotaSnapshot(false).catch(() => null);
       if(!quota) return;
-      const pref = getPreferredProviderQuotaSummary(quota);
+      const pref = getProviderForBankReplenish(quota);
       if(!pref){
         bankAiQuotaScheduler.stats.quotaSkips++;
+        if(DEBUG_MODE){
+          console.info('[Reino debug] Fila reabastecimento ignorada — quota', inspectBankReplenishQuota(quota));
+        }
         return;
       }
       let jobs = estimateBankAiReplenishJobs(pref.summary);
       if(jobs <= 0){
         bankAiQuotaScheduler.stats.quotaSkips++;
+        if(DEBUG_MODE){
+          console.info('[Reino debug] Fila reabastecimento ignorada — jobs=0', inspectBankReplenishQuota(quota));
+        }
         return;
       }
 
@@ -4817,7 +4879,7 @@
         if(jobs <= 0) break;
 
         const freshQuota = await fetchAiQuotaSnapshot(false).catch(() => null);
-        const freshPref = freshQuota ? getPreferredProviderQuotaSummary(freshQuota) : null;
+        const freshPref = freshQuota ? getProviderForBankReplenish(freshQuota) : null;
         if(!freshPref || estimateBankAiReplenishJobs(freshPref.summary) <= 0) break;
         await new Promise((resolve) => setTimeout(resolve, BANK_AI_REPLENISH_JOB_GAP_MS));
       }
@@ -4875,10 +4937,27 @@
     const key = `${catN}|${ageBandKey}`;
     if(bankAiReplenishInflight[key]) return;
     const run = async () => {
-      const allowed = await canScheduleBankAiReplenish();
+      const quota = lastAiQuotaSnapshot || await fetchAiQuotaSnapshot().catch(() => null);
+      const inspect = quota ? inspectBankReplenishQuota(quota) : { allowed: true, reason: 'quota_snapshot_missing' };
+      const allowed = inspect.allowed;
       if(!allowed){
-        if(DEBUG_MODE) console.info('[Reino] Reabastecimento adiado — quota insuficiente', { category: catN, ageBand: ageBandKey });
+        if(DEBUG_MODE){
+          console.info('[Reino debug] Reabastecimento adiado — quota insuficiente', {
+            category: catN,
+            ageBand: ageBandKey,
+            iaTentada: false,
+            nota: 'Nenhum modelo foi chamado; verificação de quota antes do /api/generate',
+            ...inspect,
+          });
+        }
         return;
+      }
+      if(DEBUG_MODE){
+        console.info('[Reino debug] Reabastecimento banco — a chamar IA', {
+          category: catN,
+          ageBand: ageBandKey,
+          pickedProvider: inspect.pickedProvider,
+        });
       }
       const job = generateQuestion(category, ageBandKey, { bankReplenishOnly: true })
         .then((result) => {
@@ -6593,6 +6672,33 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     lastAiUsage = { provider: '', model: '', fallback: false, tried: [], aiAttempts: [], totalLatencyMs: null };
   }
 
+  function formatAiAttemptsForDebug(attempts){
+    if(!Array.isArray(attempts) || !attempts.length) return [];
+    return attempts.map((a, i) => ({
+      n: i + 1,
+      provider: a.provider || a.provider_id || '?',
+      model: a.model || '?',
+      ok: a.ok ?? a.success ?? null,
+      error: a.error || a.error_type || a.message || null,
+      latencyMs: a.latency_ms ?? a.latencyMs ?? null,
+    }));
+  }
+
+  function debugLogAiAttempts(context, data){
+    if(!DEBUG_MODE || !data) return;
+    const attempts = formatAiAttemptsForDebug(data.ai_attempts || data.aiAttempts);
+    const providersTried = data.providers_tried || data.attempted_providers || [];
+    if(!attempts.length && !data.provider && !providersTried.length) return;
+    console.info(`[Reino debug] IA ${context}`, {
+      provider: data.provider || null,
+      model: data.model || null,
+      fallback: !!data.fallback_used,
+      providersTried,
+      attempts,
+      totalLatencyMs: data.total_latency_ms ?? null,
+    });
+  }
+
   function recordAiUsage(data){
     if(!data) return;
     const usage = resolveAiUsage(data);
@@ -6602,6 +6708,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     lastAiUsage.tried = usage.tried;
     lastAiUsage.aiAttempts = usage.aiAttempts;
     lastAiUsage.totalLatencyMs = usage.totalLatencyMs;
+    debugLogAiAttempts('tentativas', data);
     updateAiInUseUI();
     refreshStatusBadgeText();
     refreshStatusDetailText();
@@ -8749,6 +8856,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     el.setAttribute('aria-hidden', 'false');
     document.body.classList.add('question-ready');
     if(DEBUG_MODE) console.info('[Reino debug] Fonte da pergunta:', label, question);
+    if(DEBUG_MODE && question.source === 'bank'){
+      console.info('[Reino debug] IA não usada nesta pergunta — servida do banco Supabase (reabastecimento em background é separado)');
+    }
     if(question.source === 'local' || question.source === 'local-repeat'){
       const mode = aiProviderChoice === 'local' ? 'fornecedor offline' : (aiStatusOnline ? 'IA não usada nesta ronda' : 'IA indisponível');
       console.info(`[Reino debug] Fallback código local (${mode})`);
