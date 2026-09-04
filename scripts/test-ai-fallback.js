@@ -150,6 +150,21 @@ function assert(name, cond, detail = '') {
     );
   }
 
+  {
+    const queue = buildInterleavedAttemptQueue(
+      [{ name: 'openai' }, { name: 'groq' }],
+      (name) => (name === 'groq' ? ['g1', 'g2'] : ['o1', 'o2']),
+      new ProviderCircuitBreaker(),
+      false,
+      'openai',
+    ).queue.map((e) => `${e.provider.name}:${e.model}`);
+    assert(
+      'provider activo primeiro (openai)',
+      queue.join(',') === 'openai:o1,openai:o2,groq:g1,groq:g2',
+      queue.join(','),
+    );
+  }
+
   console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
   process.exit(failed > 0 ? 1 : 0);
 })();

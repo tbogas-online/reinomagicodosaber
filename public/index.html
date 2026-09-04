@@ -6941,7 +6941,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       return;
     }
     if(prov === 'auto'){
-      el.textContent = 'Preferência: automática · ordem Groq → OpenAI → Anthropic';
+      const usable = getUsableProvidersForPreference(lastAiQuotaSnapshot, 'auto');
+      const orderLabel = usable.length
+        ? usable.map((id) => AI_PROVIDER_SHORT[id] || id).join(' → ')
+        : 'Groq → OpenAI → Anthropic';
+      el.textContent = `Preferência: automática · activo primeiro: ${orderLabel}`;
     } else {
       const provLabel = AI_PROVIDER_LABELS[prov] || prov;
       const modelLabel = model === 'auto' ? 'modelo automático do servidor' : getAiModelLabel(prov, model);
@@ -7028,10 +7032,12 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   function buildAiRequestBody(messages, maxTokens, opts = {}){
     const isReplenish = opts.requestContext === 'replenish';
+    const preferredProvider = resolvePreferredProviderForApi();
     return {
       model: aiModelChoice === 'auto' ? undefined : aiModelChoice,
       max_tokens: maxTokens,
       provider_preference: aiProviderChoice,
+      preferred_provider: preferredProvider,
       // Reabastecimento em background: cadeia completa Groq↔OpenAI (não limitar ao 1.º provider).
       quota_conserve: isReplenish ? false : shouldConserveAiQuota(lastAiQuotaSnapshot),
       request_context: opts.requestContext || 'game',
@@ -7274,6 +7280,19 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   function getUsableProvidersForPreference(quota, preference){
     const order = getProviderOrderForPreference(preference, quota);
     return order.filter((id) => quota?.configured?.[id] && !isProviderQuotaBlocked(quota?.providers?.[id]?.summary));
+  }
+
+  function resolvePreferredProviderForApi(){
+    const choice = aiProviderChoice;
+    if(choice && choice !== 'auto' && choice !== 'local') return choice;
+    const quota = lastAiQuotaSnapshot;
+    const usable = getUsableProvidersForPreference(quota, 'auto');
+    if(usable.length) return usable[0];
+    const last = String(lastAiUsage.provider || '').toLowerCase();
+    if(last && quota?.configured?.[last] && !isProviderQuotaBlocked(quota?.providers?.[last]?.summary)){
+      return last;
+    }
+    return undefined;
   }
 
   function formatQuotaBlockedMessage(summary){

@@ -165,7 +165,13 @@ function buildAttemptRecord(provider, model, classification, latencyMs, message,
   };
 }
 
-function buildInterleavedAttemptQueue(providerList, resolveModels, circuitBreaker, quotaConserve) {
+function buildInterleavedAttemptQueue(
+  providerList,
+  resolveModels,
+  circuitBreaker,
+  quotaConserve,
+  priorityProvider = null,
+) {
   const skipped = [];
   const active = [];
 
@@ -188,6 +194,24 @@ function buildInterleavedAttemptQueue(providerList, resolveModels, circuitBreake
   }
 
   const queue = [];
+  const priorityName = String(priorityProvider || '').trim().toLowerCase();
+
+  if (priorityName) {
+    const priorityRow = active.find((row) => row.provider.name === priorityName);
+    const restRows = active.filter((row) => row.provider.name !== priorityName);
+    if (priorityRow) {
+      for (const model of priorityRow.models) {
+        queue.push({ provider: priorityRow.provider, model });
+      }
+    }
+    for (const row of restRows) {
+      for (const model of row.models) {
+        queue.push({ provider: row.provider, model });
+      }
+    }
+    return { queue, skipped };
+  }
+
   let round = 0;
   let hasMore = true;
   while (hasMore) {
@@ -209,6 +233,7 @@ async function runAiFallbackLoop({
   resolveModels,
   callAttempt,
   quotaConserve = false,
+  priorityProvider = null,
   circuitBreaker = sharedCircuitBreaker,
   totalTimeoutMs = TOTAL_TIMEOUT_MS,
   maxAttempts = MAX_FALLBACK_ATTEMPTS,
@@ -224,6 +249,7 @@ async function runAiFallbackLoop({
     resolveModels,
     circuitBreaker,
     quotaConserve,
+    priorityProvider,
   );
   attempts.push(...skipped);
 

@@ -212,7 +212,11 @@ exports.handler = async (event) => {
     const requestedModel = typeof payload.model === 'string' ? payload.model : 'auto';
     // Reabastecimento banco: fallback completo entre providers/modelos (429 não bloqueia a cadeia).
     const quotaConserve = requestContext === 'replenish' ? false : payload.quota_conserve === true;
+    const priorityProvider = resolvePriorityProvider(payload, clientPreference);
     let providerList = (quotaConserve && !providerStrict) ? providers.slice(0, 1) : providers;
+    if (priorityProvider) {
+      providerList = reorderProviderList(providerList, priorityProvider);
+    }
     const activeModels = getActiveModelsSnapshot(process.env);
     if (activeModels.configured) {
       providerList = providerList.filter((provider) => (
@@ -238,6 +242,7 @@ exports.handler = async (event) => {
     const fallback = await runAiFallbackLoop({
       providerList,
       quotaConserve,
+      priorityProvider,
       resolveModels: (providerName) => resolveModelsForProvider(providerName, requestedModel, process.env),
       callAttempt: async (provider, model) => {
         const maxTokens = effectiveMaxTokens(provider.name, model, requestedTokens);
@@ -370,6 +375,20 @@ function resolveProviderOrder(clientPreference = 'auto', strict = false) {
 function normalizeClientPreference(value) {
   const pref = String(value || 'auto').trim().toLowerCase();
   return ALLOWED_PROVIDERS.includes(pref) ? pref : 'auto';
+}
+
+function resolvePriorityProvider(payload, clientPreference) {
+  const pref = normalizeClientPreference(clientPreference);
+  if (pref !== 'auto') return pref;
+  const hinted = normalizeClientPreference(payload?.preferred_provider);
+  return hinted !== 'auto' ? hinted : null;
+}
+
+function reorderProviderList(list, priorityName) {
+  if (!priorityName || !Array.isArray(list) || !list.length) return list;
+  const idx = list.findIndex((provider) => provider.name === priorityName);
+  if (idx <= 0) return list;
+  return [list[idx], ...list.filter((_, i) => i !== idx)];
 }
 
 function normalizeGroqModel(model, env) {

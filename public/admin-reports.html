@@ -2176,6 +2176,74 @@
       border-radius: 2px;
       flex-shrink: 0;
     }
+    .ai-usage-errors-legend {
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+    }
+    .ai-usage-errors-legend-item {
+      display: grid;
+      grid-template-columns: 12px minmax(0, 1fr);
+      gap: 8px 10px;
+      align-items: start;
+      font-size: 0.78rem;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: rgba(15, 23, 42, 0.35);
+    }
+    .ai-usage-errors-legend-item strong {
+      color: var(--text);
+      font-size: 0.8rem;
+    }
+    .ai-usage-errors-legend-item .legend-swatch {
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      margin-top: 2px;
+    }
+    .ai-usage-errors-legend-item .legend-swatch.dashed {
+      background: transparent !important;
+      border: 2px dashed currentColor;
+    }
+    .ai-usage-errors-legend-item.is-inactive {
+      opacity: 0.55;
+    }
+    .ai-usage-errors-peaks {
+      margin-top: 12px;
+      overflow-x: auto;
+    }
+    .ai-usage-errors-peaks table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.76rem;
+    }
+    .ai-usage-errors-peaks th,
+    .ai-usage-errors-peaks td {
+      padding: 6px 8px;
+      border-bottom: 1px solid var(--border);
+      text-align: right;
+      white-space: nowrap;
+    }
+    .ai-usage-errors-peaks th:first-child,
+    .ai-usage-errors-peaks td:first-child {
+      text-align: left;
+    }
+    .ai-usage-errors-peaks th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+    }
+    .ai-usage-errors-peaks caption {
+      caption-side: top;
+      text-align: left;
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
     .line-label {
       fill: var(--muted);
       font-size: 10px;
@@ -3485,7 +3553,7 @@
             <div class="chart-head" style="margin-top:16px;">
               <h4 id="chartAiUsageErrorsTitle" style="margin:0;font-size:0.9rem;">Erros e contexto</h4>
             </div>
-            <p class="timeline-note" id="aiUsageErrorsNote">Laranja = limite da app (45/min prod.) · vermelho = limite Groq/OpenAI · cinza = outros erros · azul tracejado = reabastecimento banco.</p>
+            <p class="timeline-note" id="aiUsageErrorsNote">Passa o rato sobre o gráfico para ver data/hora (Lisboa) e contagens por bucket. Requer ai-usage-error-detail.sql.</p>
             <div id="chartAiUsageErrors" class="chart"></div>
           </div>
 
@@ -8084,75 +8152,287 @@
       `;
     }
 
+    const AI_USAGE_ERROR_SERIES_DEF = [
+      {
+        key: 'app',
+        label: 'App 429',
+        color: '#f97316',
+        field: 'errorsAppLimit',
+        description: 'Limite interno de /api/generate por IP (45/min em produção, 150 em dev). Resposta 429 antes de contactar o fornecedor.',
+      },
+      {
+        key: 'provider',
+        label: 'Fornecedor 429',
+        color: '#ef4444',
+        field: 'errorsProviderLimit',
+        description: 'Rate limit do Groq/OpenAI depois de esgotar modelos no fallback do pedido.',
+      },
+      {
+        key: 'other',
+        label: 'Outros erros',
+        color: '#94a3b8',
+        field: 'errorsOther',
+        description: '502, timeout, JSON inválido, validação e outros falhanços que não são 429 da app nem do fornecedor.',
+      },
+      {
+        key: 'replenish',
+        label: 'Reabastecimento',
+        color: '#3b82f6',
+        field: 'replenishRequests',
+        dashed: true,
+        description: 'Pedidos com request_context=replenish (encher o banco em background; não é a pergunta mostrada ao jogador).',
+      },
+    ];
+
+    function formatAiUsageBucketKeyLabel(t) {
+      if (!t || !String(t).includes('T')) return formatAiUsageTimelineLabel(t, 'minute');
+      const [datePart, timePart] = String(t).split('T');
+      const [year, month, day] = datePart.split('-');
+      const [hour, minute] = (timePart || '').split(':');
+      return `${day}/${month}/${year} ${hour}:${minute} (Lisboa)`;
+    }
+
+    function buildAiUsageErrorsLegendHtml(seriesDefs, totals, activeKeys) {
+      return `<div class="ai-usage-errors-legend" aria-label="Legenda de erros e contexto">${seriesDefs.map((def) => {
+        const total = totals[def.key] ?? 0;
+        const inactive = activeKeys && !activeKeys.has(def.key);
+        const swatchStyle = def.dashed
+          ? `class="legend-swatch dashed" style="color:${def.color}"`
+          : `class="legend-swatch" style="background:${def.color}"`;
+        return `<div class="ai-usage-errors-legend-item${inactive ? ' is-inactive' : ''}">
+          <span ${swatchStyle} aria-hidden="true"></span>
+          <div>
+            <strong>${esc(def.label)}</strong> — ${esc(def.description)}
+            <div style="margin-top:4px;font-size:0.74rem;">Total no período: <strong>${total}</strong></div>
+          </div>
+        </div>`;
+      }).join('')}</div>`;
+    }
+
+    function buildAiUsageErrorsPeaksTable(labels, maps) {
+      const rows = labels.map((t) => {
+        const values = {};
+        let total = 0;
+        maps.forEach((m) => {
+          const v = Number(m.map[t]) || 0;
+          values[m.key] = v;
+          total += v;
+        });
+        return { t, total, values };
+      }).filter((row) => row.total > 0)
+        .sort((a, b) => b.total - a.total || b.t.localeCompare(a.t))
+        .slice(0, 8);
+      if (!rows.length) return '';
+      const head = maps.map((m) => `<th style="color:${m.color}">${esc(m.shortLabel || m.label)}</th>`).join('');
+      const body = rows.map((row) => {
+        const cells = maps.map((m) => {
+          const v = row.values[m.key] || 0;
+          return `<td>${v > 0 ? `<strong>${v}</strong>` : '0'}</td>`;
+        }).join('');
+        return `<tr>
+          <td>${esc(formatAiUsageBucketKeyLabel(row.t))}</td>
+          ${cells}
+          <td><strong>${row.total}</strong></td>
+        </tr>`;
+      }).join('');
+      return `<div class="ai-usage-errors-peaks">
+        <table>
+          <caption>Picos por bucket (${esc(formatAiUsageGranularityNote(resolveAiUsageBucketConfig()))})</caption>
+          <thead><tr>
+            <th>Data/hora</th>
+            ${head}
+            <th>Total</th>
+          </tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+      </div>`;
+    }
+
     function renderAiUsageErrorsChart(aiUsage) {
       const chartEl = document.getElementById('chartAiUsageErrors');
       const noteEl = document.getElementById('aiUsageErrorsNote');
       const titleEl = document.getElementById('chartAiUsageErrorsTitle');
       if (!chartEl) return;
       const meta = AI_USAGE_RANGES[aiUsageRange] || AI_USAGE_RANGES['24h'];
-      if (titleEl) titleEl.textContent = `Erros e contexto — ${meta.label}`;
+      const bucketConfig = resolveAiUsageBucketConfig();
+      const granularity = meta.granularity || 'minute';
+      if (titleEl) {
+        titleEl.textContent = `Erros e contexto — ${meta.label} · buckets ${bucketConfig.granularityLabel}`;
+      }
       if (!aiUsage?.available) {
         chartEl.innerHTML = '<div class="chart-empty">Executa supabase/ai-usage-error-detail.sql no Supabase.</div>';
         return;
       }
       const bucket = buildAiUsageBucketForRange(aiUsage, aiUsageRange);
-      const modelSeries = [
-        { label: 'App 429', color: '#f97316', series: bucket?.errorsAppLimit || [] },
-        { label: 'Fornecedor 429', color: '#ef4444', series: bucket?.errorsProviderLimit || [] },
-        { label: 'Outros erros', color: '#94a3b8', series: bucket?.errorsOther || [] },
-        { label: 'Reabastecimento', color: '#3b82f6', series: bucket?.replenishRequests || [], dashed: true },
-      ].filter((m) => (m.series || []).some((p) => (Number(p.v) || 0) > 0));
-      if (!modelSeries.length) {
-        chartEl.innerHTML = '<div class="chart-empty">Sem erros detalhados no período — executa ai-usage-error-detail.sql e faz pedidos com deploy recente.</div>';
-        if (noteEl) {
-          noteEl.textContent = 'Requer migração ai-usage-error-detail.sql. Dados novos aparecem após pedidos a /api/generate com request_context.';
-        }
-        return;
-      }
       const totals = {
         app: bucket?.totalAppLimits || 0,
         provider: bucket?.totalProviderLimits || 0,
         other: bucket?.totalOtherErrors || 0,
         replenish: bucket?.totalReplenishRequests || 0,
       };
-      if (noteEl) {
-        noteEl.innerHTML = `No período: <strong>${totals.app}</strong> app 429 · <strong>${totals.provider}</strong> fornecedor · <strong>${totals.other}</strong> outros · <strong>${totals.replenish}</strong> reabastecimento.`;
-      }
-      const labels = [...new Set(modelSeries.flatMap((m) => (m.series || []).map((p) => p.t)))].sort();
-      const maps = modelSeries.map((m) => ({
-        ...m,
-        map: Object.fromEntries((m.series || []).map((p) => [p.t, p.v])),
+      const totalAll = totals.app + totals.provider + totals.other + totals.replenish;
+      const seriesDefs = AI_USAGE_ERROR_SERIES_DEF.map((def) => ({
+        ...def,
+        shortLabel: def.label.replace('Reabastecimento', 'Reab.'),
+        series: bucket?.[def.field] || [],
       }));
-      const maxV = Math.max(...labels.flatMap((t) => maps.map((m) => m.map[t] || 0)), 1);
+      const activeSeries = seriesDefs.filter((def) => (def.series || []).some((p) => (Number(p.v) || 0) > 0));
+      const activeKeys = new Set(activeSeries.map((def) => def.key));
+      const legendHtml = buildAiUsageErrorsLegendHtml(seriesDefs, totals, activeKeys);
+
+      if (!totalAll) {
+        chartEl.innerHTML = `
+          <div class="chart-empty">Sem erros detalhados no período — executa ai-usage-error-detail.sql e faz pedidos com deploy recente.</div>
+          ${legendHtml}
+        `;
+        if (noteEl) {
+          noteEl.innerHTML = `${formatAiUsageGranularityNote(bucketConfig)} Sem eventos no período seleccionado.`;
+        }
+        return;
+      }
+
+      const labels = (bucket?.requests || []).map((p) => p.t);
+      const maps = seriesDefs.map((def) => ({
+        key: def.key,
+        label: def.label,
+        shortLabel: def.shortLabel,
+        color: def.color,
+        dashed: def.dashed,
+        map: Object.fromEntries((def.series || []).map((p) => [p.t, Number(p.v) || 0])),
+      }));
+      const chartMaps = maps.filter((m) => activeKeys.has(m.key));
+      const maxV = Math.max(
+        1,
+        ...labels.flatMap((t) => chartMaps.map((m) => m.map[t] || 0)),
+      );
       const w = 640;
-      const h = 210;
+      const h = 230;
       const padLeft = 44;
       const padRight = 16;
-      const padY = 26;
+      const padY = 28;
       const innerW = w - padLeft - padRight;
       const innerH = h - padY * 2;
       const xAt = (i) => padLeft + (i / Math.max(labels.length - 1, 1)) * innerW;
       const yAt = (v) => padY + innerH - (v / maxV) * innerH;
-      const polylines = maps.map((m) => {
+      const gridFracs = [0, 0.25, 0.5, 0.75, 1];
+      const gridLines = gridFracs.map((frac) => {
+        const y = padY + innerH * (1 - frac);
+        const val = Math.round(maxV * frac);
+        return `
+          <line class="line-grid" x1="${padLeft}" y1="${y}" x2="${w - padRight}" y2="${y}" />
+          <text class="line-axis-label line-axis-label-left" x="${padLeft - 8}" y="${y + 4}" text-anchor="end">${val}</text>
+        `;
+      }).join('');
+      const labelStep = Math.max(1, Math.ceil(labels.length / 8));
+      const xLabels = labels.map((t, i) => {
+        if (i % labelStep !== 0 && i !== labels.length - 1) return '';
+        return `<text class="line-label" x="${xAt(i).toFixed(1)}" y="${h - 6}" text-anchor="middle">${esc(formatAiUsageTimelineLabel(t, granularity))}</text>`;
+      }).join('');
+      const polylines = chartMaps.map((m) => {
         const points = labels.map((t, i) => ({
           x: xAt(i),
           y: yAt(m.map[t] || 0),
           v: m.map[t] || 0,
           t,
         }));
-        const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+        const line = points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
         const dash = m.dashed ? ' stroke-dasharray="5 4"' : '';
-        return `<polyline fill="none" stroke="${m.color}" stroke-width="2.2"${dash} points="${points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}" />
-          <title>${esc(m.label)}</title>`;
+        const dots = points.filter((p) => p.v > 0).map((p) =>
+          `<circle class="line-dot" data-idx="${labels.indexOf(p.t)}" cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="3" fill="${m.color}" />`
+        ).join('');
+        return `<polyline class="line-path" points="${line}" style="stroke:${m.color}"${dash} /><g>${dots}</g>`;
       }).join('');
-      const legend = maps.map((m) => `<span class="line-legend-item"><span class="line-legend-swatch" style="background:${m.color}"></span>${esc(m.label)}</span>`).join('');
+
+      const peakRow = [...labels]
+        .map((t) => {
+          const sum = chartMaps.reduce((acc, m) => acc + (m.map[t] || 0), 0);
+          return { t, sum };
+        })
+        .filter((row) => row.sum > 0)
+        .sort((a, b) => b.sum - a.sum)[0];
+      const peakNote = peakRow
+        ? ` Pico: <strong>${esc(formatAiUsageBucketKeyLabel(peakRow.t))}</strong> (${peakRow.sum} evento${peakRow.sum === 1 ? '' : 's'}).`
+        : '';
+
+      if (noteEl) {
+        noteEl.innerHTML = `${formatAiUsageGranularityNote(bucketConfig)} No período: `
+          + `<strong>${totals.app}</strong> app 429 · `
+          + `<strong>${totals.provider}</strong> fornecedor · `
+          + `<strong>${totals.other}</strong> outros · `
+          + `<strong>${totals.replenish}</strong> reabastecimento.${peakNote} `
+          + 'Passa o rato no gráfico para detalhe por bucket.';
+      }
+
+      const peaksHtml = buildAiUsageErrorsPeaksTable(labels, chartMaps);
       chartEl.innerHTML = `
-        <svg class="line-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Erros e contexto IA">
-          <text class="line-axis-title" x="${padLeft}" y="14">Erros / bucket</text>
-          ${polylines}
-        </svg>
-        <div class="line-legend">${legend}</div>
+        <div class="chart-interactive ai-usage-chart">
+          <div class="chart-tooltip" hidden></div>
+          <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Erros e contexto IA">
+            <text class="line-axis-title" x="${padLeft}" y="14">Eventos / bucket</text>
+            ${gridLines}
+            <line class="line-axis-spine-left" x1="${padLeft}" y1="${padY}" x2="${padLeft}" y2="${padY + innerH}" />
+            <line class="chart-focus-line" hidden x1="0" y1="0" x2="0" y2="0" />
+            ${polylines}
+            ${xLabels}
+          </svg>
+        </div>
+        ${legendHtml}
+        ${peaksHtml}
       `;
+
+      const container = chartEl.querySelector('.ai-usage-chart');
+      const tooltip = container?.querySelector('.chart-tooltip');
+      const focusLine = container?.querySelector('.chart-focus-line');
+      const svg = container?.querySelector('svg');
+      if (!tooltip || !svg) return;
+
+      function hideTooltip() {
+        tooltip.hidden = true;
+        if (focusLine) focusLine.setAttribute('hidden', '');
+      }
+
+      function showTooltip(i, clientX, clientY) {
+        const idx = Math.max(0, Math.min(i, labels.length - 1));
+        const t = labels[idx];
+        const x = xAt(idx);
+        if (focusLine) {
+          focusLine.setAttribute('x1', x);
+          focusLine.setAttribute('x2', x);
+          focusLine.setAttribute('y1', padY);
+          focusLine.setAttribute('y2', padY + innerH);
+          focusLine.removeAttribute('hidden');
+        }
+        const lines = [`<div><strong>${esc(formatAiUsageBucketKeyLabel(t))}</strong></div>`];
+        let bucketTotal = 0;
+        chartMaps.forEach((m) => {
+          const v = m.map[t] || 0;
+          bucketTotal += v;
+          lines.push(`<div><span style="color:${m.color}">●</span> ${esc(m.label)}: <strong>${v}</strong></div>`);
+        });
+        lines.push(`<div style="margin-top:4px;color:var(--muted);font-size:11px;">Total no bucket: <strong>${bucketTotal}</strong></div>`);
+        tooltip.hidden = false;
+        tooltip.innerHTML = lines.join('');
+        const rect = container.getBoundingClientRect();
+        tooltip.style.left = `${Math.min(Math.max(clientX - rect.left + 12, 8), Math.max(8, rect.width - 220))}px`;
+        tooltip.style.top = `${Math.max(clientY - rect.top - 96, 8)}px`;
+      }
+
+      svg.addEventListener('mousemove', (e) => {
+        const pt = svg.createSVGPoint();
+        pt.x = e.clientX;
+        pt.y = e.clientY;
+        const ctm = svg.getScreenCTM();
+        if (!ctm) return;
+        const svgPt = pt.matrixTransform(ctm.inverse());
+        const relX = svgPt.x - padLeft;
+        if (relX < 0 || relX > innerW) {
+          hideTooltip();
+          return;
+        }
+        const idx = labels.length <= 1 ? 0 : Math.round((relX / innerW) * (labels.length - 1));
+        showTooltip(idx, e.clientX, e.clientY);
+      });
+      svg.addEventListener('mouseleave', hideTooltip);
     }
 
     function renderAiUsageChart(aiUsage, aiStatus) {

@@ -180,7 +180,11 @@ export async function onRequestPost(context) {
   const requestContext = String(payload.request_context || '').trim().toLowerCase();
   const isReplenish = requestContext === 'replenish' || requestContext === 'bank-replenish';
   const quotaConserve = isReplenish ? false : payload.quota_conserve === true;
+  const priorityProvider = resolvePriorityProvider(payload, clientPreference);
   let providerList = (quotaConserve && !providerStrict) ? providers.slice(0, 1) : providers;
+  if (priorityProvider) {
+    providerList = reorderProviderList(providerList, priorityProvider);
+  }
   const activeModels = getActiveModelsSnapshot(env);
   if (activeModels.configured) {
     providerList = providerList.filter((provider) => (
@@ -204,6 +208,7 @@ export async function onRequestPost(context) {
   const fallback = await runAiFallbackLoop({
     providerList,
     quotaConserve,
+    priorityProvider,
     resolveModels: (providerName) => resolveModelsForProvider(providerName, requestedModel, env),
     callAttempt: async (provider, model) => {
       const maxTokens = effectiveMaxTokens(provider.name, model, requestedTokens);
@@ -315,6 +320,20 @@ function resolveProviderOrder(env, clientPreference = 'auto', strict = false) {
 function normalizeClientPreference(value) {
   const pref = String(value || 'auto').trim().toLowerCase();
   return ALLOWED_PROVIDERS.includes(pref) ? pref : 'auto';
+}
+
+function resolvePriorityProvider(payload, clientPreference) {
+  const pref = normalizeClientPreference(clientPreference);
+  if (pref !== 'auto') return pref;
+  const hinted = normalizeClientPreference(payload?.preferred_provider);
+  return hinted !== 'auto' ? hinted : null;
+}
+
+function reorderProviderList(list, priorityName) {
+  if (!priorityName || !Array.isArray(list) || !list.length) return list;
+  const idx = list.findIndex((provider) => provider.name === priorityName);
+  if (idx <= 0) return list;
+  return [list[idx], ...list.filter((_, i) => i !== idx)];
 }
 
 function normalizeGroqModel(model, env) {
