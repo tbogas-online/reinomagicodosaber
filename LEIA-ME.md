@@ -217,7 +217,7 @@ No jogo: **Definições → Inteligência Artificial**
 
 | Modo | Comportamento |
 |------|----------------|
-| **Automática** | Ordem `AI_PROVIDER_ORDER` ou `groq → openai → anthropic` por defeito |
+| **Automática** | Ordem `AI_PROVIDER_ORDER` (ex.: groq → openai); em cada ronda alterna provider antes do próximo modelo |
 | **Groq / Anthropic / OpenAI** | Força um único fornecedor (se a chave existir); mostra selector de **modelo** |
 | **Banco local** | Sem chamadas à IA; selector de modelo oculto |
 

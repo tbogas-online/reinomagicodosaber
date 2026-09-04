@@ -165,6 +165,45 @@ function buildAttemptRecord(provider, model, classification, latencyMs, message,
   };
 }
 
+function buildInterleavedAttemptQueue(providerList, resolveModels, circuitBreaker, quotaConserve) {
+  const skipped = [];
+  const active = [];
+
+  for (const provider of providerList) {
+    if (circuitBreaker?.isOpen(provider.name)) {
+      skipped.push({
+        provider: provider.name,
+        model: '',
+        error: 'CIRCUIT_OPEN',
+        errorType: 'CIRCUIT_OPEN',
+        latencyMs: 0,
+        skipped: true,
+      });
+      continue;
+    }
+    let models = resolveModels(provider.name);
+    if (quotaConserve) models = models.slice(0, 1);
+    if (!models.length) continue;
+    active.push({ provider, models });
+  }
+
+  const queue = [];
+  let round = 0;
+  let hasMore = true;
+  while (hasMore) {
+    hasMore = false;
+    for (const row of active) {
+      if (round < row.models.length) {
+        queue.push({ provider: row.provider, model: row.models[round] });
+        hasMore = true;
+      }
+    }
+    round += 1;
+  }
+
+  return { queue, skipped };
+}
+
 async function runAiFallbackLoop({
   providerList,
   resolveModels,
@@ -180,88 +219,73 @@ async function runAiFallbackLoop({
   const modelsAttempted = [];
   let attemptCount = 0;
 
-  for (const provider of providerList) {
+  const { queue, skipped } = buildInterleavedAttemptQueue(
+    providerList,
+    resolveModels,
+    circuitBreaker,
+    quotaConserve,
+  );
+  attempts.push(...skipped);
+
+  for (let i = 0; i < queue.length; i += 1) {
     if (Date.now() - startedAt >= totalTimeoutMs) break;
     if (attemptCount >= maxAttempts) break;
 
-    if (circuitBreaker?.isOpen(provider.name)) {
-      attempts.push({
-        provider: provider.name,
-        model: '',
-        error: 'CIRCUIT_OPEN',
-        errorType: 'CIRCUIT_OPEN',
-        latencyMs: 0,
-        skipped: true,
+    const { provider, model } = queue[i];
+    if (circuitBreaker?.isOpen(provider.name)) continue;
+
+    attemptCount += 1;
+    const attemptStarted = Date.now();
+    modelsAttempted.push(`${provider.name}:${model}`);
+    const nextEntry = queue[i + 1];
+    const fallbackTo = nextEntry ? `${nextEntry.provider.name}:${nextEntry.model}` : null;
+
+    try {
+      const result = await callAttempt(provider, model, {
+        timeoutMs: ATTEMPT_TIMEOUT_MS,
+        remainingMs: Math.max(1000, totalTimeoutMs - (Date.now() - startedAt)),
       });
-      continue;
-    }
+      circuitBreaker?.recordSuccess(provider.name);
+      return {
+        ok: true,
+        result,
+        provider: provider.name,
+        model,
+        attempts,
+        modelsAttempted,
+        providersTried: [...new Set(modelsAttempted.map((entry) => entry.split(':')[0]))],
+        fallbackUsed: modelsAttempted.length > 1,
+        totalLatencyMs: Date.now() - startedAt,
+      };
+    } catch (err) {
+      const httpStatus = Number(err?.httpStatus) || 0;
+      const classification = classifyProviderError(err, httpStatus);
+      const retryAfterSec = parseRetryAfterSeconds(err?.headers, err?.message);
+      const latencyMs = Date.now() - attemptStarted;
 
-    let models = resolveModels(provider.name);
-    if (quotaConserve) models = models.slice(0, 1);
+      const record = buildAttemptRecord(
+        provider.name,
+        model,
+        classification,
+        latencyMs,
+        err instanceof Error ? err.message : String(err),
+        fallbackTo,
+      );
+      attempts.push(record);
+      errors.push({
+        provider: provider.name,
+        model,
+        message: record.message,
+        errorType: classification.errorType,
+      });
 
-    for (const model of models) {
-      if (Date.now() - startedAt >= totalTimeoutMs) break;
-      if (attemptCount >= maxAttempts) break;
+      circuitBreaker?.recordFailure(provider.name, classification, retryAfterSec);
 
-      attemptCount += 1;
-      const attemptStarted = Date.now();
-      modelsAttempted.push(`${provider.name}:${model}`);
-
-      try {
-        const result = await callAttempt(provider, model, {
-          timeoutMs: ATTEMPT_TIMEOUT_MS,
-          remainingMs: Math.max(1000, totalTimeoutMs - (Date.now() - startedAt)),
-        });
-        circuitBreaker?.recordSuccess(provider.name);
-        return {
-          ok: true,
-          result,
-          provider: provider.name,
-          model,
-          attempts,
-          modelsAttempted,
-          providersTried: [...new Set(modelsAttempted.map((entry) => entry.split(':')[0]))],
-          fallbackUsed: modelsAttempted.length > 1,
-          totalLatencyMs: Date.now() - startedAt,
-        };
-      } catch (err) {
-        const httpStatus = Number(err?.httpStatus) || 0;
-        const classification = classifyProviderError(err, httpStatus);
-        const retryAfterSec = parseRetryAfterSeconds(err?.headers, err?.message);
-        const latencyMs = Date.now() - attemptStarted;
-
-        let fallbackTo = null;
-        const nextModelIdx = models.indexOf(model) + 1;
-        if (nextModelIdx < models.length) {
-          fallbackTo = `${provider.name}:${models[nextModelIdx]}`;
-        } else {
-          const providerIdx = providerList.findIndex((p) => p.name === provider.name);
-          const nextProvider = providerList[providerIdx + 1];
-          if (nextProvider) fallbackTo = nextProvider.name;
+      if (classification.disableProvider) {
+        // Saltar restantes entradas deste provider na fila intercalada.
+        while (i + 1 < queue.length && queue[i + 1].provider.name === provider.name) {
+          i += 1;
         }
-
-        const record = buildAttemptRecord(
-          provider.name,
-          model,
-          classification,
-          latencyMs,
-          err instanceof Error ? err.message : String(err),
-          fallbackTo,
-        );
-        attempts.push(record);
-        errors.push({
-          provider: provider.name,
-          model,
-          message: record.message,
-          errorType: classification.errorType,
-        });
-
-        circuitBreaker?.recordFailure(provider.name, classification, retryAfterSec);
-
-        if (classification.disableProvider) {
-          break;
-        }
-        // 429, timeout, 5xx, invalid JSON → continua para próximo modelo/provider
       }
     }
   }
@@ -298,6 +322,7 @@ module.exports = {
   ProviderCircuitBreaker,
   sharedCircuitBreaker,
   fetchWithTimeout,
+  buildInterleavedAttemptQueue,
   runAiFallbackLoop,
   summarizeAttemptsForTelemetry,
 };

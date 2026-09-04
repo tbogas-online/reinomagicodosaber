@@ -6,6 +6,7 @@ const {
   parseRetryAfterSeconds,
   ProviderCircuitBreaker,
   runAiFallbackLoop,
+  buildInterleavedAttemptQueue,
   ERROR_TYPES,
 } = require('../netlify/functions/lib/ai-fallback');
 
@@ -133,6 +134,20 @@ function assert(name, cond, detail = '') {
     assert('snapshot YES/NO', snap.groq === 'yes' && snap.openai === 'yes' && snap.anthropic === 'no');
     assert('parseProviderToggle YES', parseProviderToggle('YES')?.mode === 'default');
     assert('parseProviderToggle NO', parseProviderToggle('NO')?.mode === 'disabled');
+  }
+
+  {
+    const queue = buildInterleavedAttemptQueue(
+      [{ name: 'groq' }, { name: 'openai' }],
+      (name) => (name === 'groq' ? ['g1', 'g2'] : ['o1', 'o2']),
+      new ProviderCircuitBreaker(),
+      false,
+    ).queue.map((e) => `${e.provider.name}:${e.model}`);
+    assert(
+      'fallback intercalado groq/openai',
+      queue.join(',') === 'groq:g1,openai:o1,groq:g2,openai:o2',
+      queue.join(','),
+    );
   }
 
   console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
