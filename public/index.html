@@ -4821,10 +4821,16 @@
     }
   }
 
+  function shouldShowBankReplenishBadges(){
+    return currentScreenId === 'question' && lastCategory?.n !== 20;
+  }
+
   function refreshBankMissFoot(){
     const el = document.getElementById('q-bank-miss-foot');
     if(!el) return;
-    const showMiss = bankReplenishMissCount > 0 && bankAddedBadgeCount === 0 && currentScreenId === 'question';
+    const showMiss = shouldShowBankReplenishBadges()
+      && bankReplenishMissCount > 0
+      && bankAddedBadgeCount === 0;
     if(!showMiss){
       el.classList.remove('visible');
       el.textContent = '';
@@ -4847,7 +4853,7 @@
   function refreshBankAddedFoot(){
     const el = document.getElementById('q-bank-add-foot');
     if(!el) return;
-    if(!bankAddedBadgeCount || currentScreenId !== 'question'){
+    if(!bankAddedBadgeCount || !shouldShowBankReplenishBadges()){
       el.classList.remove('visible');
       el.textContent = '';
       el.hidden = true;
