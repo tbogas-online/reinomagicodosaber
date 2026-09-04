@@ -1381,6 +1381,14 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     && !QE.isDifficultyOnlyRejection([]));
 }
 
+// 130c. content-safety — falsos positivos em palavras comuns
+{
+  const issues = QE.collectContentSafetyIssues('test', 'test', ['Computador', 'Telefone', 'Rádio', 'Televisão']);
+  assert('130c. computador não dispara puta', !issues.length, issues.map((i) => i.message).join('; '));
+  const real = QE.collectContentSafetyIssues('test', 'test', ['puta']);
+  assert('130d. puta isolada continua bloqueada', real.some((i) => i.code === 'PT_OFFENSIVE_LANGUAGE'));
+}
+
 // 131. Fase 7 — engine-config modular
 {
   assert('131. engine-config partilhado', QE.DIFFICULTY_RANGE['15+'].max === 5

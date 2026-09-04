@@ -97,18 +97,19 @@ function extractAbbreviationTokens(spaced) {
   return abbreviations;
 }
 
-function matchesWord(norm, rule) {
+function matchesWord(norm, rule, source) {
   const { compact, spaced } = norm;
   const token = rule.compact;
   if (!token) return false;
+  if (rule.regex && source && rule.regex.test(source)) return true;
   if (token.length <= 3) {
     if (compact === token) return true;
     if (extractAbbreviationTokens(spaced).includes(token)) return true;
     const re = new RegExp(`(^|[\\s.,;:!?])${escapeRegex(rule.word)}([\\s.,;:!?]|$)`, 'i');
     return re.test(spaced);
   }
-  if (compact.includes(token)) return true;
-  return spaced.split(' ').includes(token);
+  if (spaced.split(' ').some((word) => normalizeToken(word) === token)) return true;
+  return extractAbbreviationTokens(spaced).includes(token);
 }
 
 function hasEducationalContext(text) {
@@ -160,7 +161,7 @@ function findContentSafetyMatches(text) {
 
   for (const rule of COMPILED_WORD_RULES) {
     if (rule.safeInGame) continue;
-    if (!matchesWord(norm, rule)) continue;
+    if (!matchesWord(norm, rule, source)) continue;
     matches.push({
       type: 'word',
       term: rule.word,

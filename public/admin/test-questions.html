@@ -505,7 +505,7 @@
     function normalizeParsedAiPayload(raw) {
       if (!raw || typeof raw !== 'object') return null;
       const q = raw.q || raw.pergunta || raw.question || '';
-      const a = raw.a || raw.resposta || raw.answer || raw.resposta_correta || '';
+      const a = raw.a || raw.resposta || raw.answer || raw.resposta_correta || raw.resposta_certa || '';
       const options = [raw.options, raw.opcoes, raw.opções, raw.choices].find(Array.isArray);
       const distractors = [raw.distractors, raw.distractores, raw.distratores, raw.erradas, raw.incorretas].find(Array.isArray);
       const out = {

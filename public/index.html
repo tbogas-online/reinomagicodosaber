@@ -7141,7 +7141,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   function normalizeParsedAiPayload(raw){
     if(!raw || typeof raw !== 'object') return null;
     const q = raw.q || raw.pergunta || raw.question || '';
-    const a = raw.a || raw.resposta || raw.answer || raw.resposta_correta || '';
+    const a = raw.a || raw.resposta || raw.answer || raw.resposta_correta || raw.resposta_certa || '';
     const options = pickFirstArray(
       raw.options,
       raw.opcoes,
