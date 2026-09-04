@@ -8564,6 +8564,9 @@
 
     async function refreshReviewPanels(options = {}) {
       const { quiet = true } = options;
+      if (!lastTelemetryPayload) {
+        await loadTelemetryDashboard({ quiet: true });
+      }
       await Promise.all([
         loadTelemetryDashboard({ quiet }),
         loadPendingReviewQueue({ quiet }),
@@ -8935,6 +8938,11 @@
             ? `${data.stats.total} evento(s) no filtro actual.`
             : 'Sem eventos para este filtro.';
           statusEl.className = data.stats?.total ? 'status ok' : 'status';
+        }
+        if (document.getElementById('bankPendingIssueCodeSelect')) {
+          await loadPendingReviewIssueCodeOptions(
+            document.getElementById('bankPendingIssueCodeSelect')?.value || '',
+          );
         }
       } catch (err) {
         if (statusEl) {
@@ -9790,24 +9798,69 @@
       }
     }
 
+    function buildPendingReviewIssueCodes(apiCodes = [], pendingItems = []) {
+      const pendingByCode = new Map();
+      (pendingItems || []).forEach((row) => {
+        (row.issueCodes || []).forEach((code) => {
+          const key = String(code || '').trim();
+          if (!key) return;
+          pendingByCode.set(key, (pendingByCode.get(key) || 0) + 1);
+        });
+      });
+      const map = new Map();
+      (apiCodes || []).forEach((entry) => {
+        if (entry?.code) map.set(entry.code, { ...entry });
+      });
+      const byIssueDetail = lastTelemetryPayload?.stats?.byIssueDetail || {};
+      Object.entries(byIssueDetail).forEach(([code, info]) => {
+        const openCount = countOpenIssueOccurrencesFromSummary(info);
+        const pendingCount = pendingByCode.get(code) || map.get(code)?.pendingCount || 0;
+        if (!openCount && !pendingCount) return;
+        const prev = map.get(code) || { code };
+        map.set(code, {
+          ...prev,
+          code,
+          pendingCount,
+          telemetryOpenCount: openCount,
+          telemetryCount: Number(info?.count) || prev.telemetryCount || 0,
+        });
+      });
+      pendingByCode.forEach((count, code) => {
+        if (!map.has(code)) {
+          map.set(code, {
+            code,
+            pendingCount: count,
+            telemetryOpenCount: 0,
+            telemetryCount: 0,
+          });
+        }
+      });
+      return [...map.values()].sort((a, b) => {
+        const pendingDiff = (Number(b.pendingCount) || 0) - (Number(a.pendingCount) || 0);
+        if (pendingDiff) return pendingDiff;
+        return (Number(b.telemetryOpenCount) || 0) - (Number(a.telemetryOpenCount) || 0)
+          || a.code.localeCompare(b.code);
+      });
+    }
+
     async function loadPendingReviewIssueCodeOptions(selected = '') {
+      let apiCodes = [];
       try {
         const data = await api('/api/question-bank-admin', {
           method: 'POST',
-          body: JSON.stringify({ action: 'list-pending-review-issue-codes', limit: 400, days: 90 }),
+          body: JSON.stringify({ action: 'list-pending-review-issue-codes', limit: 10000, days: 0 }),
         });
-        lastPendingReviewIssueCodes = data.codes || [];
-        syncPendingReviewIssueCodeSelect(
-          lastPendingReviewIssueCodes,
-          selected,
-          lastPendingReviewItems.length,
-        );
-        return data;
+        apiCodes = data.codes || [];
       } catch {
-        lastPendingReviewIssueCodes = [];
-        syncPendingReviewIssueCodeSelect([], '', lastPendingReviewItems.length);
-        return null;
+        apiCodes = [];
       }
+      lastPendingReviewIssueCodes = buildPendingReviewIssueCodes(apiCodes, lastPendingReviewItems);
+      syncPendingReviewIssueCodeSelect(
+        lastPendingReviewIssueCodes,
+        selected,
+        lastPendingReviewItems.length,
+      );
+      return { codes: lastPendingReviewIssueCodes };
     }
 
     async function importPendingReviewFromTelemetryByCode(issueCode) {
@@ -9817,7 +9870,7 @@
       const entry = lastPendingReviewIssueCodes.find((item) => item.code === code);
       const telemetryCount = Number(entry?.telemetryOpenCount ?? entry?.telemetryCount) || 0;
       const ok = await confirmAction(
-        `Importar da telemetria todas as rejeições com o código ${formatPendingIssueLabel(code)}?\n\n${telemetryCount ? `~${telemetryCount} evento(s) na telemetria (últimos 90 dias).` : 'Importa ocorrências com este código nos últimos 90 dias.'}\n\nEntram na fila de revisão para editar e aceitar no banco.`,
+        `Importar da telemetria todas as rejeições com o código ${formatPendingIssueLabel(code)}?\n\n${telemetryCount ? `~${telemetryCount} evento(s) abertos na telemetria.` : 'Importa ocorrências com este código.'}\n\nEntram na fila de revisão para editar e aceitar no banco.`,
         { okLabel: 'Importar código' },
       );
       if (!ok) return null;
@@ -9829,8 +9882,8 @@
         method: 'POST',
         body: JSON.stringify({
           action: 'sync-pending-from-telemetry',
-          limit: 400,
-          days: 90,
+          limit: 10000,
+          days: 0,
           issueCode: code,
         }),
       });
@@ -13285,7 +13338,9 @@
       saveTelemetryAcceptDraftFromDom(occKey);
     });
     document.getElementById('bankPendingReviewDetails')?.addEventListener('toggle', (e) => {
-      if (e.target.open) loadPendingReviewQueue({ quiet: true });
+      if (e.target.open) {
+        loadTelemetryDashboard({ quiet: true }).then(() => loadPendingReviewQueue({ quiet: true }));
+      }
     });
     document.getElementById('bankPendingImportCodeBtn')?.addEventListener('click', async () => {
       const statusEl = document.getElementById('bankPendingStatus');

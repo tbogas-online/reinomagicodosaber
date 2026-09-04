@@ -105,10 +105,12 @@ async function fetchPendingReviewHashes() {
   );
 }
 
-async function fetchTelemetryRejectedRows({ limit = 300, days = 90 } = {}) {
-  const capped = Math.min(Math.max(Number(limit) || 300, 1), 1000);
-  const dayCount = Math.min(Math.max(Number(days) || 90, 1), 365);
-  const sinceIso = new Date(Date.now() - dayCount * 24 * 60 * 60 * 1000).toISOString();
+async function fetchTelemetryRejectedRows({ limit = 10000, days = 0 } = {}) {
+  const capped = Math.min(Math.max(Number(limit) || 10000, 1), 10000);
+  const dayCount = Math.min(Math.max(Number(days) || 0, 0), 3650);
+  const sinceIso = dayCount > 0
+    ? new Date(Date.now() - dayCount * 24 * 60 * 60 * 1000).toISOString()
+    : '';
   const baseSelect = 'id,category,format_id,age_band_key,difficulty,game_mode,source,outcome,issue_codes,issue_messages,question_text,answer_text,question_options,dismissed_at,bank_validated_at';
   const attempts = [
     { select: baseSelect, filterDismissed: true },
@@ -118,12 +120,14 @@ async function fetchTelemetryRejectedRows({ limit = 300, days = 90 } = {}) {
     const params = new URLSearchParams({
       select: attempt.select,
       outcome: REVIEWABLE_TELEMETRY_OUTCOME_FILTER,
-      created_at: `gte.${sinceIso}`,
       question_text: 'not.is.null',
       answer_text: 'not.is.null',
       order: 'created_at.desc',
       limit: String(capped),
     });
+    if (sinceIso) {
+      params.set('created_at', `gte.${sinceIso}`);
+    }
     if (attempt.filterDismissed) {
       params.set('dismissed_at', 'is.null');
     }
@@ -170,7 +174,7 @@ function countRowsByIssueCode(rows, { matcher } = {}) {
     .map(([code, count]) => ({ code, count }));
 }
 
-async function getPendingReviewIssueCodeOptions({ days = 90, limit = 400 } = {}) {
+async function getPendingReviewIssueCodeOptions({ days = 0, limit = 10000 } = {}) {
   const [pendingRows, telemetryRows, pendingReviewHashes] = await Promise.all([
     supabaseRequest(
       `/${TABLE}?status=eq.pending&select=issue_codes&limit=1000`,
@@ -210,7 +214,7 @@ async function getPendingReviewIssueCodeOptions({ days = 90, limit = 400 } = {})
   return { codes, days };
 }
 
-async function syncPendingReviewFromTelemetry({ limit = 300, days = 90, issueCode = '' } = {}) {
+async function syncPendingReviewFromTelemetry({ limit = 10000, days = 0, issueCode = '' } = {}) {
   const code = String(issueCode || '').trim();
   const list = await fetchTelemetryRejectedRows({ limit, days });
 
