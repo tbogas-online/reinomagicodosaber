@@ -4757,18 +4757,10 @@
     stats: { ok: 0, fail: 0, skipped: 0, quotaSkips: 0 },
   };
   let bankAddedBadgeCount = 0;
-  let bankAddedBadgeTimer = null;
-  const BANK_ADDED_BADGE_MS = 15000;
 
   function markBankQuestionAdded(count = 1){
     if(!count) return;
     bankAddedBadgeCount += count;
-    if(bankAddedBadgeTimer) clearTimeout(bankAddedBadgeTimer);
-    bankAddedBadgeTimer = setTimeout(() => {
-      bankAddedBadgeCount = 0;
-      bankAddedBadgeTimer = null;
-      refreshBankAddedFoot();
-    }, BANK_ADDED_BADGE_MS);
     refreshBankAddedFoot();
   }
 
