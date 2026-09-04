@@ -2179,6 +2179,30 @@
       align-items: center;
       gap: 6px;
     }
+    .chart-legend-toggle {
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      text-align: left;
+    }
+    .chart-legend-toggle:hover {
+      color: var(--text);
+    }
+    .chart-legend-toggle.is-inactive {
+      opacity: 0.45;
+      text-decoration: line-through;
+    }
+    .rooms-legend .chart-legend-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .ai-usage-errors-legend-item.chart-legend-toggle {
+      cursor: pointer;
+    }
     .line-legend-swatch {
       width: 10px;
       height: 10px;
@@ -2984,11 +3008,7 @@
             </div>
           </div>
           <div id="roomsTimelineChart" class="chart"></div>
-          <div class="rooms-legend">
-            <span><i style="background:#3b82f6"></i> Salas criadas</span>
-            <span><i style="background:#10b981"></i> Jogos multijogador</span>
-            <span><i style="background:#a855f7"></i> Jogos locais</span>
-          </div>
+          <div class="rooms-legend" id="roomsTimelineLegend" aria-label="Legenda do gráfico de salas"></div>
         </div>
 
         <div class="card">
@@ -3044,11 +3064,7 @@
           </div>
           <p class="timeline-note" id="bankTimelineNote"></p>
           <div id="bankTimelineChart" class="chart"></div>
-          <div class="rooms-legend" id="bankTimelineLegend" aria-label="Legenda do gráfico do banco">
-            <span><i style="background:#f59e0b"></i> Guardadas no banco</span>
-            <span><i style="background:#3b82f6"></i> Via IA (jogo + teste)</span>
-            <span><i style="background:#10b981"></i> Validação manual</span>
-          </div>
+          <div class="rooms-legend" id="bankTimelineLegend" aria-label="Legenda do gráfico do banco"></div>
           <p class="chart-filter-note bank-timeline-legend-note">
             <strong>Validação manual</strong> — perguntas inseridas no banco após revisão no painel admin
             (aceitar na telemetria IA, fila de revisão ou correcção de reportes), e não geradas automaticamente durante o jogo.
@@ -4413,26 +4429,130 @@
       }).join('');
     }
 
+    const CHART_LEGEND_HIDDEN_STORAGE_KEY = 'reino_admin_chart_legend_hidden';
+    const chartLegendHidden = {};
+
+    function loadChartLegendHiddenFromStorage() {
+      try {
+        const raw = localStorage.getItem(CHART_LEGEND_HIDDEN_STORAGE_KEY);
+        if (!raw) return;
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== 'object') return;
+        Object.entries(parsed).forEach(([chartId, keys]) => {
+          if (Array.isArray(keys) && keys.length) chartLegendHidden[chartId] = new Set(keys);
+        });
+      } catch { /* ignore */ }
+    }
+
+    function saveChartLegendHiddenToStorage() {
+      try {
+        const payload = {};
+        Object.entries(chartLegendHidden).forEach(([chartId, set]) => {
+          if (set?.size) payload[chartId] = [...set];
+        });
+        localStorage.setItem(CHART_LEGEND_HIDDEN_STORAGE_KEY, JSON.stringify(payload));
+      } catch { /* ignore */ }
+    }
+
+    function getChartLegendHiddenKeys(chartId) {
+      return chartLegendHidden[chartId] ? new Set(chartLegendHidden[chartId]) : new Set();
+    }
+
+    function toggleChartLegendSeries(chartId, seriesKey) {
+      const key = String(seriesKey || '').trim();
+      const id = String(chartId || '').trim();
+      if (!id || !key) return getChartLegendHiddenKeys(id);
+      if (!chartLegendHidden[id]) chartLegendHidden[id] = new Set();
+      const set = chartLegendHidden[id];
+      if (set.has(key)) set.delete(key);
+      else set.add(key);
+      if (!set.size) delete chartLegendHidden[id];
+      saveChartLegendHiddenToStorage();
+      return getChartLegendHiddenKeys(id);
+    }
+
+    function rerenderChartByLegendId(chartId) {
+      switch (chartId) {
+        case 'genReviewTimeline':
+          if (lastTelemetryPayload?.stats) renderGenReviewTimeline(lastTelemetryPayload.stats);
+          break;
+        case 'roomsTimeline':
+          if (lastRoomsStats) renderRoomsChart(lastRoomsStats);
+          break;
+        case 'bankTimeline':
+          if (lastBankStats) renderBankChart(lastBankStats);
+          break;
+        case 'genTelemetryTimeline':
+          if (lastTelemetryPayload?.stats) renderGenTelemetryTimeline(lastTelemetryPayload.stats);
+          break;
+        case 'aiUsageErrors':
+          if (lastTelemetryPayload?.aiUsage) renderAiUsageErrorsChart(lastTelemetryPayload.aiUsage);
+          break;
+        case 'reportsTimeline':
+          renderTimelineChart();
+          break;
+        default:
+          break;
+      }
+    }
+
+    function getVisibleChartTypes(types, chartId) {
+      const list = Array.isArray(types) ? types : [];
+      if (!chartId) return list;
+      const hidden = getChartLegendHiddenKeys(chartId);
+      return list.filter((type) => !hidden.has(type));
+    }
+
+    function renderClickableLineLegendItems(items, chartId) {
+      const hidden = getChartLegendHiddenKeys(chartId);
+      return (items || []).filter((item) => item?.label).map((item) => {
+        const inactive = hidden.has(item.key);
+        const swatchStyle = item.dashed
+          ? `class="line-legend-swatch dashed" style="color:${item.color}"`
+          : `class="line-legend-swatch" style="background:${item.color}"`;
+        return `<button type="button" class="line-legend-item chart-legend-toggle${inactive ? ' is-inactive' : ''}" data-chart-id="${esc(chartId)}" data-series-key="${esc(item.key)}" aria-pressed="${inactive ? 'false' : 'true'}" title="Clica para ${inactive ? 'mostrar' : 'ocultar'}">
+          <span ${swatchStyle} aria-hidden="true"></span>
+          ${esc(item.label)}
+        </button>`;
+      }).join('');
+    }
+
+    function renderClickableLineLegend(items, chartId) {
+      const list = (items || []).filter((item) => item?.label);
+      if (!list.length) return '';
+      return `<div class="line-legend" aria-label="Legenda do gráfico">${renderClickableLineLegendItems(list, chartId)}</div>`;
+    }
+
+    function renderRoomsStyleLegend(el, items, chartId) {
+      if (!el) return;
+      const hidden = getChartLegendHiddenKeys(chartId);
+      el.innerHTML = (items || []).map((item) => {
+        const inactive = hidden.has(item.key);
+        return `<button type="button" class="chart-legend-toggle rooms-legend-item${inactive ? ' is-inactive' : ''}" data-chart-id="${esc(chartId)}" data-series-key="${esc(item.key)}" aria-pressed="${inactive ? 'false' : 'true'}" title="Clica para ${inactive ? 'mostrar' : 'ocultar'}">
+          <i style="background:${item.color}"></i> ${esc(item.label)}
+        </button>`;
+      }).join('');
+    }
+
     function renderIssueLegend(types, options = {}) {
-      const { showTotal = false, labelMap = ISSUE_LABELS, colorFn = getIssueColor } = options;
+      const { showTotal = false, labelMap = ISSUE_LABELS, colorFn = getIssueColor, chartId = '' } = options;
       const items = [];
       if (showTotal) {
-        items.push(`
-          <span class="line-legend-item">
-            <span class="line-legend-swatch" style="background:${getTotalChartColor()}"></span>
-            Total
-          </span>
-        `);
+        items.push({ key: '__total__', color: getTotalChartColor(), label: 'Total' });
       }
-      types.forEach((type, index) => {
-        items.push(`
-          <span class="line-legend-item">
-            <span class="line-legend-swatch" style="background:${colorFn(type, index)}"></span>
-            ${esc(labelMap[type] || type)}
-          </span>
-        `);
+      (types || []).forEach((type, index) => {
+        items.push({ key: type, color: colorFn(type, index), label: labelMap[type] || type });
       });
-      return `<div class="line-legend">${items.join('')}</div>`;
+      if (!items.length) return '';
+      if (!chartId) {
+        return `<div class="line-legend">${items.map((item) => `
+          <span class="line-legend-item">
+            <span class="line-legend-swatch" style="background:${item.color}"></span>
+            ${esc(item.label)}
+          </span>
+        `).join('')}</div>`;
+      }
+      return renderClickableLineLegend(items, chartId);
     }
 
     function attachPointChartTooltip(container, layout, points, formatPoint) {
@@ -4517,21 +4637,30 @@
       );
     }
 
-    function renderMultiLineChart(el, series, issueTypes, granularity = 'day') {
+    function renderMultiLineChart(el, series, issueTypes, granularity = 'day', options = {}) {
+      const chartId = options.chartId || '';
       if (!series?.length) {
         el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
         return;
       }
-      const types = (issueTypes || []).filter((type) => series.some((point) => (point.byIssue?.[type] || 0) > 0));
-      if (!types.length) {
-        el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
+      const allTypes = (issueTypes || []).filter((type) => series.some((point) => (point.byIssue?.[type] || 0) > 0));
+      const types = getVisibleChartTypes(allTypes, chartId);
+      const showTotal = !chartId || !getChartLegendHiddenKeys(chartId).has('__total__');
+      if (!types.length && !showTotal) {
+        el.innerHTML = `<div class="chart-empty">Nenhuma série visível — clica na legenda para mostrar.</div>${renderIssueLegend(allTypes, { ...options, chartId, showTotal: true })}`;
         return;
       }
-      const max = computeChartDataAxisMax(Math.max(...series.map((d) => d.count), 1), 1);
+      const max = computeChartDataAxisMax(Math.max(
+        ...series.map((d) => Math.max(
+          showTotal ? d.count : 0,
+          ...types.map((type) => d.byIssue?.[type] || 0),
+        )),
+        1,
+      ), 1);
       const layout = createTimelineLayout(series.length, max);
       const { w, h, padX, padY, innerW, innerH } = layout;
       const lines = types.map((type, index) => {
-        const color = getIssueColor(type, index);
+        const color = (options.colorFn || getIssueColor)(type, index);
         const points = series.map((point, i) => {
           const x = padX + (i / Math.max(series.length - 1, 1)) * innerW;
           const value = point.byIssue?.[type] || 0;
@@ -4540,20 +4669,20 @@
         }).join(' ');
         return `<polyline class="line-path" points="${points}" style="stroke:${color}" />`;
       }).join('');
-      const totalPoints = series.map((point, i) => {
+      const totalPoints = showTotal ? series.map((point, i) => {
         const x = padX + (i / Math.max(series.length - 1, 1)) * innerW;
         const y = padY + innerH - (point.count / max) * innerH;
         return `${x.toFixed(1)},${y.toFixed(1)}`;
-      }).join(' ');
+      }).join(' ') : '';
       const granLabel = chartTimelineGranularityLabel(granularity);
       el.innerHTML = `
         <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Reportes ${granLabel}">
           ${renderTimelineGrid(layout)}
           ${lines}
-          <polyline class="line-path line-path-total" points="${totalPoints}" style="stroke:${getTotalChartColor()};stroke-width:2;stroke-dasharray:5 4;fill:none" />
+          ${showTotal ? `<polyline class="line-path line-path-total" points="${totalPoints}" style="stroke:${getTotalChartColor()};stroke-width:2;stroke-dasharray:5 4;fill:none" />` : ''}
           ${renderTimelineXLabels(series, layout, granularity)}
         </svg>
-        ${renderIssueLegend(types, { showTotal: true })}
+        ${renderIssueLegend(allTypes, { ...options, chartId, showTotal: true })}
       `;
     }
 
@@ -4593,17 +4722,18 @@
     }
 
     function renderStackedColumnChart(el, series, issueTypes, granularity = 'day', options = {}) {
-      const { labelMap = ISSUE_LABELS, colorFn = getIssueColor } = options;
+      const { labelMap = ISSUE_LABELS, colorFn = getIssueColor, chartId = '' } = options;
       if (!series?.length) {
         el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
         return;
       }
-      const types = (issueTypes || []).filter((type) => series.some((point) => (point.byIssue?.[type] || 0) > 0));
+      const allTypes = (issueTypes || []).filter((type) => series.some((point) => (point.byIssue?.[type] || 0) > 0));
+      const types = getVisibleChartTypes(allTypes, chartId);
       if (!types.length) {
-        el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
+        el.innerHTML = `<div class="chart-empty">Nenhuma série visível — clica na legenda para mostrar.</div>${renderIssueLegend(allTypes, options)}`;
         return;
       }
-      const max = computeChartDataAxisMax(Math.max(...series.map((d) => d.count), 1), 1);
+      const max = computeChartDataAxisMax(Math.max(...series.map((d) => types.reduce((sum, type) => sum + (d.byIssue?.[type] || 0), 0)), 1), 1);
       const layout = createTimelineLayout(series.length, max);
       const { w, h, padX, padY, innerH, slotW } = layout;
       const barW = Math.min(slotW * 0.72, 32);
@@ -4628,21 +4758,23 @@
           ${bars}
           ${renderTimelineColumnXLabels(series, layout, granularity)}
         </svg>
-        ${renderIssueLegend(types, { labelMap, colorFn })}
+        ${renderIssueLegend(allTypes, options)}
       `;
     }
 
-    function renderClusteredColumnChart(el, series, issueTypes, granularity = 'day') {
+    function renderClusteredColumnChart(el, series, issueTypes, granularity = 'day', options = {}) {
+      const chartId = options.chartId || '';
       if (!series?.length) {
         el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
         return;
       }
-      const types = (issueTypes || []).filter((type) => series.some((point) => (point.byIssue?.[type] || 0) > 0));
+      const allTypes = (issueTypes || []).filter((type) => series.some((point) => (point.byIssue?.[type] || 0) > 0));
+      const types = getVisibleChartTypes(allTypes, chartId);
       if (!types.length) {
-        el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
+        el.innerHTML = `<div class="chart-empty">Nenhuma série visível — clica na legenda para mostrar.</div>${renderIssueLegend(allTypes, { ...options, chartId })}`;
         return;
       }
-      const max = computeChartDataAxisMax(Math.max(...series.map((d) => d.count), 1), 1);
+      const max = computeChartDataAxisMax(Math.max(...series.map((d) => Math.max(...types.map((type) => d.byIssue?.[type] || 0), 0))), 1), 1);
       const layout = createTimelineLayout(series.length, max);
       const { w, h, padX, padY, innerH, slotW } = layout;
       const groupW = slotW * 0.82;
@@ -4666,7 +4798,7 @@
           ${bars}
           ${renderTimelineColumnXLabels(series, layout, granularity)}
         </svg>
-        ${renderIssueLegend(types)}
+        ${renderIssueLegend(allTypes, { ...options, chartId })}
       `;
     }
 
@@ -4849,12 +4981,13 @@
       }
       const stackedSeries = getStackedTimelineSeries(stats);
       const issueTypes = getTimelineIssueTypes(stats);
+      const timelineLegendOptions = { chartId: 'reportsTimeline' };
       if (timelineChartType === 'line') {
-        renderMultiLineChart(chartEl, stackedSeries, issueTypes, meta.granularity);
+        renderMultiLineChart(chartEl, stackedSeries, issueTypes, meta.granularity, timelineLegendOptions);
       } else if (timelineChartType === 'clustered') {
-        renderClusteredColumnChart(chartEl, stackedSeries, issueTypes, meta.granularity);
+        renderClusteredColumnChart(chartEl, stackedSeries, issueTypes, meta.granularity, timelineLegendOptions);
       } else {
-        renderStackedColumnChart(chartEl, stackedSeries, issueTypes, meta.granularity);
+        renderStackedColumnChart(chartEl, stackedSeries, issueTypes, meta.granularity, timelineLegendOptions);
       }
     }
 
@@ -6600,6 +6733,7 @@
     let telemetryTimelineChartType = 'stacked';
     let reviewTimelineCategoryFilter = '';
     let reviewTimelineIssueCodeFilter = '';
+    loadChartLegendHiddenFromStorage();
     try {
       const savedTelemetryRange = localStorage.getItem(TELEMETRY_TIMELINE_STORAGE_KEY);
       if (savedTelemetryRange && TELEMETRY_TIMELINE_RANGES[savedTelemetryRange]) {
@@ -8444,18 +8578,19 @@
       return `${day}/${month}/${year} ${hour}:${minute} (Lisboa)`;
     }
 
-    function buildAiUsageErrorsLegendHtml(seriesDefs, totals, activeKeys) {
+    function buildAiUsageErrorsLegendHtml(seriesDefs, totals, chartId = '') {
+      const hidden = chartId ? getChartLegendHiddenKeys(chartId) : new Set();
       return `<div class="ai-usage-errors-legend" aria-label="Legenda de erros e contexto">${seriesDefs.map((def) => {
         const total = totals[def.key] ?? 0;
-        const inactive = activeKeys && !activeKeys.has(def.key);
+        const inactive = hidden.has(def.key);
         const swatchStyle = def.dashed
           ? `class="legend-swatch dashed" style="color:${def.color}"`
           : `class="legend-swatch" style="background:${def.color}"`;
         const title = def.description || def.shortHint || def.label;
-        return `<span class="ai-usage-errors-legend-item${inactive ? ' is-inactive' : ''}" title="${esc(title)}">
+        return `<button type="button" class="ai-usage-errors-legend-item chart-legend-toggle${inactive ? ' is-inactive' : ''}" data-chart-id="${esc(chartId)}" data-series-key="${esc(def.key)}" aria-pressed="${inactive ? 'false' : 'true'}" title="${esc(title)}">
           <span ${swatchStyle} aria-hidden="true"></span>
           <span><strong>${esc(def.label)}</strong> ${total} — ${esc(def.shortHint || '')}</span>
-        </span>`;
+        </button>`;
       }).join('')}</div>`;
     }
 
@@ -8489,7 +8624,8 @@
       }));
       const activeSeries = seriesDefs.filter((def) => (def.series || []).some((p) => (Number(p.v) || 0) > 0));
       const activeKeys = new Set(activeSeries.map((def) => def.key));
-      const legendHtml = buildAiUsageErrorsLegendHtml(seriesDefs, totals, activeKeys);
+      const hiddenKeys = getChartLegendHiddenKeys('aiUsageErrors');
+      const legendHtml = buildAiUsageErrorsLegendHtml(seriesDefs, totals, 'aiUsageErrors');
 
       if (!totalAll) {
         chartEl.innerHTML = `
@@ -8513,7 +8649,16 @@
         dashed: def.dashed,
         map: Object.fromEntries((def.series || []).map((p) => [p.t, Number(p.v) || 0])),
       }));
-      const chartMaps = maps.filter((m) => activeKeys.has(m.key));
+      const chartMaps = maps.filter((m) => activeKeys.has(m.key) && !hiddenKeys.has(m.key));
+      if (!chartMaps.length && totalAll) {
+        chartEl.innerHTML = `
+          <div class="ai-usage-errors-chart-box">
+            <div class="chart-empty">Nenhuma série visível — clica na legenda para mostrar.</div>
+            ${legendHtml}
+          </div>
+        `;
+        return;
+      }
       const maxV = computeChartDataAxisMax(
         Math.max(
           1,
@@ -9226,6 +9371,7 @@
       renderStackedColumnChart(el, series, types, meta.granularity, {
         labelMap: GEN_OUTCOME_LABELS,
         colorFn: getGenOutcomeColor,
+        chartId: 'genTelemetryTimeline',
       });
       renderGenReviewTimeline(summary);
     }
@@ -9244,11 +9390,11 @@
     function renderGenReviewTimelineLegend() {
       const el = document.getElementById('genReviewTimelineLegend');
       if (!el) return;
-      el.innerHTML = renderLineLegendItems([
-        { color: '#10b981', label: 'Aceites como estavam' },
-        { color: '#f59e0b', label: 'Aceites com edição' },
-        { color: '#94a3b8', label: 'Descartadas' },
-      ]);
+      el.innerHTML = renderClickableLineLegendItems([
+        { key: 'acceptedAsIs', color: '#10b981', label: 'Aceites como estavam' },
+        { key: 'acceptedEdited', color: '#f59e0b', label: 'Aceites com edição' },
+        { key: 'dismissed', color: '#94a3b8', label: 'Descartadas' },
+      ], 'genReviewTimeline');
     }
 
     async function refreshReviewPanels(options = {}) {
@@ -9369,9 +9515,13 @@
       }
       renderGenReviewTimelineLegend();
       renderDualLineChart(el, bucket.acceptedAsIs, bucket.dismissed, '#10b981', '#94a3b8', {
+        chartId: 'genReviewTimeline',
+        seriesKeyA: 'acceptedAsIs',
+        seriesKeyB: 'dismissed',
         labelA: 'Aceites como estavam',
         labelB: 'Descartadas',
         extraSeries: [{
+          key: 'acceptedEdited',
           data: bucket.acceptedEdited,
           color: '#f59e0b',
           label: 'Aceites com edição',
@@ -12691,9 +12841,13 @@
         noteEl.innerHTML = `No período: <strong>${bucket.totalSaved || 0}</strong> guardada(s) · <strong>${bucket.totalAi || 0}</strong> via IA · <strong>${bucket.totalManual || 0}</strong> validação manual.`;
       }
       renderDualLineChart(chartEl, bucket.saved, bucket.ai, '#f59e0b', '#3b82f6', {
+        chartId: 'bankTimeline',
+        seriesKeyA: 'saved',
+        seriesKeyB: 'ai',
         labelA: 'Guardadas no banco',
         labelB: 'Via IA (jogo + teste)',
         extraSeries: [{
+          key: 'manual',
           data: bucket.manual || [],
           color: '#10b981',
           label: 'Validação manual',
@@ -12701,6 +12855,7 @@
         granularity: meta.granularity,
         formatLabel: formatBankTimelineLabel,
       });
+      renderRoomsStyleLegend(document.getElementById('bankTimelineLegend'), BANK_TIMELINE_LEGEND, 'bankTimeline');
     }
 
     function renderBankCategoryChart(stats) {
@@ -13422,13 +13577,13 @@
       return formatShortDate(t);
     }
 
-    function attachDualLineChartInteraction(container, layout, labels, mapA, mapB, meta) {
+    function attachDualLineChartInteraction(container, layout, labels, visibleSeries, meta) {
       const tooltip = container.querySelector('.chart-tooltip');
       const focusLine = container.querySelector('.chart-focus-line');
       const svg = container.querySelector('svg');
-      if (!tooltip || !svg || !labels.length) return;
+      const series = Array.isArray(visibleSeries) ? visibleSeries : [];
+      if (!tooltip || !svg || !labels.length || !series.length) return;
       const formatLabel = meta.formatLabel || formatRoomsTimelineLabel;
-      const extraSeries = meta.extraSeries || [];
 
       const { padX, padY, innerW, innerH } = layout;
 
@@ -13439,8 +13594,6 @@
 
       function showTooltip(i, clientX, clientY) {
         const t = labels[Math.max(0, Math.min(i, labels.length - 1))];
-        const valA = mapA[t] || 0;
-        const valB = mapB[t] || 0;
         const x = padX + (i / Math.max(labels.length - 1, 1)) * innerW;
         if (focusLine) {
           focusLine.setAttribute('x1', x);
@@ -13450,19 +13603,13 @@
           focusLine.removeAttribute('hidden');
         }
         tooltip.hidden = false;
-        const extraRows = extraSeries.map((s) => {
-          const val = (s.map[t] || 0);
-          return `<div><span style="color:${s.color}">●</span> ${esc(s.label)}: <strong>${val}</strong></div>`;
-        }).join('');
         tooltip.innerHTML = `
           <div><strong>${esc(formatLabel(t, meta.granularity))}</strong></div>
-          <div><span style="color:${meta.colorA}">●</span> ${esc(meta.labelA)}: <strong>${valA}</strong></div>
-          <div><span style="color:${meta.colorB}">●</span> ${esc(meta.labelB)}: <strong>${valB}</strong></div>
-          ${extraRows}
+          ${series.map((s) => `<div><span style="color:${s.color}">●</span> ${esc(s.label)}: <strong>${s.map[t] || 0}</strong></div>`).join('')}
         `;
         const rect = container.getBoundingClientRect();
         const left = Math.min(Math.max(clientX - rect.left + 12, 8), Math.max(8, rect.width - 170));
-        const top = Math.max(clientY - rect.top - 58 - extraSeries.length * 18, 8);
+        const top = Math.max(clientY - rect.top - 58 - series.length * 18, 8);
         tooltip.style.left = `${left}px`;
         tooltip.style.top = `${top}px`;
       }
@@ -13490,12 +13637,23 @@
       const labelB = options.labelB || 'Jogos iniciados';
       const granularity = options.granularity || 'day';
       const formatLabel = options.formatLabel || formatRoomsTimelineLabel;
+      const chartId = options.chartId || '';
+      const hidden = chartId ? getChartLegendHiddenKeys(chartId) : new Set();
       const extraDefs = (options.extraSeries || []).filter((s) => s && Array.isArray(s.data));
       const allSeries = [
-        { data: seriesA || [], color: colorA, label: labelA },
-        { data: seriesB || [], color: colorB, label: labelB },
-        ...extraDefs.map((s) => ({ data: s.data, color: s.color, label: s.label })),
-      ];
+        { key: options.seriesKeyA || 'a', data: seriesA || [], color: colorA, label: labelA },
+        { key: options.seriesKeyB || 'b', data: seriesB || [], color: colorB, label: labelB },
+        ...extraDefs.map((s, index) => ({
+          key: s.key || `extra${index}`,
+          data: s.data,
+          color: s.color,
+          label: s.label,
+        })),
+      ].filter((s) => !hidden.has(s.key));
+      if (!allSeries.length) {
+        el.innerHTML = '<div class="chart-empty">Nenhuma série visível — clica na legenda para mostrar.</div>';
+        return;
+      }
       const labels = [...new Set(allSeries.flatMap((s) => s.data.map((p) => p.t)))].sort();
       if (!labels.length) {
         el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
@@ -13569,19 +13727,22 @@
         el.querySelector('.chart-interactive'),
         layout,
         labels,
-        built[0]?.map || {},
-        built[1]?.map || {},
-        {
-          labelA,
-          labelB,
-          colorA,
-          colorB,
-          granularity,
-          formatLabel,
-          extraSeries: built.slice(2).map((s) => ({ map: s.map, color: s.color, label: s.label })),
-        },
+        built.map((s) => ({ map: s.map, color: s.color, label: s.label })),
+        { granularity, formatLabel },
       );
     }
+
+    const ROOMS_TIMELINE_LEGEND = [
+      { key: 'rooms', color: '#3b82f6', label: 'Salas criadas' },
+      { key: 'games', color: '#10b981', label: 'Jogos multijogador' },
+      { key: 'localGames', color: '#a855f7', label: 'Jogos locais' },
+    ];
+
+    const BANK_TIMELINE_LEGEND = [
+      { key: 'saved', color: '#f59e0b', label: 'Guardadas no banco' },
+      { key: 'ai', color: '#3b82f6', label: 'Via IA (jogo + teste)' },
+      { key: 'manual', color: '#10b981', label: 'Validação manual' },
+    ];
 
     function renderRoomsChart(stats) {
       const meta = TIMELINE_RANGES[roomsTimelineRange] || TIMELINE_RANGES['14d'];
@@ -13598,15 +13759,20 @@
         return;
       }
       renderDualLineChart(chartEl, bucket.rooms, bucket.games, '#3b82f6', '#10b981', {
+        chartId: 'roomsTimeline',
+        seriesKeyA: 'rooms',
+        seriesKeyB: 'games',
         labelA: 'Salas criadas',
         labelB: 'Jogos multijogador',
         extraSeries: [{
+          key: 'localGames',
           data: bucket.localGames || [],
           color: '#a855f7',
           label: 'Jogos locais',
         }],
         granularity: meta.granularity,
       });
+      renderRoomsStyleLegend(document.getElementById('roomsTimelineLegend'), ROOMS_TIMELINE_LEGEND, 'roomsTimeline');
     }
 
     function updateRoomsBulkUi() {
@@ -14342,6 +14508,16 @@
       closeRoomsAdmin([...selectedRoomIds]);
     });
     document.getElementById('logoutBtn').onclick = logout;
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('.chart-legend-toggle[data-chart-id][data-series-key]');
+      if (!btn) return;
+      const chartId = btn.getAttribute('data-chart-id') || '';
+      const seriesKey = btn.getAttribute('data-series-key') || '';
+      if (!chartId || !seriesKey) return;
+      e.preventDefault();
+      toggleChartLegendSeries(chartId, seriesKey);
+      rerenderChartByLegendId(chartId);
+    });
     document.getElementById('telemetryLoadStatsBtn')?.addEventListener('click', () => loadTelemetryDashboard({ refreshQuota: true }));
     document.getElementById('telemetryRefreshBtn')?.addEventListener('click', () => loadTelemetryDashboard({ refreshQuota: true }));
     document.getElementById('telemetryExportBtn')?.addEventListener('click', exportTelemetryJson);
