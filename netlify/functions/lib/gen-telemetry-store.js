@@ -16,14 +16,17 @@ const {
   buildReviewTimelineBundles,
   computeReviewTimelineFromItems,
 } = require('../../../scripts/lib/review-timeline');
+const {
+  REVIEWABLE_TELEMETRY_OUTCOME_FILTER,
+  isReviewableTelemetryOutcome,
+  isTelemetryOpenForReview,
+} = require('./review-sync');
 
 const MAX_EVENTS = 10000;
 const TABLE = 'gen_telemetry_events';
 
 const VALID_OUTCOMES = new Set(['accepted', 'rejected', 'parse_error', 'api_error', 'unknown']);
 const VALID_GAME_MODES = new Set(['local', 'multiplayer', 'test']);
-const REVIEWABLE_TELEMETRY_OUTCOMES = new Set(['rejected', 'parse_error', 'api_error']);
-const REVIEWABLE_TELEMETRY_OUTCOME_FILTER = 'in.(rejected,parse_error,api_error)';
 
 function clip(value, max) {
   return String(value || '').trim().slice(0, max);
@@ -354,8 +357,8 @@ function normalizeIssueMessages(raw) {
   return raw.map((m) => clipIssueMessage(m)).filter(Boolean).slice(0, MAX_ISSUE_MESSAGES);
 }
 
-function pushIssueOccurrence(entry, occurrence) {
-  if (!isOpenIssueOccurrence(occurrence)) return;
+function pushIssueOccurrence(entry, occurrence, pendingReviewHashes = null) {
+  if (!isOpenIssueOccurrence(occurrence, pendingReviewHashes)) return;
   if (!entry.recentOccurrences) entry.recentOccurrences = [];
   entry.recentOccurrences.push(occurrence);
   entry.recentOccurrences.sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0));
@@ -394,15 +397,19 @@ function buildIssueOccurrence(ev, code) {
   };
 }
 
-function isReviewableTelemetryOutcome(outcome) {
-  return REVIEWABLE_TELEMETRY_OUTCOMES.has(String(outcome || ''));
+
+function isOpenIssueOccurrence(occ, pendingReviewHashes = null) {
+  return isTelemetryOpenForReview({
+    outcome: occ?.outcome,
+    dismissedAt: occ?.dismissedAt,
+    bankValidatedAt: occ?.bankValidatedAt,
+    questionSnapshot: occ?.questionSnapshot,
+    question_text: occ?.questionSnapshot?.q,
+    answer_text: occ?.questionSnapshot?.a,
+  }, pendingReviewHashes);
 }
 
-function isOpenIssueOccurrence(occ) {
-  return isReviewableTelemetryOutcome(occ?.outcome) && !occ?.bankValidatedAt && !occ?.dismissedAt;
-}
-
-function accumulateIssueDetail(summary, ev) {
+function accumulateIssueDetail(summary, ev, pendingReviewHashes = null) {
   const codes = ev.issueCodes || [];
   const messages = ev.issueMessages || [];
   for (let i = 0; i < codes.length; i += 1) {
@@ -432,7 +439,7 @@ function accumulateIssueDetail(summary, ev) {
     if (ev.dismissedAt) {
       entry.dismissedCount = (entry.dismissedCount || 0) + 1;
     }
-    if (isOpenIssueOccurrence(ev)) {
+    if (isOpenIssueOccurrence(ev, pendingReviewHashes)) {
       entry.openCount = (entry.openCount || 0) + 1;
     }
     if (msg && !entry.sampleMessage) {
@@ -442,7 +449,9 @@ function accumulateIssueDetail(summary, ev) {
     if (!entry.lastOccurrence || occurrence.ts >= entry.lastOccurrence.ts) {
       entry.lastOccurrence = occurrence;
     }
-    pushIssueOccurrence(entry, occurrence);
+    if (isOpenIssueOccurrence(occurrence, pendingReviewHashes)) {
+      pushIssueOccurrence(entry, occurrence, pendingReviewHashes);
+    }
   }
 }
 
@@ -684,7 +693,7 @@ function finalizeSummaryRates(summary) {
   return summary;
 }
 
-function computeSummaryFromItems(items) {
+function computeSummaryFromItems(items, { pendingReviewHashes = null } = {}) {
   const summary = {
     total: items.length,
     accepted: 0,
@@ -728,7 +737,7 @@ function computeSummaryFromItems(items) {
     for (const code of ev.issueCodes || []) {
       summary.byIssueCode[code] = (summary.byIssueCode[code] || 0) + 1;
     }
-    accumulateIssueDetail(summary, ev);
+    accumulateIssueDetail(summary, ev, pendingReviewHashes);
     if (ev.category != null) {
       const ck = String(ev.category);
       if (!summary.byCategory[ck]) summary.byCategory[ck] = { total: 0, rejected: 0 };
@@ -834,6 +843,15 @@ async function fetchIssueCodeEventRows(issueCode, gameMode = '', { limit = 1000 
   return fetchTelemetryRowsWithSelectFallback(params, { requireDismissedFilter: true });
 }
 
+async function loadPendingReviewHashSet() {
+  try {
+    const { fetchPendingReviewHashes } = require('./question-pending-review-store');
+    return await fetchPendingReviewHashes();
+  } catch {
+    return new Set();
+  }
+}
+
 async function listOpenIssueOccurrencesByCode({ issueCode, gameMode = '', limit = 1000 } = {}) {
   const code = String(issueCode || '').trim();
   if (!code) {
@@ -841,10 +859,11 @@ async function listOpenIssueOccurrencesByCode({ issueCode, gameMode = '', limit 
     err.code = 'MISSING_ISSUE_CODE';
     throw err;
   }
+  const pendingReviewHashes = await loadPendingReviewHashSet();
   const rows = await fetchIssueCodeEventRows(code, gameMode, { limit });
   const items = await enrichItemsWithBankValidation(rows.map(rowToItem));
   return items
-    .filter((ev) => (ev.issueCodes || []).includes(code) && isOpenIssueOccurrence(ev))
+    .filter((ev) => (ev.issueCodes || []).includes(code) && isOpenIssueOccurrence(ev, pendingReviewHashes))
     .map((ev) => buildIssueOccurrence(ev, code));
 }
 
@@ -861,7 +880,7 @@ async function fetchEventItems(filters = {}) {
   return rows.map(rowToItem);
 }
 
-async function dismissTelemetryEvent({ eventId } = {}) {
+async function dismissTelemetryEvent({ eventId, skipQueueSync = false } = {}) {
   const id = String(eventId || '').trim();
   if (!id) {
     const err = new Error('ID do evento em falta.');
@@ -869,12 +888,32 @@ async function dismissTelemetryEvent({ eventId } = {}) {
     throw err;
   }
   const now = new Date().toISOString();
+  let questionHash = '';
+  if (!skipQueueSync) {
+    try {
+      const rows = await supabaseRequest(
+        `/${TABLE}?id=eq.${encodeURIComponent(id)}&select=question_text,answer_text&limit=1`,
+      );
+      const row = Array.isArray(rows) ? rows[0] : null;
+      questionHash = telemetryRowContentHash(row);
+    } catch {
+      questionHash = '';
+    }
+  }
   try {
     await supabaseRequest(`/${TABLE}?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify({ dismissed_at: now }),
       prefer: 'return=minimal',
     });
+    if (!skipQueueSync && questionHash) {
+      try {
+        const { dismissPendingReviewByHash } = require('./question-pending-review-store');
+        await dismissPendingReviewByHash(questionHash, { skipTelemetrySync: true });
+      } catch (err) {
+        console.warn('[gen-telemetry-store] dismiss queue by hash:', err?.message || err);
+      }
+    }
     return { dismissed: 1, dismissedAt: now, eventId: id };
   } catch (err) {
     const msg = String(err?.message || err);
@@ -885,7 +924,7 @@ async function dismissTelemetryEvent({ eventId } = {}) {
   }
 }
 
-async function dismissTelemetryEventsByIssueCode({ issueCode, gameMode = '' } = {}) {
+async function dismissTelemetryEventsByIssueCode({ issueCode, gameMode = '', skipQueueSync = false } = {}) {
   const code = String(issueCode || '').trim();
   if (!code) {
     const err = new Error('Código de causa em falta.');
@@ -938,7 +977,21 @@ async function dismissTelemetryEventsByIssueCode({ issueCode, gameMode = '' } = 
     if (ids.length < 1000) break;
   }
 
-  return { dismissed, dismissedAt: now, issueCode: code };
+  let queueDismissed = 0;
+  if (!skipQueueSync) {
+    try {
+      const { dismissPendingReviewByIssueCode } = require('./question-pending-review-store');
+      const queueResult = await dismissPendingReviewByIssueCode({
+        issueCode: code,
+        skipTelemetrySync: true,
+      });
+      queueDismissed = Number(queueResult?.dismissed) || 0;
+    } catch (err) {
+      console.warn('[gen-telemetry-store] dismiss queue by code:', err?.message || err);
+    }
+  }
+
+  return { dismissed, queueDismissed, dismissedAt: now, issueCode: code };
 }
 
 function countOpenTelemetryByIssueDetail(info) {
@@ -983,7 +1036,7 @@ async function dismissTelemetryByQuestionHashes({ hashes = [] } = {}) {
   while (true) {
     const params = new URLSearchParams({
       select: matchSelect,
-      outcome: 'eq.rejected',
+      outcome: REVIEWABLE_TELEMETRY_OUTCOME_FILTER,
       dismissed_at: 'is.null',
       bank_validated_at: 'is.null',
       question_text: 'not.is.null',
@@ -1012,7 +1065,7 @@ async function dismissTelemetryByQuestionHashes({ hashes = [] } = {}) {
     for (let i = 0; i < ids.length; i += chunkSize) {
       const chunk = ids.slice(i, i + chunkSize);
       const inList = chunk.map((id) => encodeURIComponent(id)).join(',');
-      await supabaseRequest(`/${TABLE}?id=in.(${inList})&outcome=eq.rejected`, {
+      await supabaseRequest(`/${TABLE}?id=in.(${inList})`, {
         method: 'PATCH',
         body: JSON.stringify({ dismissed_at: now }),
         prefer: 'return=minimal',
@@ -1166,8 +1219,9 @@ async function markTelemetryBankValidated({
 
 async function getStats(_event, filters = {}) {
   const items = await enrichItemsWithBankValidation(await fetchEventItems(filters));
+  const pendingReviewHashes = await loadPendingReviewHashSet();
   return {
-    ...computeSummaryFromItems(items),
+    ...computeSummaryFromItems(items, { pendingReviewHashes }),
     ...computeTimelineFromItems(items),
     ...buildReviewTimelineBundles(items),
   };

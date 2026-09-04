@@ -8562,6 +8562,14 @@
       ]);
     }
 
+    async function refreshReviewPanels(options = {}) {
+      const { quiet = true } = options;
+      await Promise.all([
+        loadTelemetryDashboard({ quiet }),
+        loadPendingReviewQueue({ quiet }),
+      ]);
+    }
+
     async function refreshTelemetryIfLoaded() {
       if (lastTelemetryPayload) {
         await loadTelemetryDashboard({ quiet: true });
@@ -9826,10 +9834,8 @@
           issueCode: code,
         }),
       });
-      await loadPendingReviewQueue({ quiet: true });
       await loadBankDashboard({ quiet: true });
-      await loadPendingReviewIssueCodeOptions(code);
-      await refreshTelemetryIfLoaded();
+      await refreshReviewPanels({ quiet: true });
       const reviewedNote = data.alreadyReviewed
         ? `, ${data.alreadyReviewed} já revista(s)`
         : '';
@@ -9871,20 +9877,28 @@
           : { action: 'dismiss-all-pending-review' }),
       });
       saveAllPendingReviewDraftsFromDom();
-      for (const row of lastPendingReviewItems) {
-        if ((row.issueCodes || []).includes(code)) {
+      if (code) {
+        for (const row of lastPendingReviewItems) {
+          if ((row.issueCodes || []).includes(code)) {
+            clearPendingReviewDraft(row.id);
+          }
+        }
+      } else {
+        for (const row of lastPendingReviewItems) {
           clearPendingReviewDraft(row.id);
         }
       }
-      await loadPendingReviewQueue({ quiet: true });
       await loadBankDashboard({ quiet: true });
-      await loadPendingReviewIssueCodeOptions(code);
-      await refreshTelemetryIfLoaded();
+      await refreshReviewPanels({ quiet: true });
       const n = Number(data.dismissed) || 0;
       if (statusEl) {
         statusEl.textContent = n
-          ? `${n} pergunta(s) de ${formatPendingIssueLabel(code)} descartada(s) da fila.`
-          : `Nenhuma pendente de ${formatPendingIssueLabel(code)} na fila.`;
+          ? (code
+            ? `${n} pergunta(s) de ${formatPendingIssueLabel(code)} descartada(s) da fila.`
+            : `${n} pergunta(s) descartada(s) da fila.`)
+          : (code
+            ? `Nenhuma pendente de ${formatPendingIssueLabel(code)} na fila.`
+            : 'Nenhuma pendente na fila.');
         statusEl.className = 'status ok';
       }
       return data;
@@ -13348,9 +13362,8 @@
             statusEl.className = 'status ok';
           }
         }
-        await loadPendingReviewQueue({ quiet: true });
         await loadBankDashboard({ quiet: true });
-        await refreshTelemetryIfLoaded();
+        await refreshReviewPanels({ quiet: true });
       } catch (err) {
         if (statusEl) {
           statusEl.textContent = err.message || 'Erro na fila de revisão.';
@@ -13633,7 +13646,7 @@
               loadIssueOccurrencesForBlock(block, { force: true });
             }
           });
-          await loadTelemetryDashboard({ quiet: true });
+          await refreshReviewPanels({ quiet: true });
         } catch (err) {
           if (statusEl) {
             statusEl.textContent = err.message || 'Erro ao descartar ocorrências.';
@@ -13670,6 +13683,7 @@
           if (parentBlock?.open) {
             await loadIssueOccurrencesForBlock(parentBlock, { force: true });
           }
+          await refreshReviewPanels({ quiet: true });
         } catch (err) {
           if (statusEl) {
             statusEl.textContent = err.message || 'Erro ao descartar ocorrência.';

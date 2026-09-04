@@ -1,6 +1,10 @@
 const { getSupabaseAdmin } = require('./rooms-store');
 const { applyReportCorrectionToBank, hashQuestionKey } = require('./question-bank-store');
 const { normalizeCategoryNs, normalizeAgeBands } = require('./question-taxonomy');
+const {
+  REVIEWABLE_TELEMETRY_OUTCOME_FILTER,
+  isTelemetryOpenForReview,
+} = require('./review-sync');
 
 const TABLE = 'question_pending_review';
 const TELEMETRY_TABLE = 'gen_telemetry_events';
@@ -10,8 +14,6 @@ const DIFFICULTY_MISMATCH_CODES = new Set([
   'DIFFICULTY_HARDER_THAN_REQUESTED',
   'DIFFICULTY_OUT_OF_RANGE',
 ]);
-
-const REVIEWABLE_TELEMETRY_OUTCOMES = new Set(['rejected', 'parse_error', 'api_error']);
 
 function stripTags(str) {
   return String(str || '').replace(/<[^>]*>/g, '').trim();
@@ -77,12 +79,10 @@ async function fetchReviewedQuestionHashes() {
   );
 }
 
-function countOpenTelemetryRowsByCode(rows) {
+function countOpenTelemetryRowsByCode(rows, pendingReviewHashes = null) {
   const counts = new Map();
   for (const row of rows || []) {
-    if (row?.dismissed_at || row?.bank_validated_at) continue;
-    const outcome = String(row?.outcome || 'rejected');
-    if (!REVIEWABLE_TELEMETRY_OUTCOMES.has(outcome)) continue;
+    if (!isTelemetryOpenForReview(row, pendingReviewHashes)) continue;
     const codes = (row.issue_codes || [])
       .map((c) => String(c || '').trim())
       .filter(Boolean);
@@ -91,6 +91,18 @@ function countOpenTelemetryRowsByCode(rows) {
     }
   }
   return counts;
+}
+
+async function fetchPendingReviewHashes() {
+  const rows = await supabaseRequest(
+    `/${TABLE}?status=eq.pending&select=question_hash&limit=5000`,
+    { prefer: 'return=representation' },
+  ).catch(() => []);
+  return new Set(
+    (Array.isArray(rows) ? rows : [])
+      .map((row) => String(row.question_hash || '').trim())
+      .filter(Boolean),
+  );
 }
 
 async function fetchTelemetryRejectedRows({ limit = 300, days = 90 } = {}) {
@@ -105,7 +117,7 @@ async function fetchTelemetryRejectedRows({ limit = 300, days = 90 } = {}) {
   for (const attempt of attempts) {
     const params = new URLSearchParams({
       select: attempt.select,
-      outcome: 'in.(rejected,parse_error,api_error)',
+      outcome: REVIEWABLE_TELEMETRY_OUTCOME_FILTER,
       created_at: `gte.${sinceIso}`,
       question_text: 'not.is.null',
       answer_text: 'not.is.null',
@@ -159,12 +171,13 @@ function countRowsByIssueCode(rows, { matcher } = {}) {
 }
 
 async function getPendingReviewIssueCodeOptions({ days = 90, limit = 400 } = {}) {
-  const [pendingRows, telemetryRows] = await Promise.all([
+  const [pendingRows, telemetryRows, pendingReviewHashes] = await Promise.all([
     supabaseRequest(
       `/${TABLE}?status=eq.pending&select=issue_codes&limit=1000`,
       { prefer: 'return=representation' },
     ).catch(() => []),
     fetchTelemetryRejectedRows({ limit, days }),
+    fetchPendingReviewHashes(),
   ]);
   const pendingByCode = countRowsByIssueCode(
     (Array.isArray(pendingRows) ? pendingRows : []).map((row) => ({ issue_codes: row.issue_codes })),
@@ -179,7 +192,7 @@ async function getPendingReviewIssueCodeOptions({ days = 90, limit = 400 } = {})
   ]);
   const pendingMap = new Map(pendingByCode.map((entry) => [entry.code, entry.count]));
   const telemetryMap = new Map(telemetryByCodeAll.map((entry) => [entry.code, entry.count]));
-  const telemetryOpenMap = countOpenTelemetryRowsByCode(telemetryRows);
+  const telemetryOpenMap = countOpenTelemetryRowsByCode(telemetryRows, pendingReviewHashes);
   const difficultyMap = new Map(telemetryByCode.map((entry) => [entry.code, entry.count]));
   const codes = [...codeSet].sort((a, b) => {
     const pendingDiff = (pendingMap.get(b) || 0) - (pendingMap.get(a) || 0);
@@ -580,7 +593,34 @@ async function dismissPendingReview(id) {
   return { row: updated };
 }
 
-async function dismissPendingReviewByIssueCode({ issueCode } = {}) {
+async function dismissPendingReviewByHash(questionHash, { skipTelemetrySync = false } = {}) {
+  const hash = String(questionHash || '').trim();
+  if (!hash) return { dismissed: 0 };
+  const now = new Date().toISOString();
+  const rows = await supabaseRequest(
+    `/${TABLE}?status=eq.pending&question_hash=eq.${encodeURIComponent(hash)}&select=id&limit=20`,
+    { prefer: 'return=representation' },
+  ).catch(() => []);
+  const ids = (Array.isArray(rows) ? rows : []).map((row) => row.id).filter(Boolean);
+  if (!ids.length) return { dismissed: 0, questionHash: hash };
+  const inList = ids.map((id) => encodeURIComponent(id)).join(',');
+  await supabaseRequest(`/${TABLE}?id=in.(${inList})&status=eq.pending`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status: 'dismissed', reviewed_at: now }),
+    prefer: 'return=minimal',
+  });
+  if (!skipTelemetrySync) {
+    try {
+      const { dismissTelemetryByQuestionHashes } = require('./gen-telemetry-store');
+      await dismissTelemetryByQuestionHashes({ hashes: [hash] });
+    } catch (err) {
+      console.warn('[question-pending-review-store] dismiss telemetry hash:', err?.message || err);
+    }
+  }
+  return { dismissed: ids.length, questionHash: hash, reviewedAt: now };
+}
+
+async function dismissPendingReviewByIssueCode({ issueCode, skipTelemetrySync = false } = {}) {
   const code = String(issueCode || '').trim();
   if (!code) {
     const err = new Error('Código de causa em falta.');
@@ -616,8 +656,10 @@ async function dismissPendingReviewByIssueCode({ issueCode } = {}) {
   }
 
   try {
-    const { dismissTelemetryEventsByIssueCode } = require('./gen-telemetry-store');
-    await dismissTelemetryEventsByIssueCode({ issueCode: code });
+    if (!skipTelemetrySync) {
+      const { dismissTelemetryEventsByIssueCode } = require('./gen-telemetry-store');
+      await dismissTelemetryEventsByIssueCode({ issueCode: code, skipQueueSync: true });
+    }
   } catch (err) {
     console.warn('[question-pending-review-store] dismiss telemetry by code:', err?.message || err);
   }
@@ -673,6 +715,7 @@ module.exports = {
   isDifficultyOnlyCodes,
   shouldImportTelemetryRow,
   countOpenTelemetryRowsByCode,
+  fetchPendingReviewHashes,
   getPendingReviewStats,
   countBankRowsWithDifficulty,
   queuePendingReviewEntry,
@@ -682,6 +725,7 @@ module.exports = {
   listPendingReview,
   acceptPendingReview,
   dismissPendingReview,
+  dismissPendingReviewByHash,
   dismissPendingReviewByIssueCode,
   dismissAllPendingReview,
 };

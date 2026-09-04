@@ -1096,6 +1096,31 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     return counts.get('PT_OFFENSIVE_LANGUAGE') === 1
       && counts.get('STRUCTURE_MISSING_A') === 1;
   })());
+  const { hashQuestionKey } = require('../netlify/functions/lib/question-bank-store');
+  const queuedHash = hashQuestionKey('Pergunta na fila?|Resposta');
+  const queuedSummary = computeSummaryFromItems([
+    {
+      outcome: 'rejected',
+      issueCodes: ['PT_OFFENSIVE_LANGUAGE'],
+      issueMessages: ['linguagem'],
+      questionSnapshot: { q: 'Pergunta na fila?', a: 'Resposta' },
+    },
+  ], { pendingReviewHashes: new Set([queuedHash]) });
+  assert('105d. telemetria exclui hash na fila', queuedSummary.byIssueDetail.PT_OFFENSIVE_LANGUAGE?.openCount === 0
+    && computeSummaryFromItems([
+      {
+        outcome: 'rejected',
+        issueCodes: ['PT_OFFENSIVE_LANGUAGE'],
+        issueMessages: ['linguagem'],
+        questionSnapshot: { q: 'Pergunta na fila?', a: 'Resposta' },
+      },
+    ], { pendingReviewHashes: new Set() }).byIssueDetail.PT_OFFENSIVE_LANGUAGE?.openCount === 1);
+  const { isTelemetryOpenForReview } = require('../netlify/functions/lib/review-sync');
+  assert('105e. review-sync open filter', isTelemetryOpenForReview({
+    outcome: 'parse_error',
+    question_text: 'Q',
+    answer_text: 'A',
+  }, new Set([hashQuestionKey('Q|A')])) === false);
   const { rowMatchesTelemetryHashes } = require('../netlify/functions/lib/gen-telemetry-store');
   assert('105b. telemetria match by previous hash', rowMatchesTelemetryHashes(
     { question_text: 'Pergunta original?', answer_text: 'Resposta' },
