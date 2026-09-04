@@ -4855,7 +4855,7 @@
       el.removeAttribute('aria-label');
       return;
     }
-    el.textContent = bankAddedBadgeCount === 1 ? '+1 banco' : `+${bankAddedBadgeCount} banco`;
+    el.textContent = bankAddedBadgeCount === 1 ? '💾 +1' : `💾 +${bankAddedBadgeCount}`;
     const title = buildBankAddedBadgeTitle();
     el.title = title;
     el.setAttribute('aria-label', title);
