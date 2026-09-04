@@ -2,7 +2,7 @@
 
 const { json, validateAdminAuth } = require('./lib/report-utils');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
-const { getStats, clearAll, dismissTelemetryEvent, dismissTelemetryEventsByIssueCode, listOpenIssueOccurrencesByCode } = require('./lib/gen-telemetry-store');
+const { getStats, clearAll, dismissTelemetryEvent, dismissTelemetryEventsByIssueCode, dismissAllOpenTelemetryEvents, listOpenIssueOccurrencesByCode } = require('./lib/gen-telemetry-store');
 const { getAiUsageStats } = require('./lib/ai-usage-store');
 const { listActiveOverrides } = require('./lib/validation-rule-overrides-store');
 
@@ -88,6 +88,22 @@ exports.handler = async (event) => {
           const msg = String(err?.message || err);
           if (err.code === 'MISSING_ISSUE_CODE') return json(400, { error: msg });
           return json(503, { error: 'Não foi possível descartar as ocorrências deste código.' });
+        }
+      }
+      if (body.action === 'dismiss-all') {
+        try {
+          const result = await dismissAllOpenTelemetryEvents({
+            gameMode: body.gameMode,
+          });
+          if (result.skipped === 'column_missing') {
+            return json(503, {
+              error: 'Coluna dismissed_at em falta — executa supabase/gen-telemetry-dismissed.sql no Supabase.',
+            });
+          }
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[gen-telemetry-admin] dismiss-all failed:', err);
+          return json(503, { error: 'Não foi possível descartar todas as ocorrências.' });
         }
       }
       if (body.action === 'list-issue-occurrences') {

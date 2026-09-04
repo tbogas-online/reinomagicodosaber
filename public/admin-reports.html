@@ -1942,6 +1942,15 @@
       font-size: 0.8rem;
       color: #fca5a5;
     }
+    .telemetry-issue-toolbar {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 8px;
+    }
+    .telemetry-dismiss-all-btn {
+      font-size: 0.82rem;
+      color: #fca5a5;
+    }
     .draft-local-hint {
       display: inline-flex;
       align-items: center;
@@ -6096,6 +6105,25 @@
       });
     }
 
+    async function dismissAllTelemetryOccurrences(openCount = 0) {
+      const modeNote = telemetryGameModeFilter
+        ? `\n\nFiltro activo: ${GEN_GAME_MODE_LABELS[telemetryGameModeFilter] || telemetryGameModeFilter}.`
+        : '';
+      const countNote = openCount > 0 ? `\n\n${openCount} ocorrência(s) pendente(s) no total.` : '';
+      const ok = await confirmAction(
+        `Descartar todas as ocorrências pendentes de telemetria?${countNote}\n\nNão entram no banco — só deixam de aparecer na lista de revisão.${modeNote}`,
+        { okLabel: 'Descartar tudo', danger: true },
+      );
+      if (!ok) return null;
+      return api('/api/gen-telemetry-admin', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'dismiss-all',
+          gameMode: telemetryGameModeFilter || undefined,
+        }),
+      });
+    }
+
     async function dismissTelemetryOccurrence(eventId) {
       const id = String(eventId || '').trim();
       if (!id) throw new Error('Ocorrência sem ID.');
@@ -6291,12 +6319,20 @@
       const entries = Object.entries(detail)
         .sort((a, b) => b[1].count - a[1].count)
         .slice(0, 12);
+      const totalOpen = Object.values(detail).reduce(
+        (sum, info) => sum + countOpenIssueOccurrencesFromSummary(info),
+        0,
+      );
       if (!entries.length) {
         el.innerHTML = '';
         renderGenRuleOverridesPanel(overrides);
         return;
       }
+      const dismissAllToolbar = totalOpen > 0
+        ? `<div class="telemetry-issue-toolbar"><button type="button" class="secondary telemetry-dismiss-all-btn" data-open-count="${totalOpen}">✕ Descartar tudo (${totalOpen})</button></div>`
+        : '';
       el.innerHTML = `
+        ${dismissAllToolbar}
         <table>
           <thead>
             <tr><th>Código</th><th>Causa</th><th>N</th><th>Ocorrências pendentes</th></tr>
@@ -14310,6 +14346,50 @@
     document.getElementById('telemetryRefreshBtn')?.addEventListener('click', () => loadTelemetryDashboard({ refreshQuota: true }));
     document.getElementById('telemetryExportBtn')?.addEventListener('click', exportTelemetryJson);
     document.getElementById('chartGenIssueDetail')?.addEventListener('click', async (e) => {
+      const dismissAllBtn = e.target.closest('.telemetry-dismiss-all-btn');
+      if (dismissAllBtn) {
+        e.preventDefault();
+        e.stopPropagation();
+        const statusEl = document.getElementById('telemetryListStatus');
+        const openCount = Number(dismissAllBtn.getAttribute('data-open-count')) || 0;
+        try {
+          dismissAllBtn.disabled = true;
+          const data = await dismissAllTelemetryOccurrences(openCount);
+          if (!data) {
+            dismissAllBtn.disabled = false;
+            return;
+          }
+          if (data.skipped === 'column_missing') {
+            if (statusEl) {
+              statusEl.textContent = 'Coluna dismissed_at em falta — executa supabase/gen-telemetry-dismissed.sql no Supabase e recarrega o schema (Settings → API → Reload).';
+              statusEl.className = 'status err';
+            }
+            dismissAllBtn.disabled = false;
+            return;
+          }
+          const n = Number(data.dismissed) || 0;
+          if (statusEl) {
+            if (n) {
+              statusEl.textContent = `${n} ocorrência(s) descartada(s).`;
+              statusEl.className = 'status ok';
+            } else if (openCount > 0) {
+              statusEl.textContent = 'Nenhuma ocorrência nova descartada — a actualizar estatísticas…';
+              statusEl.className = 'status ok';
+            } else {
+              statusEl.textContent = 'Nenhuma ocorrência pendente.';
+              statusEl.className = 'status ok';
+            }
+          }
+          await refreshReviewPanels({ quiet: true });
+        } catch (err) {
+          if (statusEl) {
+            statusEl.textContent = err.message || 'Erro ao descartar ocorrências.';
+            statusEl.className = 'status err';
+          }
+          dismissAllBtn.disabled = false;
+        }
+        return;
+      }
       const dismissCodeBtn = e.target.closest('.telemetry-dismiss-code-btn');
       if (dismissCodeBtn) {
         e.preventDefault();

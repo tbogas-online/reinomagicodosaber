@@ -671,7 +671,7 @@ async function dismissPendingReviewByIssueCode({ issueCode, skipTelemetrySync = 
   return { dismissed, issueCode: code, reviewedAt: now };
 }
 
-async function dismissAllPendingReview() {
+async function dismissAllPendingReview({ skipTelemetrySync = false } = {}) {
   const now = new Date().toISOString();
   let dismissed = 0;
   const chunkSize = 100;
@@ -702,7 +702,7 @@ async function dismissAllPendingReview() {
     if (ids.length < 500) break;
   }
 
-  if (hashes.size) {
+  if (!skipTelemetrySync && hashes.size) {
     try {
       const { dismissTelemetryByQuestionHashes } = require('./gen-telemetry-store');
       await dismissTelemetryByQuestionHashes({ hashes: [...hashes] });

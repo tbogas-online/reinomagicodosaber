@@ -845,6 +845,21 @@ async function fetchIssueCodeEventRows(issueCode, gameMode = '', { limit = 1000 
   return fetchTelemetryRowsWithSelectFallback(params, { requireDismissedFilter: true });
 }
 
+async function fetchOpenReviewableEventRows(gameMode = '', { limit = 1000 } = {}) {
+  const capped = Math.min(Math.max(Number(limit) || 1000, 1), 1000);
+  const params = {
+    outcome: REVIEWABLE_TELEMETRY_OUTCOME_FILTER,
+    dismissed_at: 'is.null',
+    bank_validated_at: 'is.null',
+    order: 'event_ts.desc',
+    limit: String(capped),
+  };
+  if (gameMode && VALID_GAME_MODES.has(String(gameMode))) {
+    params.game_mode = `eq.${gameMode}`;
+  }
+  return fetchTelemetryRowsWithSelectFallback(params, { requireDismissedFilter: true });
+}
+
 async function loadPendingReviewHashSet() {
   try {
     const { fetchPendingReviewHashes } = require('./question-pending-review-store');
@@ -994,6 +1009,67 @@ async function dismissTelemetryEventsByIssueCode({ issueCode, gameMode = '', ski
   }
 
   return { dismissed, queueDismissed, dismissedAt: now, issueCode: code };
+}
+
+async function dismissAllOpenTelemetryEvents({ gameMode = '', skipQueueSync = false } = {}) {
+  const cfg = getSupabaseAdmin();
+  if (!cfg) {
+    const err = new Error('Supabase admin não configurado.');
+    err.code = 'NOT_CONFIGURED';
+    throw err;
+  }
+
+  const now = new Date().toISOString();
+  let dismissed = 0;
+  const chunkSize = 100;
+
+  while (true) {
+    let rows;
+    try {
+      rows = await fetchOpenReviewableEventRows(gameMode, { limit: 1000 });
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (isMissingDismissedColumnError(msg) || err.code === 'DISMISSED_COLUMN_MISSING') {
+        return { dismissed: 0, skipped: 'column_missing' };
+      }
+      throw err;
+    }
+    const ids = rows.map((row) => row.id).filter(Boolean);
+    if (!ids.length) break;
+
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const inList = chunk.map((id) => encodeURIComponent(id)).join(',');
+      try {
+        await supabaseRequest(`/${TABLE}?id=in.(${inList})`, {
+          method: 'PATCH',
+          body: JSON.stringify({ dismissed_at: now }),
+          prefer: 'return=minimal',
+        });
+      } catch (err) {
+        const msg = String(err?.message || err);
+        if (isMissingDismissedColumnError(msg)) {
+          return { dismissed: 0, skipped: 'column_missing' };
+        }
+        throw err;
+      }
+      dismissed += chunk.length;
+    }
+    if (ids.length < 1000) break;
+  }
+
+  let queueDismissed = 0;
+  if (!skipQueueSync) {
+    try {
+      const { dismissAllPendingReview } = require('./question-pending-review-store');
+      const queueResult = await dismissAllPendingReview({ skipTelemetrySync: true });
+      queueDismissed = Number(queueResult?.dismissed) || 0;
+    } catch (err) {
+      console.warn('[gen-telemetry-store] dismiss all queue:', err?.message || err);
+    }
+  }
+
+  return { dismissed, queueDismissed, dismissedAt: now };
 }
 
 function countOpenTelemetryByIssueDetail(info) {
@@ -1276,6 +1352,7 @@ module.exports = {
   markTelemetryBankValidated,
   dismissTelemetryEvent,
   dismissTelemetryEventsByIssueCode,
+  dismissAllOpenTelemetryEvents,
   dismissTelemetryByQuestionHashes,
   listOpenIssueOccurrencesByCode,
   buildIssueOccurrence,
