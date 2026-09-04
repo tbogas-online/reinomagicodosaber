@@ -2363,6 +2363,44 @@
       background: rgba(239, 68, 68, 0.2);
       color: #fecaca;
     }
+    .ai-usage-daily-limit-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 6px 0 8px;
+      font-size: 0.74rem;
+      color: var(--muted);
+    }
+    .ai-usage-daily-limit-toggles[hidden] { display: none !important; }
+    .ai-usage-daily-limit-label { margin-right: 2px; }
+    .ai-usage-daily-limit-toggles button.ai-usage-daily-limit-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 6px;
+      background: rgba(15, 23, 42, 0.35);
+      color: #cbd5e1;
+      font: inherit;
+      font-size: 0.74rem;
+      cursor: pointer;
+    }
+    .ai-usage-daily-limit-toggles button.ai-usage-daily-limit-toggle:hover {
+      background: rgba(30, 41, 59, 0.55);
+    }
+    .ai-usage-daily-limit-toggles button.ai-usage-daily-limit-toggle.active {
+      background: rgba(30, 41, 59, 0.85);
+      border-color: rgba(148, 163, 184, 0.65);
+      color: #f8fafc;
+    }
+    .ai-usage-daily-limit-toggles button.ai-usage-daily-limit-toggle i {
+      display: inline-block;
+      width: 14px;
+      height: 0;
+      border-top: 2px dashed currentColor;
+    }
     .ai-usage-chart-limit-status {
       margin: 0 0 8px;
       padding: 8px 10px;
@@ -3513,6 +3551,7 @@
               <button type="button" class="secondary" data-ai-usage-granularity="60">1 h</button>
             </div>
             <p class="timeline-note" id="aiUsageNote">Período e granularidade aplicam-se a todos os gráficos abaixo.</p>
+            <div class="ai-usage-daily-limit-toggles" id="aiUsageDailyLimitToggles" hidden aria-label="Linhas de limite diário TPD"></div>
             <div id="chartAiUsage" class="chart"></div>
             <div class="chart-head" style="margin-top:16px;">
               <h4 id="chartAiUsageTokensMinuteTitle" style="margin:0;font-size:0.9rem;">Tokens</h4>
@@ -6437,6 +6476,12 @@
     const AI_USAGE_GRANULARITY_STORAGE_KEY = 'reino_admin_ai_usage_granularity';
     const AI_USAGE_PROVIDER_STORAGE_KEY = 'reino_admin_ai_usage_provider';
     const AI_USAGE_MODEL_STORAGE_KEY = 'reino_admin_ai_usage_model';
+    const AI_USAGE_DAILY_LIMIT_LINES_STORAGE_KEY = 'reino_admin_ai_usage_daily_limit_lines';
+    const AI_DAILY_LIMIT_LINE_COLORS = {
+      groq: '#f97316',
+      openai: '#22d3ee',
+      total: '#ef4444',
+    };
     const AI_USAGE_BUCKET_MINUTES = 5;
     const AI_USAGE_LISBON_TZ = 'Europe/Lisbon';
     const AI_USAGE_QUOTA_PROBE_MODEL = '__quota__';
@@ -6509,6 +6554,7 @@
     let aiUsageProviderFilter = '';
     let aiUsageModelFilter = '';
     let aiUsageRefScaleByChart = { main: false, tokensMinute: false };
+    let aiUsageDailyLimitLines = { groq: false, openai: false, total: false };
     let telemetryGameModeFilter = '';
     let telemetryTimelineRange = '14d';
     let telemetryTimelineChartType = 'stacked';
@@ -6533,6 +6579,19 @@
       }
       aiUsageProviderFilter = localStorage.getItem(AI_USAGE_PROVIDER_STORAGE_KEY) || '';
       aiUsageModelFilter = localStorage.getItem(AI_USAGE_MODEL_STORAGE_KEY) || '';
+      try {
+        const savedDailyLimits = localStorage.getItem(AI_USAGE_DAILY_LIMIT_LINES_STORAGE_KEY);
+        if (savedDailyLimits) {
+          const parsed = JSON.parse(savedDailyLimits);
+          if (parsed && typeof parsed === 'object') {
+            aiUsageDailyLimitLines = {
+              groq: !!parsed.groq,
+              openai: !!parsed.openai,
+              total: !!parsed.total,
+            };
+          }
+        }
+      } catch { /* ignore */ }
     } catch { /* ignore */ }
 
     function telemetryStatsQuery() {
@@ -7386,6 +7445,55 @@
       return best;
     }
 
+    function collectAiDailyTokenLimits(aiStatus) {
+      const out = {};
+      let total = 0;
+      for (const id of ['groq', 'openai']) {
+        const limit = extractAiDailyTokenLimit(aiStatus, id);
+        if (limit) {
+          out[id] = limit;
+          total += limit;
+        }
+      }
+      if (total > 0) out.total = total;
+      return out;
+    }
+
+    function buildAiUsageDailyRefLines(aiStatus) {
+      const limits = collectAiDailyTokenLimits(aiStatus);
+      const order = ['groq', 'openai', 'total'];
+      return order
+        .filter((key) => limits[key] && aiUsageDailyLimitLines[key])
+        .map((key) => ({
+          key,
+          limit: limits[key],
+          label: key === 'total' ? 'Total' : aiUsageProviderLabel(key),
+          color: AI_DAILY_LIMIT_LINE_COLORS[key] || '#ef4444',
+        }));
+    }
+
+    function renderAiUsageDailyLimitToggles(aiStatus, quotaKind) {
+      const el = document.getElementById('aiUsageDailyLimitToggles');
+      if (!el) return;
+      const limits = collectAiDailyTokenLimits(aiStatus);
+      if (quotaKind !== 'tokens' || !Object.keys(limits).length) {
+        el.hidden = true;
+        el.innerHTML = '';
+        return;
+      }
+      el.hidden = false;
+      const buttons = ['groq', 'openai', 'total']
+        .filter((key) => limits[key])
+        .map((key) => {
+          const active = !!aiUsageDailyLimitLines[key];
+          const label = key === 'total' ? 'Total' : aiUsageProviderLabel(key);
+          const color = AI_DAILY_LIMIT_LINE_COLORS[key] || '#ef4444';
+          return `<button type="button" class="ai-usage-daily-limit-toggle${active ? ' active' : ''}" data-daily-limit="${esc(key)}" aria-pressed="${active ? 'true' : 'false'}" style="color:${color}"><i style="border-top-color:${color}"></i>${esc(label)} (${esc(formatAiUsageTokenCount(limits[key]))})</button>`;
+        })
+        .join('');
+      el.innerHTML = `<span class="ai-usage-daily-limit-label">Limites diários (TPD):</span>${buttons}`;
+    }
+
     function buildAiUsageTopChartSeries(bucket, aiStatus, providerFilter = '') {
       const dailyTokenLimit = extractAiDailyTokenLimit(aiStatus, providerFilter);
       const requestQuotaLimit = extractAiQuotaLimit(aiStatus, null, providerFilter);
@@ -7820,12 +7928,11 @@
       if (!panel) return;
       const configured = aiStatus?.configured || {};
       const providers = aiStatus?.providers || {};
-      const usedProviderIds = getUsedAiProviderIds(aiUsage, summary);
       const order = ['groq', 'openai', 'anthropic'];
       const lines = [];
       order.forEach((id) => {
         if (!configured[id]) return;
-        if (usedProviderIds.size > 0 && !usedProviderIds.has(id)) return;
+        if (aiUsageProviderFilter && aiUsageProviderFilter !== id) return;
         const providerSummary = providers[id]?.summary;
         if (providerSummary) lines.push(renderAiProviderStatusLine(providerSummary));
       });
@@ -8392,6 +8499,7 @@
       if (!aiUsage?.available) {
         chartEl.innerHTML = `<div class="chart-empty">${esc(aiUsage?.error || 'Executa supabase/ai-usage-buckets.sql no Supabase.')}</div>`;
         if (noteEl) noteEl.textContent = 'Contadores agregados por POST /api/generate (retenção 48 h).';
+        renderAiUsageDailyLimitToggles(aiStatus, '');
         renderAiUsageTokensMinuteChart(aiUsage, aiStatus);
         renderAiUsageLatencyChart(aiUsage);
         renderAiUsageErrorsChart(aiUsage);
@@ -8411,6 +8519,7 @@
             ? `Sem pedidos para este fornecedor/modelo no período. ${granNote}`
             : `${granNote} Os dados aparecem após o primeiro pedido a /api/generate.`;
         }
+        renderAiUsageDailyLimitToggles(aiStatus, '');
         renderAiUsageTokensMinuteChart(aiUsage, aiStatus);
         renderAiUsageLatencyChart(aiUsage);
         renderAiUsageErrorsChart(aiUsage);
@@ -8418,6 +8527,10 @@
       }
 
       const topSeries = buildAiUsageTopChartSeries(bucket, aiStatus, aiUsageProviderFilter);
+      const dailyLimits = collectAiDailyTokenLimits(aiStatus);
+      const hasDailyTokenSeries = topSeries.quotaKind === 'tokens' && Object.keys(dailyLimits).length > 0;
+      const dailyRefLines = hasDailyTokenSeries ? buildAiUsageDailyRefLines(aiStatus) : [];
+      renderAiUsageDailyLimitToggles(aiStatus, topSeries.quotaKind);
       const periodRequests = bucket.totalRequests || 0;
       const periodErrors = bucket.totalErrors || 0;
       const periodTokens = bucket.totalTokens || 0;
@@ -8438,10 +8551,13 @@
           ? ` · <strong>${formatAiUsageTokenCount(periodTokens)}</strong> tokens`
           : '';
         const granNote = `Buckets de ${bucketConfig.granularityLabel}.`;
+        const dailyScaleNote = hasDailyTokenSeries
+          ? ' Eixo tokens ajustado ao TPD conhecido — activa as linhas de limite abaixo.'
+          : '';
         const detailNote = (bucket.totalAppLimits || bucket.totalProviderLimits)
           ? ` · <strong>${bucket.totalAppLimits || 0}</strong> app 429 · <strong>${bucket.totalProviderLimits || 0}</strong> fornecedor`
           : '';
-        noteEl.innerHTML = `No período: <strong>${periodRequests}</strong> pedido(s)${tokenNote} · <strong>${periodErrors}</strong> erro(s)${detailNote}. ${granNote}${filterNote}${quotaNote}`;
+        noteEl.innerHTML = `No período: <strong>${periodRequests}</strong> pedido(s)${tokenNote} · <strong>${periodErrors}</strong> erro(s)${detailNote}. ${granNote}${filterNote}${quotaNote}${dailyScaleNote}`;
       }
 
       renderAiUsageDualChart(chartEl, bucket.requests, topSeries.seriesB, topSeries.refLimit, {
@@ -8455,6 +8571,9 @@
         axisLabelA: 'Pedidos',
         axisLabelB: topSeries.axisLabelB,
         refLabel: topSeries.refLabel,
+        dailyLimitsForScale: hasDailyTokenSeries ? dailyLimits : null,
+        refLines: dailyRefLines,
+        scaleRefLimit: hasDailyTokenSeries || aiUsageRefScaleByChart.main,
       });
       renderAiUsageTokensMinuteChart(aiUsage, aiStatus);
       renderAiUsageLatencyChart(aiUsage);
@@ -8486,6 +8605,17 @@
       aiUsageRefScaleByChart.tokensMinute = false;
     }
 
+    function computeAiUsageAxisMax(dataMax, limitValues = [], forceIncludeLimits = false) {
+      const limits = limitValues.filter((n) => Number.isFinite(n) && n > 0);
+      const limitMax = limits.length ? Math.max(...limits) : 0;
+      if (forceIncludeLimits && limitMax > 0) {
+        return niceAxisMax(Math.max(dataMax, limitMax), 5);
+      }
+      const refNaturallyInScale = limitMax > 0 && limitMax <= dataMax * 3;
+      if (refNaturallyInScale) return niceAxisMax(Math.max(dataMax, limitMax), 5);
+      return niceAxisMax(dataMax, 5);
+    }
+
     function computeAiUsageRefScale(dataMax, refLimit, scaleRefLimit) {
       const refNaturallyInScale = refLimit != null && refLimit > 0 && refLimit <= dataMax * 3;
       let max = niceAxisMax(Math.max(dataMax, 1), 5);
@@ -8507,6 +8637,18 @@
       return Math.round(n);
     }
 
+    function buildAiUsageDailyRefLinesSvg(refLines, yAtFn, formatValue, padLeft, w, padRight, padY, innerH) {
+      if (!refLines.length) return '';
+      const sorted = [...refLines].sort((a, b) => b.limit - a.limit);
+      return sorted.map((line, idx) => {
+        const y = yAtFn(line.limit);
+        const label = `${line.label} (${formatValue(line.limit)})`;
+        const labelY = Math.max(padY + 10, Math.min(padY + innerH - 4, y - 4 - idx * 12));
+        return `<line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${w - padRight}" y2="${y.toFixed(1)}" stroke="${line.color}" stroke-dasharray="6 4" stroke-width="1.5" opacity="0.9" />
+          <text class="line-label" x="${w - padRight - 4}" y="${labelY}" text-anchor="end" fill="${line.color}">${esc(label)}</text>`;
+      }).join('');
+    }
+
     function renderAiUsageDualChart(el, seriesA, seriesB, quotaLimit, options = {}) {
       const labelA = options.labelA || 'Pedidos / 5 min';
       const labelB = options.labelB || 'Quota acumulada (dia)';
@@ -8526,6 +8668,14 @@
       const limitMarkers = Array.isArray(options.limitMarkers) ? options.limitMarkers : [];
       const limitProbeMarkers = Array.isArray(options.limitProbeMarkers) ? options.limitProbeMarkers : [];
       const limitBreakdown = options.limitBreakdown === true;
+      const dailyLimitsForScale = options.dailyLimitsForScale || null;
+      const refLines = Array.isArray(options.refLines)
+        ? options.refLines.filter((line) => line && line.limit > 0)
+        : [];
+      const scaleLimitValues = dailyLimitsForScale
+        ? Object.values(dailyLimitsForScale).filter((n) => Number.isFinite(n) && n > 0)
+        : [];
+      const forceDailyScale = scaleLimitValues.length > 0;
       const mapLimits = Object.fromEntries(limitMarkers.map((p) => [p.t, p.v]));
       const mapLimitProbes = Object.fromEntries(limitProbeMarkers.map((p) => [p.t, p.v]));
       const scaleRefLimit = options.scaleRefLimit ?? !!aiUsageRefScaleByChart[chartKey];
@@ -8577,11 +8727,25 @@
         refLegendToggleable = refScale.refLegendToggleable;
         refFormatValue = formatValueB;
       } else {
-        const refScale = computeAiUsageRefScale(dataMaxB, refLimit, scaleRefLimit);
-        maxB = refScale.max;
-        drawRefLine = refScale.drawRefLine;
-        refLegendToggleable = refScale.refLegendToggleable;
-        refFormatValue = formatValueB;
+        if (forceDailyScale) {
+          maxB = computeAiUsageAxisMax(dataMaxB, scaleLimitValues, true);
+          if (refLines.length) {
+            drawRefLine = false;
+            refLegendToggleable = false;
+          } else {
+            const refScale = computeAiUsageRefScale(dataMaxB, refLimit, scaleRefLimit || forceDailyScale);
+            maxB = refScale.max;
+            drawRefLine = refScale.drawRefLine;
+            refLegendToggleable = refScale.refLegendToggleable;
+          }
+          refFormatValue = formatValueB;
+        } else {
+          const refScale = computeAiUsageRefScale(dataMaxB, refLimit, scaleRefLimit);
+          maxB = refScale.max;
+          drawRefLine = refScale.drawRefLine;
+          refLegendToggleable = refScale.refLegendToggleable;
+          refFormatValue = formatValueB;
+        }
       }
 
       const w = 640;
@@ -8624,7 +8788,7 @@
         ${showAxisB ? `<line class="line-axis-spine-right" x1="${w - padRight}" y1="${padY}" x2="${w - padRight}" y2="${padY + innerH}" />` : ''}
       `;
 
-      const refLegendHtml = refLimit
+      const refLegendHtml = refLimit && !refLines.length
         ? (() => {
           const labelText = `${refLabel} (${refFormatValue(refLimit)})`;
           const hint = refLegendToggleable
@@ -8652,16 +8816,19 @@
         </aside>`
         : '';
 
-      const refY = drawRefLine && refLimit != null
+      const dailyRefLinesSvg = refLines.length
+        ? buildAiUsageDailyRefLinesSvg(refLines, refOnAxisA ? yAtA : yAtB, refFormatValue, padLeft, w, padRight, padY, innerH)
+        : '';
+      const refY = drawRefLine && refLimit != null && !refLines.length
         ? (refOnAxisA ? yAtA(refLimit) : yAtB(refLimit))
         : null;
-      const refLineLabel = drawRefLine && refLimit != null
+      const refLineLabel = drawRefLine && refLimit != null && !refLines.length
         ? `${refLabel} (${refFormatValue(refLimit)})`
         : '';
-      const refLineSvg = refY != null
+      const refLineSvg = dailyRefLinesSvg || (refY != null
         ? `<line x1="${padLeft}" y1="${refY.toFixed(1)}" x2="${(w - padRight).toFixed(1)}" y2="${refY.toFixed(1)}" stroke="${refColor}" stroke-dasharray="6 4" stroke-width="1.5" opacity="0.85" />
            <text class="line-label" x="${w - padRight - 4}" y="${Math.max(padY + 12, refY - 6)}" text-anchor="end" fill="${refColor}">${esc(refLineLabel)}</text>`
-        : '';
+        : '');
 
       const labelStep = Math.max(1, Math.ceil(labels.length / 8));
       const xLabels = labels.map((t, i) => {
@@ -14199,6 +14366,17 @@
       try { localStorage.setItem(TELEMETRY_TIMELINE_CHART_STORAGE_KEY, telemetryTimelineChartType); } catch { /* ignore */ }
       if (lastTelemetryPayload?.stats) renderGenTelemetryTimeline(lastTelemetryPayload.stats);
     });
+    document.getElementById('aiUsageDailyLimitToggles')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-daily-limit]');
+      if (!btn) return;
+      const key = btn.dataset.dailyLimit;
+      if (!['groq', 'openai', 'total'].includes(key)) return;
+      aiUsageDailyLimitLines[key] = !aiUsageDailyLimitLines[key];
+      try {
+        localStorage.setItem(AI_USAGE_DAILY_LIMIT_LINES_STORAGE_KEY, JSON.stringify(aiUsageDailyLimitLines));
+      } catch { /* ignore */ }
+      renderAiUsageChart(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
+    });
     document.getElementById('aiUsageRangeFilters')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-ai-usage-range]');
       if (!btn || !AI_USAGE_RANGES[btn.dataset.aiUsageRange]) return;
@@ -14225,6 +14403,7 @@
       } catch { /* ignore */ }
       renderAiUsageSummary(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
       renderAiGameImpact(lastTelemetryPayload?.stats, lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
+      renderAiProviderStatus(lastAiStatusPayload, lastTelemetryPayload?.aiUsage, lastTelemetryPayload?.stats);
       renderAiUsageChart(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
     });
     document.getElementById('aiUsageModelFilter')?.addEventListener('change', (e) => {
@@ -14233,6 +14412,7 @@
       try { localStorage.setItem(AI_USAGE_MODEL_STORAGE_KEY, aiUsageModelFilter); } catch { /* ignore */ }
       renderAiUsageSummary(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
       renderAiGameImpact(lastTelemetryPayload?.stats, lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
+      renderAiProviderStatus(lastAiStatusPayload, lastTelemetryPayload?.aiUsage, lastTelemetryPayload?.stats);
       renderAiUsageChart(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
     });
     document.getElementById('clearGenTelemetryBtn')?.addEventListener('click', async () => {
