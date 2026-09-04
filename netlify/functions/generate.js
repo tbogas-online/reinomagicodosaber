@@ -6,6 +6,8 @@ const {
   runAiFallbackLoop,
   summarizeAttemptsForTelemetry,
   ATTEMPT_TIMEOUT_MS,
+  ProviderCircuitBreaker,
+  sharedCircuitBreaker,
 } = require('./lib/ai-fallback');
 const {
   resolveModelsForProvider: resolveActiveModelsForProvider,
@@ -232,10 +234,13 @@ exports.handler = async (event) => {
     }
 
     const errors = [];
+    const probeRequest = requestContext === 'probe' || requestContext === 'status-probe';
+    const circuitBreaker = probeRequest ? new ProviderCircuitBreaker() : sharedCircuitBreaker;
     const fallback = await runAiFallbackLoop({
       providerList,
       quotaConserve,
       priorityProvider,
+      circuitBreaker,
       resolveModels: (providerName) => resolveModelsForProvider(providerName, requestedModel, process.env),
       callAttempt: async (provider, model) => {
         const maxTokens = effectiveMaxTokens(provider.name, model, requestedTokens);

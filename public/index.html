@@ -6918,6 +6918,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(code === 413) return true;
     if(code === 408) return true;
     if(code >= 500 && code < 600) return true;
+    if(/circuit-breaker|circuit breaker|nenhuma tentativa/i.test(text)) return true;
     if(/^validação:/i.test(text.trim())) return true;
     if(/pedido demasiado grande|resposta inválida do servidor|resposta vazia|repetiu uma pergunta|repetiu o mesmo conhecimento/i.test(text)) return true;
     return false;
@@ -7693,7 +7694,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       const availability = quota ? getAiAvailabilityFromQuota(quota, aiProviderChoice) : { online: false };
       if(isAiRecoverableFailure(status, err?.message) && availability.online){
         setOnlineStatus(true);
-        showAiTransientWarning(err?.message || 'Falha temporária da IA — quota disponível; a tentar de novo.');
+        const warn = /circuit-breaker|circuit breaker|nenhuma tentativa/i.test(String(err?.message || ''))
+          ? 'Verificação bloqueada por circuit-breaker temporário no servidor — quota OK; tenta de novo em ~1 min.'
+          : (err?.message || 'Falha temporária da IA — quota disponível; a tentar de novo.');
+        showAiTransientWarning(warn);
         return true;
       }
       setOnlineStatus(false, err?.message || lastAiStatusDetail || 'IA indisponível', err?.aiData || null);
