@@ -1,19 +1,30 @@
 {
-  "version": "20260904-132453",
-  "updatedAtPortugal": "04/09/2026 13:24:53",
-  "generatedAt": "2026-09-04T12:24:53.624Z",
+  "version": "20260904-181057",
+  "updatedAtPortugal": "04/09/2026 18:10:57",
+  "generatedAt": "2026-09-04T17:10:57.659Z",
   "current": {
     "title": "Versão atual",
     "items": [
-      "Fallback IA resiliente: 429 não interrompe a cadeia; timeout ~10 s/tentativa e ~20 s total; circuit breaker por provider.",
-      "Fallback intercalado: Groq modelo 1 → OpenAI modelo 1 → Groq modelo 2 → … quando um modelo está ocupado.",
-      "AI_ACTIVE_MODELS_GROQ / _OPENAI / _ANTHROPIC: YES activa o provider (modelos default), NO desactiva; lista explícita opcional.",
-      "Banco Supabase: tolerância ±1 na dificuldade pedida; dificuldade aleatória por faixa etária entre perguntas.",
-      "Telemetria: ai_attempts por pedido; separação falha de provider vs rejeição de qualidade.",
-      "Painel admin: fila de revisão sincronizada com telemetria; descartar todas na fila."
+      "Reabastecimento do banco: crédito 💾 +N ao servir pergunta do banco ou IA (cat. 1–19); até 4 rondas × 5 tentativas até guardar 1 pergunta; near-miss de dificuldade (±1, score alto) aceite.",
+      "Painel admin — Telemetria: botão «Descartar tudo» nas causas pendentes; legendas clicáveis para ocultar/mostrar séries nos gráficos; eixos ajustados aos dados; toggles de limites TPD/tokens por fornecedor.",
+      "Painel admin — Fila de revisão: descartar todas por código ou todas as pendentes; sincronização com telemetria.",
+      "Jogo: badge 💾 +N (tooltip com modelo IA); badges de reabastecimento ocultos na categoria 20."
     ]
   },
   "history": [
+    {
+      "date": "04/09/2026",
+      "version": "20260904-132453",
+      "title": "04/09/2026 · fallback IA e telemetria",
+      "items": [
+        "Fallback IA resiliente: 429 não interrompe a cadeia; timeout ~10 s/tentativa e ~20 s total; circuit breaker por provider.",
+        "Fallback intercalado: Groq modelo 1 → OpenAI modelo 1 → Groq modelo 2 → … quando um modelo está ocupado.",
+        "AI_ACTIVE_MODELS_GROQ / _OPENAI / _ANTHROPIC: YES activa o provider (modelos default), NO desactiva; lista explícita opcional.",
+        "Banco Supabase: tolerância ±1 na dificuldade pedida; dificuldade aleatória por faixa etária entre perguntas.",
+        "Telemetria: ai_attempts por pedido; separação falha de provider vs rejeição de qualidade.",
+        "Painel admin: fila de revisão sincronizada com telemetria; descartar todas na fila."
+      ]
+    },
     {
       "date": "04/09/2026",
       "version": "20260904-120236",

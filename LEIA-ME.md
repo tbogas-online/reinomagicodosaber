@@ -30,6 +30,7 @@ Em qualquer uma delas, o jogo chama sempre `/api/generate` e podes configurar **
 - **Não são feitas chamadas de IA em massa ao iniciar** — cada pergunta é gerada quando é necessária.
 - **Ordem de fontes (categorias 1–19):** banco Supabase verificado → IA (com fallback) → banco local embutido.
 - O **banco local** só entra se Supabase e IA falharem; reabastecimento em background (`bankReplenishOnly`) grava no Supabase sem servir perguntas locais ao jogador.
+- **Créditos de reabastecimento:** ao servir uma pergunta do banco ou IA (categorias 1–19), o jogo ganha 1 crédito (badge **💾 +N** no rodapé, com tooltip do modelo). Cada crédito tenta guardar **pelo menos 1** pergunta nova no Supabase — até 4 rondas com 5 tentativas IA cada; near-miss de dificuldade (±1, score ≥ 76) é aceite. Categoria 20 não mostra estes badges.
 - **Fallback IA intercalado:** em modo Automática, o servidor alterna providers por ronda de modelo — ex.: Groq modelo 1 → OpenAI modelo 1 → Groq modelo 2 → … — para saltar rapidamente quando um modelo está ocupado (429, timeout).
 - **429 não interrompe o fallback** — tenta o próximo provider/modelo; só falha quando todos esgotam.
 - **Circuit breaker** por provider (cooldown após falhas repetidas ou `Retry-After` em 429).
@@ -437,6 +438,14 @@ URL: **`/admin-reports.html`** — utilizador e palavra-passe (`REPORTS_ADMIN_US
 - **Opções** (por linha): editar pergunta, resposta e opções; **Guardar pergunta e opções**.
 - **Classificação:** várias categorias e faixas etárias; correcções propagam a duplicados iguais noutras categorias/idades.
 - Botão **Libertar** só em perguntas em quarentena global (30 dias).
+
+**Separador Telemetria IA**
+
+- Gráficos de evolução, causas, categorias e uso de IA; eixos ajustados aos dados (limites opcionais).
+- Tabela de causas com **Descartar todas** por código e **Descartar tudo** global; ocorrências pendentes expandíveis.
+- Gráfico de revisão manual (aceites/descartes) com filtros por categoria e código.
+- **Legendas clicáveis** nos gráficos — clica para ocultar/mostrar séries (preferência guardada no browser).
+- Toggles de limites TPD e tokens/min por fornecedor (Groq, OpenAI, total).
 
 **Estados dos reportes:** `open` (por tratar) → `resolved` (corrigido) ou `cancelled` (cancelado). Cancelados fora dos gráficos; apagáveis permanentemente.
 
