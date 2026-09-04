@@ -4774,7 +4774,10 @@
         el.innerHTML = `<div class="chart-empty">Nenhuma série visível — clica na legenda para mostrar.</div>${renderIssueLegend(allTypes, { ...options, chartId })}`;
         return;
       }
-      const max = computeChartDataAxisMax(Math.max(...series.map((d) => Math.max(...types.map((type) => d.byIssue?.[type] || 0), 0))), 1), 1);
+      const max = computeChartDataAxisMax(
+        Math.max(...series.map((d) => Math.max(...types.map((type) => d.byIssue?.[type] || 0), 0)), 1),
+        1,
+      );
       const layout = createTimelineLayout(series.length, max);
       const { w, h, padX, padY, innerH, slotW } = layout;
       const groupW = slotW * 0.82;
