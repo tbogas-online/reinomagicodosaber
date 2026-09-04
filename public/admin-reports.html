@@ -3599,6 +3599,43 @@
       correctionDraftsByReportId.delete(reportId);
     }
 
+    function readTaxonomyDraft(reportId) {
+      const panel = document.querySelector(`.report-detail-panel[data-detail-for="${reportId}"]`);
+      if (!panel) return taxonomyDraftsByReportId.get(reportId) || null;
+      return readTaxonomyFromEditor(panel, 'report');
+    }
+
+    function saveTaxonomyDraftFromDom(reportId) {
+      const draft = readTaxonomyDraft(reportId);
+      if (!draft) return;
+      if (!draft.categoryNs?.length && !draft.ageBands?.length) return;
+      taxonomyDraftsByReportId.set(reportId, draft);
+    }
+
+    function saveAllTaxonomyDraftsFromDom() {
+      document.querySelectorAll('.report-detail-panel[data-detail-for]').forEach((panel) => {
+        const reportId = panel.dataset.detailFor;
+        if (!reportId) return;
+        const draft = readTaxonomyFromEditor(panel, 'report');
+        if (draft.categoryNs?.length || draft.ageBands?.length) {
+          taxonomyDraftsByReportId.set(reportId, draft);
+        }
+      });
+    }
+
+    function mergeReportTaxonomyWithDraft(reportId, categoryNs, ageBands) {
+      const draft = taxonomyDraftsByReportId.get(reportId);
+      if (!draft) return { categoryNs, ageBands };
+      return {
+        categoryNs: draft.categoryNs?.length ? draft.categoryNs : categoryNs,
+        ageBands: draft.ageBands?.length ? draft.ageBands : ageBands,
+      };
+    }
+
+    function clearTaxonomyDraft(reportId) {
+      taxonomyDraftsByReportId.delete(reportId);
+    }
+
     function applyCorrectionToLocalReport(report, correction) {
       if (!report || !correction) return false;
       const strip = (value) => String(value || '').trim();
@@ -4582,6 +4619,8 @@
     const openReportIds = new Set();
     /** Rascunhos de correcção por reportId — sobrevivem a refresh/re-render da tabela. */
     const correctionDraftsByReportId = new Map();
+    /** Rascunhos de classificação (categoria/idade) nos detalhes de reportes. */
+    const taxonomyDraftsByReportId = new Map();
 
     const loginCard = document.getElementById('loginCard');
     const dashboard = document.getElementById('dashboard');
@@ -5348,6 +5387,65 @@
       return `${code}|${occ?.eventId || ''}|${occ?.ts || ''}|${index}`;
     }
 
+    /** Rascunhos dos formulários «Aceitar e guardar no banco» na telemetria IA. */
+    const telemetryAcceptDraftsByOccKey = new Map();
+
+    function readTelemetryAcceptDraft(occKey) {
+      const formEl = document.querySelector(`.telemetry-accept-form[data-occ-key="${occKey}"]`);
+      if (!formEl) return telemetryAcceptDraftsByOccKey.get(occKey) || null;
+      return readTelemetryAcceptForm(formEl);
+    }
+
+    function saveTelemetryAcceptDraftFromDom(occKey) {
+      const draft = readTelemetryAcceptDraft(occKey);
+      if (!draft) return;
+      if (!draft.question && !draft.answer && !draft.options?.length
+        && !draft.categoryNs?.length && !draft.ageBands?.length) return;
+      telemetryAcceptDraftsByOccKey.set(occKey, draft);
+    }
+
+    function saveAllTelemetryAcceptDraftsFromDom() {
+      document.querySelectorAll('.telemetry-accept-form[data-occ-key]').forEach((formEl) => {
+        const occKey = formEl.getAttribute('data-occ-key');
+        if (!occKey) return;
+        const draft = readTelemetryAcceptForm(formEl);
+        if (!draft) return;
+        if (draft.question || draft.answer || draft.options?.length
+          || draft.categoryNs?.length || draft.ageBands?.length) {
+          telemetryAcceptDraftsByOccKey.set(occKey, draft);
+        }
+      });
+    }
+
+    function mergeTelemetryAcceptWithDraft(occKey, snap, occ) {
+      const draft = telemetryAcceptDraftsByOccKey.get(occKey);
+      const baseOpts = Array.isArray(snap?.options) ? snap.options : [];
+      const defaultCategoryNs = Number.isFinite(Number(occ?.category)) ? [Number(occ.category)] : [];
+      const defaultAgeBands = BANK_AGE_BANDS.includes(occ?.ageBandKey) ? [occ.ageBandKey] : [];
+      if (!draft) {
+        return {
+          question: snap?.q || '',
+          answer: snap?.a || '',
+          options: baseOpts,
+          categoryNs: defaultCategoryNs,
+          ageBands: defaultAgeBands,
+          difficultyByAgeBand: {},
+        };
+      }
+      return {
+        question: draft.question || snap?.q || '',
+        answer: draft.answer ?? snap?.a ?? '',
+        options: draft.options?.length ? draft.options : baseOpts,
+        categoryNs: draft.categoryNs?.length ? draft.categoryNs : defaultCategoryNs,
+        ageBands: draft.ageBands?.length ? draft.ageBands : defaultAgeBands,
+        difficultyByAgeBand: draft.difficultyByAgeBand || {},
+      };
+    }
+
+    function clearTelemetryAcceptDraft(occKey) {
+      telemetryAcceptDraftsByOccKey.delete(occKey);
+    }
+
     function canShowTelemetryAccept(occ) {
       if (occ?.bankValidatedAt) return false;
       const snap = occ?.questionSnapshot;
@@ -5466,12 +5564,19 @@
       return { categoryNs, ageBands, difficultyByAgeBand, difficulty };
     }
 
-    function renderTelemetryDifficultyField(key, occ, snapshot) {
+    function renderTelemetryDifficultyField(key, occ, snapshot, merged = null) {
       const ageBand = occ?.ageBandKey || '15+';
       const estimated = telemetryEstimatedDifficulty(occ, snapshot);
+      const categoryNs = merged?.categoryNs?.length
+        ? merged.categoryNs
+        : (Number.isFinite(Number(occ?.category)) ? [Number(occ.category)] : []);
+      const ageBands = merged?.ageBands?.length
+        ? merged.ageBands
+        : (BANK_AGE_BANDS.includes(ageBand) ? [ageBand] : []);
       return renderValidationClassifierEditor('telemetry', key, {
-        categoryNs: Number.isFinite(Number(occ?.category)) ? [Number(occ.category)] : [],
-        ageBands: BANK_AGE_BANDS.includes(ageBand) ? [ageBand] : [],
+        categoryNs,
+        ageBands,
+        difficulties: merged?.difficultyByAgeBand || {},
         requestedDifficulty: occ?.difficulty,
         estimatedDifficulty: estimated,
       });
@@ -5485,18 +5590,19 @@
       if (!canShowTelemetryAccept(occ)) return '';
       const key = telemetryOccurrenceKey(code, occ, index);
       const snap = occ.questionSnapshot;
-      const opts = Array.isArray(snap.options) ? snap.options : [];
+      const merged = mergeTelemetryAcceptWithDraft(key, snap, occ);
+      const opts = Array.isArray(merged.options) ? merged.options : [];
       return `
         <details class="telemetry-accept-panel">
           <summary>💾 Aceitar e guardar no banco</summary>
           <div class="telemetry-accept-form" data-occ-key="${esc(key)}">
             <label>Pergunta</label>
-            <textarea class="telemetry-accept-question" data-occ-key="${esc(key)}">${esc(snap.q || '')}</textarea>
+            <textarea class="telemetry-accept-question" data-occ-key="${esc(key)}">${esc(merged.question || '')}</textarea>
             <label>Resposta correcta</label>
-            <input type="text" class="telemetry-accept-answer" data-occ-key="${esc(key)}" value="${esc(snap.a || '')}">
+            <input type="text" class="telemetry-accept-answer" data-occ-key="${esc(key)}" value="${esc(merged.answer || '')}">
             <label>Opções (uma por linha)</label>
             <textarea class="telemetry-accept-options" data-occ-key="${esc(key)}">${esc(opts.join('\n'))}</textarea>
-            ${renderTelemetryDifficultyField(key, occ, snap)}
+            ${renderTelemetryDifficultyField(key, occ, snap, merged)}
             <div class="telemetry-accept-actions">
               <button type="button" class="primary telemetry-accept-save-btn"
                 data-issue-code="${esc(code)}"
@@ -5676,6 +5782,7 @@
     function renderGenIssueDetailList(summary, overrides = []) {
       const el = document.getElementById('chartGenIssueDetail');
       if (!el) return;
+      saveAllTelemetryAcceptDraftsFromDom();
       const detail = summary?.byIssueDetail || {};
       const entries = Object.entries(detail)
         .sort((a, b) => b[1].count - a[1].count)
@@ -8309,7 +8416,10 @@
           </div>
           ${!isSite ? `<div class="report-detail-section report-detail-span">
             <h4>Classificação</h4>
-            ${renderTaxonomyEditor('report', r.reportId, reportCategoryNs(r), reportAgeBands(r))}
+            ${(() => {
+              const tax = mergeReportTaxonomyWithDraft(r.reportId, reportCategoryNs(r), reportAgeBands(r));
+              return renderTaxonomyEditor('report', r.reportId, tax.categoryNs, tax.ageBands);
+            })()}
           </div>` : ''}
           <div class="report-detail-section">
             <h4>Reporte do jogador</h4>
@@ -8336,6 +8446,7 @@
 
     function renderReports(reports) {
       saveAllCorrectionDraftsFromDom();
+      saveAllTaxonomyDraftsFromDom();
       if (!reports.length) {
         reportsBody.innerHTML = '<tr><td colspan="11">Sem reportes com estes filtros.</td></tr>';
         updateBulkUi();
@@ -8715,8 +8826,12 @@
     };
     const selectedBankHashes = new Set();
     let bankSearchLoading = false;
+    /** Rascunhos de edição nas linhas expandidas da pesquisa do banco. */
+    const bankEditDraftsByHash = new Map();
     let lastPendingReviewItems = [];
     let pendingReviewLoading = false;
+    /** Rascunhos da fila de revisão — sobrevivem a refresh/re-render da lista. */
+    const pendingReviewDraftsById = new Map();
     const openBankHashes = new Set();
     let bankDeleteLoading = false;
 
@@ -8884,7 +8999,56 @@
       };
     }
 
+    function savePendingReviewDraftFromDom(pendingId) {
+      const itemEl = document.querySelector(`.pending-review-item[data-pending-id="${pendingId}"]`);
+      const draft = readPendingReviewForm(itemEl);
+      if (!draft) return;
+      if (!draft.question && !draft.answer && !draft.options?.length
+        && !draft.categoryNs?.length && !draft.ageBands?.length) return;
+      pendingReviewDraftsById.set(pendingId, draft);
+    }
+
+    function saveAllPendingReviewDraftsFromDom() {
+      document.querySelectorAll('.pending-review-item[data-pending-id]').forEach((itemEl) => {
+        const pendingId = itemEl.dataset.pendingId;
+        if (!pendingId) return;
+        const draft = readPendingReviewForm(itemEl);
+        if (!draft) return;
+        if (draft.question || draft.answer || draft.options?.length
+          || draft.categoryNs?.length || draft.ageBands?.length) {
+          pendingReviewDraftsById.set(pendingId, draft);
+        }
+      });
+    }
+
+    function mergePendingReviewWithDraft(pendingId, row) {
+      const draft = pendingReviewDraftsById.get(pendingId);
+      if (!draft || !row) return row;
+      const categoryNs = draft.categoryNs?.length
+        ? draft.categoryNs
+        : (row.categoryN ? [row.categoryN] : []);
+      const ageBands = draft.ageBands?.length
+        ? draft.ageBands
+        : (row.ageBand ? [row.ageBand] : []);
+      return {
+        ...row,
+        question: draft.question || row.question || '',
+        correctAnswer: draft.answer ?? row.correctAnswer ?? '',
+        options: draft.options?.length ? draft.options : (Array.isArray(row.options) ? row.options : []),
+        categoryN: categoryNs[0] ?? row.categoryN,
+        ageBand: ageBands[0] ?? row.ageBand,
+        _classifierCategoryNs: categoryNs,
+        _classifierAgeBands: ageBands,
+        _classifierDifficulties: draft.difficultyByAgeBand || {},
+      };
+    }
+
+    function clearPendingReviewDraft(pendingId) {
+      pendingReviewDraftsById.delete(pendingId);
+    }
+
     function renderPendingReviewList(items) {
+      saveAllPendingReviewDraftsFromDom();
       const el = document.getElementById('bankPendingList');
       if (!el) return;
       const list = Array.isArray(items) ? items : [];
@@ -8900,31 +9064,36 @@
         return;
       }
       el.innerHTML = list.map((row) => {
-        const opts = Array.isArray(row.options) ? row.options : [];
-        const when = row.createdAt ? formatPortugalDateTime(row.createdAt) : '';
-        const issueLabel = row.issueCodes?.length
-          ? formatPendingIssueLabel(row.issueCodes[0])
+        const display = mergePendingReviewWithDraft(row.id, row);
+        const opts = Array.isArray(display.options) ? display.options : [];
+        const when = display.createdAt ? formatPortugalDateTime(display.createdAt) : '';
+        const issueLabel = display.issueCodes?.length
+          ? formatPendingIssueLabel(display.issueCodes[0])
           : 'Dificuldade';
+        const classifierCategoryNs = display._classifierCategoryNs
+          ?? (display.categoryN ? [display.categoryN] : []);
+        const classifierAgeBands = display._classifierAgeBands
+          ?? (display.ageBand ? [display.ageBand] : []);
         return `
           <article class="pending-review-item" data-pending-id="${esc(row.id)}">
             <header class="pending-review-header">
               <div class="pending-review-badges">
-                <span class="pending-pill pending-pill-cat">${esc(bankCategoryLabel(row.categoryN))}</span>
-                <span class="pending-pill pending-pill-age">${esc(row.ageBand || '—')}</span>
+                <span class="pending-pill pending-pill-cat">${esc(bankCategoryLabel(display.categoryN))}</span>
+                <span class="pending-pill pending-pill-age">${esc(display.ageBand || '—')}</span>
                 <span class="pending-pill pending-pill-issue">${esc(issueLabel)}</span>
               </div>
-              ${when ? `<time class="pending-review-time" datetime="${esc(row.createdAt || '')}">${esc(when)}</time>` : ''}
+              ${when ? `<time class="pending-review-time" datetime="${esc(display.createdAt || '')}">${esc(when)}</time>` : ''}
             </header>
             <div class="pending-review-body">
               <div class="pending-review-main">
                 <div class="pending-field">
                   <label for="pr-q-${esc(row.id)}">Pergunta</label>
-                  <textarea id="pr-q-${esc(row.id)}" class="pending-review-question" rows="3">${esc(row.question || '')}</textarea>
+                  <textarea id="pr-q-${esc(row.id)}" class="pending-review-question" rows="3">${esc(display.question || '')}</textarea>
                 </div>
                 <div class="pending-review-row-2">
                   <div class="pending-field">
                     <label for="pr-a-${esc(row.id)}">Resposta correcta</label>
-                    <input id="pr-a-${esc(row.id)}" type="text" class="pending-review-answer" value="${esc(row.correctAnswer || '')}">
+                    <input id="pr-a-${esc(row.id)}" type="text" class="pending-review-answer" value="${esc(display.correctAnswer || '')}">
                   </div>
                   <div class="pending-field">
                     <label for="pr-o-${esc(row.id)}">Opções (uma por linha)</label>
@@ -8935,12 +9104,13 @@
               <aside class="pending-review-aside">
                 <div class="pending-diff-panel">
                   <h4>Classificação e dificuldade</h4>
-                  ${renderPendingReviewDiffCompare(row.requestedDifficulty, row.estimatedDifficulty)}
+                  ${renderPendingReviewDiffCompare(display.requestedDifficulty, display.estimatedDifficulty)}
                   ${renderValidationClassifierEditor('pending', row.id, {
-                    categoryNs: row.categoryN ? [row.categoryN] : [],
-                    ageBands: row.ageBand ? [row.ageBand] : [],
-                    requestedDifficulty: row.requestedDifficulty,
-                    estimatedDifficulty: row.estimatedDifficulty,
+                    categoryNs: classifierCategoryNs,
+                    ageBands: classifierAgeBands,
+                    difficulties: display._classifierDifficulties || {},
+                    requestedDifficulty: display.requestedDifficulty,
+                    estimatedDifficulty: display.estimatedDifficulty,
                   })}
                 </div>
                 <div class="pending-review-actions">
@@ -8993,6 +9163,7 @@
     async function loadPendingReviewQueue(options = {}) {
       const { quiet = false } = options;
       if (pendingReviewLoading) return;
+      saveAllPendingReviewDraftsFromDom();
       const statusEl = document.getElementById('bankPendingStatus');
       if (!quiet && statusEl) {
         statusEl.textContent = 'A carregar fila…';
@@ -9196,11 +9367,60 @@
       };
     }
 
+    function readBankEditDraft(hash) {
+      const panel = document.querySelector(`.report-detail-panel[data-bank-detail-for="${hash}"]`);
+      if (!panel) return bankEditDraftsByHash.get(hash) || null;
+      return { ...readBankContentFromPanel(panel), ...readTaxonomyFromEditor(panel, 'bank') };
+    }
+
+    function saveBankEditDraftFromDom(hash) {
+      const draft = readBankEditDraft(hash);
+      if (!draft) return;
+      if (!draft.question && !draft.answer && !draft.options?.length && draft.difficulty == null
+        && !draft.categoryNs?.length && !draft.ageBands?.length) return;
+      bankEditDraftsByHash.set(hash, draft);
+    }
+
+    function saveAllBankEditDraftsFromDom() {
+      document.querySelectorAll('.report-detail-panel[data-bank-detail-for]').forEach((panel) => {
+        const hash = panel.dataset.bankDetailFor;
+        if (!hash) return;
+        const draft = { ...readBankContentFromPanel(panel), ...readTaxonomyFromEditor(panel, 'bank') };
+        if (draft.question || draft.answer || draft.options?.length || draft.difficulty != null
+          || draft.categoryNs?.length || draft.ageBands?.length) {
+          bankEditDraftsByHash.set(hash, draft);
+        }
+      });
+    }
+
+    function mergeBankRowWithDraft(hash, row) {
+      const draft = bankEditDraftsByHash.get(hash);
+      if (!draft || !row) return row;
+      const categoryNs = draft.categoryNs?.length ? draft.categoryNs : bankRowCategoryNs(row);
+      const ageBands = draft.ageBands?.length ? draft.ageBands : bankRowAgeBands(row);
+      return {
+        ...row,
+        question: draft.question || row.question || '',
+        correct_answer: draft.answer ?? row.correct_answer ?? '',
+        options: draft.options?.length ? draft.options : (Array.isArray(row.options) ? row.options : []),
+        difficulty: draft.difficulty != null ? draft.difficulty : row.difficulty,
+        category_ns: categoryNs,
+        category_n: categoryNs[0] ?? row.category_n,
+        age_bands: ageBands,
+        age_band: ageBands[0] ?? row.age_band,
+      };
+    }
+
+    function clearBankEditDraft(hash) {
+      bankEditDraftsByHash.delete(hash);
+    }
+
     function renderBankDetailPanel(row) {
       const hash = row.question_hash || '';
-      const opts = Array.isArray(row.options) ? row.options.filter((o) => String(o || '').trim()) : [];
+      const display = mergeBankRowWithDraft(hash, row);
+      const opts = Array.isArray(display.options) ? display.options.filter((o) => String(o || '').trim()) : [];
       const optionsText = opts.join('\n');
-      const answer = String(row.correct_answer || '').trim();
+      const answer = String(display.correct_answer || '').trim();
       const created = row.created_at
         ? new Date(row.created_at).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })
         : '—';
@@ -9214,17 +9434,17 @@
             <h4>Pergunta e opções</h4>
             <div class="report-diagnosis-correction bank-question-edit">
               <label for="bank-q-${esc(hash)}">Pergunta</label>
-              <textarea id="bank-q-${esc(hash)}" class="bank-corr-question report-corr-question" data-hash="${esc(hash)}">${esc(row.question || '')}</textarea>
+              <textarea id="bank-q-${esc(hash)}" class="bank-corr-question report-corr-question" data-hash="${esc(hash)}">${esc(display.question || '')}</textarea>
               <label for="bank-a-${esc(hash)}">Resposta correcta</label>
               <input id="bank-a-${esc(hash)}" type="text" class="bank-corr-answer report-corr-answer" data-hash="${esc(hash)}" value="${esc(answer)}">
               <label for="bank-o-${esc(hash)}">Opções (uma por linha)</label>
               <textarea id="bank-o-${esc(hash)}" class="bank-corr-options report-corr-options" data-hash="${esc(hash)}">${esc(optionsText)}</textarea>
               <label for="bank-d-${esc(hash)}">Dificuldade (banco)</label>
-              ${renderDifficultyScaleHint(bankRowPrimaryAgeBand(row))}
+              ${renderDifficultyScaleHint(bankRowPrimaryAgeBand(display))}
               ${renderDifficultySelect(
                 'bank-corr-difficulty',
-                bankRowPrimaryAgeBand(row),
-                row.difficulty != null ? row.difficulty : telemetryDifficultyRange(bankRowPrimaryAgeBand(row)).min,
+                bankRowPrimaryAgeBand(display),
+                display.difficulty != null ? display.difficulty : telemetryDifficultyRange(bankRowPrimaryAgeBand(display)).min,
                 `id="bank-d-${esc(hash)}" data-hash="${esc(hash)}"`,
               )}
             </div>
@@ -9241,7 +9461,7 @@
           </div>
           <div class="report-detail-section report-detail-span">
             <h4>Classificação</h4>
-            ${renderTaxonomyEditor('bank', hash, bankRowCategoryNs(row), bankRowAgeBands(row))}
+            ${renderTaxonomyEditor('bank', hash, bankRowCategoryNs(display), bankRowAgeBands(display))}
           </div>
         </div>
       </div>`;
@@ -9296,6 +9516,7 @@
           delete data.report.engineDiagnosis;
           reportsById[reportId] = data.report;
           lastReports = lastReports.map((r) => (r.reportId === reportId ? data.report : r));
+          clearTaxonomyDraft(reportId);
           renderReports(lastReports);
         }
         if (updateBank) await loadBankDashboard({ quiet: true });
@@ -9402,8 +9623,10 @@
             openBankHashes.delete(hash);
             openBankHashes.add(newHash);
           }
+          bankEditDraftsByHash.delete(hash);
         }
 
+        clearBankEditDraft(newHash);
         renderBankSearchResults(lastBankSearchRows);
         await loadBankDashboard({ quiet: true });
 
@@ -9459,6 +9682,7 @@
           row.category_n = categoryNs[0];
           row.age_band = ageBands[0];
         }
+        clearBankEditDraft(hash);
         renderBankSearchResults(lastBankSearchRows);
         await loadBankDashboard({ quiet: true });
         if (statusEl) {
@@ -9536,6 +9760,7 @@
     }
 
     function renderBankSearchResults(rows) {
+      saveAllBankEditDraftsFromDom();
       lastBankSearchRows = sortBankSearchRows(rows || []);
       const body = document.getElementById('bankSearchBody');
       if (!body) return;
@@ -12225,17 +12450,42 @@
     });
     document.getElementById('bankPendingReviewSection')?.addEventListener('change', (e) => {
       const ageCheck = e.target.closest('.pending-validation-age-check');
-      if (!ageCheck) return;
-      const row = ageCheck.closest('.validation-age-diff-row');
-      const sel = row?.querySelector('select');
-      if (sel) sel.disabled = !ageCheck.checked;
+      if (ageCheck) {
+        const row = ageCheck.closest('.validation-age-diff-row');
+        const sel = row?.querySelector('select');
+        if (sel) sel.disabled = !ageCheck.checked;
+      }
+      const itemEl = e.target.closest('.pending-review-item[data-pending-id]');
+      if (itemEl?.dataset.pendingId) savePendingReviewDraftFromDom(itemEl.dataset.pendingId);
+    });
+    document.getElementById('bankPendingList')?.addEventListener('input', (e) => {
+      const itemEl = e.target.closest('.pending-review-item[data-pending-id]');
+      if (!itemEl?.dataset.pendingId) return;
+      if (!e.target.classList.contains('pending-review-question')
+        && !e.target.classList.contains('pending-review-answer')
+        && !e.target.classList.contains('pending-review-options')) return;
+      savePendingReviewDraftFromDom(itemEl.dataset.pendingId);
     });
     document.getElementById('chartGenIssueDetail')?.addEventListener('change', (e) => {
       const ageCheck = e.target.closest('.telemetry-validation-age-check');
-      if (!ageCheck) return;
-      const row = ageCheck.closest('.validation-age-diff-row');
-      const sel = row?.querySelector('select');
-      if (sel) sel.disabled = !ageCheck.checked;
+      if (ageCheck) {
+        const row = ageCheck.closest('.validation-age-diff-row');
+        const sel = row?.querySelector('select');
+        if (sel) sel.disabled = !ageCheck.checked;
+      }
+      const formEl = e.target.closest('.telemetry-accept-form[data-occ-key]');
+      if (formEl) {
+        const occKey = formEl.getAttribute('data-occ-key');
+        if (occKey) saveTelemetryAcceptDraftFromDom(occKey);
+      }
+    });
+    document.getElementById('chartGenIssueDetail')?.addEventListener('input', (e) => {
+      const occKey = e.target.dataset?.occKey;
+      if (!occKey) return;
+      if (!e.target.classList.contains('telemetry-accept-question')
+        && !e.target.classList.contains('telemetry-accept-answer')
+        && !e.target.classList.contains('telemetry-accept-options')) return;
+      saveTelemetryAcceptDraftFromDom(occKey);
     });
     document.getElementById('bankPendingReviewDetails')?.addEventListener('toggle', (e) => {
       if (e.target.open) loadPendingReviewQueue({ quiet: true });
@@ -12252,6 +12502,7 @@
         if (acceptBtn) {
           acceptBtn.disabled = true;
           await acceptPendingReviewItem(id);
+          clearPendingReviewDraft(id);
           if (statusEl) {
             statusEl.textContent = 'Pergunta aceite no banco.';
             statusEl.className = 'status ok';
@@ -12259,6 +12510,7 @@
         } else if (dismissBtn) {
           dismissBtn.disabled = true;
           await dismissPendingReviewItem(id);
+          clearPendingReviewDraft(id);
           if (statusEl) {
             statusEl.textContent = 'Entrada descartada.';
             statusEl.className = 'status ok';
@@ -12322,12 +12574,28 @@
       renderBankSearchResults(lastBankSearchRows);
     });
     document.getElementById('bankSearchBody')?.addEventListener('change', (e) => {
-      if (!e.target.classList.contains('bank-row-check')) return;
-      const hash = e.target.dataset.hash;
+      if (e.target.classList.contains('bank-row-check')) {
+        const hash = e.target.dataset.hash;
+        if (!hash) return;
+        if (e.target.checked) selectedBankHashes.add(hash);
+        else selectedBankHashes.delete(hash);
+        updateBankDeleteUi();
+        return;
+      }
+      const panel = e.target.closest('.report-detail-panel[data-bank-detail-for]');
+      if (panel?.dataset.bankDetailFor
+        && (e.target.classList.contains('bank-category-check') || e.target.classList.contains('bank-age-check'))) {
+        saveBankEditDraftFromDom(panel.dataset.bankDetailFor);
+      }
+    });
+    document.getElementById('bankSearchBody')?.addEventListener('input', (e) => {
+      const hash = e.target.dataset?.hash;
       if (!hash) return;
-      if (e.target.checked) selectedBankHashes.add(hash);
-      else selectedBankHashes.delete(hash);
-      updateBankDeleteUi();
+      if (!e.target.classList.contains('bank-corr-question')
+        && !e.target.classList.contains('bank-corr-answer')
+        && !e.target.classList.contains('bank-corr-options')
+        && !e.target.classList.contains('bank-corr-difficulty')) return;
+      saveBankEditDraftFromDom(hash);
     });
     document.getElementById('bankSearchBody')?.addEventListener('click', async (e) => {
       if (e.target.classList.contains('toggle-bank-detail')) {
@@ -12501,6 +12769,8 @@
             acceptBtn.disabled = false;
             return;
           }
+          const occKey = acceptBtn.closest('.telemetry-accept-form')?.getAttribute('data-occ-key');
+          if (occKey) clearTelemetryAcceptDraft(occKey);
           if (statusEl) {
             const action = data.action === 'inserted' ? 'inserida' : 'actualizada';
             const telemetryNote = data.telemetryValidated
@@ -12684,12 +12954,20 @@
     });
 
     reportsBody.addEventListener('change', (e) => {
-      if (!e.target.classList.contains('report-select')) return;
-      const id = e.target.dataset.id;
-      if (!id) return;
-      if (e.target.checked) selectedReportIds.add(id);
-      else selectedReportIds.delete(id);
-      updateBulkUi();
+      if (e.target.classList.contains('report-select')) {
+        const id = e.target.dataset.id;
+        if (!id) return;
+        if (e.target.checked) selectedReportIds.add(id);
+        else selectedReportIds.delete(id);
+        updateBulkUi();
+        return;
+      }
+      const reportId = e.target.dataset?.reportId
+        || e.target.closest('.report-detail-panel[data-detail-for]')?.dataset.detailFor;
+      if (reportId && (e.target.classList.contains('report-category-check')
+        || e.target.classList.contains('report-age-check'))) {
+        saveTaxonomyDraftFromDom(reportId);
+      }
     });
 
     reportsBody.addEventListener('click', async (e) => {
