@@ -177,7 +177,9 @@ export async function onRequestPost(context) {
 
   const requestedTokens = Number(payload.max_tokens) || 300;
   const requestedModel = typeof payload.model === 'string' ? payload.model : 'auto';
-  const quotaConserve = payload.quota_conserve === true;
+  const requestContext = String(payload.request_context || '').trim().toLowerCase();
+  const isReplenish = requestContext === 'replenish' || requestContext === 'bank-replenish';
+  const quotaConserve = isReplenish ? false : payload.quota_conserve === true;
   let providerList = (quotaConserve && !providerStrict) ? providers.slice(0, 1) : providers;
   const activeModels = getActiveModelsSnapshot(env);
   if (activeModels.configured) {

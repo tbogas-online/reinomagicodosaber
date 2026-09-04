@@ -4770,7 +4770,8 @@
       }
       return { id, configured, blocked, remaining, estimatedJobs: jobs, blockReason };
     });
-    const picked = providers.find((p) => p.estimatedJobs > 0) || null;
+    const eligible = providers.filter((p) => p.estimatedJobs > 0);
+    const picked = eligible[0] || null;
     let reason = 'ok';
     if(!picked){
       if(!providers.some((p) => p.configured)) reason = 'no_providers_configured';
@@ -4778,9 +4779,10 @@
       else reason = 'insufficient_quota_for_replenish';
     }
     return {
-      allowed: !!picked,
+      allowed: eligible.length > 0,
       reason,
       pickedProvider: picked?.id || null,
+      fallbackProviders: eligible.map((p) => p.id),
       providers,
       minRemainingRequired: BANK_AI_REPLENISH_MIN_REMAINING,
     };
@@ -4998,8 +5000,9 @@
           category: catN,
           ageBand: ageBandKey,
           pickedProvider: inspect.pickedProvider,
+          fallbackProviders: inspect.fallbackProviders,
           playable,
-          nota: 'pickedProvider é só quota; o servidor escolhe o modelo (Groq→OpenAI)',
+          nota: 'quota_conserve desligado — fallback completo Groq↔OpenAI no servidor',
         });
       }
       bankAiReplenishRecentAt[key] = Date.now();
@@ -7024,11 +7027,13 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   };
 
   function buildAiRequestBody(messages, maxTokens, opts = {}){
+    const isReplenish = opts.requestContext === 'replenish';
     return {
       model: aiModelChoice === 'auto' ? undefined : aiModelChoice,
       max_tokens: maxTokens,
       provider_preference: aiProviderChoice,
-      quota_conserve: shouldConserveAiQuota(lastAiQuotaSnapshot),
+      // Reabastecimento em background: cadeia completa Groq↔OpenAI (não limitar ao 1.º provider).
+      quota_conserve: isReplenish ? false : shouldConserveAiQuota(lastAiQuotaSnapshot),
       request_context: opts.requestContext || 'game',
       messages,
     };

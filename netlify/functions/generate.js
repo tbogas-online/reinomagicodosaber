@@ -210,7 +210,8 @@ exports.handler = async (event) => {
 
     const requestedTokens = Number(payload.max_tokens) || 300;
     const requestedModel = typeof payload.model === 'string' ? payload.model : 'auto';
-    const quotaConserve = payload.quota_conserve === true;
+    // Reabastecimento banco: fallback completo entre providers/modelos (429 não bloqueia a cadeia).
+    const quotaConserve = requestContext === 'replenish' ? false : payload.quota_conserve === true;
     let providerList = (quotaConserve && !providerStrict) ? providers.slice(0, 1) : providers;
     const activeModels = getActiveModelsSnapshot(process.env);
     if (activeModels.configured) {
