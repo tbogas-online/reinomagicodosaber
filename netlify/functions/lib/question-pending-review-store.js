@@ -11,6 +11,8 @@ const DIFFICULTY_MISMATCH_CODES = new Set([
   'DIFFICULTY_OUT_OF_RANGE',
 ]);
 
+const REVIEWABLE_TELEMETRY_OUTCOMES = new Set(['rejected', 'parse_error', 'api_error']);
+
 function stripTags(str) {
   return String(str || '').replace(/<[^>]*>/g, '').trim();
 }
@@ -75,21 +77,60 @@ async function fetchReviewedQuestionHashes() {
   );
 }
 
+function countOpenTelemetryRowsByCode(rows) {
+  const counts = new Map();
+  for (const row of rows || []) {
+    if (row?.dismissed_at || row?.bank_validated_at) continue;
+    const outcome = String(row?.outcome || 'rejected');
+    if (!REVIEWABLE_TELEMETRY_OUTCOMES.has(outcome)) continue;
+    const codes = (row.issue_codes || [])
+      .map((c) => String(c || '').trim())
+      .filter(Boolean);
+    for (const code of codes) {
+      counts.set(code, (counts.get(code) || 0) + 1);
+    }
+  }
+  return counts;
+}
+
 async function fetchTelemetryRejectedRows({ limit = 300, days = 90 } = {}) {
   const capped = Math.min(Math.max(Number(limit) || 300, 1), 1000);
   const dayCount = Math.min(Math.max(Number(days) || 90, 1), 365);
   const sinceIso = new Date(Date.now() - dayCount * 24 * 60 * 60 * 1000).toISOString();
-  const params = new URLSearchParams({
-    select: 'id,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options',
-    outcome: 'eq.rejected',
-    created_at: `gte.${sinceIso}`,
-    question_text: 'not.is.null',
-    answer_text: 'not.is.null',
-    order: 'created_at.desc',
-    limit: String(capped),
-  });
-  const rows = await supabaseRequest(`/${TELEMETRY_TABLE}?${params.toString()}`);
-  return Array.isArray(rows) ? rows : [];
+  const baseSelect = 'id,category,format_id,age_band_key,difficulty,game_mode,source,outcome,issue_codes,issue_messages,question_text,answer_text,question_options,dismissed_at,bank_validated_at';
+  const attempts = [
+    { select: baseSelect, filterDismissed: true },
+    { select: baseSelect.replace(',dismissed_at,bank_validated_at', ''), filterDismissed: false },
+  ];
+  for (const attempt of attempts) {
+    const params = new URLSearchParams({
+      select: attempt.select,
+      outcome: 'in.(rejected,parse_error,api_error)',
+      created_at: `gte.${sinceIso}`,
+      question_text: 'not.is.null',
+      answer_text: 'not.is.null',
+      order: 'created_at.desc',
+      limit: String(capped),
+    });
+    if (attempt.filterDismissed) {
+      params.set('dismissed_at', 'is.null');
+    }
+    try {
+      const rows = await supabaseRequest(`/${TELEMETRY_TABLE}?${params.toString()}`);
+      const list = Array.isArray(rows) ? rows : [];
+      if (!attempt.filterDismissed) {
+        return list.filter((row) => !row?.dismissed_at && !row?.bank_validated_at);
+      }
+      return list;
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (attempt.filterDismissed && (msg.includes('dismissed_at') || msg.includes('42703'))) {
+        continue;
+      }
+      throw err;
+    }
+  }
+  return [];
 }
 
 function shouldImportTelemetryRow(row, { issueCode = '' } = {}) {
@@ -138,15 +179,19 @@ async function getPendingReviewIssueCodeOptions({ days = 90, limit = 400 } = {})
   ]);
   const pendingMap = new Map(pendingByCode.map((entry) => [entry.code, entry.count]));
   const telemetryMap = new Map(telemetryByCodeAll.map((entry) => [entry.code, entry.count]));
+  const telemetryOpenMap = countOpenTelemetryRowsByCode(telemetryRows);
   const difficultyMap = new Map(telemetryByCode.map((entry) => [entry.code, entry.count]));
   const codes = [...codeSet].sort((a, b) => {
     const pendingDiff = (pendingMap.get(b) || 0) - (pendingMap.get(a) || 0);
     if (pendingDiff) return pendingDiff;
-    return (telemetryMap.get(b) || 0) - (telemetryMap.get(a) || 0) || a.localeCompare(b);
+    return (telemetryOpenMap.get(b) || 0) - (telemetryOpenMap.get(a) || 0)
+      || (telemetryMap.get(b) || 0) - (telemetryMap.get(a) || 0)
+      || a.localeCompare(b);
   }).map((code) => ({
     code,
     pendingCount: pendingMap.get(code) || 0,
     telemetryCount: telemetryMap.get(code) || 0,
+    telemetryOpenCount: telemetryOpenMap.get(code) || 0,
     difficultyImportCount: difficultyMap.get(code) || 0,
   }));
   return { codes, days };
@@ -580,10 +625,54 @@ async function dismissPendingReviewByIssueCode({ issueCode } = {}) {
   return { dismissed, issueCode: code, reviewedAt: now };
 }
 
+async function dismissAllPendingReview() {
+  const now = new Date().toISOString();
+  let dismissed = 0;
+  const chunkSize = 100;
+  const hashes = new Set();
+
+  while (true) {
+    const rows = await supabaseRequest(
+      `/${TABLE}?status=eq.pending&select=id,question_hash&limit=500`,
+      { prefer: 'return=representation' },
+    );
+    const list = Array.isArray(rows) ? rows : [];
+    if (!list.length) break;
+    list.forEach((row) => {
+      const hash = String(row?.question_hash || '').trim();
+      if (hash) hashes.add(hash);
+    });
+    const ids = list.map((row) => row.id).filter(Boolean);
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const inList = chunk.map((id) => encodeURIComponent(id)).join(',');
+      await supabaseRequest(`/${TABLE}?id=in.(${inList})&status=eq.pending`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'dismissed', reviewed_at: now }),
+        prefer: 'return=minimal',
+      });
+      dismissed += chunk.length;
+    }
+    if (ids.length < 500) break;
+  }
+
+  if (hashes.size) {
+    try {
+      const { dismissTelemetryByQuestionHashes } = require('./gen-telemetry-store');
+      await dismissTelemetryByQuestionHashes({ hashes: [...hashes] });
+    } catch (err) {
+      console.warn('[question-pending-review-store] dismiss telemetry hashes:', err?.message || err);
+    }
+  }
+
+  return { dismissed, reviewedAt: now };
+}
+
 module.exports = {
   DIFFICULTY_MISMATCH_CODES,
   isDifficultyOnlyCodes,
   shouldImportTelemetryRow,
+  countOpenTelemetryRowsByCode,
   getPendingReviewStats,
   countBankRowsWithDifficulty,
   queuePendingReviewEntry,
@@ -594,4 +683,5 @@ module.exports = {
   acceptPendingReview,
   dismissPendingReview,
   dismissPendingReviewByIssueCode,
+  dismissAllPendingReview,
 };

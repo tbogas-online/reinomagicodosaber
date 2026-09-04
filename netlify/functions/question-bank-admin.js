@@ -19,6 +19,7 @@ const {
   syncPendingReviewFromTelemetry,
   getPendingReviewIssueCodeOptions,
   dismissPendingReviewByIssueCode,
+  dismissAllPendingReview,
 } = require('./lib/question-pending-review-store');
 const { regenerateAdivinhaBankOptions } = require('./lib/adivinha-bank-fix');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
@@ -320,6 +321,16 @@ exports.handler = async (event) => {
           console.error('[question-bank-admin] dismiss-pending-by-issue-code failed:', err);
           if (err.code === 'MISSING_ISSUE_CODE') return json(400, { error: err.message });
           return json(503, { error: 'Não foi possível descartar as entradas deste código.' });
+        }
+      }
+
+      if (body.action === 'dismiss-all-pending-review') {
+        try {
+          const result = await dismissAllPendingReview();
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] dismiss-all-pending-review failed:', err);
+          return json(503, { error: 'Não foi possível descartar a fila de revisão.' });
         }
       }
 

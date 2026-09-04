@@ -9742,11 +9742,16 @@
       const label = formatPendingIssueLabel(entry.code);
       const parts = [];
       if (entry.pendingCount) parts.push(`${entry.pendingCount} na fila`);
-      if (entry.telemetryCount) parts.push(`${entry.telemetryCount} na telemetria`);
+      const openTelemetry = Number(entry.telemetryOpenCount);
+      if (openTelemetry > 0) {
+        parts.push(`${openTelemetry} abertas na telemetria`);
+      } else if (entry.telemetryCount) {
+        parts.push(`${entry.telemetryCount} na telemetria`);
+      }
       return parts.length ? `${label} (${parts.join(' · ')})` : label;
     }
 
-    function syncPendingReviewIssueCodeSelect(codes, selected = '') {
+    function syncPendingReviewIssueCodeSelect(codes, selected = '', totalPending = 0) {
       const sel = document.getElementById('bankPendingIssueCodeSelect');
       const dismissBtn = document.getElementById('bankPendingDismissCodeBtn');
       if (!sel) return;
@@ -9759,12 +9764,21 @@
         sel.value = selected;
       }
       const current = list.find((entry) => entry.code === sel.value);
+      const codePending = Number(current?.pendingCount) || 0;
+      const queueTotal = Number(totalPending) || 0;
+      const activeCount = sel.value ? codePending : queueTotal;
       if (dismissBtn) {
-        const pendingCount = Number(current?.pendingCount) || 0;
-        dismissBtn.disabled = !pendingCount;
-        dismissBtn.textContent = pendingCount
-          ? `✕ Descartar todas na fila (${pendingCount})`
+        dismissBtn.disabled = activeCount <= 0;
+        dismissBtn.textContent = activeCount
+          ? `✕ Descartar todas na fila (${activeCount})`
           : '✕ Descartar todas na fila';
+        dismissBtn.title = sel.value
+          ? (codePending
+            ? `Descartar ${codePending} pendente(s) com o código ${sel.value}`
+            : 'Nenhuma pendente na fila para este código — importa da telemetria ou escolhe outro código')
+          : (queueTotal
+            ? `Descartar todas as ${queueTotal} pergunta(s) pendentes na fila`
+            : 'Sem perguntas pendentes na fila');
       }
     }
 
@@ -9775,11 +9789,15 @@
           body: JSON.stringify({ action: 'list-pending-review-issue-codes', limit: 400, days: 90 }),
         });
         lastPendingReviewIssueCodes = data.codes || [];
-        syncPendingReviewIssueCodeSelect(lastPendingReviewIssueCodes, selected);
+        syncPendingReviewIssueCodeSelect(
+          lastPendingReviewIssueCodes,
+          selected,
+          lastPendingReviewItems.length,
+        );
         return data;
       } catch {
         lastPendingReviewIssueCodes = [];
-        syncPendingReviewIssueCodeSelect([], '');
+        syncPendingReviewIssueCodeSelect([], '', lastPendingReviewItems.length);
         return null;
       }
     }
@@ -9789,7 +9807,7 @@
       if (!code) throw new Error('Selecciona um código de causa.');
       const statusEl = document.getElementById('bankPendingStatus');
       const entry = lastPendingReviewIssueCodes.find((item) => item.code === code);
-      const telemetryCount = Number(entry?.telemetryCount) || 0;
+      const telemetryCount = Number(entry?.telemetryOpenCount ?? entry?.telemetryCount) || 0;
       const ok = await confirmAction(
         `Importar da telemetria todas as rejeições com o código ${formatPendingIssueLabel(code)}?\n\n${telemetryCount ? `~${telemetryCount} evento(s) na telemetria (últimos 90 dias).` : 'Importa ocorrências com este código nos últimos 90 dias.'}\n\nEntram na fila de revisão para editar e aceitar no banco.`,
         { okLabel: 'Importar código' },
@@ -9825,22 +9843,32 @@
 
     async function dismissPendingReviewByIssueCode(issueCode) {
       const code = String(issueCode || '').trim();
-      if (!code) throw new Error('Selecciona um código de causa.');
-      const entry = lastPendingReviewIssueCodes.find((item) => item.code === code);
-      const pendingCount = Number(entry?.pendingCount) || 0;
+      const entry = code ? lastPendingReviewIssueCodes.find((item) => item.code === code) : null;
+      const pendingCount = code
+        ? (Number(entry?.pendingCount) || 0)
+        : (lastPendingReviewItems.length || 0);
+      if (!pendingCount) {
+        throw new Error(code
+          ? 'Nenhuma pergunta pendente na fila para este código.'
+          : 'Sem perguntas pendentes na fila.');
+      }
       const ok = await confirmAction(
-        `Descartar todas as ${pendingCount || ''} pergunta(s) pendentes na fila com o código ${formatPendingIssueLabel(code)}?`,
+        code
+          ? `Descartar todas as ${pendingCount} pergunta(s) pendentes na fila com o código ${formatPendingIssueLabel(code)}?`
+          : `Descartar todas as ${pendingCount} pergunta(s) pendentes na fila?`,
         { okLabel: 'Descartar todas', danger: true },
       );
       if (!ok) return null;
       const statusEl = document.getElementById('bankPendingStatus');
       if (statusEl) {
-        statusEl.textContent = `A descartar pendentes de ${code}…`;
+        statusEl.textContent = code ? `A descartar pendentes de ${code}…` : 'A descartar todas as pendentes…';
         statusEl.className = 'status';
       }
       const data = await api('/api/question-bank-admin', {
         method: 'POST',
-        body: JSON.stringify({ action: 'dismiss-pending-by-issue-code', issueCode: code }),
+        body: JSON.stringify(code
+          ? { action: 'dismiss-pending-by-issue-code', issueCode: code }
+          : { action: 'dismiss-all-pending-review' }),
       });
       saveAllPendingReviewDraftsFromDom();
       for (const row of lastPendingReviewItems) {
@@ -13270,7 +13298,11 @@
       }
     });
     document.getElementById('bankPendingIssueCodeSelect')?.addEventListener('change', (e) => {
-      syncPendingReviewIssueCodeSelect(lastPendingReviewIssueCodes, e.target.value || '');
+      syncPendingReviewIssueCodeSelect(
+        lastPendingReviewIssueCodes,
+        e.target.value || '',
+        lastPendingReviewItems.length,
+      );
     });
     document.getElementById('bankPendingRefreshBtn')?.addEventListener('click', () => loadPendingReviewQueue());
     document.getElementById('bankPendingList')?.addEventListener('click', async (e) => {

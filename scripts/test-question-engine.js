@@ -1066,7 +1066,10 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
       { category: 3, issueCodes: ['FORMAT_VIOLATION'] },
       { categoryN: 3, issueCode: 'FORMAT_VIOLATION' },
     ));
-  const { shouldImportTelemetryRow } = require('../netlify/functions/lib/question-pending-review-store');
+  const {
+    shouldImportTelemetryRow,
+    countOpenTelemetryRowsByCode,
+  } = require('../netlify/functions/lib/question-pending-review-store');
   assert('105a. pending review import by code', shouldImportTelemetryRow(
     { issue_codes: ['FORMAT_VIOLATION', 'AGE_TOO_HARD'] },
     { issueCode: 'FORMAT_VIOLATION' },
@@ -1083,6 +1086,16 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
       { issue_codes: ['FORMAT_VIOLATION'] },
       {},
     ));
+  assert('105c. pending review telemetry open counts', (() => {
+    const counts = countOpenTelemetryRowsByCode([
+      { outcome: 'rejected', issue_codes: ['PT_OFFENSIVE_LANGUAGE'], dismissed_at: null },
+      { outcome: 'parse_error', issue_codes: ['STRUCTURE_MISSING_A'], dismissed_at: null },
+      { outcome: 'rejected', issue_codes: ['PT_OFFENSIVE_LANGUAGE'], dismissed_at: '2026-01-01T00:00:00Z' },
+      { outcome: 'accepted', issue_codes: ['PT_OFFENSIVE_LANGUAGE'] },
+    ]);
+    return counts.get('PT_OFFENSIVE_LANGUAGE') === 1
+      && counts.get('STRUCTURE_MISSING_A') === 1;
+  })());
   const { rowMatchesTelemetryHashes } = require('../netlify/functions/lib/gen-telemetry-store');
   assert('105b. telemetria match by previous hash', rowMatchesTelemetryHashes(
     { question_text: 'Pergunta original?', answer_text: 'Resposta' },
