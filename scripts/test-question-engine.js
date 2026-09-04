@@ -959,7 +959,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     issueMessages: [`msg ${i}`],
     ts: 1000 + i,
   })));
-  assert('104c. telemetria recentOccurrences', recentSummary.byIssueDetail.AGE_TOO_HARD?.recentOccurrences?.length === 12
+  assert('104c. telemetria recentOccurrences', recentSummary.byIssueDetail.AGE_TOO_HARD?.recentOccurrences?.length === 10
     && recentSummary.byIssueDetail.AGE_TOO_HARD.recentOccurrences[0].message === 'msg 11');
   const validatedSummary = computeSummaryFromItems([
     { outcome: 'rejected', issueCodes: ['DIFFICULTY_HARDER_THAN_REQUESTED'], issueMessages: ['dif'], bankValidatedAt: '2026-01-01T00:00:00Z', bankValidatedEdited: false },
@@ -978,7 +978,8 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   ]);
   assert('104d2. telemetria dismissed', dismissedSummary.dismissedTotal === 1
     && dismissedSummary.byIssueDetail.FORMAT_VIOLATION?.dismissedCount === 1
-    && dismissedSummary.byIssueDetail.FORMAT_VIOLATION?.recentOccurrences?.filter((occ) => !occ.dismissedAt).length === 1);
+    && dismissedSummary.byIssueDetail.FORMAT_VIOLATION?.recentOccurrences?.length === 1
+    && !dismissedSummary.byIssueDetail.FORMAT_VIOLATION.recentOccurrences[0].dismissedAt);
   const { computeReviewTimelineFromItems } = require('../netlify/functions/lib/gen-telemetry-store');
   const {
     buildReviewTimelineBundles,

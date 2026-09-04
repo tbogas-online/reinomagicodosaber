@@ -1804,6 +1804,63 @@
       padding-top: 12px;
       border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
     }
+    .bank-matrix-details > summary {
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+    }
+    .bank-matrix-details > summary::-webkit-details-marker {
+      display: none;
+    }
+    .bank-matrix-summary {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 2px 0;
+    }
+    .bank-matrix-summary::before {
+      content: '▸';
+      flex-shrink: 0;
+      margin-top: 4px;
+      font-size: 0.95rem;
+      color: var(--muted);
+    }
+    .bank-matrix-details[open] > .bank-matrix-summary::before {
+      content: '▾';
+      color: #fcd34d;
+    }
+    .bank-matrix-summary-main {
+      flex: 1;
+      min-width: 0;
+    }
+    .bank-matrix-hint {
+      display: block;
+      margin-top: 4px;
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .bank-matrix-details[open] .bank-matrix-hint,
+    .bank-matrix-details[open] .bank-matrix-collapsed-summary {
+      display: none;
+    }
+    .bank-matrix-collapsed-summary {
+      margin-top: 8px;
+    }
+    .bank-matrix-worst-label {
+      font-size: 0.78rem;
+      color: var(--muted);
+      margin-bottom: 4px;
+    }
+    .bank-matrix-collapsed-summary .pill-critical {
+      border-color: rgba(239, 68, 68, 0.45);
+      color: #fca5a5;
+    }
+    .bank-matrix-body {
+      margin-top: 12px;
+      padding-top: 12px;
+      border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    }
     .pending-review-code-bar {
       display: flex;
       flex-wrap: wrap;
@@ -2010,9 +2067,28 @@
       min-width: 2px;
     }
     .chart-bank-category {
-      max-height: 560px;
-      overflow-y: auto;
       padding-right: 4px;
+    }
+    .chart-bank-category .bar-row {
+      margin-bottom: 5px;
+      gap: 6px;
+      font-size: 11px;
+      grid-template-columns: minmax(72px, 36%) 1fr auto;
+    }
+    .chart-bank-category .bar-track {
+      height: 8px;
+    }
+    .chart-bank-category .bar-row.bar-weak {
+      padding: 1px 4px;
+      margin: 0 -4px 5px;
+    }
+    @media (min-width: 900px) {
+      .chart-bank-category {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        column-gap: 18px;
+        align-content: start;
+      }
     }
     .donut-wrap {
       display: flex;
@@ -2900,13 +2976,19 @@
         </div>
 
         <div class="card">
-          <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
-            <h2 class="charts-title" style="margin:0;">Perguntas por categoria e faixa etária</h2>
-            <div class="rooms-refresh-wrap">
-              <button type="button" class="secondary" id="bankRefreshBtn">↻ Actualizar</button>
-              <span id="bankLastUpdated" class="rooms-last-updated"></span>
-            </div>
-          </div>
+          <details class="bank-matrix-details" id="bankMatrixDetails">
+            <summary class="bank-matrix-summary">
+              <span class="bank-matrix-summary-main">
+                <h2 class="charts-title" style="margin:0;">Perguntas por categoria e faixa etária</h2>
+                <div id="bankMatrixCollapsedSummary" class="bank-matrix-collapsed-summary" aria-live="polite"></div>
+                <span class="bank-matrix-hint">Clica para ver a matriz completa, quarentena e origem.</span>
+              </span>
+              <div class="rooms-refresh-wrap" onclick="event.stopPropagation()">
+                <button type="button" class="secondary" id="bankRefreshBtn">↻ Actualizar</button>
+                <span id="bankLastUpdated" class="rooms-last-updated"></span>
+              </div>
+            </summary>
+            <div class="bank-matrix-body">
           <p class="status" id="bankListStatus"></p>
           <p class="sub" style="margin-top:0;">Perguntas activas com <strong>opções válidas</strong> (escolha múltipla) no Supabase.</p>
           <div id="bankInvalidAlert" class="bank-alert hidden"></div>
@@ -2968,6 +3050,8 @@
             </div>
           </div>
           <div id="bankSourceBreakdown"></div>
+            </div>
+          </details>
         </div>
 
         <div class="card" id="bankPendingReviewSection">
@@ -5507,13 +5591,15 @@
       return !occ?.bankValidatedAt && !occ?.dismissedAt;
     }
 
-    function getIssueOccurrenceList(info, { includeValidated = false } = {}) {
+    const GEN_TELEMETRY_PREVIEW_OCCURRENCES = 10;
+
+    function getIssueOccurrenceList(info, { includeValidated = false, limit = GEN_TELEMETRY_PREVIEW_OCCURRENCES } = {}) {
       const recent = Array.isArray(info?.recentOccurrences) ? info.recentOccurrences : [];
       const base = recent.length ? recent : (info?.lastOccurrence ? [info.lastOccurrence] : []);
       const filtered = includeValidated
         ? base
         : base.filter((occ) => isTelemetryOccurrenceOpen(occ));
-      return filtered;
+      return typeof limit === 'number' && limit > 0 ? filtered.slice(0, limit) : filtered;
     }
 
     function countOpenIssueOccurrences(info) {
@@ -5986,8 +6072,18 @@
       const listEl = block.querySelector('.issue-occ-list');
       if (!listEl) return;
       if (!force && (block.dataset.occLoaded === '1' || block.dataset.occLoaded === 'loading')) return;
+      const info = lastTelemetryPayload?.stats?.byIssueDetail?.[code] || {};
+      const openCount = countOpenIssueOccurrencesFromSummary(info);
+      const previewOccurrences = getIssueOccurrenceList(info);
+      if (!force && openCount > 0 && openCount <= previewOccurrences.length) {
+        block.dataset.occLoaded = '1';
+        return;
+      }
       block.dataset.occLoaded = 'loading';
-      listEl.innerHTML = '<p class="issue-occ-loading sub" style="margin:0;font-size:11px;color:var(--muted);">A carregar…</p>';
+      const loadingNote = previewOccurrences.length
+        ? '<p class="issue-occ-loading sub" style="margin:8px 0 0;font-size:11px;color:var(--muted);">A carregar todas as pendentes…</p>'
+        : '<p class="issue-occ-loading sub" style="margin:0;font-size:11px;color:var(--muted);">A carregar…</p>';
+      listEl.insertAdjacentHTML('beforeend', loadingNote);
       try {
         const data = await api('/api/gen-telemetry-admin', {
           method: 'POST',
@@ -5998,7 +6094,6 @@
             limit: 1000,
           }),
         });
-        const info = lastTelemetryPayload?.stats?.byIssueDetail?.[code] || {};
         const occurrences = data.occurrences || [];
         listEl.innerHTML = renderGenIssueOccurrenceItemsHtml(
           code,
@@ -6006,10 +6101,14 @@
           lastTelemetryOverrides,
           occurrences,
         );
+        if (openCount > GEN_TELEMETRY_PREVIEW_OCCURRENCES) {
+          listEl.insertAdjacentHTML('beforeend', `<p class="issue-occ-loading sub" style="margin:8px 0 0;font-size:11px;color:var(--muted);">A mostrar ${occurrences.length} de ${openCount} pendentes.</p>`);
+        }
         block.dataset.occLoaded = occurrences.length ? '1' : 'empty';
       } catch (err) {
-        block.dataset.occLoaded = '';
-        listEl.innerHTML = `<p class="issue-occ-loading sub" style="margin:0;font-size:11px;color:#fca5a5;">${esc(err.message || 'Erro ao carregar ocorrências.')}</p>`;
+        block.dataset.occLoaded = previewOccurrences.length ? 'preview' : '';
+        listEl.querySelector('.issue-occ-loading:last-of-type')?.remove();
+        listEl.insertAdjacentHTML('beforeend', `<p class="issue-occ-loading sub" style="margin:8px 0 0;font-size:11px;color:#fca5a5;">${esc(err.message || 'Erro ao carregar ocorrências.')}</p>`);
       }
     }
 
@@ -6038,11 +6137,18 @@
       const dismissedNote = dismissedCount
         ? ` · <span class="issue-dismissed">${dismissedCount} descartada(s)</span>`
         : '';
+      const previewHtml = previewOccurrences.length
+        ? renderGenIssueOccurrenceItemsHtml(code, info, overrides, previewOccurrences)
+        : '<p class="issue-occ-loading sub" style="margin:0;font-size:11px;color:var(--muted);">Sem pré-visualização — expandir para carregar.</p>';
+      const moreNote = openCount > previewOccurrences.length
+        ? `<p class="issue-occ-more-note sub" style="margin:8px 0 0;font-size:11px;color:var(--muted);">Últimas ${previewOccurrences.length} de ${openCount} pendentes — expandir para carregar todas.</p>`
+        : '';
       return `
         <details class="issue-occ-block" data-issue-code="${esc(code)}">
           <summary class="issue-occ-summary">${esc(summaryLabel)}${validatedNote}${dismissedNote}${overriddenCount ? ` · <span class="issue-override-active">${overriddenCount} com regra desactivada</span>` : ''}</summary>
           <div class="issue-occ-list">
-            <p class="issue-occ-loading sub" style="margin:0;font-size:11px;color:var(--muted);">Expandir para carregar todas as pendentes…</p>
+            ${previewHtml}
+            ${moreNote}
           </div>
         </details>
       `;
@@ -11518,6 +11624,42 @@
       return (Number(n) || 0) <= BANK_CELL_GAP_MAX ? 'cell-gap' : '';
     }
 
+    function buildBankWorstGaps(grid, limit = 3) {
+      const items = [];
+      for (const cat of BANK_CATEGORIES) {
+        const row = grid[cat.n] || {};
+        for (const age of BANK_AGE_BANDS) {
+          items.push({ cat, age, count: Number(row[age]) || 0 });
+        }
+      }
+      items.sort((a, b) => {
+        const cmp = a.count - b.count;
+        if (cmp) return cmp;
+        if (a.cat.n !== b.cat.n) return a.cat.n - b.cat.n;
+        return BANK_AGE_BANDS.indexOf(a.age) - BANK_AGE_BANDS.indexOf(b.age);
+      });
+      return items.slice(0, limit);
+    }
+
+    function renderBankMatrixCollapsedSummary(grid) {
+      const el = document.getElementById('bankMatrixCollapsedSummary');
+      if (!el) return;
+      const worst = buildBankWorstGaps(grid, 3);
+      if (!worst.length) {
+        el.innerHTML = '';
+        return;
+      }
+      el.innerHTML = `
+        <div class="bank-matrix-worst-label"><strong>Piores lacunas</strong></div>
+        <div class="bank-gaps-list">
+          ${worst.map(({ cat, age, count }) => {
+            const ageLabel = BANK_AGE_CHART_LABELS[age] || age;
+            const pillCls = count === 0 ? 'pill pill-critical' : 'pill';
+            return `<span class="${pillCls}" title="${esc(cat.name)}">${cat.n} ${esc(cat.name)} · ${esc(ageLabel)}: <strong>${count}</strong></span>`;
+          }).join('')}
+        </div>`;
+    }
+
     function renderBankGapsSummary(grid) {
       const el = document.getElementById('bankGapsSummary');
       if (!el) return;
@@ -11704,6 +11846,7 @@
 
       updateBankMatrixHeaders(ageTotals);
       renderBankGapsSummary(grid);
+      renderBankMatrixCollapsedSummary(grid);
 
       foot.innerHTML = `<tr class="total-row">
         <th>Total</th>
@@ -13073,7 +13216,7 @@
       const block = e.target.closest('.issue-occ-block[data-issue-code]');
       if (!block || e.target !== block || !block.open) return;
       loadIssueOccurrencesForBlock(block);
-    });
+    }, true);
     document.getElementById('chartGenIssueDetail')?.addEventListener('change', (e) => {
       const ageCheck = e.target.closest('.telemetry-validation-age-check');
       if (ageCheck) {
@@ -13412,6 +13555,8 @@
     document.getElementById('chartGenIssueDetail')?.addEventListener('click', async (e) => {
       const dismissCodeBtn = e.target.closest('.telemetry-dismiss-code-btn');
       if (dismissCodeBtn) {
+        e.preventDefault();
+        e.stopPropagation();
         const statusEl = document.getElementById('telemetryListStatus');
         const issueCode = dismissCodeBtn.getAttribute('data-issue-code') || '';
         const openCount = Number(dismissCodeBtn.getAttribute('data-open-count')) || 0;
@@ -13424,7 +13569,7 @@
           }
           if (data.skipped === 'column_missing') {
             if (statusEl) {
-              statusEl.textContent = 'Coluna dismissed_at em falta — executa supabase/gen-telemetry-dismissed.sql no Supabase.';
+              statusEl.textContent = 'Coluna dismissed_at em falta — executa supabase/gen-telemetry-dismissed.sql no Supabase e recarrega o schema (Settings → API → Reload).';
               statusEl.className = 'status err';
             }
             dismissCodeBtn.disabled = false;
@@ -13436,7 +13581,7 @@
               statusEl.textContent = `${n} ocorrência(s) de ${issueCode} descartada(s).`;
               statusEl.className = 'status ok';
             } else if (openCount > 0) {
-              statusEl.textContent = `Nenhuma ocorrência descartada (esperadas ~${openCount}). Verifica a coluna dismissed_at no Supabase.`;
+              statusEl.textContent = `Nenhuma ocorrência descartada (esperadas ~${openCount}). Confirma que executaste supabase/gen-telemetry-dismissed.sql no Supabase.`;
               statusEl.className = 'status err';
               dismissCodeBtn.disabled = false;
               return;
@@ -13445,6 +13590,15 @@
               statusEl.className = 'status ok';
             }
           }
+          const issueCodeEsc = (typeof CSS !== 'undefined' && CSS.escape)
+            ? CSS.escape(issueCode)
+            : issueCode.replace(/"/g, '\\"');
+          document.querySelectorAll(`.issue-occ-block[data-issue-code="${issueCodeEsc}"]`).forEach((block) => {
+            block.dataset.occLoaded = '';
+            if (block.open) {
+              loadIssueOccurrencesForBlock(block, { force: true });
+            }
+          });
           await loadTelemetryDashboard({ quiet: true });
         } catch (err) {
           if (statusEl) {
