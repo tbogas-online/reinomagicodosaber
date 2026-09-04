@@ -1006,6 +1006,14 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   }) === 5
     && countOpenTelemetryByIssueDetail({ openCount: 7 }) === 7
     && countOpenTelemetryByIssueDetail({ count: 4, validatedCount: 2, dismissedCount: 5 }) === 0);
+  const parseIssueSummary = computeSummaryFromItems([
+    { outcome: 'parse_error', issueCodes: ['STRUCTURE_MISSING_A'], issueMessages: ['campo a'] },
+    { outcome: 'rejected', issueCodes: ['STRUCTURE_MISSING_A'], issueMessages: ['campo a 2'] },
+    { outcome: 'accepted', issueCodes: ['STRUCTURE_MISSING_A'], issueMessages: ['ok'] },
+  ]);
+  assert('104d9. telemetria parse_error na fila', parseIssueSummary.byIssueDetail.STRUCTURE_MISSING_A?.openCount === 2
+    && parseIssueSummary.byIssueDetail.STRUCTURE_MISSING_A?.recentOccurrences?.length === 2
+    && parseIssueSummary.byIssueDetail.STRUCTURE_MISSING_A?.count === 3);
   const snap = { q: 'Quem fundou a UEFA?', a: '1955', options: ['A', 'B'] };
   assert('104d4. telemetria edited flag', isTelemetrySnapshotEdited(snap, {
     question: 'Quem fundou a UEFA?',

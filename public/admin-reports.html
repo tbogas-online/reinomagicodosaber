@@ -5588,7 +5588,10 @@
     }
 
     function isTelemetryOccurrenceOpen(occ) {
-      return !occ?.bankValidatedAt && !occ?.dismissedAt;
+      const outcome = String(occ?.outcome || '');
+      return (outcome === 'rejected' || outcome === 'parse_error' || outcome === 'api_error')
+        && !occ?.bankValidatedAt
+        && !occ?.dismissedAt;
     }
 
     const GEN_TELEMETRY_PREVIEW_OCCURRENCES = 10;
@@ -5603,9 +5606,7 @@
     }
 
     function countOpenIssueOccurrences(info) {
-      const recent = Array.isArray(info?.recentOccurrences) ? info.recentOccurrences : [];
-      const base = recent.length ? recent : (info?.lastOccurrence ? [info.lastOccurrence] : []);
-      return base.filter((occ) => isTelemetryOccurrenceOpen(occ)).length;
+      return countOpenIssueOccurrencesFromSummary(info);
     }
 
     function countOpenIssueOccurrencesFromSummary(info) {

@@ -22,6 +22,8 @@ const TABLE = 'gen_telemetry_events';
 
 const VALID_OUTCOMES = new Set(['accepted', 'rejected', 'parse_error', 'api_error', 'unknown']);
 const VALID_GAME_MODES = new Set(['local', 'multiplayer', 'test']);
+const REVIEWABLE_TELEMETRY_OUTCOMES = new Set(['rejected', 'parse_error', 'api_error']);
+const REVIEWABLE_TELEMETRY_OUTCOME_FILTER = 'in.(rejected,parse_error,api_error)';
 
 function clip(value, max) {
   return String(value || '').trim().slice(0, max);
@@ -392,8 +394,12 @@ function buildIssueOccurrence(ev, code) {
   };
 }
 
+function isReviewableTelemetryOutcome(outcome) {
+  return REVIEWABLE_TELEMETRY_OUTCOMES.has(String(outcome || ''));
+}
+
 function isOpenIssueOccurrence(occ) {
-  return !occ?.bankValidatedAt && !occ?.dismissedAt;
+  return isReviewableTelemetryOutcome(occ?.outcome) && !occ?.bankValidatedAt && !occ?.dismissedAt;
 }
 
 function accumulateIssueDetail(summary, ev) {
@@ -426,7 +432,7 @@ function accumulateIssueDetail(summary, ev) {
     if (ev.dismissedAt) {
       entry.dismissedCount = (entry.dismissedCount || 0) + 1;
     }
-    if (ev.outcome === 'rejected' && isOpenIssueOccurrence(ev)) {
+    if (isOpenIssueOccurrence(ev)) {
       entry.openCount = (entry.openCount || 0) + 1;
     }
     if (msg && !entry.sampleMessage) {
@@ -815,7 +821,7 @@ async function fetchIssueCodeEventRows(issueCode, gameMode = '', { limit = 1000 
   if (!code) return [];
   const capped = Math.min(Math.max(Number(limit) || 1000, 1), 1000);
   const params = {
-    outcome: 'eq.rejected',
+    outcome: REVIEWABLE_TELEMETRY_OUTCOME_FILTER,
     dismissed_at: 'is.null',
     bank_validated_at: 'is.null',
     issue_codes: `cs.{${code}}`,
@@ -864,7 +870,7 @@ async function dismissTelemetryEvent({ eventId } = {}) {
   }
   const now = new Date().toISOString();
   try {
-    await supabaseRequest(`/${TABLE}?id=eq.${encodeURIComponent(id)}&outcome=eq.rejected`, {
+    await supabaseRequest(`/${TABLE}?id=eq.${encodeURIComponent(id)}`, {
       method: 'PATCH',
       body: JSON.stringify({ dismissed_at: now }),
       prefer: 'return=minimal',
@@ -915,7 +921,7 @@ async function dismissTelemetryEventsByIssueCode({ issueCode, gameMode = '' } = 
       const chunk = ids.slice(i, i + chunkSize);
       const inList = chunk.map((id) => encodeURIComponent(id)).join(',');
       try {
-        await supabaseRequest(`/${TABLE}?id=in.(${inList})&outcome=eq.rejected`, {
+        await supabaseRequest(`/${TABLE}?id=in.(${inList})`, {
           method: 'PATCH',
           body: JSON.stringify({ dismissed_at: now }),
           prefer: 'return=minimal',
