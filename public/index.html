@@ -4758,7 +4758,7 @@
   const BANK_AI_REPLENISH_EST_TOKENS = 6500;
   const BANK_AI_REPLENISH_MIN_REMAINING = 8000;
   const BANK_AI_REPLENISH_QUOTA_HEADROOM = 0.12;
-  const BANK_AI_REPLENISH_MAX_JOBS_PER_TICK = 2;
+  const BANK_AI_REPLENISH_MAX_JOBS_PER_TICK = 1;
   const BANK_AI_REPLENISH_TICK_MS = 90 * 1000;
   const BANK_AI_REPLENISH_JOB_GAP_MS = 2000;
   const cat20ReplenishInflight = {};
@@ -4773,10 +4773,28 @@
   };
   let bankAddedBadgeCount = 0;
   let bankReplenishMissCount = 0;
+  let bankAddedModelCounts = {};
+  let bankReplenishCredits = 0;
 
-  function markBankQuestionAdded(count = 1){
+  function grantBankReplenishCredit(){
+    bankReplenishCredits += 1;
+  }
+
+  function tryConsumeBankReplenishCredit(){
+    if(bankReplenishCredits <= 0) return false;
+    bankReplenishCredits -= 1;
+    return true;
+  }
+
+  function markBankQuestionAdded(count = 1, meta = {}){
     if(!count) return;
     bankAddedBadgeCount += count;
+    const provider = meta.provider || '';
+    const model = meta.model || '';
+    if(provider || model){
+      const key = `${provider}|${model}`;
+      bankAddedModelCounts[key] = (bankAddedModelCounts[key] || 0) + count;
+    }
     refreshBankReplenishFoot();
   }
 
@@ -4796,8 +4814,11 @@
 
   function onBankReplenishComplete(result, categoryN, ageBandKey){
     if(categoryN === 20) return;
-    if(result?.replenished) markBankQuestionAdded(1);
-    else markBankQuestionNotAdded(1, { categoryN, ageBandKey, reason: result?.reason || 'validation_or_save' });
+    if(result?.replenished){
+      markBankQuestionAdded(1, { provider: result.provider, model: result.model });
+    } else {
+      markBankQuestionNotAdded(1, { categoryN, ageBandKey, reason: result?.reason || 'validation_or_save' });
+    }
   }
 
   function refreshBankMissFoot(){
@@ -4830,10 +4851,14 @@
       el.classList.remove('visible');
       el.textContent = '';
       el.hidden = true;
+      el.removeAttribute('title');
+      el.removeAttribute('aria-label');
       return;
     }
     el.textContent = bankAddedBadgeCount === 1 ? '+1 banco' : `+${bankAddedBadgeCount} banco`;
-    el.title = 'Nova(s) pergunta(s) guardada(s) no Supabase em background';
+    const title = buildBankAddedBadgeTitle();
+    el.title = title;
+    el.setAttribute('aria-label', title);
     el.classList.add('visible');
     el.hidden = false;
   }
@@ -4983,6 +5008,13 @@
           jobs--;
           continue;
         }
+        if(!tryConsumeBankReplenishCredit()){
+          bankAiQuotaScheduler.stats.skipped++;
+          if(DEBUG_MODE){
+            console.info('[Reino debug] Fila reabastecimento parada — sem crédito (máx. 1 nova pergunta por pergunta do banco)');
+          }
+          break;
+        }
 
         let result;
         try {
@@ -5054,8 +5086,10 @@
     if(aiProviderChoice === 'local') return;
     const catN = category?.n;
     if(!catN || catN === 20 || catN < 1 || catN > 19) return;
-    if(servedQuestion?.source !== 'bank') return;
+    const servedSrc = servedQuestion?.source;
+    if(servedSrc !== 'bank' && servedSrc !== 'ai') return;
     if(!window.QuestionBank?.isConfigured?.()) return;
+    grantBankReplenishCredit();
     const key = `${catN}|${ageBandKey}`;
     if(bankAiReplenishInflight[key]) return;
     const run = async () => {
@@ -5121,6 +5155,16 @@
           playable,
           nota: 'quota_conserve desligado — fallback completo Groq↔OpenAI no servidor',
         });
+      }
+      if(!tryConsumeBankReplenishCredit()){
+        if(DEBUG_MODE){
+          console.info('[Reino debug] Reabastecimento ignorado — sem crédito (máx. 1 nova pergunta por pergunta do banco)', {
+            category: catN,
+            ageBand: ageBandKey,
+            iaTentada: false,
+          });
+        }
+        return;
       }
       bankAiReplenishRecentAt[key] = Date.now();
       const job = generateQuestion(category, ageBandKey, { bankReplenishOnly: true })
@@ -6639,7 +6683,11 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             source: bankReplenishOnly ? 'bank-replenish' : 'ai',
           }).catch(() => ({ ok: false }));
           if(bankReplenishOnly){
-            return { replenished: !!saveResult?.ok };
+            return {
+              replenished: !!saveResult?.ok,
+              provider: lastAiUsage.provider || '',
+              model: lastAiUsage.model || '',
+            };
           }
         } else if(bankReplenishOnly){
           return { replenished: false };
@@ -6924,11 +6972,31 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
 
   function formatAiInUseLabel(){
     const { provider, model } = lastAiUsage;
+    return formatReplenishModelSummary(provider, model);
+  }
+
+  function formatReplenishModelSummary(provider, model){
     const resolvedProvider = provider || inferProviderFromModel(model);
     if(!resolvedProvider && !model) return '';
     const provLabel = AI_PROVIDER_SHORT[resolvedProvider] || AI_PROVIDER_LABELS[resolvedProvider] || resolvedProvider;
     const modelLabel = model ? getAiModelLabel(resolvedProvider, model) : 'automático';
     return `${provLabel} · ${modelLabel}`;
+  }
+
+  function buildBankAddedBadgeTitle(){
+    const entries = Object.entries(bankAddedModelCounts);
+    const prefix = bankAddedBadgeCount === 1
+      ? 'Guardada no Supabase em background'
+      : `${bankAddedBadgeCount} guardadas no Supabase em background`;
+    if(!entries.length) return prefix;
+    const models = entries.map(([key, n]) => {
+      const sep = key.indexOf('|');
+      const provider = sep >= 0 ? key.slice(0, sep) : '';
+      const model = sep >= 0 ? key.slice(sep + 1) : key;
+      const label = formatReplenishModelSummary(provider, model) || 'modelo desconhecido';
+      return n > 1 ? `${label} (×${n})` : label;
+    });
+    return `${prefix} · ${models.join(', ')}`;
   }
 
   function formatAiModelIdLine(){
