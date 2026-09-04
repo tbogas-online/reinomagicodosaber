@@ -22,9 +22,33 @@ function trackAiUsage(ok, enabled, meta = {}) {
     latencyMs: meta.latencyMs,
     limitHit: !!meta.limitHit,
     quotaTokensUsed: meta.quotaTokensUsed,
+    errorKind: meta.errorKind || '',
+    requestContext: meta.requestContext || '',
   }).catch((err) => {
     console.warn('[generate] usage bucket:', err?.message || err);
   });
+}
+
+function normalizeRequestContext(value) {
+  const ctx = String(value || '').trim().toLowerCase();
+  if (ctx === 'replenish' || ctx === 'bank-replenish') return 'replenish';
+  if (ctx === 'status-probe' || ctx === 'probe') return 'probe';
+  if (ctx === 'explanation') return 'explanation';
+  return 'game';
+}
+
+function inferProviderErrorKind(errors = [], aiAttempts = []) {
+  const detail = (errors || []).join(' ');
+  if (/rate limit|limite de pedidos|too many requests|tokens per min/i.test(detail)) {
+    return 'provider_rate_limit';
+  }
+  if (Array.isArray(aiAttempts) && aiAttempts.some((attempt) => (
+    attempt?.error_type === 'RATE_LIMIT'
+    || /rate limit|too many requests/i.test(String(attempt?.error || ''))
+  ))) {
+    return 'provider_rate_limit';
+  }
+  return 'other';
 }
 
 function isProviderRateLimitError(err) {
@@ -117,6 +141,7 @@ exports.handler = async (event) => {
       ? payload.provider_preference
       : 'auto';
     const providerStrict = payload.provider_strict === true;
+    const requestContext = normalizeRequestContext(payload.request_context);
 
     const { providers, error: configError, attempted_providers: configAttempted } = resolveProviderOrder(clientPreference, providerStrict);
     if (!providers.length) {
@@ -148,7 +173,11 @@ exports.handler = async (event) => {
     if (recent.length >= maxRequestsPerWindow) {
       const oldest = recent[0] || now;
       const retryAfter = Math.max(1, Math.ceil((WINDOW_MS - (now - oldest)) / 1000));
-      trackAiUsage(false, trackUsage);
+      trackAiUsage(false, trackUsage, {
+        errorKind: 'app_rate_limit',
+        requestContext,
+        limitHit: true,
+      });
       return json(429, {
         error: `Demasiados pedidos neste minuto (limite da app: ${maxRequestsPerWindow}/min, não da Groq/OpenAI). Espera cerca de ${retryAfter} s.`,
         retry_after: retryAfter,
@@ -219,6 +248,7 @@ exports.handler = async (event) => {
           tokens: extractUsageTokens(result.usage),
           latencyMs: Date.now() - started,
           quotaTokensUsed: result.quotaTokensUsed,
+          requestContext,
         });
         return result;
       },
@@ -247,11 +277,18 @@ exports.handler = async (event) => {
     }
     const attempted = fallback.providersTried || [];
     const modelsAttempted = fallback.modelsAttempted || [];
-    trackAiUsage(false, trackUsage, parseModelsAttemptedTail(modelsAttempted));
+    const aiAttempts = summarizeAttemptsForTelemetry(fallback.attempts);
+    const errorKind = inferProviderErrorKind(errors, aiAttempts);
+    trackAiUsage(false, trackUsage, {
+      ...parseModelsAttemptedTail(modelsAttempted),
+      errorKind,
+      requestContext,
+      limitHit: errorKind === 'provider_rate_limit',
+    });
     return formatProviderFailure(errors, attempted, {
       providerStrict,
       modelsAttempted,
-      aiAttempts: summarizeAttemptsForTelemetry(fallback.attempts),
+      aiAttempts,
       totalLatencyMs: fallback.totalLatencyMs,
     });
   } catch (err) {

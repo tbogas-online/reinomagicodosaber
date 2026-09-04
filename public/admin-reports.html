@@ -3482,6 +3482,11 @@
             </div>
             <p class="timeline-note" id="aiUsageLatencyNote">Média de latência por bucket (mesmo período e granularidade). Tracejados: 600 ms e 2 s.</p>
             <div id="chartAiUsageLatency" class="chart"></div>
+            <div class="chart-head" style="margin-top:16px;">
+              <h4 id="chartAiUsageErrorsTitle" style="margin:0;font-size:0.9rem;">Erros e contexto</h4>
+            </div>
+            <p class="timeline-note" id="aiUsageErrorsNote">Laranja = limite da app (45/min prod.) · vermelho = limite Groq/OpenAI · cinza = outros erros · azul tracejado = reabastecimento banco.</p>
+            <div id="chartAiUsageErrors" class="chart"></div>
           </div>
 
           <div class="chart-box chart-wide" style="margin-top:12px">
@@ -6626,6 +6631,9 @@
           limit_count: 0,
           limit_game_count: 0,
           limit_probe_count: 0,
+          app_limit_count: 0,
+          provider_limit_count: 0,
+          replenish_count: 0,
           quota_used_peak: 0,
         };
         const limitVal = Number(row.limit_count) || 0;
@@ -6637,6 +6645,9 @@
         slot.limit_count += limitVal;
         if (isAiUsageQuotaProbeRow(row)) slot.limit_probe_count += limitVal;
         else slot.limit_game_count += limitVal;
+        slot.app_limit_count += Number(row.app_limit_count) || 0;
+        slot.provider_limit_count += Number(row.provider_limit_count) || 0;
+        slot.replenish_count += Number(row.replenish_count) || 0;
         slot.quota_used_peak = Math.max(slot.quota_used_peak || 0, Number(row.quota_used_peak) || 0);
         map.set(key, slot);
       });
@@ -6653,6 +6664,9 @@
         limits: 0,
         limitsGame: 0,
         limitsProbe: 0,
+        appLimits: 0,
+        providerLimits: 0,
+        replenishRequests: 0,
         quotaPressure: 0,
       };
     }
@@ -6669,6 +6683,10 @@
       const limits = [];
       const limitsGame = [];
       const limitsProbe = [];
+      const errorsAppLimit = [];
+      const errorsProviderLimit = [];
+      const errorsOther = [];
+      const replenishRequests = [];
       const quotaPressure = [];
       const latency = [];
       sortedKeys.forEach((key) => {
@@ -6689,6 +6707,13 @@
         limits.push({ t: key, v: slot.limits });
         limitsGame.push({ t: key, v: slot.limitsGame });
         limitsProbe.push({ t: key, v: slot.limitsProbe });
+        errorsAppLimit.push({ t: key, v: slot.appLimits });
+        errorsProviderLimit.push({ t: key, v: slot.providerLimits });
+        errorsOther.push({
+          t: key,
+          v: Math.max(0, slot.errors - slot.appLimits - slot.providerLimits),
+        });
+        replenishRequests.push({ t: key, v: slot.replenishRequests });
         quotaPressure.push({ t: key, v: slot.quotaPressure });
         latency.push({
           t: key,
@@ -6708,6 +6733,10 @@
         limits,
         limitsGame,
         limitsProbe,
+        errorsAppLimit,
+        errorsProviderLimit,
+        errorsOther,
+        replenishRequests,
         quotaPressure,
         latency,
         totalRequests: requests.reduce((sum, p) => sum + p.v, 0),
@@ -6716,6 +6745,10 @@
         totalLimitHits: limits.reduce((sum, p) => sum + p.v, 0),
         totalLimitHitsGame: limitsGame.reduce((sum, p) => sum + p.v, 0),
         totalLimitHitsProbe: limitsProbe.reduce((sum, p) => sum + p.v, 0),
+        totalAppLimits: errorsAppLimit.reduce((sum, p) => sum + p.v, 0),
+        totalProviderLimits: errorsProviderLimit.reduce((sum, p) => sum + p.v, 0),
+        totalOtherErrors: errorsOther.reduce((sum, p) => sum + p.v, 0),
+        totalReplenishRequests: replenishRequests.reduce((sum, p) => sum + p.v, 0),
         peakQuotaPressure: quotaPressure.reduce((max, p) => Math.max(max, p.v), 0),
         avgLatencyMs,
       };
@@ -6751,6 +6784,9 @@
         slot.limits += limitVal;
         slot.limitsGame += limitGameVal;
         slot.limitsProbe += limitProbeVal;
+        slot.appLimits += Number(row.app_limit_count) || 0;
+        slot.providerLimits += Number(row.provider_limit_count) || 0;
+        slot.replenishRequests += Number(row.replenish_count) || 0;
         slot.quotaPressure = Math.max(slot.quotaPressure || 0, Number(row.quota_used_peak) || 0);
       });
       const sortedKeys = [...counts.keys()].sort();
@@ -8030,13 +8066,92 @@
       const successLabel = s.successRate != null ? `${s.successRate}%` : '—';
       const filterNote = view.filterLabel ? ` · ${esc(view.filterLabel)}` : '';
       const quotaLabel = topSeries?.quotaKind === 'tokens' ? 'Tokens hoje' : 'Quota hoje';
+      const eb = s.errorBreakdown || {};
+      const bucketPeriod = buildAiUsageBucketForRange(aiUsage, aiUsageRange);
+      const appLimits = bucketPeriod?.totalAppLimits ?? eb.appRateLimit ?? 0;
+      const providerLimits = bucketPeriod?.totalProviderLimits ?? eb.providerRateLimit ?? 0;
+      const replenishReqs = bucketPeriod?.totalReplenishRequests ?? eb.replenishRequests ?? 0;
       el.innerHTML = `
         <div class="stat stat-open"><strong>${s.last1h ?? 0}</strong><span>Última hora${filterNote}</span></div>
         <div class="stat stat-total"><strong>${s.last24h ?? 0}</strong><span>Últimas 24 h</span></div>
         <div class="stat stat-resolved"><strong>${s.last48h ?? 0}</strong><span>Últimas 48 h</span></div>
         <div class="stat stat-cancelled"><strong>${s.errors ?? 0}</strong><span>Erros (48 h)</span></div>
         <div class="stat stat-top-issue"><strong>${successLabel}</strong><span>Taxa de sucesso</span></div>
+        <div class="stat stat-cancelled"><strong>${appLimits}</strong><span>429 app (período)</span></div>
+        <div class="stat stat-cancelled"><strong>${providerLimits}</strong><span>429 fornecedor</span></div>
+        <div class="stat stat-open"><strong>${replenishReqs}</strong><span>Reabastecimento</span></div>
         ${quotaLimit ? `<div class="stat stat-open${quotaExhausted ? ' stat-quota-hit' : ''}"><strong>${esc(formatQuotaUsed(usedToday))}/${esc(formatQuotaUsed(quotaLimit))}</strong><span>${quotaLabel}${quotaPct != null ? ` (${quotaPct}%)` : ''}${quotaExhausted ? ' · limite atingido' : ''}</span></div>` : ''}
+      `;
+    }
+
+    function renderAiUsageErrorsChart(aiUsage) {
+      const chartEl = document.getElementById('chartAiUsageErrors');
+      const noteEl = document.getElementById('aiUsageErrorsNote');
+      const titleEl = document.getElementById('chartAiUsageErrorsTitle');
+      if (!chartEl) return;
+      const meta = AI_USAGE_RANGES[aiUsageRange] || AI_USAGE_RANGES['24h'];
+      if (titleEl) titleEl.textContent = `Erros e contexto — ${meta.label}`;
+      if (!aiUsage?.available) {
+        chartEl.innerHTML = '<div class="chart-empty">Executa supabase/ai-usage-error-detail.sql no Supabase.</div>';
+        return;
+      }
+      const bucket = buildAiUsageBucketForRange(aiUsage, aiUsageRange);
+      const modelSeries = [
+        { label: 'App 429', color: '#f97316', series: bucket?.errorsAppLimit || [] },
+        { label: 'Fornecedor 429', color: '#ef4444', series: bucket?.errorsProviderLimit || [] },
+        { label: 'Outros erros', color: '#94a3b8', series: bucket?.errorsOther || [] },
+        { label: 'Reabastecimento', color: '#3b82f6', series: bucket?.replenishRequests || [], dashed: true },
+      ].filter((m) => (m.series || []).some((p) => (Number(p.v) || 0) > 0));
+      if (!modelSeries.length) {
+        chartEl.innerHTML = '<div class="chart-empty">Sem erros detalhados no período — executa ai-usage-error-detail.sql e faz pedidos com deploy recente.</div>';
+        if (noteEl) {
+          noteEl.textContent = 'Requer migração ai-usage-error-detail.sql. Dados novos aparecem após pedidos a /api/generate com request_context.';
+        }
+        return;
+      }
+      const totals = {
+        app: bucket?.totalAppLimits || 0,
+        provider: bucket?.totalProviderLimits || 0,
+        other: bucket?.totalOtherErrors || 0,
+        replenish: bucket?.totalReplenishRequests || 0,
+      };
+      if (noteEl) {
+        noteEl.innerHTML = `No período: <strong>${totals.app}</strong> app 429 · <strong>${totals.provider}</strong> fornecedor · <strong>${totals.other}</strong> outros · <strong>${totals.replenish}</strong> reabastecimento.`;
+      }
+      const labels = [...new Set(modelSeries.flatMap((m) => (m.series || []).map((p) => p.t)))].sort();
+      const maps = modelSeries.map((m) => ({
+        ...m,
+        map: Object.fromEntries((m.series || []).map((p) => [p.t, p.v])),
+      }));
+      const maxV = Math.max(...labels.flatMap((t) => maps.map((m) => m.map[t] || 0)), 1);
+      const w = 640;
+      const h = 210;
+      const padLeft = 44;
+      const padRight = 16;
+      const padY = 26;
+      const innerW = w - padLeft - padRight;
+      const innerH = h - padY * 2;
+      const xAt = (i) => padLeft + (i / Math.max(labels.length - 1, 1)) * innerW;
+      const yAt = (v) => padY + innerH - (v / maxV) * innerH;
+      const polylines = maps.map((m) => {
+        const points = labels.map((t, i) => ({
+          x: xAt(i),
+          y: yAt(m.map[t] || 0),
+          v: m.map[t] || 0,
+          t,
+        }));
+        const path = points.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+        const dash = m.dashed ? ' stroke-dasharray="5 4"' : '';
+        return `<polyline fill="none" stroke="${m.color}" stroke-width="2.2"${dash} points="${points.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')}" />
+          <title>${esc(m.label)}</title>`;
+      }).join('');
+      const legend = maps.map((m) => `<span class="line-legend-item"><span class="line-legend-swatch" style="background:${m.color}"></span>${esc(m.label)}</span>`).join('');
+      chartEl.innerHTML = `
+        <svg class="line-chart" viewBox="0 0 ${w} ${h}" role="img" aria-label="Erros e contexto IA">
+          <text class="line-axis-title" x="${padLeft}" y="14">Erros / bucket</text>
+          ${polylines}
+        </svg>
+        <div class="line-legend">${legend}</div>
       `;
     }
 
@@ -8064,6 +8179,7 @@
         if (noteEl) noteEl.textContent = 'Contadores agregados por POST /api/generate (retenção 48 h).';
         renderAiUsageTokensMinuteChart(aiUsage, aiStatus);
         renderAiUsageLatencyChart(aiUsage);
+        renderAiUsageErrorsChart(aiUsage);
         return;
       }
 
@@ -8082,6 +8198,7 @@
         }
         renderAiUsageTokensMinuteChart(aiUsage, aiStatus);
         renderAiUsageLatencyChart(aiUsage);
+        renderAiUsageErrorsChart(aiUsage);
         return;
       }
 
@@ -8106,7 +8223,10 @@
           ? ` · <strong>${formatAiUsageTokenCount(periodTokens)}</strong> tokens`
           : '';
         const granNote = `Buckets de ${bucketConfig.granularityLabel}.`;
-        noteEl.innerHTML = `No período: <strong>${periodRequests}</strong> pedido(s)${tokenNote} · <strong>${periodErrors}</strong> erro(s). ${granNote}${filterNote}${quotaNote}`;
+        const detailNote = (bucket.totalAppLimits || bucket.totalProviderLimits)
+          ? ` · <strong>${bucket.totalAppLimits || 0}</strong> app 429 · <strong>${bucket.totalProviderLimits || 0}</strong> fornecedor`
+          : '';
+        noteEl.innerHTML = `No período: <strong>${periodRequests}</strong> pedido(s)${tokenNote} · <strong>${periodErrors}</strong> erro(s)${detailNote}. ${granNote}${filterNote}${quotaNote}`;
       }
 
       renderAiUsageDualChart(chartEl, bucket.requests, topSeries.seriesB, topSeries.refLimit, {
@@ -8123,6 +8243,7 @@
       });
       renderAiUsageTokensMinuteChart(aiUsage, aiStatus);
       renderAiUsageLatencyChart(aiUsage);
+      renderAiUsageErrorsChart(aiUsage);
     }
 
     function niceAxisMax(value, min = 5) {
