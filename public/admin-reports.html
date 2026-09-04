@@ -4367,7 +4367,7 @@
       const h = 180;
       const padX = 28;
       const padY = 22;
-      const max = Math.max(maxValue, 1);
+      const max = computeChartDataAxisMax(maxValue, 1);
       const innerW = w - padX * 2;
       const innerH = h - padY * 2;
       const slotW = innerW / Math.max(seriesLength, 1);
@@ -4457,7 +4457,7 @@
       const h = 180;
       const padX = 28;
       const padY = 22;
-      const max = Math.max(...series.map((d) => d.count), 1);
+      const max = computeChartDataAxisMax(Math.max(...series.map((d) => d.count), 1), 1);
       const innerW = w - padX * 2;
       const innerH = h - padY * 2;
       const points = series.map((d, i) => {
@@ -4518,7 +4518,7 @@
         el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
         return;
       }
-      const max = Math.max(...series.map((d) => d.count), 1);
+      const max = computeChartDataAxisMax(Math.max(...series.map((d) => d.count), 1), 1);
       const layout = createTimelineLayout(series.length, max);
       const { w, h, padX, padY, innerW, innerH } = layout;
       const lines = types.map((type, index) => {
@@ -4553,7 +4553,7 @@
         el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
         return;
       }
-      const max = Math.max(...series.map((d) => d.count), 1);
+      const max = computeChartDataAxisMax(Math.max(...series.map((d) => d.count), 1), 1);
       const layout = createTimelineLayout(series.length, max);
       const { w, h, padX, padY, innerH, slotW } = layout;
       const barW = Math.min(slotW * 0.72, 32);
@@ -4594,7 +4594,7 @@
         el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
         return;
       }
-      const max = Math.max(...series.map((d) => d.count), 1);
+      const max = computeChartDataAxisMax(Math.max(...series.map((d) => d.count), 1), 1);
       const layout = createTimelineLayout(series.length, max);
       const { w, h, padX, padY, innerH, slotW } = layout;
       const barW = Math.min(slotW * 0.72, 32);
@@ -4633,7 +4633,7 @@
         el.innerHTML = '<div class="chart-empty">Sem dados neste período.</div>';
         return;
       }
-      const max = Math.max(...series.map((d) => d.count), 1);
+      const max = computeChartDataAxisMax(Math.max(...series.map((d) => d.count), 1), 1);
       const layout = createTimelineLayout(series.length, max);
       const { w, h, padX, padY, innerH, slotW } = layout;
       const groupW = slotW * 0.82;
@@ -7311,7 +7311,7 @@
           limitStatusHtml: totalLimitHitsGame > 0
             ? `<span class="limit-hit-inline">${totalLimitHitsGame} bloqueio(s) no jogo no período</span>`
             : 'Sem bloqueios de jogo nas últimas 2 h.',
-          scaleRefLimit: totalLimitHitsGame > 0,
+          scaleRefLimit: false,
         });
         hideAiUsageMinuteLimitToggles();
         return;
@@ -7386,9 +7386,7 @@
         tokensChartEl.innerHTML = '<div class="chart-empty">Sem tokens registados nesta janela.</div>';
         return;
       }
-      const peakRatio = minuteTokenLimit && peakTokens > 0 ? peakTokens / minuteTokenLimit : 0;
-      const autoScaleLimit = peakRatio >= 0.12 || totalLimitHitsGame > 0 || minuteLimitHit;
-      const scaleRefLimit = aiUsageRefScaleByChart.tokensMinute || autoScaleLimit;
+      const scaleRefLimit = aiUsageRefScaleByChart.tokensMinute || minuteLimitHit;
       const minuteLimits = isMinuteBucket
         ? collectAiMinuteTokenLimits(aiStatus, minuteTokenLimit)
         : {};
@@ -7421,7 +7419,6 @@
           : '',
         refHighlightPct: 0.95,
         scaleRefLimit,
-        dailyLimitsForScale: minuteRefLines.length ? minuteLimits : null,
         refLines: minuteRefLines,
       });
     }
@@ -8003,18 +8000,7 @@
     }
 
     function applyAiUsageAutoRefScaleForLimitedProvider(aiStatus, providerFilter) {
-      if (providerFilter) {
-        const summary = aiStatus?.providers?.[providerFilter]?.summary;
-        if (isAiProviderLimitExhausted(summary)) {
-          // Só o gráfico diário (pedidos/dia); tokens/min mantém escala dos dados até clicar na legenda.
-          aiUsageRefScaleByChart.main = true;
-        }
-        return;
-      }
-      const anyExhausted = Object.values(aiStatus?.providers || {}).some(
-        (prov) => isAiProviderLimitExhausted(prov?.summary),
-      );
-      if (anyExhausted) aiUsageRefScaleByChart.main = true;
+      // Eixos ajustam-se aos dados por defeito; o utilizador activa limites no eixo manualmente.
     }
 
     function renderAiGameImpact(summary, aiUsage, aiStatus) {
@@ -8229,11 +8215,11 @@
         ...m,
         map: Object.fromEntries((m.series || []).map((p) => [p.t, p.v])),
       }));
-      const maxV = Math.max(
-        AI_LATENCY_SLOW_MS,
+      const dataMaxLatency = Math.max(
         ...labels.flatMap((t) => maps.map((m) => m.map[t] || 0)),
         1,
       );
+      const maxV = computeChartDataAxisMax(Math.max(dataMaxLatency, AI_LATENCY_WARN_MS), 50);
       const w = 640;
       const h = 220;
       const padLeft = 44;
@@ -8492,9 +8478,12 @@
         map: Object.fromEntries((def.series || []).map((p) => [p.t, Number(p.v) || 0])),
       }));
       const chartMaps = maps.filter((m) => activeKeys.has(m.key));
-      const maxV = Math.max(
+      const maxV = computeChartDataAxisMax(
+        Math.max(
+          1,
+          ...labels.flatMap((t) => chartMaps.map((m) => m.map[t] || 0)),
+        ),
         1,
-        ...labels.flatMap((t) => chartMaps.map((m) => m.map[t] || 0)),
       );
       const w = 640;
       const h = 230;
@@ -8700,8 +8689,8 @@
           ? ` · <strong>${formatAiUsageTokenCount(periodTokens)}</strong> tokens`
           : '';
         const granNote = `Buckets de ${bucketConfig.granularityLabel}.`;
-        const dailyScaleNote = hasDailyTokenSeries
-          ? ' Eixo tokens ajustado ao TPD conhecido — activa as linhas de limite abaixo.'
+        const dailyScaleNote = dailyRefLines.length
+          ? ' Clica «Limite tokens/dia» no gráfico para incluir o TPD no eixo.'
           : '';
         const detailNote = (bucket.totalAppLimits || bucket.totalProviderLimits)
           ? ` · <strong>${bucket.totalAppLimits || 0}</strong> app 429 · <strong>${bucket.totalProviderLimits || 0}</strong> fornecedor`
@@ -8720,21 +8709,26 @@
         axisLabelA: 'Pedidos',
         axisLabelB: topSeries.axisLabelB,
         refLabel: topSeries.refLabel,
-        dailyLimitsForScale: hasDailyTokenSeries ? dailyLimits : null,
+        dailyLimitsForScale: aiUsageRefScaleByChart.main && dailyRefLines.length ? dailyLimits : null,
         refLines: dailyRefLines,
-        scaleRefLimit: hasDailyTokenSeries || aiUsageRefScaleByChart.main,
+        scaleRefLimit: aiUsageRefScaleByChart.main,
       });
       renderAiUsageTokensMinuteChart(aiUsage, aiStatus);
       renderAiUsageLatencyChart(aiUsage);
       renderAiUsageErrorsChart(aiUsage);
     }
 
-    function niceAxisMax(value, min = 5) {
+    function niceAxisMax(value, min = 5, headroom = 1.12) {
       const v = Math.max(Number(value) || 0, 0);
-      if (v <= 0) return min;
-      const magnitude = 10 ** Math.floor(Math.log10(v));
-      const rounded = Math.ceil(v / magnitude) * magnitude;
+      const padded = v * headroom;
+      if (padded <= 0) return min;
+      const magnitude = 10 ** Math.floor(Math.log10(padded));
+      const rounded = Math.ceil(padded / magnitude) * magnitude;
       return Math.max(rounded, min);
+    }
+
+    function computeChartDataAxisMax(dataMax, min = 5) {
+      return niceAxisMax(Math.max(Number(dataMax) || 0, 1), min);
     }
 
     function formatAiUsageAxisCount(n) {
@@ -8766,17 +8760,15 @@
     }
 
     function computeAiUsageRefScale(dataMax, refLimit, scaleRefLimit) {
-      const refNaturallyInScale = refLimit != null && refLimit > 0 && refLimit <= dataMax * 3;
-      let max = niceAxisMax(Math.max(dataMax, 1), 5);
+      let max = computeChartDataAxisMax(dataMax, 5);
       if (scaleRefLimit && refLimit) {
         max = niceAxisMax(Math.max(dataMax, refLimit), 5);
-      } else if (refNaturallyInScale) {
-        max = niceAxisMax(Math.max(dataMax, refLimit), 5);
       }
+      const refVisible = refLimit != null && refLimit > 0 && refLimit <= max;
       return {
         max,
-        drawRefLine: refLimit != null && (refNaturallyInScale || scaleRefLimit),
-        refLegendToggleable: refLimit != null && !refNaturallyInScale,
+        drawRefLine: refLimit != null && (scaleRefLimit || refVisible),
+        refLegendToggleable: refLimit != null,
       };
     }
 
@@ -8790,8 +8782,12 @@
       if (!refLines.length) return '';
       const sorted = [...refLines].sort((a, b) => b.limit - a.limit);
       return sorted.map((line, idx) => {
-        const y = yAtFn(line.limit);
-        const label = `${line.label} (${formatValue(line.limit)})`;
+        const rawY = yAtFn(line.limit);
+        const offScale = rawY < padY;
+        const y = offScale ? padY : Math.min(padY + innerH, rawY);
+        const label = offScale
+          ? `${line.label} (${formatValue(line.limit)}) ↑`
+          : `${line.label} (${formatValue(line.limit)})`;
         const labelY = Math.max(padY + 10, Math.min(padY + innerH - 4, y - 4 - idx * 12));
         return `<line x1="${padLeft}" y1="${y.toFixed(1)}" x2="${w - padRight}" y2="${y.toFixed(1)}" stroke="${line.color}" stroke-dasharray="6 4" stroke-width="1.5" opacity="0.9" />
           <text class="line-label" x="${w - padRight - 4}" y="${labelY}" text-anchor="end" fill="${line.color}">${esc(label)}</text>`;
@@ -8824,7 +8820,7 @@
       const scaleLimitValues = dailyLimitsForScale
         ? Object.values(dailyLimitsForScale).filter((n) => Number.isFinite(n) && n > 0)
         : [];
-      const forceDailyScale = scaleLimitValues.length > 0;
+      const forceDailyScale = scaleLimitValues.length > 0 && scaleRefLimit;
       const mapLimits = Object.fromEntries(limitMarkers.map((p) => [p.t, p.v]));
       const mapLimitProbes = Object.fromEntries(limitProbeMarkers.map((p) => [p.t, p.v]));
       const scaleRefLimit = options.scaleRefLimit ?? !!aiUsageRefScaleByChart[chartKey];
@@ -8846,8 +8842,8 @@
       const mapB = Object.fromEntries((seriesB || []).map((p) => [p.t, p.v]));
       const dataMaxA = Math.max(...labels.map((t) => mapA[t] || 0), 0);
       const dataMaxB = Math.max(...labels.map((t) => mapB[t] || 0), 0);
-      let maxA = niceAxisMax(dataMaxA, 5);
-      let maxB = niceAxisMax(Math.max(dataMaxB, 1), 5);
+      let maxA = computeChartDataAxisMax(dataMaxA, 5);
+      let maxB = computeChartDataAxisMax(dataMaxB, 5);
       let drawRefLine = false;
       let refLegendToggleable = false;
       let refFormatValue = formatValueB;
@@ -8937,7 +8933,12 @@
         ${showAxisB ? `<line class="line-axis-spine-right" x1="${w - padRight}" y1="${padY}" x2="${w - padRight}" y2="${padY + innerH}" />` : ''}
       `;
 
-      const refLegendHtml = refLimit && !refLines.length
+      const refLegendHtml = refLines.length
+        ? (() => {
+          const hint = scaleRefLimit ? ' · clicar para escala dos dados' : ' · clicar para incluir limites no eixo';
+          return `<div class="ai-usage-chart-ref-legend"><button type="button" class="ai-usage-ref-toggle${scaleRefLimit ? ' active' : ''}" data-chart-key="${esc(chartKey)}" aria-pressed="${scaleRefLimit ? 'true' : 'false'}"><i></i>Limites no eixo${esc(hint)}</button></div>`;
+        })()
+        : refLimit
         ? (() => {
           const labelText = `${refLabel} (${refFormatValue(refLimit)})`;
           const hint = refLegendToggleable
@@ -13466,7 +13467,7 @@
       }
 
       const maps = allSeries.map((s) => Object.fromEntries(s.data.map((p) => [p.t, p.v])));
-      const max = Math.max(1, ...labels.flatMap((t) => maps.map((m) => m[t] || 0)));
+      const max = computeChartDataAxisMax(Math.max(1, ...labels.flatMap((t) => maps.map((m) => m[t] || 0))), 1);
       const layout = createTimelineLayout(labels.length, max);
       const { w, h, padX, padY, innerW, innerH } = layout;
       const xAt = (i) => padX + (i / Math.max(labels.length - 1, 1)) * innerW;
