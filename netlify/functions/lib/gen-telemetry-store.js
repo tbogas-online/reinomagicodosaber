@@ -547,6 +547,8 @@ function normalizeEvent(raw) {
     score: e.score != null ? Number(e.score) : null,
     source: clip(e.source, 16) || 'ai',
     gameMode,
+    failureLayer: clip(e.failureLayer, 16),
+    aiAttempts: Array.isArray(e.aiAttempts) ? e.aiAttempts.slice(0, 12) : [],
     questionSnapshot,
   };
 }

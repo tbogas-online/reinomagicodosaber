@@ -233,15 +233,25 @@
    * @param {string[]} excludeHashes — question_hash já vistos nesta ronda
    * @param {string[]} excludeKnowledgeIds — knowledgeId já usados (sessão + histórico)
    */
-  async function pick(categoryN, ageBand, excludeHashes, excludeKnowledgeIds) {
+  async function pick(categoryN, ageBand, excludeHashes, excludeKnowledgeIds, requestedDifficulty = null) {
     const c = await ensureClient();
     if (!c) return null;
-    const { data, error } = await c.rpc('pick_question_from_bank', {
+    const args = {
       p_category_n: categoryN,
       p_age_band: ageBand,
       p_exclude_hashes: Array.isArray(excludeHashes) ? excludeHashes : [],
       p_exclude_knowledge_ids: Array.isArray(excludeKnowledgeIds) ? excludeKnowledgeIds : [],
-    });
+    };
+    const req = Number(requestedDifficulty);
+    if (Number.isFinite(req)) {
+      args.p_requested_difficulty = Math.max(1, Math.min(5, Math.round(req)));
+    }
+    let { data, error } = await c.rpc('pick_question_from_bank', args);
+    if (error && /p_requested_difficulty|reino_bank_effective_difficulty/i.test(String(error.message || ''))) {
+      const fallbackArgs = { ...args };
+      delete fallbackArgs.p_requested_difficulty;
+      ({ data, error } = await c.rpc('pick_question_from_bank', fallbackArgs));
+    }
     if (error) {
       console.warn('[QuestionBank] pick falhou:', error.message);
       return null;

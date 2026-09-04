@@ -4132,7 +4132,7 @@
     };
   }
 
-  async function tryPickFromQuestionBank(categoryN, ageBandKey, reuseCtx, maxAttempts = 12, { skipStockEnsure = false } = {}){
+  async function tryPickFromQuestionBank(categoryN, ageBandKey, reuseCtx, maxAttempts = 12, { skipStockEnsure = false, requestedDifficulty = null } = {}){
     const QB = window.QuestionBank;
     if(!QB?.isConfigured?.()){
       if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: não configurado — a usar código local');
@@ -4145,7 +4145,7 @@
     let replenished = false;
     for(let attempt = 0; attempt < maxAttempts; attempt++){
       try {
-        const row = await QB.pick(categoryN, ageBandKey, excludeHashes, excludeKnowledgeIds);
+        const row = await QB.pick(categoryN, ageBandKey, excludeHashes, excludeKnowledgeIds, requestedDifficulty);
         if(!row?.q){
           if(categoryN === 20 && !replenished){
             replenished = true;
@@ -4269,9 +4269,22 @@
     }, ageBandKey, bankRow.format));
   }
 
-  async function finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal = true } = {}){
-    const bankQuestion = await tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine);
+  async function finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal = true, requestedDifficulty = null, fallbackReason = '' } = {}){
+    const bankQuestion = await tryPickVerifiedBankQuestion(
+      category,
+      ageBandKey,
+      reuseCtx,
+      engine,
+      4,
+      { requestedDifficulty },
+    );
     if(bankQuestion) return bankQuestion;
+    if(DEBUG_MODE){
+      console.info(
+        '[Reino debug] Fallback: Supabase sem pergunta disponível',
+        { category: category.n, ageBand: ageBandKey, difficulty: requestedDifficulty, reason: fallbackReason || 'retry' },
+      );
+    }
     if(!allowLocal){
       return finalizeQuestion({
         q: 'Ainda não há perguntas verificadas disponíveis para esta categoria e faixa etária.',
@@ -4284,6 +4297,12 @@
     }
     const fallback = pickQuestionWithMcOptions(category.n, ageBandKey, reuseCtx?.questionNorms);
     if(fallback){
+      if(DEBUG_MODE){
+        console.warn(
+          '[Reino debug] Fallback: banco local embutido (código)',
+          { category: category.n, ageBand: ageBandKey, reason: fallbackReason || 'sem Supabase/IA' },
+        );
+      }
       const isRepeat = reuseCtx?.questionNorms?.has(normalizeQ(fallback.q));
       rememberGlobalQuestion(ageBandKey, fallback.q);
       rememberGlobalAnswer(ageBandKey, fallback.a);
@@ -5877,7 +5896,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       }
     } else if(localOnly){
       if(isCat20){
-        const bankQuestion = await tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine);
+        const bankQuestion = await tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine, 4, {
+          requestedDifficulty: difficulty,
+        });
         if(bankQuestion) return bankQuestion;
         if(questionFormat === engine.FORMAT_IDS.ADIVINHA){
           const repoQuestion = await tryGenerateAdivinhaFromRepository({
@@ -5927,19 +5948,28 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           if(repoQuestion) return repoQuestion;
         }
       }
-      return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, { allowLocal: category.n !== 20 });
+      return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, {
+        allowLocal: category.n !== 20,
+        requestedDifficulty: difficulty,
+        fallbackReason: 'modo-local',
+      });
     }
 
     if(!bankReplenishOnly && isCat20){
       await ensureCat20Stock(category.n, ageBandKey);
-      const bankQuestion = await tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine, 4, { skipStockEnsure: true });
+      const bankQuestion = await tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine, 4, {
+        skipStockEnsure: true,
+        requestedDifficulty: difficulty,
+      });
       if(bankQuestion) return bankQuestion;
     }
 
     // Banco verificado primeiro (categorias 1–19): pergunta imediata; IA repõe stock em segundo plano.
     if(!bankReplenishOnly && !isCat20 && !localOnly){
       const quotaWarm = fetchAiQuotaSnapshot().catch(() => null);
-      const bankQuestion = await tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine);
+      const bankQuestion = await tryPickVerifiedBankQuestion(category, ageBandKey, reuseCtx, engine, 4, {
+        requestedDifficulty: difficulty,
+      });
       if(bankQuestion) return bankQuestion;
       await quotaWarm;
     }
@@ -6372,15 +6402,21 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       } catch(err){
         lastAiError = localizeAiErrorMessage(err?.message || 'Erro desconhecido');
         lastAiErrorStatus = Number(err?.aiStatus) || 0;
+        if(err?.aiData) recordAiUsage(err.aiData);
         recordQuestionGenTelemetry(engine, {
           ...telemetryBase,
           outcome: 'api_error',
+          failureLayer: 'provider',
           issueCodes: ['API_FAIL'],
           issueMessages: [lastAiError],
+          aiAttempts: err?.aiData?.ai_attempts || lastAiUsage.aiAttempts || [],
+          provider: err?.aiData?.provider || lastAiUsage.provider || '',
+          model: err?.aiData?.model || lastAiUsage.model || '',
         });
         if(err?.aiStatus === 429 || isAiRateLimitError(lastAiError)){
           if(!bankReplenishOnly){
-            console.warn('IA com limite atingido; a usar banco local:', lastAiError);
+            const tried = err?.aiData?.attempted_providers || err?.aiData?.providers_tried || [];
+            console.warn('IA: todos os providers falharam após fallback', { tried, attempts: err?.aiData?.ai_attempts?.length || 0 }, lastAiError);
             setOnlineStatus(false, lastAiError, err?.aiData || null);
           }
           break;
@@ -6402,7 +6438,14 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     }
 
     if(bankReplenishOnly) return { replenished: false };
-    return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine);
+    const fallbackReason = skipAi
+      ? (lastAiError || 'ia-offline')
+      : (aiWasAttempted ? 'ia-esgotada' : 'sem-ia');
+    return finalizeBankOrLocalFallback(category, ageBandKey, reuseCtx, engine, {
+      allowLocal: true,
+      requestedDifficulty: difficulty,
+      fallbackReason,
+    });
   }
 
   const AI_PROVIDER_LABELS = {
@@ -6447,6 +6490,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       model,
       fallback: !!data?.fallback_used,
       tried: Array.isArray(data?.providers_tried) ? data.providers_tried.slice() : [],
+      aiAttempts: Array.isArray(data?.ai_attempts) ? data.ai_attempts.slice() : [],
+      totalLatencyMs: data?.total_latency_ms != null ? Number(data.total_latency_ms) : null,
     };
   }
 
@@ -6542,10 +6587,10 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     clearInterval(aiStatusRecoveryTimer);
     aiStatusRecoveryTimer = null;
   }
-  let lastAiUsage = { provider: '', model: '', fallback: false, tried: [] };
+  let lastAiUsage = { provider: '', model: '', fallback: false, tried: [], aiAttempts: [], totalLatencyMs: null };
 
   function clearAiUsage(){
-    lastAiUsage = { provider: '', model: '', fallback: false, tried: [] };
+    lastAiUsage = { provider: '', model: '', fallback: false, tried: [], aiAttempts: [], totalLatencyMs: null };
   }
 
   function recordAiUsage(data){
@@ -6555,6 +6600,8 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     lastAiUsage.model = usage.model;
     lastAiUsage.fallback = usage.fallback;
     lastAiUsage.tried = usage.tried;
+    lastAiUsage.aiAttempts = usage.aiAttempts;
+    lastAiUsage.totalLatencyMs = usage.totalLatencyMs;
     updateAiInUseUI();
     refreshStatusBadgeText();
     refreshStatusDetailText();
@@ -6579,10 +6626,16 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       issueCodes: codes.length ? codes : (fields.issueCodes || []),
       issueMessages: messages.length ? messages : (fields.issueMessages || []),
       score: fields.score ?? null,
-      provider: usage.provider || '',
-      model: usage.model || '',
+      provider: fields.provider || usage.provider || '',
+      model: fields.model || usage.model || '',
       source: fields.source || 'ai',
       gameMode: fields.gameMode || (window.MultiplayerController?.isMultiplayer?.() ? 'multiplayer' : 'local'),
+      failureLayer: fields.failureLayer || (
+        fields.outcome === 'api_error' ? 'provider'
+          : (fields.outcome === 'rejected' || fields.outcome === 'parse_error') ? 'quality'
+            : ''
+      ),
+      aiAttempts: fields.aiAttempts || usage.aiAttempts || [],
       parsed: fields.parsed,
     });
   }
@@ -7049,13 +7102,20 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     return isProviderSummaryExhausted(summary);
   }
 
-  function getProviderOrderForPreference(preference){
+  function getProviderOrderForPreference(preference, quota){
     if(preference && preference !== 'auto') return [preference];
+    const orderStr = quota?.order || lastAiQuotaSnapshot?.order;
+    if(orderStr){
+      return String(orderStr)
+        .split(',')
+        .map((s) => s.trim().toLowerCase())
+        .filter(Boolean);
+    }
     return ['groq', 'openai', 'anthropic'];
   }
 
   function getUsableProvidersForPreference(quota, preference){
-    const order = getProviderOrderForPreference(preference);
+    const order = getProviderOrderForPreference(preference, quota);
     return order.filter((id) => quota?.configured?.[id] && !isProviderQuotaBlocked(quota?.providers?.[id]?.summary));
   }
 
@@ -7101,6 +7161,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
         'X-Reino-Client': 'reino-magico-game',
       },
       body: JSON.stringify(buildAiRequestBody(messages, maxTokens)),
+      signal: AbortSignal.timeout ? AbortSignal.timeout(25000) : undefined,
     });
     let data;
     try {

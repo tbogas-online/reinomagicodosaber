@@ -35,6 +35,20 @@
 //   ANTHROPIC_MODEL      -> nome do modelo Anthropic (default: claude-haiku-4-5-20251001)
 //   OPENAI_MODEL         -> nome do modelo OpenAI (default: gpt-4o-mini)
 
+import { createRequire } from 'node:module';
+
+const require = createRequire(import.meta.url);
+const {
+  fetchWithTimeout,
+  runAiFallbackLoop,
+  summarizeAttemptsForTelemetry,
+  ATTEMPT_TIMEOUT_MS,
+} = require('../../netlify/functions/lib/ai-fallback.js');
+const {
+  resolveModelsForProvider: resolveActiveModelsForProvider,
+  getActiveModelsSnapshot,
+} = require('../../netlify/functions/lib/ai-model-config.js');
+
 const ANTHROPIC_VERSION = '2023-06-01';
 const MAX_REQUEST_CHARS = 12000;
 const MAX_OUTPUT_TOKENS = 500;
@@ -149,47 +163,65 @@ export async function onRequestPost(context) {
   const requestedTokens = Number(payload.max_tokens) || 300;
   const requestedModel = typeof payload.model === 'string' ? payload.model : 'auto';
   const quotaConserve = payload.quota_conserve === true;
-  const providerList = (quotaConserve && !providerStrict) ? providers.slice(0, 1) : providers;
-
-  const errors = [];
-  const attempted = [];
-  const modelsAttempted = [];
-  let rateLimited = false;
-  for (const provider of providerList) {
-    if (rateLimited) break;
-    let models = resolveModelsForProvider(provider.name, requestedModel, env);
-    if (quotaConserve) models = models.slice(0, 1);
-    for (const model of models) {
-      modelsAttempted.push(`${provider.name}:${model}`);
-      try {
-        const maxTokens = effectiveMaxTokens(provider.name, model, requestedTokens);
-        const result = await callProvider(provider.name, provider.apiKey, messages, maxTokens, model);
-        return json(200, {
-          ...result,
-          provider: provider.name,
-          model,
-          providers_tried: [...new Set(modelsAttempted.map((entry) => entry.split(':')[0]))],
-          models_tried: modelsAttempted,
-          fallback_used: modelsAttempted.length > 1,
-          provider_strict: providerStrict,
-          quota_conserve: quotaConserve,
-        });
-      } catch (err) {
-        console.error(`${provider.name}/${model} request failed:`, err);
-        const message = err instanceof Error ? err.message : String(err);
-        if (isProviderRateLimitError(err)) {
-          errors.push(localizeProviderError(provider.name, `${model}: ${message}`));
-          rateLimited = true;
-          break;
-        }
-        errors.push(localizeProviderError(provider.name, `${model}: ${message}`));
-      }
+  let providerList = (quotaConserve && !providerStrict) ? providers.slice(0, 1) : providers;
+  const activeModels = getActiveModelsSnapshot(env);
+  if (activeModels.configured) {
+    providerList = providerList.filter((provider) => (
+      resolveModelsForProvider(provider.name, 'auto', env).length > 0
+    ));
+    if (!providerList.length) {
+      return json(500, {
+        error: 'Nenhum modelo IA activo configurado para os providers disponíveis.',
+        detail: 'Define AI_ACTIVE_MODELS (ou AI_ACTIVE_MODELS_GROQ / _OPENAI / _ANTHROPIC) nas variáveis de ambiente.',
+        active_models: activeModels,
+        configured_providers: {
+          groq: !!(env.GROQ_API_KEY || '').trim(),
+          openai: !!(env.OPENAI_API_KEY || '').trim(),
+          anthropic: !!(env.ANTHROPIC_API_KEY || '').trim(),
+        },
+      });
     }
-    if (rateLimited) break;
-    attempted.push(provider.name);
   }
 
-  return formatProviderFailure(errors, attempted, env, { providerStrict, modelsAttempted });
+  const errors = [];
+  const fallback = await runAiFallbackLoop({
+    providerList,
+    quotaConserve,
+    resolveModels: (providerName) => resolveModelsForProvider(providerName, requestedModel, env),
+    callAttempt: async (provider, model) => {
+      const maxTokens = effectiveMaxTokens(provider.name, model, requestedTokens);
+      return callProvider(provider.name, provider.apiKey, messages, maxTokens, model);
+    },
+  });
+
+  if (fallback.ok) {
+    const aiAttempts = summarizeAttemptsForTelemetry(fallback.attempts);
+    return json(200, {
+      ...fallback.result,
+      provider: fallback.provider,
+      model: fallback.model,
+      providers_tried: fallback.providersTried,
+      models_tried: fallback.modelsAttempted,
+      ai_attempts: aiAttempts,
+      fallback_used: fallback.fallbackUsed,
+      active_models: activeModels,
+      provider_strict: providerStrict,
+      quota_conserve: quotaConserve,
+      total_latency_ms: fallback.totalLatencyMs,
+    });
+  }
+
+  for (const entry of fallback.errors || []) {
+    errors.push(localizeProviderError(entry.provider, `${entry.model}: ${entry.message}`));
+  }
+  const attempted = fallback.providersTried || [];
+  const modelsAttempted = fallback.modelsAttempted || [];
+  return formatProviderFailure(errors, attempted, env, {
+    providerStrict,
+    modelsAttempted,
+    aiAttempts: summarizeAttemptsForTelemetry(fallback.attempts),
+    totalLatencyMs: fallback.totalLatencyMs,
+  });
 }
 
 // Qualquer método que não seja POST devolve 405, tal como na versão Netlify.
@@ -285,21 +317,13 @@ function resolveModelForProvider(provider, requestedModel, env) {
 }
 
 function resolveModelsForProvider(provider, requestedModel, env) {
-  const model = String(requestedModel || '').trim();
-  if (model && model !== 'auto') {
-    return [resolveModelForProviderSingle(provider, model, env)];
-  }
-
-  const allowed = ALLOWED_MODELS[provider];
-  const order = MODEL_FALLBACK_ORDER[provider] || [];
-  const models = [];
-  for (const id of order) {
-    if (!allowed?.has(id)) continue;
-    const resolved = provider === 'groq' ? normalizeGroqModel(id, env) : id;
-    if (!models.includes(resolved)) models.push(resolved);
-  }
-  if (!models.length) models.push(defaultModelFor(provider, env));
-  return models;
+  return resolveActiveModelsForProvider(provider, requestedModel, env, {
+    allowedModels: ALLOWED_MODELS,
+    defaultOrder: MODEL_FALLBACK_ORDER,
+    normalizeGroqModel,
+    defaultModelFor,
+    resolveModelForProviderSingle,
+  });
 }
 
 function resolveModelForProviderSingle(provider, requestedModel, env) {
@@ -416,14 +440,14 @@ async function callOpenAICompatibleOnce({ endpoint, apiKey, model, messages, max
     requestBody.include_reasoning = false;
   }
 
-  const response = await fetch(endpoint, {
+  const response = await fetchWithTimeout(endpoint, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(requestBody),
-  });
+  }, ATTEMPT_TIMEOUT_MS);
 
   const text = await response.text();
   let data;
@@ -436,7 +460,11 @@ async function callOpenAICompatibleOnce({ endpoint, apiKey, model, messages, max
   if (!response.ok) {
     const message = data?.error?.message || data?.error || `Erro do serviço ${providerLabel} (${response.status})`;
     console.error(`${providerLabel} API error:`, response.status, data);
-    throw new Error(localizeAiErrorText(message));
+    const err = new Error(localizeAiErrorText(message));
+    err.httpStatus = response.status;
+    err.headers = response.headers;
+    err.isRateLimit = response.status === 429 || /rate limit|too many requests/i.test(message);
+    throw err;
   }
 
   const choice = data?.choices?.[0];
@@ -461,7 +489,7 @@ async function callOpenAICompatibleOnce({ endpoint, apiKey, model, messages, max
 }
 
 async function callAnthropic(apiKey, messages, maxTokens, model) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -474,7 +502,7 @@ async function callAnthropic(apiKey, messages, maxTokens, model) {
       system: ANTHROPIC_JSON_SYSTEM,
       messages,
     }),
-  });
+  }, ATTEMPT_TIMEOUT_MS);
 
   const text = await response.text();
   let data;
@@ -487,7 +515,11 @@ async function callAnthropic(apiKey, messages, maxTokens, model) {
   if (!response.ok) {
     const message = data?.error?.message || data?.error || `Erro do serviço Anthropic (${response.status})`;
     console.error('Anthropic API error:', response.status, data);
-    throw new Error(localizeAiErrorText(message));
+    const err = new Error(localizeAiErrorText(message));
+    err.httpStatus = response.status;
+    err.headers = response.headers;
+    err.isRateLimit = response.status === 429 || /rate limit|too many requests/i.test(message);
+    throw err;
   }
 
   // A resposta da Anthropic já vem no formato { content: [{type:'text', text:'...'}] },
@@ -571,6 +603,8 @@ function formatProviderFailure(errors, attempted = [], env = {}, opts = {}) {
   const meta = {
     attempted_providers: attempted,
     models_tried: opts.modelsAttempted || [],
+    ai_attempts: opts.aiAttempts || [],
+    total_latency_ms: opts.totalLatencyMs || null,
     configured_providers: configured,
     provider_strict: opts.providerStrict === true,
     provider_errors: localized,

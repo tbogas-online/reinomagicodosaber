@@ -61,6 +61,17 @@
       score: e.score != null ? Number(e.score) : null,
       source: e.source ? String(e.source) : 'ai',
       gameMode,
+      failureLayer: e.failureLayer ? String(e.failureLayer) : '',
+      aiAttempts: Array.isArray(e.aiAttempts)
+        ? e.aiAttempts.slice(0, 12).map((a) => ({
+          provider: a?.provider ? String(a.provider) : '',
+          model: a?.model ? String(a.model) : '',
+          error: a?.error ? String(a.error) : '',
+          errorType: a?.errorType ? String(a.errorType) : '',
+          latencyMs: a?.latencyMs != null ? Number(a.latencyMs) : null,
+          fallbackTo: a?.fallbackTo ? String(a.fallbackTo) : '',
+        }))
+        : [],
       questionSnapshot,
     };
   }

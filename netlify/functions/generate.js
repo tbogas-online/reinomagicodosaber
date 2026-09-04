@@ -1,6 +1,16 @@
 const GROQ_MODEL = process.env.GROQ_MODEL || 'openai/gpt-oss-20b';
 const { validateGameClient } = require('./lib/report-utils');
 const { recordAiRequest, extractUsageTokens, quotaUsedFromRateLimitHeaders } = require('./lib/ai-usage-store');
+const {
+  fetchWithTimeout,
+  runAiFallbackLoop,
+  summarizeAttemptsForTelemetry,
+  ATTEMPT_TIMEOUT_MS,
+} = require('./lib/ai-fallback');
+const {
+  resolveModelsForProvider: resolveActiveModelsForProvider,
+  getActiveModelsSnapshot,
+} = require('./lib/ai-model-config');
 
 function trackAiUsage(ok, enabled, meta = {}) {
   if (!enabled) return;
@@ -39,7 +49,7 @@ const MAX_OUTPUT_TOKENS = 500;
 const MAX_REASONING_OUTPUT_TOKENS = 2048;
 const REASONING_PROBE_MAX_TOKENS = 80;
 const DEFAULT_PROVIDER_ORDER = 'groq,openai,anthropic';
-const API_FEATURES = { provider_strict: true, version: '20260815-7' };
+const API_FEATURES = { provider_strict: true, version: '20260904-8', active_models: true };
 const ALLOWED_PROVIDERS = ['groq', 'anthropic', 'openai'];
 const ANTHROPIC_JSON_SYSTEM = 'Responde apenas com json válido, sem markdown nem texto antes ou depois.';
 const GROQ_JSON_SYSTEM = ANTHROPIC_JSON_SYSTEM;
@@ -157,63 +167,78 @@ exports.handler = async (event) => {
     const requestedTokens = Number(payload.max_tokens) || 300;
     const requestedModel = typeof payload.model === 'string' ? payload.model : 'auto';
     const quotaConserve = payload.quota_conserve === true;
-    const providerList = (quotaConserve && !providerStrict) ? providers.slice(0, 1) : providers;
-
-    const errors = [];
-    const attempted = [];
-    const modelsAttempted = [];
-    let rateLimited = false;
-    for (const provider of providerList) {
-      if (rateLimited) break;
-      let models = resolveModelsForProvider(provider.name, requestedModel, process.env);
-      if (quotaConserve) models = models.slice(0, 1);
-      for (const model of models) {
-        modelsAttempted.push(`${provider.name}:${model}`);
-        try {
-          const maxTokens = effectiveMaxTokens(provider.name, model, requestedTokens);
-          const started = Date.now();
-          const result = await callProvider(provider.name, provider.apiKey, messages, maxTokens, model);
-          trackAiUsage(true, trackUsage, {
-            provider: provider.name,
-            model,
-            tokens: extractUsageTokens(result.usage),
-            latencyMs: Date.now() - started,
-            quotaTokensUsed: result.quotaTokensUsed,
-          });
-          return json(200, {
-            ...result,
-            provider: provider.name,
-            model,
-            providers_tried: [...new Set(modelsAttempted.map((entry) => entry.split(':')[0]))],
-            models_tried: modelsAttempted,
-            fallback_used: modelsAttempted.length > 1,
-            provider_strict: providerStrict,
-            quota_conserve: quotaConserve,
-            api_features: API_FEATURES,
-          });
-        } catch (err) {
-          console.error(`${provider.name}/${model} request failed:`, err);
-          const message = err instanceof Error ? err.message : String(err);
-          if (isProviderRateLimitError(err)) {
-            trackAiUsage(false, trackUsage, {
-              provider: provider.name,
-              model,
-              limitHit: true,
-              quotaTokensUsed: err.quotaTokensUsed,
-            });
-            errors.push(localizeProviderError(provider.name, `${model}: ${message}`));
-            rateLimited = true;
-            break;
-          }
-          errors.push(localizeProviderError(provider.name, `${model}: ${message}`));
-        }
+    let providerList = (quotaConserve && !providerStrict) ? providers.slice(0, 1) : providers;
+    const activeModels = getActiveModelsSnapshot(process.env);
+    if (activeModels.configured) {
+      providerList = providerList.filter((provider) => (
+        resolveModelsForProvider(provider.name, 'auto', process.env).length > 0
+      ));
+      if (!providerList.length) {
+        trackAiUsage(false, trackUsage);
+        return json(500, {
+          error: 'Nenhum modelo IA activo configurado para os providers disponíveis.',
+          detail: 'Define AI_ACTIVE_MODELS (ou AI_ACTIVE_MODELS_GROQ / _OPENAI / _ANTHROPIC) nas variáveis de ambiente.',
+          active_models: activeModels,
+          configured_providers: {
+            groq: !!(process.env.GROQ_API_KEY || '').trim(),
+            openai: !!(process.env.OPENAI_API_KEY || '').trim(),
+            anthropic: !!(process.env.ANTHROPIC_API_KEY || '').trim(),
+          },
+          api_features: API_FEATURES,
+        });
       }
-      if (rateLimited) break;
-      attempted.push(provider.name);
     }
 
+    const errors = [];
+    const fallback = await runAiFallbackLoop({
+      providerList,
+      quotaConserve,
+      resolveModels: (providerName) => resolveModelsForProvider(providerName, requestedModel, process.env),
+      callAttempt: async (provider, model) => {
+        const maxTokens = effectiveMaxTokens(provider.name, model, requestedTokens);
+        const started = Date.now();
+        const result = await callProvider(provider.name, provider.apiKey, messages, maxTokens, model);
+        trackAiUsage(true, trackUsage, {
+          provider: provider.name,
+          model,
+          tokens: extractUsageTokens(result.usage),
+          latencyMs: Date.now() - started,
+          quotaTokensUsed: result.quotaTokensUsed,
+        });
+        return result;
+      },
+    });
+
+    if (fallback.ok) {
+      const aiAttempts = summarizeAttemptsForTelemetry(fallback.attempts);
+      return json(200, {
+        ...fallback.result,
+        provider: fallback.provider,
+        model: fallback.model,
+        providers_tried: fallback.providersTried,
+        models_tried: fallback.modelsAttempted,
+        ai_attempts: aiAttempts,
+        fallback_used: fallback.fallbackUsed,
+        active_models: activeModels,
+        provider_strict: providerStrict,
+        quota_conserve: quotaConserve,
+        api_features: API_FEATURES,
+        total_latency_ms: fallback.totalLatencyMs,
+      });
+    }
+
+    for (const entry of fallback.errors || []) {
+      errors.push(localizeProviderError(entry.provider, `${entry.model}: ${entry.message}`));
+    }
+    const attempted = fallback.providersTried || [];
+    const modelsAttempted = fallback.modelsAttempted || [];
     trackAiUsage(false, trackUsage, parseModelsAttemptedTail(modelsAttempted));
-    return formatProviderFailure(errors, attempted, { providerStrict, modelsAttempted });
+    return formatProviderFailure(errors, attempted, {
+      providerStrict,
+      modelsAttempted,
+      aiAttempts: summarizeAttemptsForTelemetry(fallback.attempts),
+      totalLatencyMs: fallback.totalLatencyMs,
+    });
   } catch (err) {
     console.error('generate handler error:', err);
     trackAiUsage(false, trackUsage);
@@ -311,21 +336,13 @@ function resolveModelForProvider(provider, requestedModel, env) {
 }
 
 function resolveModelsForProvider(provider, requestedModel, env) {
-  const model = String(requestedModel || '').trim();
-  if (model && model !== 'auto') {
-    return [resolveModelForProviderSingle(provider, model, env)];
-  }
-
-  const allowed = ALLOWED_MODELS[provider];
-  const order = MODEL_FALLBACK_ORDER[provider] || [];
-  const models = [];
-  for (const id of order) {
-    if (!allowed?.has(id)) continue;
-    const resolved = provider === 'groq' ? normalizeGroqModel(id, env) : id;
-    if (!models.includes(resolved)) models.push(resolved);
-  }
-  if (!models.length) models.push(defaultModelFor(provider, env));
-  return models;
+  return resolveActiveModelsForProvider(provider, requestedModel, env, {
+    allowedModels: ALLOWED_MODELS,
+    defaultOrder: MODEL_FALLBACK_ORDER,
+    normalizeGroqModel,
+    defaultModelFor,
+    resolveModelForProviderSingle,
+  });
 }
 
 function resolveModelForProviderSingle(provider, requestedModel, env) {
@@ -443,14 +460,14 @@ async function callOpenAICompatibleOnce({ endpoint, apiKey, model, messages, max
     requestBody.include_reasoning = false;
   }
 
-  const response = await fetch(endpoint, {
+  const response = await fetchWithTimeout(endpoint, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
       authorization: `Bearer ${apiKey}`,
     },
     body: JSON.stringify(requestBody),
-  });
+  }, ATTEMPT_TIMEOUT_MS);
 
   const text = await response.text();
   let data;
@@ -464,6 +481,8 @@ async function callOpenAICompatibleOnce({ endpoint, apiKey, model, messages, max
     const message = data?.error?.message || data?.error || `Erro do serviço ${providerLabel} (${response.status})`;
     console.error(`${providerLabel} API error:`, response.status, data);
     const err = new Error(localizeAiErrorText(message));
+    err.httpStatus = response.status;
+    err.headers = response.headers;
     err.isRateLimit = response.status === 429 || /rate limit|too many requests/i.test(message);
     if (err.isRateLimit) {
       err.quotaTokensUsed = quotaUsedFromRateLimitHeaders(readOpenAiStyleHeaders(response.headers));
@@ -497,7 +516,7 @@ async function callOpenAICompatibleOnce({ endpoint, apiKey, model, messages, max
 }
 
 async function callAnthropic(apiKey, messages, maxTokens, model) {
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
+  const response = await fetchWithTimeout('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -510,7 +529,7 @@ async function callAnthropic(apiKey, messages, maxTokens, model) {
       system: ANTHROPIC_JSON_SYSTEM,
       messages,
     }),
-  });
+  }, ATTEMPT_TIMEOUT_MS);
 
   const text = await response.text();
   let data;
@@ -524,6 +543,8 @@ async function callAnthropic(apiKey, messages, maxTokens, model) {
     const message = data?.error?.message || data?.error || `Erro do serviço Anthropic (${response.status})`;
     console.error('Anthropic API error:', response.status, data);
     const err = new Error(localizeAiErrorText(message));
+    err.httpStatus = response.status;
+    err.headers = response.headers;
     err.isRateLimit = response.status === 429 || /rate limit|too many requests/i.test(message);
     if (err.isRateLimit) {
       err.quotaTokensUsed = quotaUsedFromRateLimitHeaders(readAnthropicHeaders(response.headers));
@@ -643,6 +664,8 @@ function formatProviderFailure(errors, attempted = [], opts = {}) {
   const meta = {
     attempted_providers: attempted,
     models_tried: opts.modelsAttempted || [],
+    ai_attempts: opts.aiAttempts || [],
+    total_latency_ms: opts.totalLatencyMs || null,
     configured_providers: configured,
     provider_strict: opts.providerStrict === true,
     provider_errors: localized,

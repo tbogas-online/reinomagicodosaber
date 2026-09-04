@@ -692,6 +692,9 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('dificuldade 6-9 no intervalo', d69 >= 1 && d69 <= 3, String(d69));
   const d15 = QE.chooseDifficulty('15+', [4, 4, 5]);
   assert('dificuldade 15+ no intervalo', d15 >= 1 && d15 <= 5, String(d15));
+  const dAlt = QE.chooseDifficulty('10-15', [2]);
+  assert('dificuldade alterna (não repete a anterior)', dAlt !== 2, String(dAlt));
+  assert('dificuldade alterna no intervalo 10-15', dAlt >= 1 && dAlt <= 4, String(dAlt));
 }
 
 // 76–78. code review question-engine — formatos e categorias

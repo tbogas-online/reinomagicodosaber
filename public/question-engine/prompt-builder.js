@@ -188,13 +188,18 @@ ${ageRulesText}`;
 
   function chooseDifficulty(ageBandKey, recentDifficulties) {
     const range = DIFFICULTY_RANGE[ageBandKey] || DIFFICULTY_RANGE['15+'];
+    const levels = [];
+    for (let d = range.min; d <= range.max; d += 1) levels.push(d);
+
     const recent = (recentDifficulties || []).filter((d) => d >= range.min && d <= range.max);
-    const avg = recent.length
-      ? recent.reduce((s, d) => s + d, 0) / recent.length
-      : (range.min + range.max) / 2;
-    let target = Math.round(avg);
-    if (Math.random() < 0.45) target += Math.random() < 0.5 ? -1 : 1;
-    return Math.min(range.max, Math.max(range.min, target));
+    const last = recent.length ? recent[recent.length - 1] : null;
+
+    let pool = levels;
+    if (last != null && levels.length > 1) {
+      pool = levels.filter((d) => d !== last);
+    }
+
+    return pool[Math.floor(Math.random() * pool.length)];
   }
 
   function chooseSubtopic(categoryNumber, recentSubtopics) {
