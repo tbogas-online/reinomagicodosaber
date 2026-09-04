@@ -1350,6 +1350,20 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('129. dificuldade pedida alinhada', r.ok, r.issues?.join(', '));
 }
 {
+  const obon = {
+    q: 'Onde fica a tradição do Obon, festividade japonesa com danças e lanternas?',
+    a: 'Japão',
+    options: ['Japão', 'Tailândia', 'China', 'Coreia do Sul'],
+  };
+  const r = QE.validateQuestion(obon, baseCtx({
+    ageBandKey: '10-15',
+    difficulty: 4,
+    formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA,
+    isMC: true,
+  }));
+  assert('129b. Obon difícil 10-15 tolerância ±1', r.ok, r.issues?.join(', '));
+}
+{
   const hint = QE.buildRetryHint([{ code: 'DIFFICULTY_EASIER_THAN_REQUESTED', message: 'test' }], QE.FORMAT_IDS.RESPOSTA_DIRETA, '15+');
   assert('130. retry hint DIFFICULTY_EASIER_THAN_REQUESTED', hint.includes('exigência'));
 }

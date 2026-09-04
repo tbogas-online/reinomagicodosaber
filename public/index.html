@@ -915,6 +915,29 @@
     width:100%;
     gap:4px;
   }
+  .footer-source-row{
+    display:flex;
+    flex-wrap:wrap;
+    gap:6px;
+    justify-content:center;
+    align-items:center;
+    width:100%;
+  }
+  .q-bank-add-foot{
+    display:none;
+    font-family:'Cinzel', serif;
+    font-size:10px;
+    letter-spacing:.05em;
+    line-height:1.3;
+    color:#6ee7b7;
+    background: rgba(16, 185, 129, 0.12);
+    border: 1px solid rgba(16, 185, 129, 0.45);
+    border-radius: 999px;
+    padding: 3px 10px;
+  }
+  .q-bank-add-foot.visible{
+    display:inline-block;
+  }
   .q-source-foot{
     display:none;
     font-family:'Cinzel', serif;
@@ -3557,7 +3580,10 @@
   </div>
 </div>
 <div class="footer-status-col">
-  <div class="q-source-foot" id="q-source-foot" hidden aria-live="polite"></div>
+  <div class="footer-source-row">
+    <div class="q-source-foot" id="q-source-foot" hidden aria-live="polite"></div>
+    <span class="q-bank-add-foot" id="q-bank-add-foot" hidden aria-live="polite"></span>
+  </div>
   <div class="footer-status-row">
 <div class="game-clock" id="game-clock">⏱ 00:00</div>
 
@@ -4000,6 +4026,15 @@
     const normalized = cleaned.map(normalizeQ);
     if(new Set(normalized).size !== expected) return false;
     return normalized.includes(normalizeQ(correctAnswer));
+  }
+
+  function canAcceptDifficultyNearMissForReplenish(engine, qualityCheck, difficulty, parsed, ageBandKey, bankReplenishOnly){
+    if(!bankReplenishOnly || !engine?.isDifficultyOnlyRejection?.(qualityCheck?.issueDetails)) return false;
+    const estimation = engine.estimateDifficulty(parsed.q, parsed.a, { ageBandKey });
+    const est = estimation?.estimatedDifficulty;
+    const req = Number(difficulty);
+    if(!Number.isFinite(est) || !Number.isFinite(req) || req - est !== 1) return false;
+    return (qualityCheck?.score ?? 0) >= 76;
   }
 
   function salvageDifficultyMismatchForReview({
@@ -4721,6 +4756,40 @@
     lastTickAt: 0,
     stats: { ok: 0, fail: 0, skipped: 0, quotaSkips: 0 },
   };
+  let bankAddedBadgeCount = 0;
+  let bankAddedBadgeTimer = null;
+  const BANK_ADDED_BADGE_MS = 15000;
+
+  function markBankQuestionAdded(count = 1){
+    if(!count) return;
+    bankAddedBadgeCount += count;
+    if(bankAddedBadgeTimer) clearTimeout(bankAddedBadgeTimer);
+    bankAddedBadgeTimer = setTimeout(() => {
+      bankAddedBadgeCount = 0;
+      bankAddedBadgeTimer = null;
+      refreshBankAddedFoot();
+    }, BANK_ADDED_BADGE_MS);
+    refreshBankAddedFoot();
+  }
+
+  function onBankReplenishComplete(result){
+    if(result?.replenished) markBankQuestionAdded(1);
+  }
+
+  function refreshBankAddedFoot(){
+    const el = document.getElementById('q-bank-add-foot');
+    if(!el) return;
+    if(!bankAddedBadgeCount || currentScreenId !== 'question'){
+      el.classList.remove('visible');
+      el.textContent = '';
+      el.hidden = true;
+      return;
+    }
+    el.textContent = bankAddedBadgeCount === 1 ? '+1 banco' : `+${bankAddedBadgeCount} banco`;
+    el.title = 'Nova(s) pergunta(s) guardada(s) no Supabase em background';
+    el.classList.add('visible');
+    el.hidden = false;
+  }
 
   function bankAiReplenishCategories(){
     return CATEGORIES.filter((c) => c.n >= 1 && c.n <= 19);
@@ -4876,7 +4945,10 @@
         } finally {
           delete bankAiReplenishInflight[inflightKey];
         }
-        if(result?.replenished) bankAiQuotaScheduler.stats.ok++;
+        if(result?.replenished){
+          bankAiQuotaScheduler.stats.ok++;
+          markBankQuestionAdded(1);
+        }
         else bankAiQuotaScheduler.stats.fail++;
         bankAiReplenishRecentAt[inflightKey] = Date.now();
 
@@ -5008,6 +5080,7 @@
       bankAiReplenishRecentAt[key] = Date.now();
       const job = generateQuestion(category, ageBandKey, { bankReplenishOnly: true })
         .then((result) => {
+          onBankReplenishComplete(result);
           if(DEBUG_MODE) console.info('[Reino] Reabastecimento banco (IA)', { category: catN, ageBand: ageBandKey, ...result });
         })
         .catch((err) => {
@@ -6345,7 +6418,16 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
             score: qualityCheck.score,
             parsed,
           });
-          if(salvageDifficultyMismatchForReview({
+          if(canAcceptDifficultyNearMissForReplenish(engine, qualityCheck, difficulty, parsed, ageBandKey, bankReplenishOnly)){
+            if(DEBUG_MODE){
+              const est = engine.estimateDifficulty(parsed.q, parsed.a, { ageBandKey })?.estimatedDifficulty;
+              console.info('[Reino] Reabastecimento: dificuldade ±1 aceite (score alto)', {
+                requested: difficulty,
+                estimated: est,
+                score: qualityCheck.score,
+              });
+            }
+          } else if(salvageDifficultyMismatchForReview({
             engine,
             parsed,
             qualityCheck,
@@ -8924,6 +9006,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     el.hidden = false;
     el.setAttribute('aria-hidden', 'false');
     document.body.classList.add('question-ready');
+    refreshBankAddedFoot();
     if(DEBUG_MODE) console.info('[Reino debug] Fonte da pergunta:', label, question);
     if(DEBUG_MODE && question.source === 'bank'){
       console.info('[Reino debug] IA não usada nesta pergunta — servida do banco Supabase (reabastecimento em background é separado)');

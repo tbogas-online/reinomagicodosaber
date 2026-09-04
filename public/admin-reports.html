@@ -2177,72 +2177,46 @@
       flex-shrink: 0;
     }
     .ai-usage-errors-legend {
-      display: grid;
-      gap: 10px;
-      margin-top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--border);
     }
     .ai-usage-errors-legend-item {
-      display: grid;
-      grid-template-columns: 12px minmax(0, 1fr);
-      gap: 8px 10px;
-      align-items: start;
-      font-size: 0.78rem;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.72rem;
       color: var(--muted);
-      padding: 8px 10px;
-      border-radius: 8px;
-      border: 1px solid var(--border);
+      padding: 4px 8px;
+      border-radius: 6px;
       background: rgba(15, 23, 42, 0.35);
+      border: 1px solid var(--border);
     }
     .ai-usage-errors-legend-item strong {
       color: var(--text);
-      font-size: 0.8rem;
+      font-size: 0.74rem;
     }
     .ai-usage-errors-legend-item .legend-swatch {
-      width: 12px;
-      height: 12px;
-      border-radius: 3px;
-      margin-top: 2px;
+      width: 10px;
+      height: 10px;
+      border-radius: 2px;
+      flex-shrink: 0;
     }
     .ai-usage-errors-legend-item .legend-swatch.dashed {
       background: transparent !important;
       border: 2px dashed currentColor;
     }
     .ai-usage-errors-legend-item.is-inactive {
-      opacity: 0.55;
+      opacity: 0.45;
     }
-    .ai-usage-errors-peaks {
-      margin-top: 12px;
-      overflow-x: auto;
-    }
-    .ai-usage-errors-peaks table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 0.76rem;
-    }
-    .ai-usage-errors-peaks th,
-    .ai-usage-errors-peaks td {
-      padding: 6px 8px;
-      border-bottom: 1px solid var(--border);
-      text-align: right;
-      white-space: nowrap;
-    }
-    .ai-usage-errors-peaks th:first-child,
-    .ai-usage-errors-peaks td:first-child {
-      text-align: left;
-    }
-    .ai-usage-errors-peaks th {
-      color: var(--muted);
-      font-weight: 600;
-      font-size: 0.72rem;
-      text-transform: uppercase;
-      letter-spacing: 0.03em;
-    }
-    .ai-usage-errors-peaks caption {
-      caption-side: top;
-      text-align: left;
-      font-size: 0.78rem;
-      color: var(--muted);
-      margin-bottom: 6px;
+    .ai-usage-errors-chart-box {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 8px 6px;
+      background: rgba(15, 23, 42, 0.28);
     }
     .line-label {
       fill: var(--muted);
@@ -8156,31 +8130,31 @@
       {
         key: 'app',
         label: 'App 429',
+        shortHint: 'limite /api/generate por IP',
         color: '#f97316',
         field: 'errorsAppLimit',
-        description: 'Limite interno de /api/generate por IP (45/min em produção, 150 em dev). Resposta 429 antes de contactar o fornecedor.',
       },
       {
         key: 'provider',
         label: 'Fornecedor 429',
+        shortHint: 'rate limit Groq/OpenAI',
         color: '#ef4444',
         field: 'errorsProviderLimit',
-        description: 'Rate limit do Groq/OpenAI depois de esgotar modelos no fallback do pedido.',
       },
       {
         key: 'other',
         label: 'Outros erros',
+        shortHint: '502, timeout, validação…',
         color: '#94a3b8',
         field: 'errorsOther',
-        description: '502, timeout, JSON inválido, validação e outros falhanços que não são 429 da app nem do fornecedor.',
       },
       {
         key: 'replenish',
         label: 'Reabastecimento',
+        shortHint: 'pedidos replenish (background)',
         color: '#3b82f6',
         field: 'replenishRequests',
         dashed: true,
-        description: 'Pedidos com request_context=replenish (encher o banco em background; não é a pergunta mostrada ao jogador).',
       },
     ];
 
@@ -8199,53 +8173,12 @@
         const swatchStyle = def.dashed
           ? `class="legend-swatch dashed" style="color:${def.color}"`
           : `class="legend-swatch" style="background:${def.color}"`;
-        return `<div class="ai-usage-errors-legend-item${inactive ? ' is-inactive' : ''}">
+        const title = def.description || def.shortHint || def.label;
+        return `<span class="ai-usage-errors-legend-item${inactive ? ' is-inactive' : ''}" title="${esc(title)}">
           <span ${swatchStyle} aria-hidden="true"></span>
-          <div>
-            <strong>${esc(def.label)}</strong> — ${esc(def.description)}
-            <div style="margin-top:4px;font-size:0.74rem;">Total no período: <strong>${total}</strong></div>
-          </div>
-        </div>`;
+          <span><strong>${esc(def.label)}</strong> ${total} — ${esc(def.shortHint || '')}</span>
+        </span>`;
       }).join('')}</div>`;
-    }
-
-    function buildAiUsageErrorsPeaksTable(labels, maps) {
-      const rows = labels.map((t) => {
-        const values = {};
-        let total = 0;
-        maps.forEach((m) => {
-          const v = Number(m.map[t]) || 0;
-          values[m.key] = v;
-          total += v;
-        });
-        return { t, total, values };
-      }).filter((row) => row.total > 0)
-        .sort((a, b) => b.total - a.total || b.t.localeCompare(a.t))
-        .slice(0, 8);
-      if (!rows.length) return '';
-      const head = maps.map((m) => `<th style="color:${m.color}">${esc(m.shortLabel || m.label)}</th>`).join('');
-      const body = rows.map((row) => {
-        const cells = maps.map((m) => {
-          const v = row.values[m.key] || 0;
-          return `<td>${v > 0 ? `<strong>${v}</strong>` : '0'}</td>`;
-        }).join('');
-        return `<tr>
-          <td>${esc(formatAiUsageBucketKeyLabel(row.t))}</td>
-          ${cells}
-          <td><strong>${row.total}</strong></td>
-        </tr>`;
-      }).join('');
-      return `<div class="ai-usage-errors-peaks">
-        <table>
-          <caption>Picos por bucket (${esc(formatAiUsageGranularityNote(resolveAiUsageBucketConfig()))})</caption>
-          <thead><tr>
-            <th>Data/hora</th>
-            ${head}
-            <th>Total</th>
-          </tr></thead>
-          <tbody>${body}</tbody>
-        </table>
-      </div>`;
     }
 
     function renderAiUsageErrorsChart(aiUsage) {
@@ -8282,8 +8215,10 @@
 
       if (!totalAll) {
         chartEl.innerHTML = `
-          <div class="chart-empty">Sem erros detalhados no período — executa ai-usage-error-detail.sql e faz pedidos com deploy recente.</div>
-          ${legendHtml}
+          <div class="ai-usage-errors-chart-box">
+            <div class="chart-empty">Sem erros detalhados no período — executa ai-usage-error-detail.sql e faz pedidos com deploy recente.</div>
+            ${legendHtml}
+          </div>
         `;
         if (noteEl) {
           noteEl.innerHTML = `${formatAiUsageGranularityNote(bucketConfig)} Sem eventos no período seleccionado.`;
@@ -8363,21 +8298,21 @@
           + 'Passa o rato no gráfico para detalhe por bucket.';
       }
 
-      const peaksHtml = buildAiUsageErrorsPeaksTable(labels, chartMaps);
       chartEl.innerHTML = `
-        <div class="chart-interactive ai-usage-chart">
-          <div class="chart-tooltip" hidden></div>
-          <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Erros e contexto IA">
-            <text class="line-axis-title" x="${padLeft}" y="14">Eventos / bucket</text>
-            ${gridLines}
-            <line class="line-axis-spine-left" x1="${padLeft}" y1="${padY}" x2="${padLeft}" y2="${padY + innerH}" />
-            <line class="chart-focus-line" hidden x1="0" y1="0" x2="0" y2="0" />
-            ${polylines}
-            ${xLabels}
-          </svg>
+        <div class="ai-usage-errors-chart-box">
+          <div class="chart-interactive ai-usage-chart">
+            <div class="chart-tooltip" hidden></div>
+            <svg class="line-svg" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Erros e contexto IA">
+              <text class="line-axis-title" x="${padLeft}" y="14">Eventos / bucket</text>
+              ${gridLines}
+              <line class="line-axis-spine-left" x1="${padLeft}" y1="${padY}" x2="${padLeft}" y2="${padY + innerH}" />
+              <line class="chart-focus-line" hidden x1="0" y1="0" x2="0" y2="0" />
+              ${polylines}
+              ${xLabels}
+            </svg>
+          </div>
+          ${legendHtml}
         </div>
-        ${legendHtml}
-        ${peaksHtml}
       `;
 
       const container = chartEl.querySelector('.ai-usage-chart');

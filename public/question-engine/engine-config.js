@@ -194,6 +194,7 @@
       maxMcOptionWords: 6,
       maxMcOptionChars: 52,
       mcOptionsTooLongMsg: 'opções demasiado longas para 10–15 (máx. 6 palavras) — sê mais directo',
+      promptDiffExtraHard: '\nNível difícil (10–15): evita factos óbvios de manual; prefere datas, tradições específicas, nomes menos comuns ou um detalhe que obrigue a pensar — ainda adequado a adolescentes.\n',
       ageRulesText: `LIMITES (10–15 anos):
 - Pergunta até 180 caracteres e 22 palavras; linguagem clara, sem parágrafos.
 - Resposta e opções em português de Portugal — traduz conceitos (ex.: "Verão", não "Summer").

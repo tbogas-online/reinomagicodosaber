@@ -56,6 +56,12 @@
       confidence = Math.max(confidence, 0.78);
     }
 
+    const culturalDetail = /\b(festividade|tradição|tradicional|obon|diwali|hanami|carnaval|solstício|antepassados|ritual|lanternas|costume|folclore)\b/i;
+    if (culturalDetail.test(ql)) {
+      est = ageBandKey === '6-9' ? Math.max(est, 3) : Math.max(est, 4);
+      confidence = Math.max(confidence, 0.74);
+    }
+
     const qWords = String(q || '').split(/\s+/).filter(Boolean).length;
     if (qWords > 28) est = Math.max(est, 3);
     if (qWords > 42) est = Math.max(est, 4);
@@ -80,7 +86,12 @@
     const range = DIFFICULTY_RANGE[ageBandKey] || DIFFICULTY_RANGE['15+'];
     const reqClamped = clampDifficulty(req, ageBandKey);
     const gap = reqClamped - est;
-    const minGap = conf >= 0.75 ? 1 : 2;
+    const absGap = Math.abs(gap);
+
+    // Tolerância ±1 quando a heurística não é muito confiante (comum com GPT-4o mini).
+    if (absGap <= 1 && conf < 0.85) return issues;
+
+    const minGap = conf >= 0.85 ? 1 : 2;
 
     if (gap >= minGap) {
       issues.push({
