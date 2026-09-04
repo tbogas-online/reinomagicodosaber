@@ -43,8 +43,7 @@ const {
   runAiFallbackLoop,
   summarizeAttemptsForTelemetry,
   ATTEMPT_TIMEOUT_MS,
-  ProviderCircuitBreaker,
-  sharedCircuitBreaker,
+  replenishCircuitBreaker,
 } = require('../../netlify/functions/lib/ai-fallback.js');
 const {
   resolveModelsForProvider: resolveActiveModelsForProvider,
@@ -200,8 +199,7 @@ export async function onRequestPost(context) {
   }
 
   const errors = [];
-  const probeRequest = requestContext === 'probe' || requestContext === 'status-probe';
-  const circuitBreaker = probeRequest ? new ProviderCircuitBreaker() : sharedCircuitBreaker;
+  const circuitBreaker = requestContext === 'replenish' ? replenishCircuitBreaker : null;
   const fallback = await runAiFallbackLoop({
     providerList,
     quotaConserve,

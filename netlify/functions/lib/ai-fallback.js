@@ -132,7 +132,7 @@ class ProviderCircuitBreaker {
   }
 }
 
-const sharedCircuitBreaker = new ProviderCircuitBreaker();
+const replenishCircuitBreaker = new ProviderCircuitBreaker();
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = ATTEMPT_TIMEOUT_MS) {
   const controller = new AbortController();
@@ -234,7 +234,7 @@ async function runAiFallbackLoop({
   callAttempt,
   quotaConserve = false,
   priorityProvider = null,
-  circuitBreaker = sharedCircuitBreaker,
+  circuitBreaker = null,
   totalTimeoutMs = TOTAL_TIMEOUT_MS,
   maxAttempts = MAX_FALLBACK_ATTEMPTS,
 }) {
@@ -360,7 +360,8 @@ module.exports = {
   classifyProviderError,
   parseRetryAfterSeconds,
   ProviderCircuitBreaker,
-  sharedCircuitBreaker,
+  replenishCircuitBreaker,
+  sharedCircuitBreaker: replenishCircuitBreaker,
   fetchWithTimeout,
   buildInterleavedAttemptQueue,
   runAiFallbackLoop,

@@ -3991,15 +3991,36 @@
   // perguntas — primeiro da mesma categoria/faixa etária (mais relevantes) e,
   // se não houver suficientes, de outras categorias da mesma faixa etária.
   // Garante que o banco local também é sempre apresentado em escolha múltipla.
+  function isPlausibleMcDistractor(correctAnswer, candidateAnswer){
+    const correct = String(correctAnswer || '').trim();
+    const candidate = String(candidateAnswer || '').trim();
+    if(!candidate || candidate === '—') return false;
+    const cWords = correct.split(/\s+/).filter(Boolean).length;
+    const dWords = candidate.split(/\s+/).filter(Boolean).length;
+    const cLen = correct.length;
+    const dLen = candidate.length;
+    if(cWords <= 4 && dWords > 5) return false;
+    if(cLen <= 25 && dLen > Math.max(40, cLen * 2.5)) return false;
+    if(cWords >= 1 && dWords > cWords + 3) return false;
+    return true;
+  }
+
   function buildFallbackOptions(correctAnswer, categoryNumber, ageBandKey){
     const correctNorm = normalizeQ(correctAnswer);
     const seen = new Set([correctNorm]);
     const candidates = [];
 
+    function tryAdd(answer){
+      const norm = normalizeQ(answer);
+      if(seen.has(norm) || !isPlausibleMcDistractor(correctAnswer, answer)) return false;
+      seen.add(norm);
+      candidates.push(answer);
+      return true;
+    }
+
     const sameCatBank = (QUESTIONS[categoryNumber] && QUESTIONS[categoryNumber][ageBandKey]) || [];
     for(const item of shuffled(sameCatBank)){
-      const norm = normalizeQ(item.a);
-      if(!seen.has(norm)){ seen.add(norm); candidates.push(item.a); }
+      tryAdd(item.a);
       if(candidates.length >= 3) break;
     }
 
@@ -4008,8 +4029,7 @@
         if(candidates.length >= 3) break;
         const bank = (QUESTIONS[cat.n] && QUESTIONS[cat.n][ageBandKey]) || [];
         for(const item of shuffled(bank)){
-          const norm = normalizeQ(item.a);
-          if(!seen.has(norm)){ seen.add(norm); candidates.push(item.a); }
+          tryAdd(item.a);
           if(candidates.length >= 3) break;
         }
       }
