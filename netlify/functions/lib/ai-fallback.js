@@ -253,6 +253,20 @@ async function runAiFallbackLoop({
   );
   attempts.push(...skipped);
 
+  if (!queue.length) {
+    const message = skipped.length
+      ? 'Nenhuma tentativa: circuit-breaker aberto ou sem modelos activos nos providers disponíveis.'
+      : 'Nenhum provider/modelo activo na fila — verifica AI_ACTIVE_MODELS_GROQ/OPENAI=YES (ANTHROPIC=NO ignora Claude).';
+    return {
+      ok: false,
+      errors: [{ provider: '', model: '', message }],
+      attempts,
+      modelsAttempted: [],
+      providersTried: [],
+      totalLatencyMs: Date.now() - startedAt,
+    };
+  }
+
   for (let i = 0; i < queue.length; i += 1) {
     if (Date.now() - startedAt >= totalTimeoutMs) break;
     if (attemptCount >= maxAttempts) break;

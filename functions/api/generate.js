@@ -47,6 +47,7 @@ const {
 const {
   resolveModelsForProvider: resolveActiveModelsForProvider,
   getActiveModelsSnapshot,
+  isProviderEnabled,
 } = require('../../netlify/functions/lib/ai-model-config.js');
 
 const ANTHROPIC_VERSION = '2023-06-01';
@@ -131,11 +132,7 @@ export async function onRequestPost(context) {
       attempted_providers: configAttempted || (normalizeClientPreference(clientPreference) !== 'auto'
         ? [normalizeClientPreference(clientPreference)]
         : []),
-      configured_providers: {
-        groq: !!(env.GROQ_API_KEY || '').trim(),
-        openai: !!(env.OPENAI_API_KEY || '').trim(),
-        anthropic: !!(env.ANTHROPIC_API_KEY || '').trim(),
-      },
+      configured_providers: configuredProvidersMeta(env),
       provider_strict: providerStrict,
     });
   }
@@ -195,11 +192,7 @@ export async function onRequestPost(context) {
         error: 'Nenhum modelo IA activo configurado para os providers disponíveis.',
         detail: 'Define AI_ACTIVE_MODELS (ou AI_ACTIVE_MODELS_GROQ / _OPENAI / _ANTHROPIC) nas variáveis de ambiente.',
         active_models: activeModels,
-        configured_providers: {
-          groq: !!(env.GROQ_API_KEY || '').trim(),
-          openai: !!(env.OPENAI_API_KEY || '').trim(),
-          anthropic: !!(env.ANTHROPIC_API_KEY || '').trim(),
-        },
+        configured_providers: configuredProvidersMeta(env),
       });
     }
   }
@@ -243,6 +236,7 @@ export async function onRequestPost(context) {
     modelsAttempted,
     aiAttempts: summarizeAttemptsForTelemetry(fallback.attempts),
     totalLatencyMs: fallback.totalLatencyMs,
+    activeModels,
   });
 }
 
@@ -264,21 +258,30 @@ function callProvider(name, apiKey, messages, maxTokens, model) {
   });
 }
 
-function buildProviderList(available, order, firstProvider = null) {
+function buildProviderList(available, order, firstProvider = null, env = {}) {
   const requestedOrder = order
     .split(',')
     .map((s) => s.trim().toLowerCase())
     .filter(Boolean);
 
+  const enabled = (name) => available[name] && isProviderEnabled(name, env);
   const names = [];
-  if (firstProvider && available[firstProvider]) names.push(firstProvider);
+  if (firstProvider && enabled(firstProvider)) names.push(firstProvider);
   for (const name of requestedOrder) {
-    if (available[name] && !names.includes(name)) names.push(name);
+    if (enabled(name) && !names.includes(name)) names.push(name);
   }
   for (const name of ALLOWED_PROVIDERS) {
-    if (available[name] && !names.includes(name)) names.push(name);
+    if (enabled(name) && !names.includes(name)) names.push(name);
   }
   return names.map((name) => ({ name, apiKey: available[name] }));
+}
+
+function configuredProvidersMeta(env = {}) {
+  return {
+    groq: !!(env.GROQ_API_KEY || '').trim() && isProviderEnabled('groq', env),
+    openai: !!(env.OPENAI_API_KEY || '').trim() && isProviderEnabled('openai', env),
+    anthropic: !!(env.ANTHROPIC_API_KEY || '').trim() && isProviderEnabled('anthropic', env),
+  };
 }
 
 function resolveProviderOrder(env, clientPreference = 'auto', strict = false) {
@@ -311,10 +314,10 @@ function resolveProviderOrder(env, clientPreference = 'auto', strict = false) {
     if (strict) {
       return { providers: [{ name: pref, apiKey: available[pref] }] };
     }
-    return { providers: buildProviderList(available, order, pref) };
+    return { providers: buildProviderList(available, order, pref, env) };
   }
 
-  return { providers: buildProviderList(available, order) };
+  return { providers: buildProviderList(available, order, null, env) };
 }
 
 function normalizeClientPreference(value) {
@@ -631,24 +634,22 @@ function localizeProviderErrors(errors) {
 function formatProviderFailure(errors, attempted = [], env = {}, opts = {}) {
   const localized = localizeProviderErrors(errors);
   const detail = localized.join(' | ');
-  const configured = {
-    groq: !!(env.GROQ_API_KEY || '').trim(),
-    openai: !!(env.OPENAI_API_KEY || '').trim(),
-    anthropic: !!(env.ANTHROPIC_API_KEY || '').trim(),
-  };
+  const configured = configuredProvidersMeta(env);
+  const activeModels = opts.activeModels || getActiveModelsSnapshot(env);
   const meta = {
     attempted_providers: attempted,
     models_tried: opts.modelsAttempted || [],
     ai_attempts: opts.aiAttempts || [],
     total_latency_ms: opts.totalLatencyMs || null,
     configured_providers: configured,
+    active_models: activeModels,
     provider_strict: opts.providerStrict === true,
     provider_errors: localized,
   };
   if (!detail) {
     return json(502, {
-      error: 'Nenhum serviço de IA configurado.',
-      detail: 'Adiciona GROQ_API_KEY, OPENAI_API_KEY ou ANTHROPIC_API_KEY nas variáveis de ambiente e faz redeploy.',
+      error: 'Nenhuma tentativa de IA foi possível.',
+      detail: 'Fila vazia: providers desactivados (AI_ACTIVE_MODELS_*), circuit-breaker, ou sem modelos activos. Com ANTHROPIC=NO não há pedidos Anthropic; activa GROQ/OPENAI com YES.',
       ...meta,
     });
   }

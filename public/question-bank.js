@@ -236,17 +236,22 @@
   async function pick(categoryN, ageBand, excludeHashes, excludeKnowledgeIds, requestedDifficulty = null) {
     const c = await ensureClient();
     if (!c) return null;
+    const req = Number(requestedDifficulty);
     const args = {
       p_category_n: categoryN,
       p_age_band: ageBand,
       p_exclude_hashes: Array.isArray(excludeHashes) ? excludeHashes : [],
       p_exclude_knowledge_ids: Array.isArray(excludeKnowledgeIds) ? excludeKnowledgeIds : [],
+      p_requested_difficulty: Number.isFinite(req)
+        ? Math.max(1, Math.min(5, Math.round(req)))
+        : null,
     };
-    const req = Number(requestedDifficulty);
-    if (Number.isFinite(req)) {
-      args.p_requested_difficulty = Math.max(1, Math.min(5, Math.round(req)));
-    }
     let { data, error } = await c.rpc('pick_question_from_bank', args);
+    if (error && /could not choose the best candidate function/i.test(String(error.message || ''))) {
+      console.warn(
+        '[QuestionBank] pick falhou: overload ambíguo em pick_question_from_bank — executa supabase/question-bank-pick-drop-4arg-overload.sql no Supabase.',
+      );
+    }
     if (error && /p_requested_difficulty|reino_bank_effective_difficulty/i.test(String(error.message || ''))) {
       const fallbackArgs = { ...args };
       delete fallbackArgs.p_requested_difficulty;

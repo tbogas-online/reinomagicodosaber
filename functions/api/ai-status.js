@@ -2,6 +2,7 @@
 // GET /api/ai-status
 
 const GROQ_MODEL_ALIASES = {};
+const { isProviderEnabled, getActiveModelsSnapshot } = require('../../netlify/functions/lib/ai-model-config.js');
 
 const PROBE_MODELS = {
   groq: ['qwen/qwen3.6-27b', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
@@ -28,7 +29,7 @@ exports.handler = async (event) => {
 
   const providers = {};
 
-  if (groqKey) {
+  if (groqKey && isProviderEnabled('groq')) {
     providers.groq = { label: PROVIDER_LABELS.groq, models: [] };
     const accountLimits = await probeGroqAccountLimits(groqKey);
     if (accountLimits) providers.groq.models.push(accountLimits);
@@ -38,7 +39,7 @@ exports.handler = async (event) => {
     providers.groq.summary = summarizeProvider('groq', providers.groq.models);
   }
 
-  if (openaiKey) {
+  if (openaiKey && isProviderEnabled('openai')) {
     providers.openai = { label: PROVIDER_LABELS.openai, models: [] };
     for (const model of PROBE_MODELS.openai) {
       providers.openai.models.push(await probeOpenAiModel(openaiKey, model));
@@ -46,7 +47,7 @@ exports.handler = async (event) => {
     providers.openai.summary = summarizeProvider('openai', providers.openai.models);
   }
 
-  if (anthropicKey) {
+  if (anthropicKey && isProviderEnabled('anthropic')) {
     providers.anthropic = { label: PROVIDER_LABELS.anthropic, models: [] };
     for (const model of PROBE_MODELS.anthropic) {
       providers.anthropic.models.push(await probeAnthropicModel(anthropicKey, model));
@@ -57,11 +58,20 @@ exports.handler = async (event) => {
   return json(200, {
     checked_at: checkedAt,
     order: 'groq,openai,anthropic',
-    configured: { groq: !!groqKey, openai: !!openaiKey, anthropic: !!anthropicKey },
+    configured: configuredProvidersMeta(),
+    active_models: getActiveModelsSnapshot(process.env),
     providers,
     note: 'Valores estimados a partir dos cabeçalhos de rate limit ou da última resposta de cada modelo.',
   });
 };
+
+function configuredProvidersMeta() {
+  return {
+    groq: !!(process.env.GROQ_API_KEY || '').trim() && isProviderEnabled('groq'),
+    openai: !!(process.env.OPENAI_API_KEY || '').trim() && isProviderEnabled('openai'),
+    anthropic: !!(process.env.ANTHROPIC_API_KEY || '').trim() && isProviderEnabled('anthropic'),
+  };
+}
 
 function elapsedMs(started) {
   return Math.max(0, Math.round(Date.now() - started));

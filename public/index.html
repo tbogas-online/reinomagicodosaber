@@ -936,6 +936,9 @@
     padding: 3px 10px;
   }
   .q-bank-add-foot.visible{
+    display:none;
+  }
+  body.question-screen-active.question-ready .q-bank-add-foot.visible{
     display:inline-block;
   }
   .q-bank-miss-foot{
@@ -950,6 +953,9 @@
     cursor: help;
   }
   .q-bank-miss-foot.visible{
+    display:none;
+  }
+  body.question-screen-active.question-ready .q-bank-miss-foot.visible{
     display:inline-block;
   }
   .q-source-foot{
@@ -4048,7 +4054,12 @@
     const estimation = engine.estimateDifficulty(parsed.q, parsed.a, { ageBandKey });
     const est = estimation?.estimatedDifficulty;
     const req = Number(difficulty);
-    if(!Number.isFinite(est) || !Number.isFinite(req) || req - est !== 1) return false;
+    if(!Number.isFinite(est) || !Number.isFinite(req) || Math.abs(req - est) !== 1) return false;
+    return (qualityCheck?.score ?? 0) >= 76;
+  }
+
+  function shouldSaveDifficultyMismatchForReplenish(engine, qualityCheck, bankReplenishOnly){
+    if(!bankReplenishOnly || !engine?.isDifficultyOnlyRejection?.(qualityCheck?.issueDetails)) return false;
     return (qualityCheck?.score ?? 0) >= 76;
   }
 
@@ -4782,6 +4793,17 @@
     bankReplenishCredits += 1;
   }
 
+  /** Mínimo de tokens livres para autorizar reabastecimento (ajusta ao TPM do provider). */
+  function getBankReplenishMinRemaining(summary){
+    const jobNeed = Math.ceil(BANK_AI_REPLENISH_EST_TOKENS * (1 + BANK_AI_REPLENISH_QUOTA_HEADROOM));
+    const limit = Number(summary?.tokens_limit);
+    // Groq free ~8k/min: com headroom 12% o máximo seguro é ~7040 — nunca exigir 8000 fixos.
+    if(Number.isFinite(limit) && limit > 0 && limit <= 15000){
+      return Math.min(BANK_AI_REPLENISH_MIN_REMAINING, Math.max(2000, Math.floor(limit * 0.55)));
+    }
+    return Math.min(BANK_AI_REPLENISH_MIN_REMAINING, jobNeed);
+  }
+
   function tryConsumeBankReplenishCredit(){
     if(bankReplenishCredits <= 0) return false;
     bankReplenishCredits -= 1;
@@ -4880,6 +4902,13 @@
     refreshBankMissFoot();
   }
 
+  function clearBankReplenishBadges(){
+    bankAddedBadgeCount = 0;
+    bankReplenishMissCount = 0;
+    bankAddedModelCounts = {};
+    refreshBankReplenishFoot();
+  }
+
   function refreshBankAddedFoot(){
     const el = document.getElementById('q-bank-add-foot');
     if(!el) return;
@@ -4931,6 +4960,7 @@
       const remaining = summary
         ? quotaWindowRemaining(summary.tokens_used, summary.tokens_limit, summary.tokens_remaining)
         : null;
+      const minRequired = summary ? getBankReplenishMinRemaining(summary) : BANK_AI_REPLENISH_MIN_REMAINING;
       const jobs = summary ? estimateBankAiReplenishJobs(summary) : 0;
       let blockReason = 'ok';
       if(!configured) blockReason = 'not_configured';
@@ -4939,13 +4969,13 @@
       else if(remaining == null || remaining <= 0) blockReason = 'no_remaining';
       else {
         const safeBudget = Math.floor(remaining * (1 - BANK_AI_REPLENISH_QUOTA_HEADROOM));
-        if(safeBudget < BANK_AI_REPLENISH_MIN_REMAINING){
-          blockReason = `safe_budget_${safeBudget}_lt_${BANK_AI_REPLENISH_MIN_REMAINING}`;
+        if(safeBudget < minRequired){
+          blockReason = `safe_budget_${safeBudget}_lt_${minRequired}`;
         } else if(jobs <= 0){
           blockReason = 'no_jobs';
         }
       }
-      return { id, configured, blocked, remaining, estimatedJobs: jobs, blockReason };
+      return { id, configured, blocked, remaining, minRequired, estimatedJobs: jobs, blockReason };
     });
     const eligible = providers.filter((p) => p.estimatedJobs > 0);
     const picked = eligible[0] || null;
@@ -4976,8 +5006,9 @@
     if(!summary || isProviderQuotaBlocked(summary)) return 0;
     const remaining = quotaWindowRemaining(summary.tokens_used, summary.tokens_limit, summary.tokens_remaining);
     if(remaining == null || remaining <= 0) return 0;
+    const minRequired = getBankReplenishMinRemaining(summary);
     const safeBudget = Math.floor(remaining * (1 - BANK_AI_REPLENISH_QUOTA_HEADROOM));
-    if(safeBudget < BANK_AI_REPLENISH_MIN_REMAINING) return 0;
+    if(safeBudget < minRequired) return 0;
     return Math.min(
       BANK_AI_REPLENISH_MAX_JOBS_PER_TICK,
       Math.max(1, Math.floor(safeBudget / BANK_AI_REPLENISH_EST_TOKENS)),
@@ -5188,8 +5219,9 @@
           ageBand: ageBandKey,
           pickedProvider: inspect.pickedProvider,
           fallbackProviders: inspect.fallbackProviders,
+          providerChecks: inspect.providers?.map((p) => `${p.id}:${p.blockReason}`),
           playable,
-          nota: 'quota_conserve desligado — fallback completo Groq↔OpenAI no servidor',
+          nota: 'pickedProvider = planeamento cliente; servidor tenta Groq→OpenAI com quota_conserve desligado',
         });
       }
       if(!tryConsumeBankReplenishCredit()){
@@ -6550,6 +6582,15 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
                 score: qualityCheck.score,
               });
             }
+          } else if(shouldSaveDifficultyMismatchForReplenish(engine, qualityCheck, bankReplenishOnly)){
+            if(DEBUG_MODE){
+              const est = engine.estimateDifficulty(parsed.q, parsed.a, { ageBandKey })?.estimatedDifficulty;
+              console.info('[Reino] Reabastecimento: só dificuldade fora do alvo — a guardar (score alto)', {
+                requested: difficulty,
+                estimated: est,
+                score: qualityCheck.score,
+              });
+            }
           } else if(salvageDifficultyMismatchForReview({
             engine,
             parsed,
@@ -7553,6 +7594,32 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   }
 
   async function callAiApi(messages, maxTokens, opts = {}){
+    const maxRetries = Number.isFinite(opts.maxRetries)
+      ? Math.max(0, opts.maxRetries)
+      : (opts.requestContext === 'probe' ? 0 : 2);
+    let lastErr;
+    for(let attempt = 0; attempt <= maxRetries; attempt++){
+      try {
+        return await callAiApiOnce(messages, maxTokens, opts);
+      } catch(err){
+        lastErr = err;
+        const status = Number(err.aiStatus) || 0;
+        if(attempt >= maxRetries || !isAiRecoverableFailure(status, err.message)) throw err;
+        if(DEBUG_MODE){
+          console.info('[Reino] IA — nova tentativa após falha recuperável', {
+            attempt: attempt + 1,
+            maxRetries,
+            status,
+            message: err.message,
+          });
+        }
+        await new Promise((resolve) => setTimeout(resolve, 700 * (attempt + 1)));
+      }
+    }
+    throw lastErr;
+  }
+
+  async function callAiApiOnce(messages, maxTokens, opts = {}){
     if(!opts.skipQuotaCheck){
       const quota = lastAiQuotaSnapshot || await fetchAiQuotaSnapshot().catch(() => null);
       if(quota){
@@ -7621,6 +7688,14 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       setOnlineStatus(true);
       return true;
     } catch (err) {
+      const status = Number(err.aiStatus) || 0;
+      const quota = lastAiQuotaSnapshot;
+      const availability = quota ? getAiAvailabilityFromQuota(quota, aiProviderChoice) : { online: false };
+      if(isAiRecoverableFailure(status, err?.message) && availability.online){
+        setOnlineStatus(true);
+        showAiTransientWarning(err?.message || 'Falha temporária da IA — quota disponível; a tentar de novo.');
+        return true;
+      }
       setOnlineStatus(false, err?.message || lastAiStatusDetail || 'IA indisponível', err?.aiData || null);
       return false;
     } finally {
@@ -8007,6 +8082,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(id !== 'question'){
       document.body.classList.remove('question-ready');
       updateQuestionSourceDebug(null);
+      clearBankReplenishBadges();
     }
     document.body.classList.toggle('category-bar-active', showCategoryBar);
     const categoryBar = document.getElementById('question-category-bar');

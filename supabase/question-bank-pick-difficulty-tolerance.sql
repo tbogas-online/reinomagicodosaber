@@ -3,6 +3,9 @@
 -- e question-bank-difficulty-by-age.sql.
 -- Depois: NOTIFY pgrst, 'reload schema';
 
+-- Remove overload de 4 argumentos (ambíguo com a versão de 5 abaixo).
+DROP FUNCTION IF EXISTS public.pick_question_from_bank(INT, TEXT, TEXT[], TEXT[]);
+
 CREATE OR REPLACE FUNCTION public.reino_bank_effective_difficulty(
   p_row public.question_bank,
   p_age_band TEXT
