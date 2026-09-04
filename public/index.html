@@ -4713,6 +4713,8 @@
   const BANK_AI_REPLENISH_JOB_GAP_MS = 2000;
   const cat20ReplenishInflight = {};
   const bankAiReplenishInflight = {};
+  const bankAiReplenishRecentAt = {};
+  const BANK_AI_REPLENISH_DEBOUNCE_MS = 120 * 1000;
   const bankAiQuotaScheduler = {
     timer: null,
     running: false,
@@ -4874,6 +4876,7 @@
         }
         if(result?.replenished) bankAiQuotaScheduler.stats.ok++;
         else bankAiQuotaScheduler.stats.fail++;
+        bankAiReplenishRecentAt[inflightKey] = Date.now();
 
         jobs--;
         if(jobs <= 0) break;
@@ -4937,6 +4940,44 @@
     const key = `${catN}|${ageBandKey}`;
     if(bankAiReplenishInflight[key]) return;
     const run = async () => {
+      if(bankAiQuotaScheduler.running){
+        if(DEBUG_MODE){
+          console.info('[Reino debug] Reabastecimento adiado — fila periódica em execução', {
+            category: catN,
+            ageBand: ageBandKey,
+            iaTentada: false,
+          });
+        }
+        return;
+      }
+      const lastAt = bankAiReplenishRecentAt[key] || 0;
+      if(Date.now() - lastAt < BANK_AI_REPLENISH_DEBOUNCE_MS){
+        if(DEBUG_MODE){
+          console.info('[Reino debug] Reabastecimento adiado — debounce', {
+            category: catN,
+            ageBand: ageBandKey,
+            iaTentada: false,
+            debounceSec: Math.round(BANK_AI_REPLENISH_DEBOUNCE_MS / 1000),
+          });
+        }
+        return;
+      }
+      const QB = window.QuestionBank;
+      const playable = typeof QB?.countPlayable === 'function'
+        ? await QB.countPlayable(catN, ageBandKey)
+        : null;
+      if(playable != null && playable >= BANK_AI_REPLENISH_LOW_STOCK){
+        if(DEBUG_MODE){
+          console.info('[Reino debug] Reabastecimento ignorado — stock suficiente', {
+            category: catN,
+            ageBand: ageBandKey,
+            playable,
+            threshold: BANK_AI_REPLENISH_LOW_STOCK,
+            iaTentada: false,
+          });
+        }
+        return;
+      }
       const quota = lastAiQuotaSnapshot || await fetchAiQuotaSnapshot().catch(() => null);
       const inspect = quota ? inspectBankReplenishQuota(quota) : { allowed: true, reason: 'quota_snapshot_missing' };
       const allowed = inspect.allowed;
@@ -4957,8 +4998,11 @@
           category: catN,
           ageBand: ageBandKey,
           pickedProvider: inspect.pickedProvider,
+          playable,
+          nota: 'pickedProvider é só quota; o servidor escolhe o modelo (Groq→OpenAI)',
         });
       }
+      bankAiReplenishRecentAt[key] = Date.now();
       const job = generateQuestion(category, ageBandKey, { bankReplenishOnly: true })
         .then((result) => {
           if(DEBUG_MODE) console.info('[Reino] Reabastecimento banco (IA)', { category: catN, ageBand: ageBandKey, ...result });
@@ -5907,7 +5951,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     const isCat20 = category.n === 20;
     void ensureReportedHashesSynced(engine);
     const localOnly = aiProviderChoice === 'local';
-    if(!localOnly && !aiStatusOnline){
+    if(!bankReplenishOnly && !localOnly && !aiStatusOnline){
       await probeAiStatusQuick();
     }
     const remember = (qText) => rememberGlobalQuestion(ageBandKey, qText);
@@ -6112,7 +6156,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     let lastAiErrorStatus = 0;
     let skipAi = !aiStatusOnline;
     let incompleteStreak = 0;
-    const maxAiAttempts = bankReplenishOnly ? 3 : 5;
+    const maxAiAttempts = bankReplenishOnly ? 2 : 5;
     if(!skipAi){
       try {
         const quota = lastAiQuotaSnapshot || await fetchAiQuotaSnapshot();
@@ -6181,7 +6225,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           isMC ? (ageBandKey === '15+' ? 360 : 320) : (ageBandKey === '15+' ? 220 : 200)
         );
         aiApiReached = true;
-        recordAiUsage(data);
+        recordAiUsage(data, bankReplenishOnly ? 'reabastecimento' : 'jogo');
 
         const text = (data.content || []).map(b => b.text || '').join('');
         if(!text.trim()){
@@ -6401,8 +6445,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
           categoryNumber: category.n,
         });
 
-        recordAiUsage(data);
-        setOnlineStatus(true);
+        if(!bankReplenishOnly) setOnlineStatus(true);
 
         const normQ = normalizeQ(parsed.q);
         const normA = normalizeQ(parsed.a);
@@ -6481,7 +6524,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
       } catch(err){
         lastAiError = localizeAiErrorMessage(err?.message || 'Erro desconhecido');
         lastAiErrorStatus = Number(err?.aiStatus) || 0;
-        if(err?.aiData) recordAiUsage(err.aiData);
+        if(err?.aiData) recordAiUsage(err.aiData, bankReplenishOnly ? 'reabastecimento-erro' : 'erro');
         recordQuestionGenTelemetry(engine, {
           ...telemetryBase,
           outcome: 'api_error',
@@ -6699,7 +6742,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     });
   }
 
-  function recordAiUsage(data){
+  function recordAiUsage(data, context = 'tentativas'){
     if(!data) return;
     const usage = resolveAiUsage(data);
     lastAiUsage.provider = usage.provider;
@@ -6708,7 +6751,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     lastAiUsage.tried = usage.tried;
     lastAiUsage.aiAttempts = usage.aiAttempts;
     lastAiUsage.totalLatencyMs = usage.totalLatencyMs;
-    debugLogAiAttempts('tentativas', data);
+    debugLogAiAttempts(context, data);
     updateAiInUseUI();
     refreshStatusBadgeText();
     refreshStatusDetailText();
