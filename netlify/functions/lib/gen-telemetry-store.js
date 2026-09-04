@@ -139,12 +139,16 @@ function isMissingExtendedTelemetryColumnError(msg) {
 
 const TELEMETRY_ROW_BASE_SELECT = 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options,provider,model,attempt';
 
-function buildTelemetryRowSelectVariants() {
+function buildTelemetryRowSelectVariants({ requireDismissedColumn = false } = {}) {
   const base = TELEMETRY_ROW_BASE_SELECT;
-  return [
+  const withDismissed = [
     `${base},bank_validated_at,bank_question_hash,bank_validated_edited,dismissed_at`,
     `${base},bank_validated_at,bank_question_hash,dismissed_at`,
     `${base},dismissed_at`,
+  ];
+  if (requireDismissedColumn) return withDismissed;
+  return [
+    ...withDismissed,
     `${base},bank_validated_at,bank_question_hash`,
     base,
   ];
@@ -157,12 +161,13 @@ function isRecoverableTelemetrySelectError(msg) {
     || text.includes('42703');
 }
 
-async function fetchTelemetryRowsWithSelectFallback(params, { requireDismissedFilter = false } = {}) {
+async function fetchTelemetryRowsWithSelectFallback(params, { requireDismissedFilter = false, requireDismissedColumn = false } = {}) {
   const query = new URLSearchParams(params);
   let wantsDismissedFilter = query.has('dismissed_at');
   let wantsBankValidatedFilter = query.has('bank_validated_at');
   let lastErr;
-  for (const select of buildTelemetryRowSelectVariants()) {
+  const selectVariants = buildTelemetryRowSelectVariants({ requireDismissedColumn });
+  for (const select of selectVariants) {
     query.set('select', select);
     const selectHasDismissed = select.includes('dismissed_at');
     if (wantsDismissedFilter && !selectHasDismissed) {
@@ -290,6 +295,7 @@ async function enrichItemsWithBankValidation(items) {
   const list = Array.isArray(items) ? items : [];
   const pending = list.filter((ev) => ev.outcome === 'rejected'
     && !ev.bankValidatedAt
+    && !ev.dismissedAt
     && ev.questionSnapshot?.q
     && ev.questionSnapshot?.a);
   if (!pending.length) return list;
@@ -401,6 +407,7 @@ function accumulateIssueDetail(summary, ev) {
         count: 0,
         validatedCount: 0,
         dismissedCount: 0,
+        openCount: 0,
         sampleMessage: msg,
         lastOccurrence: null,
         recentOccurrences: [],
@@ -418,6 +425,9 @@ function accumulateIssueDetail(summary, ev) {
     }
     if (ev.dismissedAt) {
       entry.dismissedCount = (entry.dismissedCount || 0) + 1;
+    }
+    if (ev.outcome === 'rejected' && isOpenIssueOccurrence(ev)) {
+      entry.openCount = (entry.openCount || 0) + 1;
     }
     if (msg && !entry.sampleMessage) {
       entry.sampleMessage = msg;
@@ -841,7 +851,7 @@ async function fetchEventItems(filters = {}) {
     limit: String(MAX_EVENTS),
   };
   if (gameMode) params.game_mode = `eq.${gameMode}`;
-  const rows = await fetchTelemetryRowsWithSelectFallback(params);
+  const rows = await fetchTelemetryRowsWithSelectFallback(params, { requireDismissedColumn: true });
   return rows.map(rowToItem);
 }
 
@@ -926,6 +936,7 @@ async function dismissTelemetryEventsByIssueCode({ issueCode, gameMode = '' } = 
 }
 
 function countOpenTelemetryByIssueDetail(info) {
+  if (typeof info?.openCount === 'number') return info.openCount;
   const total = Number(info?.count) || 0;
   const validated = Number(info?.validatedCount) || 0;
   const dismissed = Number(info?.dismissedCount) || 0;

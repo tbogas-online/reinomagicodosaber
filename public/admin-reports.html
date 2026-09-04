@@ -5609,6 +5609,7 @@
     }
 
     function countOpenIssueOccurrencesFromSummary(info) {
+      if (typeof info?.openCount === 'number') return info.openCount;
       const total = Number(info?.count) || 0;
       const validated = Number(info?.validatedCount) || 0;
       const dismissed = Number(info?.dismissedCount) || 0;
@@ -6101,8 +6102,10 @@
           lastTelemetryOverrides,
           occurrences,
         );
-        if (openCount > GEN_TELEMETRY_PREVIEW_OCCURRENCES) {
+        if (openCount > GEN_TELEMETRY_PREVIEW_OCCURRENCES && occurrences.length > 0) {
           listEl.insertAdjacentHTML('beforeend', `<p class="issue-occ-loading sub" style="margin:8px 0 0;font-size:11px;color:var(--muted);">A mostrar ${occurrences.length} de ${openCount} pendentes.</p>`);
+        } else if (openCount > 0 && !occurrences.length) {
+          listEl.insertAdjacentHTML('beforeend', `<p class="issue-occ-loading sub" style="margin:8px 0 0;font-size:11px;color:var(--muted);">Sem ocorrências abertas — as estatísticas serão actualizadas.</p>`);
         }
         block.dataset.occLoaded = occurrences.length ? '1' : 'empty';
       } catch (err) {
@@ -13581,10 +13584,8 @@
               statusEl.textContent = `${n} ocorrência(s) de ${issueCode} descartada(s).`;
               statusEl.className = 'status ok';
             } else if (openCount > 0) {
-              statusEl.textContent = `Nenhuma ocorrência descartada (esperadas ~${openCount}). Confirma que executaste supabase/gen-telemetry-dismissed.sql no Supabase.`;
-              statusEl.className = 'status err';
-              dismissCodeBtn.disabled = false;
-              return;
+              statusEl.textContent = `Nenhuma ocorrência nova descartada — a actualizar estatísticas…`;
+              statusEl.className = 'status ok';
             } else {
               statusEl.textContent = `Nenhuma ocorrência pendente de ${issueCode}.`;
               statusEl.className = 'status ok';

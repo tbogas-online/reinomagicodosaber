@@ -1004,6 +1004,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     validatedCount: 3,
     dismissedCount: 2,
   }) === 5
+    && countOpenTelemetryByIssueDetail({ openCount: 7 }) === 7
     && countOpenTelemetryByIssueDetail({ count: 4, validatedCount: 2, dismissedCount: 5 }) === 0);
   const snap = { q: 'Quem fundou a UEFA?', a: '1955', options: ['A', 'B'] };
   assert('104d4. telemetria edited flag', isTelemetrySnapshotEdited(snap, {
