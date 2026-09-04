@@ -3550,13 +3550,14 @@
               <button type="button" class="secondary" data-ai-usage-granularity="30">30 min</button>
               <button type="button" class="secondary" data-ai-usage-granularity="60">1 h</button>
             </div>
-            <p class="timeline-note" id="aiUsageNote">Período e granularidade aplicam-se a todos os gráficos abaixo.</p>
             <div class="ai-usage-daily-limit-toggles" id="aiUsageDailyLimitToggles" hidden aria-label="Linhas de limite diário TPD"></div>
+            <p class="timeline-note" id="aiUsageNote">Período e granularidade aplicam-se a todos os gráficos abaixo.</p>
             <div id="chartAiUsage" class="chart"></div>
             <div class="chart-head" style="margin-top:16px;">
               <h4 id="chartAiUsageTokensMinuteTitle" style="margin:0;font-size:0.9rem;">Tokens</h4>
             </div>
             <p class="timeline-note" id="aiUsageTokensMinuteNote">Verde = tokens desta app · âmbar = quota da conta (instantâneo) · vermelho = bloqueios no jogo (não sondagens).</p>
+            <div class="ai-usage-daily-limit-toggles" id="aiUsageMinuteLimitToggles" hidden aria-label="Linhas de limite tokens por minuto"></div>
             <div id="chartAiUsageTokensMinute" class="chart"></div>
             <div class="chart-head" style="margin-top:16px;">
               <h4 id="chartAiUsageLatencyTitle" style="margin:0;font-size:0.9rem;">Latência por modelo</h4>
@@ -6477,11 +6478,13 @@
     const AI_USAGE_PROVIDER_STORAGE_KEY = 'reino_admin_ai_usage_provider';
     const AI_USAGE_MODEL_STORAGE_KEY = 'reino_admin_ai_usage_model';
     const AI_USAGE_DAILY_LIMIT_LINES_STORAGE_KEY = 'reino_admin_ai_usage_daily_limit_lines';
+    const AI_USAGE_MINUTE_LIMIT_LINES_STORAGE_KEY = 'reino_admin_ai_usage_minute_limit_lines';
     const AI_DAILY_LIMIT_LINE_COLORS = {
       groq: '#f97316',
       openai: '#22d3ee',
       total: '#ef4444',
     };
+    const AI_MINUTE_LIMIT_LINE_COLORS = AI_DAILY_LIMIT_LINE_COLORS;
     const AI_USAGE_BUCKET_MINUTES = 5;
     const AI_USAGE_LISBON_TZ = 'Europe/Lisbon';
     const AI_USAGE_QUOTA_PROBE_MODEL = '__quota__';
@@ -6555,6 +6558,7 @@
     let aiUsageModelFilter = '';
     let aiUsageRefScaleByChart = { main: false, tokensMinute: false };
     let aiUsageDailyLimitLines = { groq: false, openai: false, total: false };
+    let aiUsageMinuteLimitLines = { groq: false, openai: false, total: false };
     let telemetryGameModeFilter = '';
     let telemetryTimelineRange = '14d';
     let telemetryTimelineChartType = 'stacked';
@@ -6585,6 +6589,19 @@
           const parsed = JSON.parse(savedDailyLimits);
           if (parsed && typeof parsed === 'object') {
             aiUsageDailyLimitLines = {
+              groq: !!parsed.groq,
+              openai: !!parsed.openai,
+              total: !!parsed.total,
+            };
+          }
+        }
+      } catch { /* ignore */ }
+      try {
+        const savedMinuteLimits = localStorage.getItem(AI_USAGE_MINUTE_LIMIT_LINES_STORAGE_KEY);
+        if (savedMinuteLimits) {
+          const parsed = JSON.parse(savedMinuteLimits);
+          if (parsed && typeof parsed === 'object') {
+            aiUsageMinuteLimitLines = {
               groq: !!parsed.groq,
               openai: !!parsed.openai,
               total: !!parsed.total,
@@ -7253,6 +7270,7 @@
       if (tokensTitleEl) tokensTitleEl.textContent = `Tokens — ${meta.label}${granSuffix}${filterSuffix}`;
       if (!aiUsage?.available) {
         tokensChartEl.innerHTML = '<div class="chart-empty">Indisponível — executa ai-usage-minute-buckets.sql.</div>';
+        hideAiUsageMinuteLimitToggles();
         return;
       }
       const limitSeries = Array.isArray(bucket?.limits) && bucket.limits.length
@@ -7295,6 +7313,7 @@
             : 'Sem bloqueios de jogo nas últimas 2 h.',
           scaleRefLimit: totalLimitHitsGame > 0,
         });
+        hideAiUsageMinuteLimitToggles();
         return;
       }
       const hasQuotaPressure = (bucket?.quotaPressure || []).some((p) => (Number(p.v) || 0) > 0);
@@ -7303,6 +7322,7 @@
       if (isEmpty) {
         tokensChartEl.innerHTML = '<div class="chart-empty">Sem dados de tokens neste período.</div>';
         if (tokensNoteEl) tokensNoteEl.textContent = `${formatAiUsageGranularityNote(bucketConfig)} Tokens aparecem após pedidos com tokens registados.`;
+        hideAiUsageMinuteLimitToggles();
         return;
       }
       const isMinuteBucket = bucketConfig.bucketMinutes === 1;
@@ -7357,6 +7377,8 @@
         parts.push(formatAiUsageGranularityNote(bucketConfig));
         tokensNoteEl.innerHTML = `${parts.join(' · ')}.`;
       }
+      if (isMinuteBucket) renderAiUsageMinuteLimitToggles(aiStatus, minuteTokenLimit);
+      else hideAiUsageMinuteLimitToggles();
       const tokensEmpty = (!Array.isArray(bucket.tokens) || bucket.tokens.length === 0)
         && (!hasQuotaPressure)
         && ((bucket.totalTokens || 0) === 0);
@@ -7367,6 +7389,12 @@
       const peakRatio = minuteTokenLimit && peakTokens > 0 ? peakTokens / minuteTokenLimit : 0;
       const autoScaleLimit = peakRatio >= 0.12 || totalLimitHitsGame > 0 || minuteLimitHit;
       const scaleRefLimit = aiUsageRefScaleByChart.tokensMinute || autoScaleLimit;
+      const minuteLimits = isMinuteBucket
+        ? collectAiMinuteTokenLimits(aiStatus, minuteTokenLimit)
+        : {};
+      const minuteRefLines = isMinuteBucket && Object.keys(minuteLimits).length > 0
+        ? buildAiUsageMinuteRefLines(aiStatus, minuteTokenLimit)
+        : [];
       const tokenLabelA = isMinuteBucket
         ? 'Tokens app / min'
         : `Tokens app / ${bucketConfig.granularityLabel}`;
@@ -7393,74 +7421,144 @@
           : '',
         refHighlightPct: 0.95,
         scaleRefLimit,
+        dailyLimitsForScale: minuteRefLines.length ? minuteLimits : null,
+        refLines: minuteRefLines,
       });
     }
+    function deriveProviderDailyTokenLimit(prov) {
+      if (!prov) return null;
+      const models = Array.isArray(prov.models) ? prov.models : [];
+      let best = null;
+      const consider = (limit) => {
+        const n = Number(limit);
+        if (!Number.isFinite(n) || n <= 0) return;
+        best = best ? Math.max(best, Math.round(n)) : Math.round(n);
+      };
+      for (const model of models) {
+        consider(model.tokens_day_limit);
+        const used = Number(model.tokens_day_used);
+        const remaining = Number(model.tokens_day_remaining);
+        if (Number.isFinite(used) && Number.isFinite(remaining) && remaining >= 0) {
+          consider(used + remaining);
+        }
+        if ((model.limit_window === 'day' || model.blocking_window === 'day') && model.tokens_limit != null) {
+          consider(model.tokens_limit);
+        }
+      }
+      const summary = prov.summary;
+      if (summary) {
+        consider(summary.tokens_day_limit);
+        const used = Number(summary.tokens_day_used);
+        const remaining = Number(summary.tokens_day_remaining);
+        if (Number.isFinite(used) && Number.isFinite(remaining) && remaining >= 0) {
+          consider(used + remaining);
+        }
+        if ((summary.limit_window === 'day' || summary.blocking_window === 'day') && summary.tokens_limit != null) {
+          consider(summary.tokens_limit);
+        }
+      }
+      return best;
+    }
+
+    function deriveProviderMinuteTokenLimit(prov) {
+      if (!prov) return null;
+      const models = Array.isArray(prov.models) ? prov.models : [];
+      let best = null;
+      const consider = (limit) => {
+        const n = Number(limit);
+        if (!Number.isFinite(n) || n <= 0) return;
+        best = best ? Math.max(best, Math.round(n)) : Math.round(n);
+      };
+      for (const model of models) {
+        consider(model.tokens_limit);
+        const used = Number(model.tokens_used);
+        const remaining = Number(model.tokens_remaining);
+        if (Number.isFinite(used) && Number.isFinite(remaining) && remaining >= 0) {
+          consider(used + remaining);
+        }
+      }
+      const summary = prov.summary;
+      if (summary) {
+        consider(summary.tokens_limit);
+        const used = Number(summary.tokens_used);
+        const remaining = Number(summary.tokens_remaining);
+        if (Number.isFinite(used) && Number.isFinite(remaining) && remaining >= 0) {
+          consider(used + remaining);
+        }
+      }
+      return best;
+    }
+
     function extractAiMinuteTokenLimit(aiStatus, providerFilter = '') {
       const provider = String(providerFilter || aiUsageProviderFilter || '').trim().toLowerCase();
-      const pickFromProvider = (prov) => {
-        if (!prov) return null;
-        const models = Array.isArray(prov.models) ? prov.models : [];
-        let best = null;
-        for (const model of models) {
-          const limit = Number(model.tokens_limit);
-          if (Number.isFinite(limit) && limit > 0 && (!best || limit > best)) best = Math.round(limit);
-        }
-        const summaryLimit = Number(prov.summary?.tokens_limit);
-        if (Number.isFinite(summaryLimit) && summaryLimit > 0) {
-          best = best ? Math.max(best, Math.round(summaryLimit)) : Math.round(summaryLimit);
-        }
-        return best;
-      };
-      if (provider) return pickFromProvider(aiStatus?.providers?.[provider]);
+      if (provider) return deriveProviderMinuteTokenLimit(aiStatus?.providers?.[provider]);
       let best = null;
-      Object.values(aiStatus?.providers || {}).forEach((prov) => {
-        const limit = pickFromProvider(prov);
+      const configured = aiStatus?.configured || {};
+      for (const id of ['groq', 'openai', 'anthropic']) {
+        if (configured[id] === false) continue;
+        const limit = deriveProviderMinuteTokenLimit(aiStatus?.providers?.[id]);
         if (limit && (!best || limit > best)) best = limit;
-      });
+      }
       return best;
     }
 
     function extractAiDailyTokenLimit(aiStatus, providerFilter = '') {
       const provider = String(providerFilter || aiUsageProviderFilter || '').trim().toLowerCase();
-      const pickFromProvider = (prov) => {
-        if (!prov) return null;
-        const models = Array.isArray(prov.models) ? prov.models : [];
-        let best = null;
-        for (const model of models) {
-          const limit = Number(model.tokens_day_limit);
-          if (Number.isFinite(limit) && limit > 0 && (!best || limit > best)) best = Math.round(limit);
-        }
-        const summaryLimit = Number(prov.summary?.tokens_day_limit);
-        if (Number.isFinite(summaryLimit) && summaryLimit > 0) {
-          best = best ? Math.max(best, Math.round(summaryLimit)) : Math.round(summaryLimit);
-        }
-        return best;
-      };
-      if (provider) return pickFromProvider(aiStatus?.providers?.[provider]);
+      if (provider) return deriveProviderDailyTokenLimit(aiStatus?.providers?.[provider]);
       let best = null;
-      Object.values(aiStatus?.providers || {}).forEach((prov) => {
-        const limit = pickFromProvider(prov);
+      const configured = aiStatus?.configured || {};
+      for (const id of ['groq', 'openai', 'anthropic']) {
+        if (configured[id] === false) continue;
+        const limit = deriveProviderDailyTokenLimit(aiStatus?.providers?.[id]);
         if (limit && (!best || limit > best)) best = limit;
-      });
+      }
       return best;
     }
 
-    function collectAiDailyTokenLimits(aiStatus) {
+    function collectAiDailyTokenLimits(aiStatus, fallbackLimit = null) {
       const out = {};
       let total = 0;
+      const configured = aiStatus?.configured || {};
       for (const id of ['groq', 'openai']) {
-        const limit = extractAiDailyTokenLimit(aiStatus, id);
+        if (configured[id] === false) continue;
+        const limit = deriveProviderDailyTokenLimit(aiStatus?.providers?.[id]);
         if (limit) {
           out[id] = limit;
           total += limit;
         }
       }
-      if (total > 0) out.total = total;
+      if (total > 0) {
+        out.total = total;
+        return out;
+      }
+      const fallback = Number(fallbackLimit);
+      if (Number.isFinite(fallback) && fallback > 0) out.total = Math.round(fallback);
       return out;
     }
 
-    function buildAiUsageDailyRefLines(aiStatus) {
-      const limits = collectAiDailyTokenLimits(aiStatus);
+    function collectAiMinuteTokenLimits(aiStatus, fallbackLimit = null) {
+      const out = {};
+      let total = 0;
+      const configured = aiStatus?.configured || {};
+      for (const id of ['groq', 'openai']) {
+        if (configured[id] === false) continue;
+        const limit = deriveProviderMinuteTokenLimit(aiStatus?.providers?.[id]);
+        if (limit) {
+          out[id] = limit;
+          total += limit;
+        }
+      }
+      if (total > 0) {
+        out.total = total;
+        return out;
+      }
+      const fallback = Number(fallbackLimit);
+      if (Number.isFinite(fallback) && fallback > 0) out.total = Math.round(fallback);
+      return out;
+    }
+
+    function buildAiUsageDailyRefLines(aiStatus, fallbackLimit = null) {
+      const limits = collectAiDailyTokenLimits(aiStatus, fallbackLimit);
       const order = ['groq', 'openai', 'total'];
       return order
         .filter((key) => limits[key] && aiUsageDailyLimitLines[key])
@@ -7472,11 +7570,28 @@
         }));
     }
 
-    function renderAiUsageDailyLimitToggles(aiStatus, quotaKind) {
-      const el = document.getElementById('aiUsageDailyLimitToggles');
+    function buildAiUsageMinuteRefLines(aiStatus, fallbackLimit = null) {
+      const limits = collectAiMinuteTokenLimits(aiStatus, fallbackLimit);
+      const order = ['groq', 'openai', 'total'];
+      return order
+        .filter((key) => limits[key] && aiUsageMinuteLimitLines[key])
+        .map((key) => ({
+          key,
+          limit: limits[key],
+          label: key === 'total' ? 'Total' : aiUsageProviderLabel(key),
+          color: AI_MINUTE_LIMIT_LINE_COLORS[key] || '#ef4444',
+        }));
+    }
+
+    function renderAiUsageLimitToggleRow(el, {
+      limits,
+      activeMap,
+      dataAttr,
+      labelText,
+      colors,
+    }) {
       if (!el) return;
-      const limits = collectAiDailyTokenLimits(aiStatus);
-      if (quotaKind !== 'tokens' || !Object.keys(limits).length) {
+      if (!Object.keys(limits).length) {
         el.hidden = true;
         el.innerHTML = '';
         return;
@@ -7485,13 +7600,47 @@
       const buttons = ['groq', 'openai', 'total']
         .filter((key) => limits[key])
         .map((key) => {
-          const active = !!aiUsageDailyLimitLines[key];
+          const active = !!activeMap[key];
           const label = key === 'total' ? 'Total' : aiUsageProviderLabel(key);
-          const color = AI_DAILY_LIMIT_LINE_COLORS[key] || '#ef4444';
-          return `<button type="button" class="ai-usage-daily-limit-toggle${active ? ' active' : ''}" data-daily-limit="${esc(key)}" aria-pressed="${active ? 'true' : 'false'}" style="color:${color}"><i style="border-top-color:${color}"></i>${esc(label)} (${esc(formatAiUsageTokenCount(limits[key]))})</button>`;
+          const color = colors[key] || '#ef4444';
+          return `<button type="button" class="ai-usage-daily-limit-toggle${active ? ' active' : ''}" data-${dataAttr}="${esc(key)}" aria-pressed="${active ? 'true' : 'false'}" style="color:${color}"><i style="border-top-color:${color}"></i>${esc(label)} (${esc(formatAiUsageTokenCount(limits[key]))})</button>`;
         })
         .join('');
-      el.innerHTML = `<span class="ai-usage-daily-limit-label">Limites diários (TPD):</span>${buttons}`;
+      el.innerHTML = `<span class="ai-usage-daily-limit-label">${esc(labelText)}</span>${buttons}`;
+    }
+
+    function renderAiUsageDailyLimitToggles(aiStatus, quotaKind, fallbackLimit = null) {
+      const limits = collectAiDailyTokenLimits(aiStatus, fallbackLimit);
+      renderAiUsageLimitToggleRow(
+        document.getElementById('aiUsageDailyLimitToggles'),
+        {
+          limits: quotaKind === 'tokens' ? limits : {},
+          activeMap: aiUsageDailyLimitLines,
+          dataAttr: 'daily-limit',
+          labelText: 'Limites diários (TPD):',
+          colors: AI_DAILY_LIMIT_LINE_COLORS,
+        },
+      );
+    }
+
+    function renderAiUsageMinuteLimitToggles(aiStatus, fallbackLimit = null) {
+      const limits = fallbackLimit != null
+        ? collectAiMinuteTokenLimits(aiStatus, fallbackLimit)
+        : {};
+      renderAiUsageLimitToggleRow(
+        document.getElementById('aiUsageMinuteLimitToggles'),
+        {
+          limits,
+          activeMap: aiUsageMinuteLimitLines,
+          dataAttr: 'minute-limit',
+          labelText: 'Limites tokens/min:',
+          colors: AI_MINUTE_LIMIT_LINE_COLORS,
+        },
+      );
+    }
+
+    function hideAiUsageMinuteLimitToggles() {
+      renderAiUsageMinuteLimitToggles(null, null);
     }
 
     function buildAiUsageTopChartSeries(bucket, aiStatus, providerFilter = '') {
@@ -8527,10 +8676,10 @@
       }
 
       const topSeries = buildAiUsageTopChartSeries(bucket, aiStatus, aiUsageProviderFilter);
-      const dailyLimits = collectAiDailyTokenLimits(aiStatus);
+      const dailyLimits = collectAiDailyTokenLimits(aiStatus, topSeries.refLimit);
       const hasDailyTokenSeries = topSeries.quotaKind === 'tokens' && Object.keys(dailyLimits).length > 0;
-      const dailyRefLines = hasDailyTokenSeries ? buildAiUsageDailyRefLines(aiStatus) : [];
-      renderAiUsageDailyLimitToggles(aiStatus, topSeries.quotaKind);
+      const dailyRefLines = hasDailyTokenSeries ? buildAiUsageDailyRefLines(aiStatus, topSeries.refLimit) : [];
+      renderAiUsageDailyLimitToggles(aiStatus, topSeries.quotaKind, topSeries.refLimit);
       const periodRequests = bucket.totalRequests || 0;
       const periodErrors = bucket.totalErrors || 0;
       const periodTokens = bucket.totalTokens || 0;
@@ -14374,6 +14523,17 @@
       aiUsageDailyLimitLines[key] = !aiUsageDailyLimitLines[key];
       try {
         localStorage.setItem(AI_USAGE_DAILY_LIMIT_LINES_STORAGE_KEY, JSON.stringify(aiUsageDailyLimitLines));
+      } catch { /* ignore */ }
+      renderAiUsageChart(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
+    });
+    document.getElementById('aiUsageMinuteLimitToggles')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-minute-limit]');
+      if (!btn) return;
+      const key = btn.dataset.minuteLimit;
+      if (!['groq', 'openai', 'total'].includes(key)) return;
+      aiUsageMinuteLimitLines[key] = !aiUsageMinuteLimitLines[key];
+      try {
+        localStorage.setItem(AI_USAGE_MINUTE_LIMIT_LINES_STORAGE_KEY, JSON.stringify(aiUsageMinuteLimitLines));
       } catch { /* ignore */ }
       renderAiUsageChart(lastTelemetryPayload?.aiUsage, lastAiStatusPayload);
     });
