@@ -938,6 +938,20 @@
   .q-bank-add-foot.visible{
     display:inline-block;
   }
+  .q-bank-miss-foot{
+    display:none;
+    font-size:11px;
+    line-height:1;
+    color:#fbbf24;
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    border-radius: 999px;
+    padding: 3px 7px;
+    cursor: help;
+  }
+  .q-bank-miss-foot.visible{
+    display:inline-block;
+  }
   .q-source-foot{
     display:none;
     font-family:'Cinzel', serif;
@@ -3583,6 +3597,7 @@
   <div class="footer-source-row">
     <div class="q-source-foot" id="q-source-foot" hidden aria-live="polite"></div>
     <span class="q-bank-add-foot" id="q-bank-add-foot" hidden aria-live="polite"></span>
+    <span class="q-bank-miss-foot" id="q-bank-miss-foot" hidden aria-live="polite" title=""></span>
   </div>
   <div class="footer-status-row">
 <div class="game-clock" id="game-clock">⏱ 00:00</div>
@@ -4757,15 +4772,56 @@
     stats: { ok: 0, fail: 0, skipped: 0, quotaSkips: 0 },
   };
   let bankAddedBadgeCount = 0;
+  let bankReplenishMissCount = 0;
 
   function markBankQuestionAdded(count = 1){
     if(!count) return;
     bankAddedBadgeCount += count;
-    refreshBankAddedFoot();
+    refreshBankReplenishFoot();
   }
 
-  function onBankReplenishComplete(result){
+  function markBankQuestionNotAdded(count = 1, meta = {}){
+    if(!count) return;
+    bankReplenishMissCount += count;
+    if(DEBUG_MODE){
+      console.warn('[Reino] Reabastecimento banco — não guardado no Supabase', {
+        totalFalhas: bankReplenishMissCount,
+        category: meta.categoryN ?? null,
+        ageBand: meta.ageBandKey ?? null,
+        reason: meta.reason || 'replenished_false',
+      });
+    }
+    refreshBankReplenishFoot();
+  }
+
+  function onBankReplenishComplete(result, categoryN, ageBandKey){
+    if(categoryN === 20) return;
     if(result?.replenished) markBankQuestionAdded(1);
+    else markBankQuestionNotAdded(1, { categoryN, ageBandKey, reason: result?.reason || 'validation_or_save' });
+  }
+
+  function refreshBankMissFoot(){
+    const el = document.getElementById('q-bank-miss-foot');
+    if(!el) return;
+    if(!bankReplenishMissCount || currentScreenId !== 'question'){
+      el.classList.remove('visible');
+      el.textContent = '';
+      el.hidden = true;
+      el.removeAttribute('title');
+      return;
+    }
+    el.textContent = '⚠';
+    el.title = bankReplenishMissCount === 1
+      ? 'Reabastecimento não guardou 1 pergunta no banco (validação ou save falhou)'
+      : `Reabastecimento não guardou ${bankReplenishMissCount} perguntas no banco`;
+    el.setAttribute('aria-label', el.title);
+    el.classList.add('visible');
+    el.hidden = false;
+  }
+
+  function refreshBankReplenishFoot(){
+    refreshBankAddedFoot();
+    refreshBankMissFoot();
   }
 
   function refreshBankAddedFoot(){
@@ -4937,11 +4993,9 @@
         } finally {
           delete bankAiReplenishInflight[inflightKey];
         }
-        if(result?.replenished){
-          bankAiQuotaScheduler.stats.ok++;
-          markBankQuestionAdded(1);
-        }
+        if(result?.replenished) bankAiQuotaScheduler.stats.ok++;
         else bankAiQuotaScheduler.stats.fail++;
+        onBankReplenishComplete(result, target.categoryN, target.ageBand);
         bankAiReplenishRecentAt[inflightKey] = Date.now();
 
         jobs--;
@@ -5072,10 +5126,11 @@
       bankAiReplenishRecentAt[key] = Date.now();
       const job = generateQuestion(category, ageBandKey, { bankReplenishOnly: true })
         .then((result) => {
-          onBankReplenishComplete(result);
+          onBankReplenishComplete(result, catN, ageBandKey);
           if(DEBUG_MODE) console.info('[Reino] Reabastecimento banco (IA)', { category: catN, ageBand: ageBandKey, ...result });
         })
         .catch((err) => {
+          onBankReplenishComplete({ replenished: false, reason: 'api_error' }, catN, ageBandKey);
           if(DEBUG_MODE) console.warn('[Reino] Reabastecimento banco falhou:', err?.message || err);
         })
         .finally(() => {
@@ -8998,7 +9053,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     el.hidden = false;
     el.setAttribute('aria-hidden', 'false');
     document.body.classList.add('question-ready');
-    refreshBankAddedFoot();
+    refreshBankReplenishFoot();
     if(DEBUG_MODE) console.info('[Reino debug] Fonte da pergunta:', label, question);
     if(DEBUG_MODE && question.source === 'bank'){
       console.info('[Reino debug] IA não usada nesta pergunta — servida do banco Supabase (reabastecimento em background é separado)');
