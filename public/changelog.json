@@ -1,18 +1,31 @@
 {
-  "version": "20260904-120236",
-  "updatedAtPortugal": "04/09/2026 12:02:36",
-  "generatedAt": "2026-09-04T11:02:36.245Z",
+  "version": "20260904-124431",
+  "updatedAtPortugal": "04/09/2026 12:44:31",
+  "generatedAt": "2026-09-04T11:44:31.040Z",
   "current": {
     "title": "Versão atual",
     "items": [
-      "Painel admin — Reportes: diagnóstico IA (qualidade, veredito), correcção sugerida, botões Validar e Corrigir com sincronização ao banco.",
-      "Painel admin — Banco: pesquisa por texto/hash (incl. palavras curtas como gelo ou ronaldo), até 100 resultados; editar pergunta, resposta e opções; classificação multi-categoria e multi-idade.",
-      "Correcções no banco propagam a todas as entradas iguais (duplicados noutras categorias ou faixas etárias).",
-      "Reportes em Supabase; script revalidate-resolved-reports.js reaplica correcções de reportes resolvidos ao banco.",
-      "Migração SQL question-bank-multi-taxonomy.sql — colunas category_ns e age_bands por pergunta."
+      "Fallback IA resiliente: 429 não interrompe a cadeia; timeout ~10 s/tentativa e ~20 s total; circuit breaker por provider.",
+      "Fallback intercalado: Groq modelo 1 → OpenAI modelo 1 → Groq modelo 2 → … quando um modelo está ocupado.",
+      "AI_ACTIVE_MODELS_GROQ / _OPENAI / _ANTHROPIC: YES activa o provider (modelos default), NO desactiva; lista explícita opcional.",
+      "Banco Supabase: tolerância ±1 na dificuldade pedida; dificuldade aleatória por faixa etária entre perguntas.",
+      "Telemetria: ai_attempts por pedido; separação falha de provider vs rejeição de qualidade.",
+      "Painel admin: fila de revisão sincronizada com telemetria; descartar todas na fila."
     ]
   },
   "history": [
+    {
+      "date": "04/09/2026",
+      "version": "20260904-120236",
+      "title": "04/09/2026 · painel admin e banco",
+      "items": [
+        "Painel admin — Reportes: diagnóstico IA (qualidade, veredito), correcção sugerida, botões Validar e Corrigir com sincronização ao banco.",
+        "Painel admin — Banco: pesquisa por texto/hash (incl. palavras curtas como gelo ou ronaldo), até 100 resultados; editar pergunta, resposta e opções; classificação multi-categoria e multi-idade.",
+        "Correcções no banco propagam a todas as entradas iguais (duplicados noutras categorias ou faixas etárias).",
+        "Reportes em Supabase; script revalidate-resolved-reports.js reaplica correcções de reportes resolvidos ao banco.",
+        "Migração SQL question-bank-multi-taxonomy.sql — colunas category_ns e age_bands por pergunta."
+      ]
+    },
     {
       "date": "03/09/2026",
       "version": "20260903-081616",

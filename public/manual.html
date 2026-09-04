@@ -165,7 +165,7 @@
         <li>Escolhes a <strong>faixa etária</strong> (6–9, 10–15 ou 15+ anos).</li>
         <li>Respondes à <strong>pergunta</strong> (com tempo limitado) e podes ver a resposta e uma explicação.</li>
       </ol>
-      <p>As perguntas são geradas por <strong>inteligência artificial</strong> (Groq, OpenAI ou Anthropic) quando a ligação está disponível. Se a IA falhar, o jogo usa automaticamente um <strong>banco local</strong> de perguntas.</p>
+      <p>As perguntas vêm primeiro do <strong>banco Supabase</strong> (quando há stock). Se não houver, a <strong>inteligência artificial</strong> (Groq, OpenAI ou Anthropic) gera uma nova pergunta. Se a IA falhar, o jogo usa um <strong>banco local</strong> de perguntas embutido no código.</p>
     </section>
 
     <section id="menu">
@@ -296,12 +296,14 @@
       <table>
         <thead><tr><th>Opção</th><th>Comportamento</th></tr></thead>
         <tbody>
-          <tr><td><strong>Automática</strong></td><td>Tenta Groq → OpenAI → Anthropic (ou ordem definida no servidor) até um responder.</td></tr>
+          <tr><td><strong>Automática</strong></td><td>Fallback intercalado entre fornecedores activos (ex.: Groq → OpenAI → Groq com outro modelo) quando um modelo está ocupado; ordem definida no servidor.</td></tr>
           <tr><td><strong>Groq</strong></td><td>Usa apenas Groq (Llama / Qwen / GPT-OSS).</td></tr>
           <tr><td><strong>Anthropic · Claude</strong></td><td>Usa apenas Claude.</td></tr>
           <tr><td><strong>OpenAI · GPT</strong></td><td>Usa apenas modelos OpenAI.</td></tr>
         </tbody>
       </table>
+
+      <p>O administrador pode activar ou desactivar fornecedores no servidor com <code>AI_ACTIVE_MODELS_GROQ=YES</code>, <code>AI_ACTIVE_MODELS_OPENAI=YES</code>, <code>AI_ACTIVE_MODELS_ANTHROPIC=NO</code>, etc. — ver <code>LEIA-ME.md</code>.</p>
 
       <h3>Modelo</h3>
       <p>Selector visível apenas quando escolhes um fornecedor manual (<strong>Groq</strong>, <strong>Anthropic</strong> ou <strong>OpenAI</strong>). Em <strong>Automática</strong> ou <strong>Banco local</strong> fica oculto — o servidor escolhe o modelo ou não há chamada à IA.</p>
@@ -363,7 +365,7 @@
 
       <h3>Painel de estado</h3>
       <ul>
-        <li>Estado, fornecedor, modelo, ID do modelo, fallback.</li>
+        <li>Estado, fornecedor, modelo, ID do modelo, fallback e tentativas (<code>ai_attempts</code>).</li>
         <li>Chaves configuradas no servidor (Groq / OpenAI / Anthropic).</li>
         <li><strong>Quota dos servidores</strong> — uso, limites e hora prevista de renovação; botão <strong>↻ Actualizar</strong>.</li>
       </ul>

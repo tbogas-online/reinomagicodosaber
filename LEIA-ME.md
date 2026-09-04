@@ -27,15 +27,16 @@ Em qualquer uma delas, o jogo chama sempre `/api/generate` e podes configurar **
 
 ### Comportamento da IA no jogo
 
-- **Não são feitas chamadas de IA em massa ao iniciar o jogo** — cada pergunta é gerada quando é necessária.
-- O **banco local** é usado apenas se a IA falhar após várias tentativas e validação.
-- O indicador no rodapé mostra **IA Online** ou **IA Offline** e o **fornecedor/modelo reais** da última chamada com sucesso (cor por fornecedor); **clicar no selo** verifica o estado (não abre as Definições).
-- O jogo abre em modo **Automática** por defeito; ao mudar fornecedor nas Definições, o selo reflecte a preferência até haver nova chamada à IA.
-- Ao passar o rato sobre **IA Offline**, pode aparecer o motivo da última falha.
-- Groq e OpenAI usam `response_format: { type: 'json_object' }` para respostas mais previsíveis; o cliente normaliza chaves em português (`pergunta`, `opções`, `resposta`) e prefixos `A)`/`B)` nas opções.
-- Validação em `public/question-engine.js` rejeita perguntas inadequadas (idade, factos errados, opções incoerentes, etc.).
-- Gate **binário**: qualquer issue reprova; score 0–100 é só diagnóstico (UI/testes).
-- **Novo Jogo** limpa histórico de sessão (perguntas, respostas, formatos, knowledgeKeys, posições MC).
+- **Não são feitas chamadas de IA em massa ao iniciar** — cada pergunta é gerada quando é necessária.
+- **Ordem de fontes (categorias 1–19):** banco Supabase verificado → IA (com fallback) → banco local embutido.
+- O **banco local** só entra se Supabase e IA falharem; reabastecimento em background (`bankReplenishOnly`) grava no Supabase sem servir perguntas locais ao jogador.
+- **Fallback IA intercalado:** em modo Automática, o servidor alterna providers por ronda de modelo — ex.: Groq modelo 1 → OpenAI modelo 1 → Groq modelo 2 → … — para saltar rapidamente quando um modelo está ocupado (429, timeout).
+- **429 não interrompe o fallback** — tenta o próximo provider/modelo; só falha quando todos esgotam.
+- **Circuit breaker** por provider (cooldown após falhas repetidas ou `Retry-After` em 429).
+- **Timeouts:** ~10 s por tentativa, ~20 s total por pedido (`AI_ATTEMPT_TIMEOUT_MS`, `AI_TOTAL_TIMEOUT_MS`).
+- O indicador no rodapé mostra **IA Online** ou **IA Offline** e o **fornecedor/modelo reais** da última chamada com sucesso.
+- **Dificuldade:** aleatória dentro da faixa etária (6–9: 1–3; 10–15: 1–4; 15+: 1–5), sem repetir o nível da pergunta anterior.
+- Validação em `question-engine.js` rejeita perguntas inadequadas; falha de **validação** (qualidade) é separada de falha de **provider** na telemetria (`failureLayer`: `quality` vs `provider`).
 
 ### Multijogador e histórico de partidas
 
@@ -53,6 +54,9 @@ Em qualquer uma delas, o jogo chama sempre `/api/generate` e podes configurar **
      - `supabase/rooms-host-only-update.sql` *(RLS: só o anfitrião actualiza `rooms`)*
      - `supabase/expire-rooms-24h.sql` *(expira salas inactivas após 24h)*
      - `supabase/question-bank.sql`
+     - `supabase/question-bank-difficulty.sql` *(coluna `difficulty`)*
+     - `supabase/question-bank-difficulty-by-age.sql` *(opcional — `difficulty_by_age_band`)*
+     - `supabase/question-bank-pick-difficulty-tolerance.sql` *(pick com tolerância ±1 na dificuldade)*
      - `supabase/knowledge-repository.sql` *(repositório de factos verificados — Knowledge Repository)*
      - `supabase/knowledge-import-queue.sql` *(fila de importação diária — estado no Supabase)*
      - `supabase/seed-knowledge-cat20-sample.sql` *(opcional — 5 registos de teste cat. 20)*
@@ -106,6 +110,12 @@ REPORTS_ADMIN_USER
 REPORTS_ADMIN_PASS
 SUPABASE_URL
 SUPABASE_SERVICE_ROLE_KEY
+
+# IA — opcional (ver secção «Fornecedores de IA»)
+AI_PROVIDER_ORDER=groq,openai,anthropic
+AI_ACTIVE_MODELS_GROQ=YES
+AI_ACTIVE_MODELS_OPENAI=YES
+AI_ACTIVE_MODELS_ANTHROPIC=NO
 ```
 
 `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` são necessários para os separadores **Salas multijogador** e **Banco de perguntas** no painel admin (`/admin-reports.html`). A service role **nunca** vai para o browser — só nas Netlify Functions.
@@ -217,21 +227,67 @@ No jogo: **Definições → Inteligência Artificial**
 
 | Modo | Comportamento |
 |------|----------------|
-| **Automática** | Ordem `AI_PROVIDER_ORDER` (ex.: groq → openai); em cada ronda alterna provider antes do próximo modelo |
-| **Groq / Anthropic / OpenAI** | Força um único fornecedor (se a chave existir); mostra selector de **modelo** |
-| **Banco local** | Sem chamadas à IA; selector de modelo oculto |
+| **Automática** | Fallback intercalado por `AI_PROVIDER_ORDER` (ex.: groq → openai); em cada ronda tenta o modelo N de cada provider activo antes de avançar |
+| **Groq / Anthropic / OpenAI** | Força um único fornecedor (se a chave existir); selector de **modelo** |
+| **Banco local** | Sem chamadas à IA |
 
-O selector de **modelo** nas Definições só aparece com fornecedor manual (Groq, Anthropic ou OpenAI), não em Automática nem Banco local.
+### Activar/desactivar providers (`AI_ACTIVE_MODELS_*`)
+
+Configuração recomendada quando só queres alguns fornecedores:
+
+```text
+AI_ACTIVE_MODELS_GROQ=YES
+AI_ACTIVE_MODELS_OPENAI=YES
+AI_ACTIVE_MODELS_ANTHROPIC=NO
+```
+
+| Valor | Efeito |
+|-------|--------|
+| `YES` | Provider activo — usa a ordem de modelos default do código |
+| `NO` | Provider desactivado — nenhum pedido |
+| `modelo1,modelo2` | Lista explícita de modelos (em vez de YES) |
+
+Também aceita: `TRUE`/`FALSE`, `1`/`0`, `ON`/`OFF`, `SIM`/`NAO`.
+
+### Ordem de fallback (modo Automática)
+
+Quando um modelo falha (429, timeout, 5xx, JSON inválido), o servidor passa ao **próximo da fila intercalada**:
+
+```text
+Groq/qwen → OpenAI/gpt-4o-mini → Groq/gpt-oss-20b → OpenAI/gpt-4.1-mini → …
+```
+
+(Anthropic só entra se `AI_ACTIVE_MODELS_ANTHROPIC=YES` e chave configurada.)
+
+Erros tratados de forma diferente:
+
+| Erro | Comportamento |
+|------|----------------|
+| 429 / quota / timeout / 5xx | Próximo modelo/provider; cooldown no provider afectado |
+| 401 / 403 | Provider desactivado temporariamente |
+| Validação rejeitou pergunta | Nova tentativa de **geração** (até 5×) — não é fallback de provider |
+
+A resposta de `/api/generate` inclui `ai_attempts[]` (provider, modelo, `errorType`, latência, `fallbackTo`) para diagnóstico.
+
+### Variáveis completas
 
 ```text
 AI_PROVIDER          -> "groq", "anthropic" ou "openai" (força um; desliga fallback)
 AI_PROVIDER_ORDER    -> ex.: "groq,openai,anthropic"
-AI_ACTIVE_MODELS     -> opcional; lista global provider:modelo;modelo (providers omitidos = NO)
-AI_ACTIVE_MODELS_GROQ / _OPENAI / _ANTHROPIC -> YES (activo, modelos default) ou NO (desactivado)
-                       ou lista: qwen/qwen3.6-27b,openai/gpt-oss-20b
+AI_ACTIVE_MODELS     -> opcional; lista global provider:modelo,modelo (providers omitidos = NO)
+AI_ACTIVE_MODELS_GROQ / _OPENAI / _ANTHROPIC -> YES, NO ou lista de modelos
+AI_ATTEMPT_TIMEOUT_MS -> timeout por tentativa (default 10000)
+AI_TOTAL_TIMEOUT_MS   -> tempo máximo total por pedido (default 20000)
 GROQ_MODEL           -> default: openai/gpt-oss-20b
 ANTHROPIC_MODEL      -> default: claude-haiku-4-5-20251001
 OPENAI_MODEL         -> default: gpt-4o-mini
+```
+
+### Testes automatizados
+
+```powershell
+node scripts/test-question-engine.js   # motor de validação (~264 testes)
+node scripts/test-ai-fallback.js      # fallback IA e AI_ACTIVE_MODELS (~21 testes)
 ```
 
 ### Páginas de teste (admin)
@@ -254,11 +310,11 @@ Documentação de utilização: secções 9 e 10 do [manual](public/manual.html)
 ```text
 Browser
    ↓ POST /api/generate  (mesma origem no jogo, ou Basic Auth nas ferramentas /admin/)
-Netlify Function  OU  Cloudflare Pages Function
-   ↓ fornecedor preferido + fallback automático
-Groq API  /  Anthropic API  /  OpenAI API
-   ↓ JSON normalizado
-Browser  →  question-engine.js (validação)  →  pergunta ou banco local
+Netlify Function  OU  Cloudflare Pages Function  (netlify/functions/lib/ai-fallback.js)
+   ↓ fila intercalada: provider × modelo (circuit breaker, timeout)
+Groq API  /  OpenAI API  /  Anthropic API  (só providers com AI_ACTIVE_MODELS_*=YES)
+   ↓ JSON normalizado + ai_attempts
+Browser  →  Supabase banco (1.º)  →  question-engine.js (validação)  →  banco local se tudo falhar
 ```
 
 Ficheiros principais:
@@ -269,7 +325,10 @@ Ficheiros principais:
 | `public/question-engine.js` | Formatos, prompts e validação de perguntas |
 | `public/admin-auth.js` | Basic Auth partilhada (painel admin e `/admin/*`) |
 | `public/admin/test-questions.html` | Gerar, validar e dar feedback ao motor (credenciais admin) |
-| `scripts/test-question-engine.js` | 57 testes unitários do motor (`node scripts/test-question-engine.js`) |
+| `scripts/test-question-engine.js` | Testes do motor de validação (`node scripts/test-question-engine.js`) |
+| `scripts/test-ai-fallback.js` | Testes de fallback IA e `AI_ACTIVE_MODELS` |
+| `netlify/functions/lib/ai-fallback.js` | Fallback intercalado, circuit breaker, timeouts |
+| `netlify/functions/lib/ai-model-config.js` | `AI_ACTIVE_MODELS_*` (YES/NO ou lista) |
 | `scripts/list-open-reports.js` | Lista reportes por tratar no servidor (requer credenciais admin) |
 | `public/manual.html` | Manual do utilizador |
 | `public/admin/test-ai.html` | Diagnóstico de IA (credenciais admin) |
@@ -404,7 +463,12 @@ node scripts/revalidate-resolved-reports.js
 
 Opções: `--limit N`, `--ids rpt-abc,rpt-def`, `--apply-suggestions`. Requer `SUPABASE_URL` e `SUPABASE_SERVICE_ROLE_KEY` em `.env.local`.
 
-**Migração Supabase (multi-taxonomia):** executar `supabase/question-bank-multi-taxonomy.sql` no SQL Editor se ainda não foi feito (colunas `category_ns`, `age_bands`).
+**Migrações Supabase (banco de perguntas):**
+
+- `supabase/question-bank-multi-taxonomy.sql` — colunas `category_ns`, `age_bands`
+- `supabase/question-bank-pick-difficulty-tolerance.sql` — pick com tolerância ±1 na dificuldade pedida
+
+Depois de cada migração: `NOTIFY pgrst, 'reload schema';`
 
 **Credenciais locais (Cursor / scripts):** copia `.env.example` → `.env.local` e preenche `REPORTS_ADMIN_USER` / `REPORTS_ADMIN_PASS` (as mesmas do painel admin). Os scripts carregam `.env.local` automaticamente. O ficheiro está no `.gitignore` — nunca o commits.
 
