@@ -1077,6 +1077,7 @@ async function applyContentCorrectionToBankRow(row, correction, oldQuestion, old
 async function finishReportCorrection(result, {
   question = '',
   answer = '',
+  options = null,
   telemetryEventId = null,
 } = {}) {
   if (!result?.ok) return result;
@@ -1098,7 +1099,9 @@ async function finishReportCorrection(result, {
       eventId: telemetryEventId,
       question,
       answer,
+      options,
       questionHash: result.questionHash,
+      previousHash: result.previousHash,
     });
     if (telemetry?.marked) {
       result.telemetryValidated = telemetry.marked;
@@ -1176,6 +1179,7 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
     }, {
       question: finalQuestion || oldQuestion,
       answer: finalAnswer || oldAnswer,
+      options: finalOptions,
       telemetryEventId: meta.telemetryEventId || null,
     });
   }
@@ -1238,6 +1242,7 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
   }, {
     question,
     answer,
+    options,
     telemetryEventId: meta.telemetryEventId || null,
   });
 }

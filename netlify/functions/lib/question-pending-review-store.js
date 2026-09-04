@@ -75,13 +75,12 @@ async function fetchReviewedQuestionHashes() {
   );
 }
 
-async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
+async function fetchTelemetryRejectedRows({ limit = 300, days = 90 } = {}) {
   const capped = Math.min(Math.max(Number(limit) || 300, 1), 1000);
   const dayCount = Math.min(Math.max(Number(days) || 90, 1), 365);
   const sinceIso = new Date(Date.now() - dayCount * 24 * 60 * 60 * 1000).toISOString();
-
   const params = new URLSearchParams({
-    select: 'category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options',
+    select: 'id,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options',
     outcome: 'eq.rejected',
     created_at: `gte.${sinceIso}`,
     question_text: 'not.is.null',
@@ -89,12 +88,77 @@ async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
     order: 'created_at.desc',
     limit: String(capped),
   });
+  const rows = await supabaseRequest(`/${TELEMETRY_TABLE}?${params.toString()}`);
+  return Array.isArray(rows) ? rows : [];
+}
 
-  const [rows, reviewedHashes] = await Promise.all([
-    supabaseRequest(`/${TELEMETRY_TABLE}?${params.toString()}`),
+function shouldImportTelemetryRow(row, { issueCode = '' } = {}) {
+  const codes = (row?.issue_codes || [])
+    .map((c) => String(c || '').trim())
+    .filter(Boolean);
+  const code = String(issueCode || '').trim();
+  if (code) return codes.includes(code);
+  return isDifficultyOnlyCodes(codes);
+}
+
+function countRowsByIssueCode(rows, { matcher } = {}) {
+  const counts = new Map();
+  for (const row of rows || []) {
+    const codes = (row.issue_codes || [])
+      .map((c) => String(c || '').trim())
+      .filter(Boolean);
+    if (matcher && !matcher(row)) continue;
+    for (const code of codes) {
+      counts.set(code, (counts.get(code) || 0) + 1);
+    }
+  }
+  return [...counts.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([code, count]) => ({ code, count }));
+}
+
+async function getPendingReviewIssueCodeOptions({ days = 90, limit = 400 } = {}) {
+  const [pendingRows, telemetryRows] = await Promise.all([
+    supabaseRequest(
+      `/${TABLE}?status=eq.pending&select=issue_codes&limit=1000`,
+      { prefer: 'return=representation' },
+    ).catch(() => []),
+    fetchTelemetryRejectedRows({ limit, days }),
+  ]);
+  const pendingByCode = countRowsByIssueCode(
+    (Array.isArray(pendingRows) ? pendingRows : []).map((row) => ({ issue_codes: row.issue_codes })),
+  );
+  const telemetryByCode = countRowsByIssueCode(telemetryRows, {
+    matcher: (row) => shouldImportTelemetryRow(row, {}),
+  });
+  const telemetryByCodeAll = countRowsByIssueCode(telemetryRows);
+  const codeSet = new Set([
+    ...pendingByCode.map((entry) => entry.code),
+    ...telemetryByCodeAll.map((entry) => entry.code),
+  ]);
+  const pendingMap = new Map(pendingByCode.map((entry) => [entry.code, entry.count]));
+  const telemetryMap = new Map(telemetryByCodeAll.map((entry) => [entry.code, entry.count]));
+  const difficultyMap = new Map(telemetryByCode.map((entry) => [entry.code, entry.count]));
+  const codes = [...codeSet].sort((a, b) => {
+    const pendingDiff = (pendingMap.get(b) || 0) - (pendingMap.get(a) || 0);
+    if (pendingDiff) return pendingDiff;
+    return (telemetryMap.get(b) || 0) - (telemetryMap.get(a) || 0) || a.localeCompare(b);
+  }).map((code) => ({
+    code,
+    pendingCount: pendingMap.get(code) || 0,
+    telemetryCount: telemetryMap.get(code) || 0,
+    difficultyImportCount: difficultyMap.get(code) || 0,
+  }));
+  return { codes, days };
+}
+
+async function syncPendingReviewFromTelemetry({ limit = 300, days = 90, issueCode = '' } = {}) {
+  const code = String(issueCode || '').trim();
+  const list = await fetchTelemetryRejectedRows({ limit, days });
+
+  const [reviewedHashes] = await Promise.all([
     fetchReviewedQuestionHashes(),
   ]);
-  const list = Array.isArray(rows) ? rows : [];
 
   let inserted = 0;
   let updated = 0;
@@ -103,8 +167,7 @@ async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
   const seen = new Set();
 
   for (const row of list) {
-    const codes = row.issue_codes || [];
-    if (!isDifficultyOnlyCodes(codes)) {
+    if (!shouldImportTelemetryRow(row, { issueCode: code })) {
       skipped += 1;
       continue;
     }
@@ -127,6 +190,9 @@ async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
 
     const estimated = parseEstimatedDifficultyFromMessages(row.issue_messages)
       ?? (Number.isFinite(Number(row.difficulty)) ? Number(row.difficulty) : null);
+    const codes = (row.issue_codes || [])
+      .map((c) => String(c || '').trim())
+      .filter(Boolean);
 
     let result;
     try {
@@ -141,7 +207,8 @@ async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
         requestedDifficulty: row.difficulty,
         estimatedDifficulty: estimated,
         issueCodes: codes,
-        source: 'telemetry-import',
+        source: code ? `telemetry-import:${code}` : 'telemetry-import',
+        sourceId: row.id || null,
         gameMode: row.game_mode,
       });
     } catch {
@@ -163,6 +230,7 @@ async function syncPendingReviewFromTelemetry({ limit = 300, days = 90 } = {}) {
     skipped,
     alreadyReviewed,
     candidates: seen.size,
+    issueCode: code || null,
   };
 }
 
@@ -331,20 +399,32 @@ async function resolvePendingReviewOnBankSave({
   return { resolved };
 }
 
-async function listPendingReview({ limit = 50, status = 'pending' } = {}) {
-  const capped = Math.min(Math.max(Number(limit) || 50, 1), 100);
+async function listPendingReview({ limit = 1000, status = 'pending' } = {}) {
   const statusVal = String(status || 'pending').trim() || 'pending';
-  const rows = await supabaseRequest(
-    `/${TABLE}?status=eq.${encodeURIComponent(statusVal)}&order=created_at.desc&limit=${capped}`,
-    { prefer: 'return=representation' },
-  );
-  const items = Array.isArray(rows) ? rows.map(rowToItem).filter(Boolean) : [];
+  const target = Math.min(Math.max(Number(limit) || 1000, 1), 1000);
+  const pageSize = 200;
+  const items = [];
+  let offset = 0;
+  while (items.length < target) {
+    const pageLimit = Math.min(pageSize, target - items.length);
+    const rows = await supabaseRequest(
+      `/${TABLE}?status=eq.${encodeURIComponent(statusVal)}&order=created_at.desc&limit=${pageLimit}&offset=${offset}`,
+      { prefer: 'return=representation' },
+    );
+    const batch = Array.isArray(rows) ? rows.map(rowToItem).filter(Boolean) : [];
+    if (!batch.length) break;
+    items.push(...batch);
+    if (batch.length < pageLimit) break;
+    offset += batch.length;
+  }
   const stats = await getPendingReviewStats().catch(() => ({ available: false }));
   return {
     items,
     total: items.length,
     status: statusVal,
     stats,
+    truncated: stats.available !== false && Number(stats.pending) > items.length,
+    pendingTotal: stats.available === false ? items.length : (Number(stats.pending) || items.length),
   };
 }
 
@@ -375,6 +455,18 @@ async function getPendingReviewById(id) {
     { prefer: 'return=representation' },
   );
   return rowToItem(Array.isArray(rows) ? rows[0] : null);
+}
+
+async function syncTelemetryDismissFromPendingReview(row) {
+  const hash = String(row?.questionHash || '').trim();
+  if (!hash) return { dismissed: 0 };
+  try {
+    const { dismissTelemetryByQuestionHashes } = require('./gen-telemetry-store');
+    return await dismissTelemetryByQuestionHashes({ hashes: [hash] });
+  } catch (err) {
+    console.warn('[question-pending-review-store] dismiss telemetry:', err?.message || err);
+    return { dismissed: 0 };
+  }
 }
 
 async function acceptPendingReview(id, correction = {}, meta = {}) {
@@ -419,6 +511,7 @@ async function acceptPendingReview(id, correction = {}, meta = {}) {
     difficultyByAgeBand,
     knowledgeId: meta.knowledgeId || row.knowledgeId || null,
     source: meta.source || 'pending-review',
+    telemetryEventId: row.sourceId || meta.telemetryEventId || null,
   });
 
   await updatePendingReviewStatus(id, 'accepted');
@@ -438,18 +531,67 @@ async function dismissPendingReview(id) {
     throw err;
   }
   const updated = await updatePendingReviewStatus(id, 'dismissed');
+  await syncTelemetryDismissFromPendingReview(row);
   return { row: updated };
+}
+
+async function dismissPendingReviewByIssueCode({ issueCode } = {}) {
+  const code = String(issueCode || '').trim();
+  if (!code) {
+    const err = new Error('Código de causa em falta.');
+    err.code = 'MISSING_ISSUE_CODE';
+    throw err;
+  }
+  const now = new Date().toISOString();
+  let dismissed = 0;
+  const chunkSize = 100;
+
+  while (true) {
+    const params = new URLSearchParams({
+      select: 'id',
+      status: 'eq.pending',
+      issue_codes: `cs.{${code}}`,
+      limit: '500',
+    });
+    const rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+    const ids = (Array.isArray(rows) ? rows : []).map((row) => row.id).filter(Boolean);
+    if (!ids.length) break;
+
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const inList = chunk.map((id) => encodeURIComponent(id)).join(',');
+      await supabaseRequest(`/${TABLE}?id=in.(${inList})&status=eq.pending`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'dismissed', reviewed_at: now }),
+        prefer: 'return=minimal',
+      });
+      dismissed += chunk.length;
+    }
+    if (ids.length < 500) break;
+  }
+
+  try {
+    const { dismissTelemetryEventsByIssueCode } = require('./gen-telemetry-store');
+    await dismissTelemetryEventsByIssueCode({ issueCode: code });
+  } catch (err) {
+    console.warn('[question-pending-review-store] dismiss telemetry by code:', err?.message || err);
+  }
+
+  return { dismissed, issueCode: code, reviewedAt: now };
 }
 
 module.exports = {
   DIFFICULTY_MISMATCH_CODES,
   isDifficultyOnlyCodes,
+  shouldImportTelemetryRow,
   getPendingReviewStats,
   countBankRowsWithDifficulty,
   queuePendingReviewEntry,
   syncPendingReviewFromTelemetry,
+  getPendingReviewIssueCodeOptions,
   resolvePendingReviewOnBankSave,
   listPendingReview,
   acceptPendingReview,
   dismissPendingReview,
+  dismissPendingReviewByIssueCode,
 };

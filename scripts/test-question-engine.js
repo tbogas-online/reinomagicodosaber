@@ -929,14 +929,129 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     issueMessages: [`msg ${i}`],
     ts: 1000 + i,
   })));
-  assert('104c. telemetria recentOccurrences', recentSummary.byIssueDetail.AGE_TOO_HARD?.recentOccurrences?.length === 10
+  assert('104c. telemetria recentOccurrences', recentSummary.byIssueDetail.AGE_TOO_HARD?.recentOccurrences?.length === 12
     && recentSummary.byIssueDetail.AGE_TOO_HARD.recentOccurrences[0].message === 'msg 11');
   const validatedSummary = computeSummaryFromItems([
-    { outcome: 'rejected', issueCodes: ['DIFFICULTY_HARDER_THAN_REQUESTED'], issueMessages: ['dif'], bankValidatedAt: '2026-01-01T00:00:00Z' },
-    { outcome: 'rejected', issueCodes: ['DIFFICULTY_HARDER_THAN_REQUESTED'], issueMessages: ['dif2'] },
+    { outcome: 'rejected', issueCodes: ['DIFFICULTY_HARDER_THAN_REQUESTED'], issueMessages: ['dif'], bankValidatedAt: '2026-01-01T00:00:00Z', bankValidatedEdited: false },
+    { outcome: 'rejected', issueCodes: ['DIFFICULTY_HARDER_THAN_REQUESTED'], issueMessages: ['dif2'], bankValidatedAt: '2026-01-02T00:00:00Z', bankValidatedEdited: true },
+    { outcome: 'rejected', issueCodes: ['DIFFICULTY_HARDER_THAN_REQUESTED'], issueMessages: ['dif3'] },
   ]);
-  assert('104d. telemetria validatedInBank', validatedSummary.validatedInBank === 1
-    && validatedSummary.byIssueDetail.DIFFICULTY_HARDER_THAN_REQUESTED?.validatedCount === 1);
+  assert('104d. telemetria validatedInBank', validatedSummary.validatedInBank === 2
+    && validatedSummary.validatedInBankAsIs === 1
+    && validatedSummary.validatedInBankEdited === 1
+    && validatedSummary.byIssueDetail.DIFFICULTY_HARDER_THAN_REQUESTED?.validatedCount === 2
+    && validatedSummary.byIssueDetail.DIFFICULTY_HARDER_THAN_REQUESTED?.validatedAsIsCount === 1
+    && validatedSummary.byIssueDetail.DIFFICULTY_HARDER_THAN_REQUESTED?.validatedEditedCount === 1);
+  const dismissedSummary = computeSummaryFromItems([
+    { outcome: 'rejected', issueCodes: ['FORMAT_VIOLATION'], issueMessages: ['fmt'], dismissedAt: '2026-01-02T00:00:00Z' },
+    { outcome: 'rejected', issueCodes: ['FORMAT_VIOLATION'], issueMessages: ['fmt2'] },
+  ]);
+  assert('104d2. telemetria dismissed', dismissedSummary.dismissedTotal === 1
+    && dismissedSummary.byIssueDetail.FORMAT_VIOLATION?.dismissedCount === 1
+    && dismissedSummary.byIssueDetail.FORMAT_VIOLATION?.recentOccurrences?.filter((occ) => !occ.dismissedAt).length === 1);
+  const { computeReviewTimelineFromItems } = require('../netlify/functions/lib/gen-telemetry-store');
+  const {
+    buildReviewTimelineBundles,
+    resolveReviewTimelineBucket,
+    matchesReviewActionFilter,
+  } = require('../scripts/lib/review-timeline');
+  const reviewNow = Date.now();
+  const reviewTimeline = computeReviewTimelineFromItems([
+    { bankValidatedAt: new Date(reviewNow - 36 * 3600000).toISOString(), bankValidatedEdited: false },
+    { bankValidatedAt: new Date(reviewNow - 12 * 3600000).toISOString(), bankValidatedEdited: true },
+    { dismissedAt: new Date(reviewNow - 2 * 3600000).toISOString() },
+  ]);
+  assert('104d3. telemetria reviewTimeline', reviewTimeline['14d'].totalAccepted >= 2
+    && reviewTimeline['14d'].totalAcceptedAsIs >= 1
+    && reviewTimeline['14d'].totalAcceptedEdited >= 1
+    && reviewTimeline['14d'].totalDismissed >= 1
+    && reviewTimeline['24h'].totalAcceptedEdited >= 1
+    && reviewTimeline['24h'].totalDismissed >= 1);
+  const { countOpenTelemetryByIssueDetail, isTelemetrySnapshotEdited } = require('../netlify/functions/lib/gen-telemetry-store');
+  assert('104d5. telemetria open by code', countOpenTelemetryByIssueDetail({
+    count: 10,
+    validatedCount: 3,
+    dismissedCount: 2,
+  }) === 5
+    && countOpenTelemetryByIssueDetail({ count: 4, validatedCount: 2, dismissedCount: 5 }) === 0);
+  const snap = { q: 'Quem fundou a UEFA?', a: '1955', options: ['A', 'B'] };
+  assert('104d4. telemetria edited flag', isTelemetrySnapshotEdited(snap, {
+    question: 'Quem fundou a UEFA?',
+    answer: '1955',
+    options: ['A', 'B'],
+  }) === false
+    && isTelemetrySnapshotEdited(snap, {
+      question: 'Quem fundou a UEFA?',
+      answer: '1956',
+      options: ['A', 'B'],
+    }) === true
+    && isTelemetrySnapshotEdited(snap, {
+      question: 'Quem fundou a UEFA?',
+      answer: '1955',
+      options: ['A', 'C'],
+    }) === true);
+  const reviewFilterNow = Date.now();
+  const reviewBundles = buildReviewTimelineBundles([
+    {
+      outcome: 'rejected',
+      category: 3,
+      issueCodes: ['FORMAT_VIOLATION', 'AGE_TOO_HARD'],
+      bankValidatedAt: new Date(reviewFilterNow - 5 * 86400000).toISOString(),
+      bankValidatedEdited: false,
+    },
+    {
+      outcome: 'rejected',
+      category: 5,
+      issueCodes: ['FORMAT_VIOLATION'],
+      dismissedAt: new Date(reviewFilterNow - 4 * 86400000).toISOString(),
+    },
+    {
+      outcome: 'rejected',
+      category: 3,
+      issueCodes: ['AGE_TOO_HARD'],
+      bankValidatedAt: new Date(reviewFilterNow - 2 * 86400000).toISOString(),
+      bankValidatedEdited: true,
+    },
+  ]);
+  assert('104d6. review timeline filter category', reviewBundles.reviewTimeline['14d'].totalAccepted >= 2
+    && reviewBundles.reviewTimelineByCategory['3']['14d'].totalAccepted >= 2
+    && reviewBundles.reviewTimelineByCategory['5']['14d'].totalDismissed === 1);
+  assert('104d7. review timeline filter code', reviewBundles.reviewTimelineByIssueCode.FORMAT_VIOLATION['14d'].totalDismissed === 1
+    && reviewBundles.reviewTimelineByIssueCode.AGE_TOO_HARD['14d'].totalAcceptedEdited === 1);
+  assert('104d8. review timeline filter combined', resolveReviewTimelineBucket(reviewBundles, '14d', {
+    categoryN: 3,
+    issueCode: 'FORMAT_VIOLATION',
+  })?.totalAccepted === 1
+    && matchesReviewActionFilter(
+      { category: 3, issueCodes: ['FORMAT_VIOLATION'] },
+      { categoryN: 3, issueCode: 'FORMAT_VIOLATION' },
+    ));
+  const { shouldImportTelemetryRow } = require('../netlify/functions/lib/question-pending-review-store');
+  assert('105a. pending review import by code', shouldImportTelemetryRow(
+    { issue_codes: ['FORMAT_VIOLATION', 'AGE_TOO_HARD'] },
+    { issueCode: 'FORMAT_VIOLATION' },
+  )
+    && !shouldImportTelemetryRow(
+      { issue_codes: ['FORMAT_VIOLATION'] },
+      { issueCode: 'AGE_TOO_HARD' },
+    )
+    && shouldImportTelemetryRow(
+      { issue_codes: ['DIFFICULTY_HARDER_THAN_REQUESTED'] },
+      {},
+    )
+    && !shouldImportTelemetryRow(
+      { issue_codes: ['FORMAT_VIOLATION'] },
+      {},
+    ));
+  const { rowMatchesTelemetryHashes } = require('../netlify/functions/lib/gen-telemetry-store');
+  assert('105b. telemetria match by previous hash', rowMatchesTelemetryHashes(
+    { question_text: 'Pergunta original?', answer_text: 'Resposta' },
+    ['abc123'],
+  ) === false
+    && rowMatchesTelemetryHashes(
+      { question_text: 'Pergunta original?', answer_text: 'Resposta' },
+      [require('../netlify/functions/lib/question-bank-store').hashQuestionKey('Pergunta original?|Resposta')],
+    ));
   const {
     telemetryHashFromSnapshot,
   } = require('../netlify/functions/lib/gen-telemetry-store');

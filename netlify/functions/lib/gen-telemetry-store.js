@@ -12,6 +12,10 @@ const {
   enrichSummaryWithProviderInsights,
   isAiProviderTelemetryEvent,
 } = require('../../../scripts/lib/gen-telemetry-metrics');
+const {
+  buildReviewTimelineBundles,
+  computeReviewTimelineFromItems,
+} = require('../../../scripts/lib/review-timeline');
 
 const MAX_EVENTS = 10000;
 const TABLE = 'gen_telemetry_events';
@@ -25,7 +29,6 @@ function clip(value, max) {
 
 const MAX_ISSUE_MESSAGES = 6;
 const MAX_ISSUE_MESSAGE_LEN = 200;
-const MAX_RECENT_ISSUE_OCCURRENCES = 10;
 const MAX_QUESTION_LEN = 500;
 const MAX_ANSWER_LEN = 200;
 const MAX_OPTION_LEN = 120;
@@ -73,6 +76,36 @@ function telemetryHashFromSnapshot(snapshot) {
   return hashQuestionKey(`${stripTags(snapshot.q)}|${stripTags(snapshot.a)}`);
 }
 
+function normalizeTelemetryOptions(options) {
+  if (!Array.isArray(options)) return [];
+  return options.map((o) => stripTags(o)).filter(Boolean);
+}
+
+function snapshotFromTelemetryRow(row) {
+  if (!row?.question_text && !row?.answer_text) return null;
+  return {
+    q: row.question_text || '',
+    a: row.answer_text || '',
+    options: Array.isArray(row.question_options) ? row.question_options : [],
+  };
+}
+
+function isTelemetrySnapshotEdited(snapshot, submitted = {}) {
+  const origQ = stripTags(snapshot?.q || '');
+  const origA = stripTags(snapshot?.a || '');
+  const subQ = stripTags(submitted.question || '');
+  const subA = stripTags(submitted.answer || '');
+  if (!origQ || !origA || !subQ || !subA) return null;
+  if (subQ !== origQ || subA !== origA) return true;
+  const origOpts = normalizeTelemetryOptions(snapshot?.options);
+  const subOpts = normalizeTelemetryOptions(submitted.options);
+  if (origOpts.length !== subOpts.length) return true;
+  for (let i = 0; i < origOpts.length; i += 1) {
+    if (origOpts[i] !== subOpts[i]) return true;
+  }
+  return false;
+}
+
 function isMissingBankValidatedColumnError(msg) {
   const text = String(msg || '');
   return text.includes('bank_validated_at') || text.includes('42703');
@@ -83,43 +116,116 @@ function isMissingBankQuestionHashColumnError(msg) {
   return text.includes('bank_question_hash') || text.includes('PGRST204');
 }
 
+function isMissingDismissedColumnError(msg) {
+  const text = String(msg || '');
+  return text.includes('dismissed_at') || text.includes('42703');
+}
+
+function isMissingBankValidatedEditedColumnError(msg) {
+  const text = String(msg || '');
+  return text.includes('bank_validated_edited') || text.includes('42703');
+}
+
 function isMissingBankValidatedSchemaError(msg) {
   return isMissingBankValidatedColumnError(msg) || isMissingBankQuestionHashColumnError(msg);
 }
 
-async function patchBankValidatedEvent(querySuffix, hash = '') {
+function isMissingExtendedTelemetryColumnError(msg) {
+  return isMissingBankValidatedSchemaError(msg)
+    || isMissingDismissedColumnError(msg)
+    || isMissingBankValidatedEditedColumnError(msg);
+}
+
+const TELEMETRY_ROW_BASE_SELECT = 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options,provider,model,attempt';
+
+function buildTelemetryRowSelectVariants() {
+  const base = TELEMETRY_ROW_BASE_SELECT;
+  return [
+    `${base},bank_validated_at,bank_question_hash,bank_validated_edited,dismissed_at`,
+    `${base},bank_validated_at,bank_question_hash,dismissed_at`,
+    `${base},dismissed_at`,
+    `${base},bank_validated_at,bank_question_hash`,
+    base,
+  ];
+}
+
+function isRecoverableTelemetrySelectError(msg) {
+  const text = String(msg || '');
+  return isMissingExtendedTelemetryColumnError(text)
+    || text.includes('PGRST204')
+    || text.includes('42703');
+}
+
+async function fetchTelemetryRowsWithSelectFallback(params, { requireDismissedFilter = false } = {}) {
+  const query = new URLSearchParams(params);
+  const wantsDismissedFilter = query.has('dismissed_at');
+  let lastErr;
+  for (const select of buildTelemetryRowSelectVariants()) {
+    query.set('select', select);
+    const selectHasDismissed = select.includes('dismissed_at');
+    if (wantsDismissedFilter && !selectHasDismissed) {
+      query.delete('dismissed_at');
+    }
+    try {
+      const rows = await supabaseRequest(`/${TABLE}?${query.toString()}`);
+      return Array.isArray(rows) ? rows : [];
+    } catch (err) {
+      lastErr = err;
+      const msg = String(err?.message || err);
+      if (wantsDismissedFilter && isMissingDismissedColumnError(msg)) {
+        if (requireDismissedFilter) {
+          const missing = new Error('Coluna dismissed_at em falta.');
+          missing.code = 'DISMISSED_COLUMN_MISSING';
+          throw missing;
+        }
+        query.delete('dismissed_at');
+        continue;
+      }
+      if (!isRecoverableTelemetrySelectError(msg)) {
+        throw err;
+      }
+    }
+  }
+  throw lastErr || new Error('Não foi possível ler telemetria.');
+}
+
+async function patchBankValidatedEvent(querySuffix, hash = '', edited = null) {
   const now = new Date().toISOString();
   const path = `/${TABLE}?${querySuffix}`;
-  const patchWithHash = { bank_validated_at: now };
   const trimmedHash = String(hash || '').trim();
-  if (trimmedHash) patchWithHash.bank_question_hash = trimmedHash;
+  const buildPatch = (includeHash, includeEdited) => {
+    const patch = { bank_validated_at: now };
+    if (includeHash && trimmedHash) patch.bank_question_hash = trimmedHash;
+    if (includeEdited && (edited === true || edited === false)) {
+      patch.bank_validated_edited = edited;
+    }
+    return patch;
+  };
   const request = (body) => supabaseRequest(path, {
     method: 'PATCH',
     body: JSON.stringify(body),
     prefer: 'return=minimal',
   });
-  try {
-    await request(patchWithHash);
-    return { ok: true };
-  } catch (err) {
-    const msg = String(err?.message || err);
-    if (trimmedHash && isMissingBankQuestionHashColumnError(msg)) {
-      try {
-        await request({ bank_validated_at: now });
-        return { ok: true, hashColumnMissing: true };
-      } catch (retryErr) {
-        const retryMsg = String(retryErr?.message || retryErr);
-        if (isMissingBankValidatedColumnError(retryMsg)) {
-          return { ok: false, skipped: 'column_missing' };
-        }
-        throw retryErr;
+  const attempts = [
+    buildPatch(true, true),
+    buildPatch(true, false),
+    buildPatch(false, true),
+    buildPatch(false, false),
+  ];
+  let lastErr = null;
+  for (const patch of attempts) {
+    try {
+      await request(patch);
+      return { ok: true };
+    } catch (err) {
+      lastErr = err;
+      const msg = String(err?.message || err);
+      if (isMissingBankValidatedColumnError(msg)) {
+        return { ok: false, skipped: 'column_missing' };
       }
     }
-    if (isMissingBankValidatedColumnError(msg)) {
-      return { ok: false, skipped: 'column_missing' };
-    }
-    throw err;
   }
+  throw lastErr;
 }
 
 async function fetchExistingBankHashes(hashes) {
@@ -236,12 +342,43 @@ function pushIssueOccurrence(entry, occurrence) {
   if (!entry.recentOccurrences) entry.recentOccurrences = [];
   entry.recentOccurrences.push(occurrence);
   entry.recentOccurrences.sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0));
-  if (entry.recentOccurrences.length > MAX_RECENT_ISSUE_OCCURRENCES) {
-    entry.recentOccurrences.length = MAX_RECENT_ISSUE_OCCURRENCES;
-  }
   if (!entry.lastOccurrence || occurrence.ts >= entry.lastOccurrence.ts) {
     entry.lastOccurrence = occurrence;
   }
+}
+
+function buildIssueOccurrence(ev, code) {
+  const codes = ev.issueCodes || [];
+  const messages = ev.issueMessages || [];
+  const index = codes.indexOf(code);
+  const msg = messages[index >= 0 ? index : 0] || messages[0] || '';
+  return {
+    eventId: ev.id || null,
+    ts: Number(ev.ts) || Date.now(),
+    message: clipIssueMessage(msg),
+    outcome: ev.outcome || '',
+    source: clip(ev.source, 16) || 'ai',
+    score: ev.score != null ? Number(ev.score) : null,
+    category: ev.category != null ? Number(ev.category) : null,
+    formatId: clip(ev.formatId, 32) || '',
+    ageBandKey: clip(ev.ageBandKey, 12) || '',
+    gameMode: ev.gameMode || 'local',
+    provider: clip(ev.provider, 24) || '',
+    model: clip(ev.model, 48) || '',
+    difficulty: ev.difficulty != null ? Number(ev.difficulty) : null,
+    attempt: ev.attempt != null ? Number(ev.attempt) : null,
+    questionSnapshot: ev.questionSnapshot || null,
+    bankValidatedAt: ev.bankValidatedAt || null,
+    bankQuestionHash: ev.bankQuestionHash || null,
+    bankValidatedEdited: ev.bankValidatedEdited === true
+      ? true
+      : (ev.bankValidatedEdited === false ? false : null),
+    dismissedAt: ev.dismissedAt || null,
+  };
+}
+
+function isOpenIssueOccurrence(occ) {
+  return !occ?.bankValidatedAt && !occ?.dismissedAt;
 }
 
 function accumulateIssueDetail(summary, ev) {
@@ -254,6 +391,7 @@ function accumulateIssueDetail(summary, ev) {
       summary.byIssueDetail[code] = {
         count: 0,
         validatedCount: 0,
+        dismissedCount: 0,
         sampleMessage: msg,
         lastOccurrence: null,
         recentOccurrences: [],
@@ -263,30 +401,19 @@ function accumulateIssueDetail(summary, ev) {
     entry.count += 1;
     if (ev.bankValidatedAt) {
       entry.validatedCount = (entry.validatedCount || 0) + 1;
+      if (ev.bankValidatedEdited === true) {
+        entry.validatedEditedCount = (entry.validatedEditedCount || 0) + 1;
+      } else if (ev.bankValidatedEdited === false) {
+        entry.validatedAsIsCount = (entry.validatedAsIsCount || 0) + 1;
+      }
+    }
+    if (ev.dismissedAt) {
+      entry.dismissedCount = (entry.dismissedCount || 0) + 1;
     }
     if (msg && !entry.sampleMessage) {
       entry.sampleMessage = msg;
     }
-    const occurrence = {
-      eventId: ev.id || null,
-      ts: Number(ev.ts) || Date.now(),
-      message: clipIssueMessage(msg),
-      outcome: ev.outcome || '',
-      source: clip(ev.source, 16) || 'ai',
-      score: ev.score != null ? Number(ev.score) : null,
-      category: ev.category != null ? Number(ev.category) : null,
-      formatId: clip(ev.formatId, 32) || '',
-      ageBandKey: clip(ev.ageBandKey, 12) || '',
-      gameMode: ev.gameMode || 'local',
-      provider: clip(ev.provider, 24) || '',
-      model: clip(ev.model, 48) || '',
-      difficulty: ev.difficulty != null ? Number(ev.difficulty) : null,
-      attempt: ev.attempt != null ? Number(ev.attempt) : null,
-      questionSnapshot: ev.questionSnapshot || null,
-      bankValidatedAt: ev.bankValidatedAt || null,
-      bankQuestionHash: ev.bankQuestionHash || null,
-    };
-    pushIssueOccurrence(entry, occurrence);
+    pushIssueOccurrence(entry, buildIssueOccurrence({ ...ev, issueMessages: messages }, code));
   }
 }
 
@@ -436,6 +563,10 @@ function rowToItem(row) {
     questionSnapshot,
     bankValidatedAt: row.bank_validated_at || null,
     bankQuestionHash: row.bank_question_hash || null,
+    bankValidatedEdited: row.bank_validated_edited === true
+      ? true
+      : (row.bank_validated_edited === false ? false : null),
+    dismissedAt: row.dismissed_at || null,
   };
 }
 
@@ -548,6 +679,9 @@ function computeSummaryFromItems(items) {
     nonAiShare: 0,
     aiAvgAttempts: null,
     validatedInBank: 0,
+    validatedInBankEdited: 0,
+    validatedInBankAsIs: 0,
+    dismissedTotal: 0,
   };
 
   for (const ev of items) {
@@ -555,7 +689,12 @@ function computeSummaryFromItems(items) {
     else if (ev.outcome === 'rejected') summary.rejected += 1;
     else if (ev.outcome === 'parse_error') summary.parseErrors += 1;
     else if (ev.outcome === 'api_error') summary.apiErrors += 1;
-    if (ev.bankValidatedAt) summary.validatedInBank += 1;
+    if (ev.bankValidatedAt) {
+      summary.validatedInBank += 1;
+      if (ev.bankValidatedEdited === true) summary.validatedInBankEdited += 1;
+      else if (ev.bankValidatedEdited === false) summary.validatedInBankAsIs += 1;
+    }
+    if (ev.dismissedAt) summary.dismissedTotal += 1;
 
     for (const code of ev.issueCodes || []) {
       summary.byIssueCode[code] = (summary.byIssueCode[code] || 0) + 1;
@@ -648,67 +787,307 @@ async function recordEvent(payload) {
   return { id, event: normalized };
 }
 
+async function fetchIssueCodeEventRows(issueCode, gameMode = '', { limit = 1000 } = {}) {
+  const code = String(issueCode || '').trim();
+  if (!code) return [];
+  const capped = Math.min(Math.max(Number(limit) || 1000, 1), 1000);
+  const params = {
+    outcome: 'eq.rejected',
+    dismissed_at: 'is.null',
+    bank_validated_at: 'is.null',
+    issue_codes: `cs.{${code}}`,
+    order: 'event_ts.desc',
+    limit: String(capped),
+  };
+  if (gameMode && VALID_GAME_MODES.has(String(gameMode))) {
+    params.game_mode = `eq.${gameMode}`;
+  }
+  return fetchTelemetryRowsWithSelectFallback(params, { requireDismissedFilter: true });
+}
+
+async function listOpenIssueOccurrencesByCode({ issueCode, gameMode = '', limit = 1000 } = {}) {
+  const code = String(issueCode || '').trim();
+  if (!code) {
+    const err = new Error('Código de causa em falta.');
+    err.code = 'MISSING_ISSUE_CODE';
+    throw err;
+  }
+  const rows = await fetchIssueCodeEventRows(code, gameMode, { limit });
+  const items = await enrichItemsWithBankValidation(rows.map(rowToItem));
+  return items
+    .filter((ev) => (ev.issueCodes || []).includes(code) && isOpenIssueOccurrence(ev))
+    .map((ev) => buildIssueOccurrence(ev, code));
+}
+
 async function fetchEventItems(filters = {}) {
   const gameMode = filters.gameMode && VALID_GAME_MODES.has(String(filters.gameMode))
     ? String(filters.gameMode)
     : '';
-  const baseSelect = 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options,provider,model,attempt';
-  const extendedSelect = `${baseSelect},bank_validated_at,bank_question_hash`;
-  const params = new URLSearchParams({
+  const params = {
     order: 'created_at.desc',
     limit: String(MAX_EVENTS),
-  });
-  if (gameMode) params.set('game_mode', `eq.${gameMode}`);
+  };
+  if (gameMode) params.game_mode = `eq.${gameMode}`;
+  const rows = await fetchTelemetryRowsWithSelectFallback(params);
+  return rows.map(rowToItem);
+}
 
-  let rows;
+async function dismissTelemetryEvent({ eventId } = {}) {
+  const id = String(eventId || '').trim();
+  if (!id) {
+    const err = new Error('ID do evento em falta.');
+    err.code = 'MISSING_EVENT_ID';
+    throw err;
+  }
+  const now = new Date().toISOString();
   try {
-    params.set('select', extendedSelect);
-    rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+    await supabaseRequest(`/${TABLE}?id=eq.${encodeURIComponent(id)}&outcome=eq.rejected`, {
+      method: 'PATCH',
+      body: JSON.stringify({ dismissed_at: now }),
+      prefer: 'return=minimal',
+    });
+    return { dismissed: 1, dismissedAt: now, eventId: id };
   } catch (err) {
     const msg = String(err?.message || err);
-    if (!isMissingBankValidatedSchemaError(msg)) {
+    if (isMissingDismissedColumnError(msg)) {
+      return { dismissed: 0, skipped: 'column_missing' };
+    }
+    throw err;
+  }
+}
+
+function buildDismissIssueCodeQueryParams(issueCode, gameMode = '', { includeBankValidatedFilter = true } = {}) {
+  const code = String(issueCode || '').trim();
+  const params = new URLSearchParams({
+    select: 'id',
+    outcome: 'eq.rejected',
+    dismissed_at: 'is.null',
+    issue_codes: `cs.{${code}}`,
+    limit: '500',
+  });
+  if (includeBankValidatedFilter) {
+    params.set('bank_validated_at', 'is.null');
+  }
+  if (gameMode && VALID_GAME_MODES.has(String(gameMode))) {
+    params.set('game_mode', `eq.${gameMode}`);
+  }
+  return params;
+}
+
+async function dismissTelemetryEventsByIssueCode({ issueCode, gameMode = '' } = {}) {
+  const code = String(issueCode || '').trim();
+  if (!code) {
+    const err = new Error('Código de causa em falta.');
+    err.code = 'MISSING_ISSUE_CODE';
+    throw err;
+  }
+  const cfg = getSupabaseAdmin();
+  if (!cfg) {
+    const err = new Error('Supabase admin não configurado.');
+    err.code = 'NOT_CONFIGURED';
+    throw err;
+  }
+
+  const now = new Date().toISOString();
+  let dismissed = 0;
+  const chunkSize = 100;
+
+  const fetchOpenIds = async (includeBankValidatedFilter) => {
+    const params = buildDismissIssueCodeQueryParams(code, gameMode, { includeBankValidatedFilter });
+    const rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+    return (Array.isArray(rows) ? rows : []).map((row) => row.id).filter(Boolean);
+  };
+
+  let includeBankValidatedFilter = true;
+  while (true) {
+    let ids;
+    try {
+      ids = await fetchOpenIds(includeBankValidatedFilter);
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (isMissingDismissedColumnError(msg)) {
+        return { dismissed: 0, skipped: 'column_missing', issueCode: code };
+      }
+      if (includeBankValidatedFilter && isMissingBankValidatedColumnError(msg)) {
+        includeBankValidatedFilter = false;
+        continue;
+      }
       throw err;
     }
-    params.set('select', baseSelect);
-    rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+    if (!ids.length) break;
+
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const inList = chunk.map((id) => encodeURIComponent(id)).join(',');
+      await supabaseRequest(`/${TABLE}?id=in.(${inList})&outcome=eq.rejected`, {
+        method: 'PATCH',
+        body: JSON.stringify({ dismissed_at: now }),
+        prefer: 'return=minimal',
+      });
+      dismissed += chunk.length;
+    }
+    if (ids.length < 500) break;
   }
-  return (rows || []).map(rowToItem);
+
+  return { dismissed, dismissedAt: now, issueCode: code };
+}
+
+function countOpenTelemetryByIssueDetail(info) {
+  const total = Number(info?.count) || 0;
+  const validated = Number(info?.validatedCount) || 0;
+  const dismissed = Number(info?.dismissedCount) || 0;
+  return Math.max(0, total - validated - dismissed);
+}
+
+function telemetryRowContentHash(row) {
+  if (!row?.question_text && !row?.answer_text) return '';
+  return hashQuestionKey(`${stripTags(row.question_text)}|${stripTags(row.answer_text)}`);
+}
+
+function rowMatchesTelemetryHashes(row, hashes) {
+  const set = new Set((hashes || []).map((h) => String(h || '').trim()).filter(Boolean));
+  if (!set.size || !row) return false;
+  const rowHash = telemetryRowContentHash(row);
+  return rowHash && set.has(rowHash);
+}
+
+function filterTelemetryRowsByHashes(rows, hashes) {
+  const list = Array.isArray(rows) ? rows : [];
+  const matchHashes = [...new Set((hashes || []).map((h) => String(h || '').trim()).filter(Boolean))];
+  if (!matchHashes.length) return [];
+  return list.filter((row) => rowMatchesTelemetryHashes(row, matchHashes));
+}
+
+async function dismissTelemetryByQuestionHashes({ hashes = [] } = {}) {
+  const matchHashes = [...new Set((hashes || []).map((h) => String(h || '').trim()).filter(Boolean))];
+  if (!matchHashes.length) {
+    const err = new Error('Hash da pergunta em falta.');
+    err.code = 'MISSING_HASH';
+    throw err;
+  }
+  const now = new Date().toISOString();
+  let dismissed = 0;
+  const chunkSize = 100;
+  const matchSelect = 'id,question_text,answer_text';
+
+  while (true) {
+    const params = new URLSearchParams({
+      select: matchSelect,
+      outcome: 'eq.rejected',
+      dismissed_at: 'is.null',
+      bank_validated_at: 'is.null',
+      question_text: 'not.is.null',
+      answer_text: 'not.is.null',
+      order: 'created_at.desc',
+      limit: '500',
+    });
+    let rows;
+    try {
+      rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (isMissingDismissedColumnError(msg)) {
+        return { dismissed: 0, skipped: 'column_missing' };
+      }
+      if (isMissingBankValidatedColumnError(msg)) {
+        params.delete('bank_validated_at');
+        rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
+      } else {
+        throw err;
+      }
+    }
+    const matches = filterTelemetryRowsByHashes(rows, matchHashes);
+    const ids = matches.map((row) => row.id).filter(Boolean);
+    if (!ids.length) break;
+    for (let i = 0; i < ids.length; i += chunkSize) {
+      const chunk = ids.slice(i, i + chunkSize);
+      const inList = chunk.map((id) => encodeURIComponent(id)).join(',');
+      await supabaseRequest(`/${TABLE}?id=in.(${inList})&outcome=eq.rejected`, {
+        method: 'PATCH',
+        body: JSON.stringify({ dismissed_at: now }),
+        prefer: 'return=minimal',
+      });
+      dismissed += chunk.length;
+    }
+    if ((Array.isArray(rows) ? rows : []).length < 500) break;
+  }
+  return { dismissed, dismissedAt: now, hashes: matchHashes };
 }
 
 async function markTelemetryBankValidated({
   eventId = null,
   question = '',
   answer = '',
+  options = null,
   questionHash = '',
+  previousHash = '',
 } = {}) {
   const cfg = getSupabaseAdmin();
   if (!cfg) return { marked: 0, ids: [] };
 
   const content = normalizeTelemetryContent(question, answer);
   const hash = String(questionHash || '').trim() || content?.hash || '';
+  const prevHash = String(previousHash || '').trim();
+  const matchHashes = [...new Set([hash, prevHash].filter(Boolean))];
+  const submitted = { question, answer, options };
 
   const markedIds = [];
 
-  const patchRows = async (ids) => {
-    const unique = [...new Set((ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
-    if (!unique.length) return { skipped: null };
-    for (const id of unique) {
+  const patchEntries = async (entries) => {
+    const list = (entries || []).map((entry) => {
+      if (typeof entry === 'string') {
+        return { id: entry, edited: null };
+      }
+      return {
+        id: String(entry?.id || '').trim(),
+        edited: entry?.edited === true ? true : (entry?.edited === false ? false : null),
+      };
+    }).filter((entry) => entry.id);
+    if (!list.length) return { skipped: null };
+    for (const entry of list) {
       const result = await patchBankValidatedEvent(
-        `id=eq.${encodeURIComponent(id)}&outcome=eq.rejected`,
+        `id=eq.${encodeURIComponent(entry.id)}&outcome=eq.rejected`,
         hash,
+        entry.edited,
       );
       if (result.skipped === 'column_missing') {
         return { skipped: 'column_missing' };
       }
-      if (result.ok) markedIds.push(id);
+      if (result.ok) markedIds.push(entry.id);
     }
     return { skipped: null };
   };
 
+  const entriesFromRows = (rows) => (Array.isArray(rows) ? rows : []).map((row) => ({
+    id: row.id,
+    edited: isTelemetrySnapshotEdited(snapshotFromTelemetryRow(row), submitted),
+  }));
+
   const eventRowId = String(eventId || '').trim();
   if (eventRowId) {
-    const result = await patchRows([eventRowId]);
-    if (result.skipped === 'column_missing') {
+    try {
+      const rows = await supabaseRequest(
+        `/${TABLE}?id=eq.${encodeURIComponent(eventRowId)}&select=id,question_text,answer_text,question_options,outcome`,
+      );
+      const row = Array.isArray(rows) ? rows[0] : null;
+      if (row?.outcome === 'rejected') {
+        const result = await patchEntries([{
+          id: row.id,
+          edited: isTelemetrySnapshotEdited(snapshotFromTelemetryRow(row), submitted),
+        }]);
+        if (result.skipped === 'column_missing') {
+          return { marked: 0, ids: [], skipped: 'column_missing' };
+        }
+        if (markedIds.length) return { marked: markedIds.length, ids: markedIds };
+      }
+    } catch (err) {
+      const msg = String(err?.message || err);
+      if (!isMissingBankValidatedSchemaError(msg)) {
+        throw err;
+      }
+    }
+    const fallback = await patchEntries([{ id: eventRowId, edited: null }]);
+    if (fallback.skipped === 'column_missing') {
       return { marked: 0, ids: [], skipped: 'column_missing' };
     }
     if (markedIds.length) return { marked: markedIds.length, ids: markedIds };
@@ -716,10 +1095,12 @@ async function markTelemetryBankValidated({
 
   if (!content) return { marked: 0, ids: [] };
 
+  const matchSelect = 'id,question_text,answer_text,question_options,bank_validated_at';
+
   if (hash) {
     try {
       const params = new URLSearchParams({
-        select: 'id,question_text,answer_text,bank_validated_at',
+        select: matchSelect,
         outcome: 'eq.rejected',
         bank_validated_at: 'is.null',
         question_text: 'not.is.null',
@@ -729,10 +1110,11 @@ async function markTelemetryBankValidated({
       });
       const rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
       const matches = (Array.isArray(rows) ? rows : []).filter((row) => {
-        const rowHash = hashQuestionKey(`${stripTags(row.question_text)}|${stripTags(row.answer_text)}`);
-        return rowHash === hash;
+        if (rowMatchesTelemetryHashes(row, matchHashes)) return true;
+        if (!content) return false;
+        return telemetryContentMatches(row, content);
       });
-      const patchResult = await patchRows(matches.map((row) => row.id));
+      const patchResult = await patchEntries(entriesFromRows(matches));
       if (patchResult.skipped === 'column_missing') {
         return { marked: 0, ids: [], skipped: 'column_missing' };
       }
@@ -748,7 +1130,7 @@ async function markTelemetryBankValidated({
 
   try {
     const params = new URLSearchParams({
-      select: 'id,question_text,answer_text,bank_validated_at',
+      select: matchSelect,
       outcome: 'eq.rejected',
       bank_validated_at: 'is.null',
       question_text: 'not.is.null',
@@ -758,7 +1140,7 @@ async function markTelemetryBankValidated({
     });
     const rows = await supabaseRequest(`/${TABLE}?${params.toString()}`);
     const matches = (Array.isArray(rows) ? rows : []).filter((row) => telemetryContentMatches(row, content));
-    const patchResult = await patchRows(matches.map((row) => row.id));
+    const patchResult = await patchEntries(entriesFromRows(matches));
     if (patchResult.skipped === 'column_missing') {
       return { marked: 0, ids: [], skipped: 'column_missing' };
     }
@@ -777,6 +1159,7 @@ async function getStats(_event, filters = {}) {
   return {
     ...computeSummaryFromItems(items),
     ...computeTimelineFromItems(items),
+    ...buildReviewTimelineBundles(items),
   };
 }
 
@@ -825,6 +1208,15 @@ module.exports = {
   isRepoSource,
   repoAcceptedCount,
   markTelemetryBankValidated,
+  dismissTelemetryEvent,
+  dismissTelemetryEventsByIssueCode,
+  dismissTelemetryByQuestionHashes,
+  listOpenIssueOccurrencesByCode,
+  buildIssueOccurrence,
+  countOpenTelemetryByIssueDetail,
+  rowMatchesTelemetryHashes,
+  computeReviewTimelineFromItems,
   enrichItemsWithBankValidation,
   telemetryHashFromSnapshot,
+  isTelemetrySnapshotEdited,
 };

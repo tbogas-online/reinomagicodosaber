@@ -7,6 +7,7 @@
   <style>
     :root {
       color-scheme: light dark;
+      --admin-max-width: 1320px;
       --bg: #0f172a;
       --card: #1e293b;
       --text: #e2e8f0;
@@ -24,7 +25,7 @@
       color: var(--text);
       line-height: 1.45;
     }
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .wrap { max-width: var(--admin-max-width); margin: 0 auto; padding: 20px 24px; }
     h1 { margin: 0 0 6px; font-size: 1.5rem; }
     .sub { color: var(--muted); margin: 0 0 20px; font-size: 0.95rem; }
     .card {
@@ -1490,6 +1491,19 @@
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
       overflow: hidden;
       font-size: 0.88rem;
+      transition: max-height 0.28s ease, opacity 0.22s ease, margin 0.28s ease, padding 0.28s ease, border-width 0.28s ease;
+    }
+    .pending-review-queue-pos {
+      margin: 0 0 4px;
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .issue-detail-list .issue-occ-item {
+      transition: max-height 0.28s ease, opacity 0.22s ease, margin 0.28s ease, padding 0.28s ease, border-width 0.28s ease;
+    }
+    .admin-item--leaving {
+      pointer-events: none;
     }
     .pending-review-header {
       display: flex;
@@ -1790,6 +1804,33 @@
       padding-top: 12px;
       border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
     }
+    .pending-review-code-bar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    .pending-review-code-bar label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .pending-review-code-bar select {
+      min-width: 260px;
+      max-width: 420px;
+      font-size: 0.82rem;
+      padding: 5px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: inherit;
+    }
+    .pending-review-code-bar .pending-dismiss-code-btn {
+      color: #fca5a5;
+    }
     .difficulty-scale-hint {
       margin: 2px 0 6px;
       font-size: 10px;
@@ -1817,6 +1858,44 @@
       border-left: 3px solid rgba(16, 185, 129, 0.55);
       padding-left: 8px;
       opacity: 0.92;
+    }
+    .issue-dismissed {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      background: rgba(148, 163, 184, 0.12);
+      border: 1px solid rgba(148, 163, 184, 0.24);
+    }
+    .issue-occ-item.is-dismissed {
+      border-left: 3px solid rgba(148, 163, 184, 0.45);
+      padding-left: 8px;
+      opacity: 0.88;
+    }
+    .telemetry-dismiss-occ-btn {
+      color: #fca5a5;
+    }
+    .telemetry-dismiss-code-btn {
+      display: inline-block;
+      margin-top: 6px;
+      font-size: 0.8rem;
+      color: #fca5a5;
+    }
+    .draft-local-hint {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #fcd34d;
+      background: rgba(252, 211, 77, 0.12);
+      border: 1px solid rgba(252, 211, 77, 0.28);
+      vertical-align: middle;
     }
     .provider-insights-table {
       width: 100%;
@@ -2443,6 +2522,30 @@
       color: #0f172a;
       font-weight: 600;
     }
+    .review-timeline-filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      align-items: center;
+      margin: 8px 0 4px;
+    }
+    .review-timeline-filters label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .review-timeline-filters select {
+      min-width: 180px;
+      max-width: 320px;
+      font-size: 0.82rem;
+      padding: 5px 8px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: inherit;
+    }
     .timeline-chart-types {
       display: flex;
       flex-wrap: wrap;
@@ -2783,7 +2886,7 @@
           </div>
           <p class="chart-filter-note bank-timeline-legend-note">
             <strong>Validação manual</strong> — perguntas inseridas no banco após revisão no painel admin
-            (aceitar na telemetria IA, fila de dificuldade ou correcção de reportes), e não geradas automaticamente durante o jogo.
+            (aceitar na telemetria IA, fila de revisão ou correcção de reportes), e não geradas automaticamente durante o jogo.
           </p>
 
           <h3 class="charts-title" id="bankCategoryChartTitle" style="font-size:1rem; margin:22px 0 6px;">Por categoria e faixa etária</h3>
@@ -2871,17 +2974,26 @@
           <details class="bank-pending-review-details" id="bankPendingReviewDetails">
             <summary class="bank-pending-review-summary">
               <span class="bank-pending-review-summary-main">
-                <h2 class="charts-title" style="margin:0;">Fila de revisão (dificuldade)<span id="bankPendingCount" class="pending-review-count hidden" aria-live="polite"></span></h2>
-                <span class="bank-pending-review-hint">Clica para ver a fila, importar da telemetria ou rever perguntas.</span>
+                <h2 class="charts-title" style="margin:0;">Fila de revisão<span id="bankPendingCount" class="pending-review-count hidden" aria-live="polite"></span></h2>
+                <span class="bank-pending-review-hint">Clica para ver todas as pendentes, importar da telemetria ou aceitar no banco.</span>
               </span>
             </summary>
             <div class="bank-pending-review-body">
               <div class="row" style="justify-content:space-between; margin-bottom:8px; width:100%; align-items:flex-start;">
-                <p class="sub" style="margin:0;">Perguntas com dificuldade errada — novas entram automaticamente ao jogar; as antigas podes importar da telemetria.</p>
+                <p class="sub" style="margin:0;">Perguntas rejeitadas pela validação IA — novas entram ao jogar; importa o histórico da telemetria por código de causa.</p>
                 <div class="bulk-bar" style="gap:6px; margin:0;">
-                  <button type="button" class="primary" id="bankPendingImportBtn" title="Importar rejeições de dificuldade já guardadas na telemetria IA">📥 Importar da telemetria</button>
                   <button type="button" class="secondary" id="bankPendingRefreshBtn">↻ Actualizar fila</button>
                 </div>
+              </div>
+              <div class="pending-review-code-bar">
+                <label>
+                  Código
+                  <select id="bankPendingIssueCodeSelect" aria-label="Código de causa para importar ou descartar na fila">
+                    <option value="">Selecciona um código…</option>
+                  </select>
+                </label>
+                <button type="button" class="secondary" id="bankPendingImportCodeBtn" title="Importar da telemetria todas as rejeições com este código">📥 Importar código</button>
+                <button type="button" class="secondary pending-dismiss-code-btn" id="bankPendingDismissCodeBtn" title="Descartar todas as pendentes deste código na fila">✕ Descartar todas na fila</button>
               </div>
               <div class="card stats telemetry-kpis pending-review-kpis" id="bankPendingStatsRow"></div>
               <p class="status" id="bankPendingStatus"></p>
@@ -3306,6 +3418,27 @@
             <div id="chartGenTelemetryTimeline" class="chart"></div>
           </div>
 
+          <div class="chart-box chart-wide" style="margin-top:12px">
+            <h3 id="chartGenReviewTimelineTitle" style="margin:0;font-size:0.95rem;">Revisão manual — aceites e descartes</h3>
+            <div class="review-timeline-filters" id="reviewTimelineFilters">
+              <label>
+                Categoria
+                <select id="reviewTimelineCategoryFilter" aria-label="Filtrar revisão manual por categoria">
+                  <option value="">Todas as categorias</option>
+                </select>
+              </label>
+              <label>
+                Código
+                <select id="reviewTimelineIssueCodeFilter" aria-label="Filtrar revisão manual por código de causa">
+                  <option value="">Todos os códigos</option>
+                </select>
+              </label>
+            </div>
+            <p class="timeline-note" id="genReviewTimelineNote">Aceitações no banco e descartes na tabela de causas (mesmo período do gráfico acima).</p>
+            <div id="genReviewTimelineLegend" class="line-legend" aria-label="Legenda do gráfico de revisão manual"></div>
+            <div id="chartGenReviewTimeline" class="chart"></div>
+          </div>
+
           <div class="charts-grid" style="margin-top:12px">
             <div class="chart-box chart-wide">
               <h3>Rejeições por categoria</h3>
@@ -3563,6 +3696,7 @@
       if (!draft) return;
       if (!draft.question && !draft.answer && !draft.options?.length && !draft.notes) return;
       correctionDraftsByReportId.set(reportId, draft);
+      persistAdminDraftMap(correctionDraftsByReportId, ADMIN_DRAFT_SESSION.correction);
     }
 
     function saveAllCorrectionDraftsFromDom() {
@@ -3581,6 +3715,7 @@
           correctionDraftsByReportId.set(reportId, draft);
         }
       });
+      persistAdminDraftMap(correctionDraftsByReportId, ADMIN_DRAFT_SESSION.correction);
     }
 
     function mergeCorrectionWithDraft(reportId, suggested = {}) {
@@ -3597,6 +3732,7 @@
 
     function clearCorrectionDraft(reportId) {
       correctionDraftsByReportId.delete(reportId);
+      persistAdminDraftMap(correctionDraftsByReportId, ADMIN_DRAFT_SESSION.correction);
     }
 
     function readTaxonomyDraft(reportId) {
@@ -3610,6 +3746,7 @@
       if (!draft) return;
       if (!draft.categoryNs?.length && !draft.ageBands?.length) return;
       taxonomyDraftsByReportId.set(reportId, draft);
+      persistAdminDraftMap(taxonomyDraftsByReportId, ADMIN_DRAFT_SESSION.taxonomy);
     }
 
     function saveAllTaxonomyDraftsFromDom() {
@@ -3621,6 +3758,7 @@
           taxonomyDraftsByReportId.set(reportId, draft);
         }
       });
+      persistAdminDraftMap(taxonomyDraftsByReportId, ADMIN_DRAFT_SESSION.taxonomy);
     }
 
     function mergeReportTaxonomyWithDraft(reportId, categoryNs, ageBands) {
@@ -3634,6 +3772,7 @@
 
     function clearTaxonomyDraft(reportId) {
       taxonomyDraftsByReportId.delete(reportId);
+      persistAdminDraftMap(taxonomyDraftsByReportId, ADMIN_DRAFT_SESSION.taxonomy);
     }
 
     function applyCorrectionToLocalReport(report, correction) {
@@ -3974,18 +4113,14 @@
       return formatShortDate(key);
     }
 
-    const CHART_LISBON_TZ_LABEL = 'Lisboa';
-
     function chartTimelineGranularityLabel(granularity) {
-      return granularity === 'hour'
-        ? `por hora (${CHART_LISBON_TZ_LABEL})`
-        : `por dia (${CHART_LISBON_TZ_LABEL})`;
+      return granularity === 'hour' ? 'por hora' : 'por dia';
     }
 
     function chartTimelineGranularityNote(granularity) {
       return granularity === 'hour'
-        ? `Granularidade por hora (${CHART_LISBON_TZ_LABEL}).`
-        : `Granularidade por dia (${CHART_LISBON_TZ_LABEL}).`;
+        ? 'Granularidade por hora.'
+        : 'Granularidade por dia.';
     }
 
     function getTimelineSeries(stats) {
@@ -4621,6 +4756,69 @@
     const correctionDraftsByReportId = new Map();
     /** Rascunhos de classificação (categoria/idade) nos detalhes de reportes. */
     const taxonomyDraftsByReportId = new Map();
+    /** Rascunhos da fila de revisão — sobrevivem a refresh/re-render da lista. */
+    const pendingReviewDraftsById = new Map();
+    /** Rascunhos dos formulários «Aceitar e guardar no banco» na telemetria IA. */
+    const telemetryAcceptDraftsByOccKey = new Map();
+    /** Rascunhos de edição nas linhas expandidas da pesquisa do banco. */
+    const bankEditDraftsByHash = new Map();
+
+    const ADMIN_DRAFT_SESSION = {
+      correction: 'reino_admin_drafts_correction_v1',
+      taxonomy: 'reino_admin_drafts_taxonomy_v1',
+      pending: 'reino_admin_drafts_pending_v1',
+      telemetry: 'reino_admin_drafts_telemetry_v1',
+      bank: 'reino_admin_drafts_bank_v1',
+    };
+    let adminDraftStoresHydrated = false;
+
+    function readAdminDraftSession(storageKey) {
+      try {
+        return JSON.parse(sessionStorage.getItem(storageKey) || '{}');
+      } catch {
+        return {};
+      }
+    }
+
+    function persistAdminDraftMap(map, storageKey) {
+      try {
+        sessionStorage.setItem(storageKey, JSON.stringify(Object.fromEntries(map)));
+      } catch { /* quota */ }
+    }
+
+    function hydrateAdminDraftMap(map, storageKey) {
+      const obj = readAdminDraftSession(storageKey);
+      Object.entries(obj).forEach(([k, v]) => map.set(k, v));
+    }
+
+    function initAdminDraftStores() {
+      if (adminDraftStoresHydrated) return;
+      hydrateAdminDraftMap(correctionDraftsByReportId, ADMIN_DRAFT_SESSION.correction);
+      hydrateAdminDraftMap(taxonomyDraftsByReportId, ADMIN_DRAFT_SESSION.taxonomy);
+      hydrateAdminDraftMap(pendingReviewDraftsById, ADMIN_DRAFT_SESSION.pending);
+      hydrateAdminDraftMap(telemetryAcceptDraftsByOccKey, ADMIN_DRAFT_SESSION.telemetry);
+      hydrateAdminDraftMap(bankEditDraftsByHash, ADMIN_DRAFT_SESSION.bank);
+      for (const [key, draft] of [...telemetryAcceptDraftsByOccKey.entries()]) {
+        const parts = String(key).split('|');
+        const eventId = parts.length >= 2 ? String(parts[1] || '').trim() : '';
+        if (eventId && key !== eventId) {
+          telemetryAcceptDraftsByOccKey.delete(key);
+          if (!telemetryAcceptDraftsByOccKey.has(eventId)) {
+            telemetryAcceptDraftsByOccKey.set(eventId, draft);
+          }
+        }
+      }
+      persistAdminDraftMap(telemetryAcceptDraftsByOccKey, ADMIN_DRAFT_SESSION.telemetry);
+      adminDraftStoresHydrated = true;
+    }
+
+    function queryTelemetryAcceptForm(occKey) {
+      if (!occKey) return null;
+      const escaped = typeof CSS !== 'undefined' && CSS.escape
+        ? CSS.escape(String(occKey))
+        : String(occKey).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      return document.querySelector(`.telemetry-accept-form[data-occ-key="${escaped}"]`);
+    }
 
     const loginCard = document.getElementById('loginCard');
     const dashboard = document.getElementById('dashboard');
@@ -5305,19 +5503,30 @@
       `;
     }
 
+    function isTelemetryOccurrenceOpen(occ) {
+      return !occ?.bankValidatedAt && !occ?.dismissedAt;
+    }
+
     function getIssueOccurrenceList(info, { includeValidated = false } = {}) {
       const recent = Array.isArray(info?.recentOccurrences) ? info.recentOccurrences : [];
       const base = recent.length ? recent : (info?.lastOccurrence ? [info.lastOccurrence] : []);
       const filtered = includeValidated
         ? base
-        : base.filter((occ) => !occ?.bankValidatedAt);
-      return filtered.slice(0, 10);
+        : base.filter((occ) => isTelemetryOccurrenceOpen(occ));
+      return filtered;
     }
 
     function countOpenIssueOccurrences(info) {
       const recent = Array.isArray(info?.recentOccurrences) ? info.recentOccurrences : [];
       const base = recent.length ? recent : (info?.lastOccurrence ? [info.lastOccurrence] : []);
-      return base.filter((occ) => !occ?.bankValidatedAt).length;
+      return base.filter((occ) => isTelemetryOccurrenceOpen(occ)).length;
+    }
+
+    function countOpenIssueOccurrencesFromSummary(info) {
+      const total = Number(info?.count) || 0;
+      const validated = Number(info?.validatedCount) || 0;
+      const dismissed = Number(info?.dismissedCount) || 0;
+      return Math.max(0, total - validated - dismissed);
     }
 
     function telemetryOverrideMatches(code, occ, override) {
@@ -5384,14 +5593,13 @@
     }
 
     function telemetryOccurrenceKey(code, occ, index) {
-      return `${code}|${occ?.eventId || ''}|${occ?.ts || ''}|${index}`;
+      const eventId = String(occ?.eventId || '').trim();
+      if (eventId) return eventId;
+      return `${code}|${occ?.ts || ''}|${index}`;
     }
 
-    /** Rascunhos dos formulários «Aceitar e guardar no banco» na telemetria IA. */
-    const telemetryAcceptDraftsByOccKey = new Map();
-
     function readTelemetryAcceptDraft(occKey) {
-      const formEl = document.querySelector(`.telemetry-accept-form[data-occ-key="${occKey}"]`);
+      const formEl = queryTelemetryAcceptForm(occKey);
       if (!formEl) return telemetryAcceptDraftsByOccKey.get(occKey) || null;
       return readTelemetryAcceptForm(formEl);
     }
@@ -5402,6 +5610,7 @@
       if (!draft.question && !draft.answer && !draft.options?.length
         && !draft.categoryNs?.length && !draft.ageBands?.length) return;
       telemetryAcceptDraftsByOccKey.set(occKey, draft);
+      persistAdminDraftMap(telemetryAcceptDraftsByOccKey, ADMIN_DRAFT_SESSION.telemetry);
     }
 
     function saveAllTelemetryAcceptDraftsFromDom() {
@@ -5415,6 +5624,7 @@
           telemetryAcceptDraftsByOccKey.set(occKey, draft);
         }
       });
+      persistAdminDraftMap(telemetryAcceptDraftsByOccKey, ADMIN_DRAFT_SESSION.telemetry);
     }
 
     function mergeTelemetryAcceptWithDraft(occKey, snap, occ) {
@@ -5444,10 +5654,11 @@
 
     function clearTelemetryAcceptDraft(occKey) {
       telemetryAcceptDraftsByOccKey.delete(occKey);
+      persistAdminDraftMap(telemetryAcceptDraftsByOccKey, ADMIN_DRAFT_SESSION.telemetry);
     }
 
     function canShowTelemetryAccept(occ) {
-      if (occ?.bankValidatedAt) return false;
+      if (occ?.bankValidatedAt || occ?.dismissedAt) return false;
       const snap = occ?.questionSnapshot;
       if (!snap?.q || !snap?.a) return false;
       const cat = Number(occ?.category);
@@ -5592,9 +5803,12 @@
       const snap = occ.questionSnapshot;
       const merged = mergeTelemetryAcceptWithDraft(key, snap, occ);
       const opts = Array.isArray(merged.options) ? merged.options : [];
+      const draftHint = telemetryAcceptDraftsByOccKey.has(key)
+        ? ' <span class="draft-local-hint">· rascunho local</span>'
+        : '';
       return `
         <details class="telemetry-accept-panel">
-          <summary>💾 Aceitar e guardar no banco</summary>
+          <summary>💾 Aceitar e guardar no banco${draftHint}</summary>
           <div class="telemetry-accept-form" data-occ-key="${esc(key)}">
             <label>Pergunta</label>
             <textarea class="telemetry-accept-question" data-occ-key="${esc(key)}">${esc(merged.question || '')}</textarea>
@@ -5685,57 +5899,150 @@
       });
     }
 
+    async function dismissTelemetryOccurrencesByCode(issueCode, openCount = 0) {
+      const code = String(issueCode || '').trim();
+      if (!code) throw new Error('Código de causa em falta.');
+      const modeNote = telemetryGameModeFilter
+        ? `\n\nFiltro activo: ${GEN_GAME_MODE_LABELS[telemetryGameModeFilter] || telemetryGameModeFilter}.`
+        : '';
+      const countNote = openCount > 0 ? `\n\n${openCount} ocorrência(s) pendente(s) deste código.` : '';
+      const ok = await confirmAction(
+        `Descartar todas as ocorrências pendentes do código ${code}?${countNote}\n\nNão entram no banco — só deixam de aparecer na lista de revisão.${modeNote}`,
+        { okLabel: 'Descartar todas', danger: true },
+      );
+      if (!ok) return null;
+      return api('/api/gen-telemetry-admin', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'dismiss-code',
+          issueCode: code,
+          gameMode: telemetryGameModeFilter || undefined,
+        }),
+      });
+    }
+
+    async function dismissTelemetryOccurrence(eventId) {
+      const id = String(eventId || '').trim();
+      if (!id) throw new Error('Ocorrência sem ID.');
+      const ok = await confirmAction(
+        'Descartar esta ocorrência da lista de revisão?\n\nNão entra no banco — só deixa de aparecer como pendente.',
+        { okLabel: 'Descartar', danger: true },
+      );
+      if (!ok) return null;
+      return api('/api/gen-telemetry-admin', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'dismiss', eventId: id }),
+      });
+    }
+
     function bankRowPrimaryAgeBand(row) {
       const bands = bankRowAgeBands(row || {});
       return bands[0] || String(row?.age_band || '').trim() || '15+';
     }
 
+    function renderGenIssueOccurrenceItemsHtml(code, info, overrides, occurrences) {
+      const list = Array.isArray(occurrences) ? occurrences : [];
+      if (!list.length) {
+        return '<p class="issue-occ-loading sub" style="margin:0;font-size:11px;color:var(--muted);">Sem ocorrências pendentes.</p>';
+      }
+      return list.map((occ, index) => {
+        const overridden = isTelemetryRuleOverridden(code, occ, overrides);
+        const validated = !!occ?.bankValidatedAt;
+        const dismissed = !!occ?.dismissedAt;
+        const when = occ?.ts ? formatPortugalDateTime(occ.ts) : '';
+        const meta = formatGenIssueOccurrenceMeta(occ);
+        const message = occ?.message || info?.sampleMessage || '';
+        const occKey = telemetryOccurrenceKey(code, occ, index);
+        const statusBadge = validated
+          ? `<span class="issue-bank-validated" title="${esc(formatPortugalDateTime(occ.bankValidatedAt))}">✓ No banco${occ.bankValidatedEdited === true ? ' (editada)' : (occ.bankValidatedEdited === false ? ' (como estava)' : '')}</span>`
+          : (dismissed
+            ? `<span class="issue-dismissed" title="${esc(formatPortugalDateTime(occ.dismissedAt))}">✕ Descartada</span>`
+            : '');
+        const dismissBtn = (!validated && !dismissed && occ?.eventId)
+          ? `<button type="button" class="secondary telemetry-dismiss-occ-btn" data-event-id="${esc(occ.eventId)}" data-occ-key="${esc(occKey)}">✕ Descartar</button>`
+          : '';
+        return `
+          <div class="issue-occ-item${validated ? ' is-bank-validated' : ''}${dismissed ? ' is-dismissed' : ''}" data-occ-key="${esc(occKey)}">
+            ${when ? `<div class="issue-last-meta">${esc(when)} ${statusBadge}</div>` : statusBadge}
+            ${meta ? `<div class="issue-last-meta">${esc(meta)}</div>` : ''}
+            ${renderGenQuestionSnapshot(occ?.questionSnapshot)}
+            ${message ? `<div class="issue-last-msg">${esc(message)}</div>` : ''}
+            <div class="issue-occ-actions">
+              ${dismissBtn}
+              ${overridden
+                ? '<span class="issue-override-active">✓ Regra desactivada para este padrão</span>'
+                : `<button type="button" class="secondary telemetry-disable-rule-btn" data-issue-code="${esc(code)}" data-message="${esc(message)}" data-age-band="${esc(occ?.ageBandKey || '')}" data-format-id="${esc(occ?.formatId || '')}">🔓 Desactivar esta mensagem</button>
+                   <button type="button" class="secondary telemetry-disable-code-btn" data-issue-code="${esc(code)}" data-age-band="${esc(occ?.ageBandKey || '')}" data-format-id="${esc(occ?.formatId || '')}">⛔ Desactivar todo o código</button>`}
+            </div>
+            ${renderTelemetryAcceptPanel(code, occ, index)}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function loadIssueOccurrencesForBlock(block, { force = false } = {}) {
+      const code = block.getAttribute('data-issue-code') || '';
+      if (!code) return;
+      const listEl = block.querySelector('.issue-occ-list');
+      if (!listEl) return;
+      if (!force && (block.dataset.occLoaded === '1' || block.dataset.occLoaded === 'loading')) return;
+      block.dataset.occLoaded = 'loading';
+      listEl.innerHTML = '<p class="issue-occ-loading sub" style="margin:0;font-size:11px;color:var(--muted);">A carregar…</p>';
+      try {
+        const data = await api('/api/gen-telemetry-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'list-issue-occurrences',
+            issueCode: code,
+            gameMode: telemetryGameModeFilter || '',
+            limit: 1000,
+          }),
+        });
+        const info = lastTelemetryPayload?.stats?.byIssueDetail?.[code] || {};
+        const occurrences = data.occurrences || [];
+        listEl.innerHTML = renderGenIssueOccurrenceItemsHtml(
+          code,
+          info,
+          lastTelemetryOverrides,
+          occurrences,
+        );
+        block.dataset.occLoaded = occurrences.length ? '1' : 'empty';
+      } catch (err) {
+        block.dataset.occLoaded = '';
+        listEl.innerHTML = `<p class="issue-occ-loading sub" style="margin:0;font-size:11px;color:#fca5a5;">${esc(err.message || 'Erro ao carregar ocorrências.')}</p>`;
+      }
+    }
+
     function renderGenIssueOccurrenceCell(code, info, overrides) {
-      const occurrences = getIssueOccurrenceList(info);
+      const openCount = countOpenIssueOccurrencesFromSummary(info);
+      const previewOccurrences = getIssueOccurrenceList(info);
       const validatedCount = Number(info?.validatedCount) || 0;
-      const openCount = countOpenIssueOccurrences(info);
-      if (!occurrences.length) {
-        if (validatedCount > 0 || openCount === 0) {
-          return `<span class="issue-bank-validated">✓ ${validatedCount || 'Todas'} no banco — sem pendentes</span>`;
+      const dismissedCount = Number(info?.dismissedCount) || 0;
+      if (!openCount && !previewOccurrences.length) {
+        if (validatedCount > 0 || dismissedCount > 0 || openCount === 0) {
+          const parts = [];
+          if (validatedCount) parts.push(`${validatedCount} ✓ no banco`);
+          if (dismissedCount) parts.push(`${dismissedCount} descartada(s)`);
+          const label = parts.length ? parts.join(' · ') : 'Todas';
+          return `<span class="issue-bank-validated">✓ ${esc(label)} — sem pendentes</span>`;
         }
         return '<span class="issue-last-empty">—</span>';
       }
-      const overriddenCount = occurrences.filter((occ) => isTelemetryRuleOverridden(code, occ, overrides)).length;
-      const summaryLabel = occurrences.length === 1
+      const overriddenCount = previewOccurrences.filter((occ) => isTelemetryRuleOverridden(code, occ, overrides)).length;
+      const summaryLabel = openCount === 1
         ? '1 pendente'
-        : `${occurrences.length} pendentes`;
+        : `${openCount} pendentes`;
       const validatedNote = validatedCount
         ? ` · <span class="issue-bank-validated">${validatedCount} ✓ no banco</span>`
         : '';
+      const dismissedNote = dismissedCount
+        ? ` · <span class="issue-dismissed">${dismissedCount} descartada(s)</span>`
+        : '';
       return `
-        <details class="issue-occ-block">
-          <summary class="issue-occ-summary">${esc(summaryLabel)}${validatedNote}${overriddenCount ? ` · <span class="issue-override-active">${overriddenCount} com regra desactivada</span>` : ''}</summary>
+        <details class="issue-occ-block" data-issue-code="${esc(code)}">
+          <summary class="issue-occ-summary">${esc(summaryLabel)}${validatedNote}${dismissedNote}${overriddenCount ? ` · <span class="issue-override-active">${overriddenCount} com regra desactivada</span>` : ''}</summary>
           <div class="issue-occ-list">
-            ${occurrences.map((occ, index) => {
-              const overridden = isTelemetryRuleOverridden(code, occ, overrides);
-              const validated = !!occ?.bankValidatedAt;
-              const when = occ?.ts ? formatPortugalDateTime(occ.ts) : '';
-              const meta = formatGenIssueOccurrenceMeta(occ);
-              const message = occ?.message || info?.sampleMessage || '';
-              const validatedBadge = validated
-                ? `<span class="issue-bank-validated" title="${esc(formatPortugalDateTime(occ.bankValidatedAt))}">✓ No banco</span>`
-                : '';
-              return `
-                <div class="issue-occ-item${validated ? ' is-bank-validated' : ''}">
-                  ${when ? `<div class="issue-last-meta">${esc(when)} ${validatedBadge}</div>` : validatedBadge}
-                  ${meta ? `<div class="issue-last-meta">${esc(meta)}</div>` : ''}
-                  ${renderGenQuestionSnapshot(occ?.questionSnapshot)}
-                  ${message ? `<div class="issue-last-msg">${esc(message)}</div>` : ''}
-                  <div class="issue-occ-actions">
-                    ${overridden
-                      ? '<span class="issue-override-active">✓ Regra desactivada para este padrão</span>'
-                      : `<button type="button" class="secondary telemetry-disable-rule-btn" data-issue-code="${esc(code)}" data-message="${esc(message)}" data-age-band="${esc(occ?.ageBandKey || '')}" data-format-id="${esc(occ?.formatId || '')}">🔓 Desactivar esta mensagem</button>
-                         <button type="button" class="secondary telemetry-disable-code-btn" data-issue-code="${esc(code)}" data-age-band="${esc(occ?.ageBandKey || '')}" data-format-id="${esc(occ?.formatId || '')}">⛔ Desactivar todo o código</button>`}
-                  </div>
-                  ${renderTelemetryAcceptPanel(code, occ, index)}
-                </div>
-              `;
-            }).join('')}
+            <p class="issue-occ-loading sub" style="margin:0;font-size:11px;color:var(--muted);">Expandir para carregar todas as pendentes…</p>
           </div>
         </details>
       `;
@@ -5795,17 +6102,23 @@
       el.innerHTML = `
         <table>
           <thead>
-            <tr><th>Código</th><th>Causa</th><th>N</th><th>Últimas ocorrências (10)</th></tr>
+            <tr><th>Código</th><th>Causa</th><th>N</th><th>Ocorrências pendentes</th></tr>
           </thead>
           <tbody>
-            ${entries.map(([code, info]) => `
+            ${entries.map(([code, info]) => {
+              const openTotal = countOpenIssueOccurrencesFromSummary(info);
+              const dismissAllBtn = openTotal > 0
+                ? `<button type="button" class="secondary telemetry-dismiss-code-btn" data-issue-code="${esc(code)}" data-open-count="${openTotal}">✕ Descartar todas (${openTotal})</button>`
+                : '';
+              return `
               <tr title="${esc(genIssueTooltip(code, info))}">
                 <td class="issue-code">${esc(code)}</td>
                 <td class="issue-desc">${esc(formatGenIssueLabel(code, info.sampleMessage))}</td>
-                <td>${info.count}${info.validatedCount ? ` <span class="issue-bank-validated" title="Já guardadas no banco">${info.validatedCount} ✓</span>` : ''}${countOpenIssueOccurrences(info) ? ` · <span title="Ainda por resolver na lista">${countOpenIssueOccurrences(info)} pend.</span>` : ''}</td>
+                <td>${info.count}${info.validatedCount ? ` <span class="issue-bank-validated" title="Já guardadas no banco">${info.validatedCount} ✓</span>` : ''}${info.dismissedCount ? ` <span class="issue-dismissed" title="Descartadas manualmente">${info.dismissedCount} ✕</span>` : ''}${countOpenIssueOccurrences(info) ? ` · <span title="Ainda por resolver na lista">${countOpenIssueOccurrences(info)} pend.</span>` : ''}${dismissAllBtn}</td>
                 <td>${renderGenIssueOccurrenceCell(code, info, overrides)}</td>
               </tr>
-            `).join('')}
+            `;
+            }).join('')}
           </tbody>
         </table>
       `;
@@ -5943,6 +6256,8 @@
 
     const TELEMETRY_TIMELINE_STORAGE_KEY = 'reino_admin_telemetry_timeline_range';
     const TELEMETRY_TIMELINE_CHART_STORAGE_KEY = 'reino_admin_telemetry_timeline_chart';
+    const REVIEW_TIMELINE_CATEGORY_STORAGE_KEY = 'reino_admin_review_timeline_category';
+    const REVIEW_TIMELINE_ISSUE_CODE_STORAGE_KEY = 'reino_admin_review_timeline_issue_code';
 
     const AI_USAGE_RANGES = {
       '1h': { label: 'última hora', granularity: 'minute', lookbackMs: 60 * 60 * 1000 },
@@ -6040,6 +6355,8 @@
     let telemetryGameModeFilter = '';
     let telemetryTimelineRange = '14d';
     let telemetryTimelineChartType = 'stacked';
+    let reviewTimelineCategoryFilter = '';
+    let reviewTimelineIssueCodeFilter = '';
     try {
       const savedTelemetryRange = localStorage.getItem(TELEMETRY_TIMELINE_STORAGE_KEY);
       if (savedTelemetryRange && TELEMETRY_TIMELINE_RANGES[savedTelemetryRange]) {
@@ -6049,6 +6366,8 @@
       if (savedTelemetryChart === 'line' || savedTelemetryChart === 'stacked') {
         telemetryTimelineChartType = savedTelemetryChart;
       }
+      reviewTimelineCategoryFilter = localStorage.getItem(REVIEW_TIMELINE_CATEGORY_STORAGE_KEY) || '';
+      reviewTimelineIssueCodeFilter = localStorage.getItem(REVIEW_TIMELINE_ISSUE_CODE_STORAGE_KEY) || '';
       const savedAiUsageRange = localStorage.getItem(AI_USAGE_RANGE_STORAGE_KEY);
       if (savedAiUsageRange && AI_USAGE_RANGES[savedAiUsageRange]) aiUsageRange = savedAiUsageRange;
       const savedAiUsageGranularity = localStorage.getItem(AI_USAGE_GRANULARITY_STORAGE_KEY);
@@ -6137,8 +6456,7 @@
     }
 
     function formatAiUsageTimelineLabel(t, granularity) {
-      const base = formatBankTimelineLabel(t, granularity);
-      return base ? `${base} Lisboa` : '';
+      return formatBankTimelineLabel(t, granularity);
     }
 
     function aiUsageToLisbonDayKey(date) {
@@ -6552,12 +6870,12 @@
 
     function formatAiUsageGranularityNote(bucketConfig) {
       if (bucketConfig.longPeriod && !bucketConfig.useMinuteSource) {
-        return `Buckets de ${bucketConfig.granularityLabel} (Lisboa). Bloqueios: soma em 5 min, depois agregados para ${bucketConfig.granularityLabel}.`;
+        return `Buckets de ${bucketConfig.granularityLabel}. Bloqueios: soma em 5 min, depois agregados para ${bucketConfig.granularityLabel}.`;
       }
       const tokenNote = bucketConfig.useMinuteSource
         ? ''
         : ' Tokens/quota só disponíveis na janela de 2 h (dados por minuto).';
-      return `Buckets de ${bucketConfig.granularityLabel} (Lisboa).${tokenNote}`;
+      return `Buckets de ${bucketConfig.granularityLabel}.${tokenNote}`;
     }
 
     function getAiUsageChartContext(aiUsage) {
@@ -7647,7 +7965,7 @@
       if (isEmpty) {
         chartEl.innerHTML = '<div class="chart-empty">Ainda sem pedidos registados — gera perguntas com IA para popular o gráfico.</div>';
         if (noteEl) {
-          const granNote = `Buckets de ${bucketConfig.granularityLabel} (Lisboa).`;
+          const granNote = `Buckets de ${bucketConfig.granularityLabel}.`;
           noteEl.textContent = hasDimensionalData && (aiUsageProviderFilter || aiUsageModelFilter)
             ? `Sem pedidos para este fornecedor/modelo no período. ${granNote}`
             : `${granNote} Os dados aparecem após o primeiro pedido a /api/generate.`;
@@ -7677,7 +7995,7 @@
         const tokenNote = topSeries.quotaKind === 'tokens' || periodTokens > 0
           ? ` · <strong>${formatAiUsageTokenCount(periodTokens)}</strong> tokens`
           : '';
-        const granNote = `Buckets de ${bucketConfig.granularityLabel} (Lisboa).`;
+        const granNote = `Buckets de ${bucketConfig.granularityLabel}.`;
         noteEl.innerHTML = `No período: <strong>${periodRequests}</strong> pedido(s)${tokenNote} · <strong>${periodErrors}</strong> erro(s). ${granNote}${filterNote}${quotaNote}`;
       }
 
@@ -8087,18 +8405,20 @@
       if (titleEl) titleEl.textContent = `Evolução temporal — ${meta.label}`;
       if (noteEl) {
         noteEl.textContent = meta.granularity === 'hour'
-          ? `Tentativas de geração IA por hora (${CHART_LISBON_TZ_LABEL}).`
-          : `Tentativas de geração IA por dia (${CHART_LISBON_TZ_LABEL}).`;
+          ? 'Tentativas de geração IA por hora.'
+          : 'Tentativas de geração IA por dia.';
       }
 
       if (!summary?.total) {
         el.innerHTML = '<div class="chart-empty">Ainda sem eventos — joga com IA para recolher dados.</div>';
+        renderGenReviewTimeline(summary);
         return;
       }
 
       if (telemetryTimelineChartType === 'line') {
         const series = summary.timelineSeries?.[telemetryTimelineRange] || [];
         renderLineChart(el, series, meta.granularity, { color: CHART_TOTAL_COLOR });
+        renderGenReviewTimeline(summary);
         return;
       }
 
@@ -8107,6 +8427,147 @@
       renderStackedColumnChart(el, series, types, meta.granularity, {
         labelMap: GEN_OUTCOME_LABELS,
         colorFn: getGenOutcomeColor,
+      });
+      renderGenReviewTimeline(summary);
+    }
+
+    function renderLineLegendItems(items) {
+      const list = (items || []).filter((item) => item?.label);
+      if (!list.length) return '';
+      return `<div class="line-legend">${list.map((item) => `
+        <span class="line-legend-item">
+          <span class="line-legend-swatch" style="background:${item.color}"></span>
+          ${esc(item.label)}
+        </span>
+      `).join('')}</div>`;
+    }
+
+    function renderGenReviewTimelineLegend() {
+      const el = document.getElementById('genReviewTimelineLegend');
+      if (!el) return;
+      el.innerHTML = renderLineLegendItems([
+        { color: '#10b981', label: 'Aceites como estavam' },
+        { color: '#f59e0b', label: 'Aceites com edição' },
+        { color: '#94a3b8', label: 'Descartadas' },
+      ]);
+    }
+
+    async function refreshTelemetryIfLoaded() {
+      if (lastTelemetryPayload) {
+        await loadTelemetryDashboard({ quiet: true });
+      }
+    }
+
+    function resolveReviewTimelineBucket(summary, range, { categoryN = '', issueCode = '' } = {}) {
+      const cat = String(categoryN ?? '').trim();
+      const code = String(issueCode ?? '').trim();
+      if (!cat && !code) return summary?.reviewTimeline?.[range] || null;
+      if (cat && code) return summary?.reviewTimelineByFilter?.[`${cat}|${code}`]?.[range] || null;
+      if (cat) return summary?.reviewTimelineByCategory?.[cat]?.[range] || null;
+      return summary?.reviewTimelineByIssueCode?.[code]?.[range] || null;
+    }
+
+    function syncReviewTimelineFilterSelects(summary) {
+      const catSel = document.getElementById('reviewTimelineCategoryFilter');
+      const codeSel = document.getElementById('reviewTimelineIssueCodeFilter');
+      if (!catSel || !codeSel) return;
+      const filterOpts = summary?.reviewTimelineFilterOptions || { categories: [], issueCodes: [] };
+      const categories = Array.isArray(filterOpts.categories) ? filterOpts.categories : [];
+      const issueCodes = Array.isArray(filterOpts.issueCodes) ? filterOpts.issueCodes : [];
+
+      catSel.innerHTML = [
+        '<option value="">Todas as categorias (somatório)</option>',
+        ...categories.map((entry) => {
+          const n = Number(entry.n);
+          const label = `${n}. ${bankCategoryLabel(n)} (${entry.count || 0})`;
+          return `<option value="${esc(String(n))}">${esc(label)}</option>`;
+        }),
+      ].join('');
+
+      codeSel.innerHTML = [
+        '<option value="">Todos os códigos (somatório)</option>',
+        ...issueCodes.map((entry) => {
+          const label = `${formatGenIssueLabel(entry.code)} (${entry.count || 0})`;
+          return `<option value="${esc(entry.code)}">${esc(label)}</option>`;
+        }),
+      ].join('');
+
+      if (reviewTimelineCategoryFilter && categories.some((entry) => String(entry.n) === reviewTimelineCategoryFilter)) {
+        catSel.value = reviewTimelineCategoryFilter;
+      } else {
+        catSel.value = '';
+        reviewTimelineCategoryFilter = '';
+      }
+      if (reviewTimelineIssueCodeFilter && issueCodes.some((entry) => entry.code === reviewTimelineIssueCodeFilter)) {
+        codeSel.value = reviewTimelineIssueCodeFilter;
+      } else {
+        codeSel.value = '';
+        reviewTimelineIssueCodeFilter = '';
+      }
+    }
+
+    function getReviewTimelineFilterSummaryLabel(summary) {
+      const parts = [];
+      if (reviewTimelineCategoryFilter) {
+        parts.push(`cat. ${bankCategoryLabel(Number(reviewTimelineCategoryFilter))}`);
+      }
+      if (reviewTimelineIssueCodeFilter) {
+        parts.push(formatGenIssueLabel(reviewTimelineIssueCodeFilter));
+      }
+      if (!parts.length) return 'somatório de todas';
+      return parts.join(' · ');
+    }
+
+    function renderGenReviewTimeline(summary) {
+      const el = document.getElementById('chartGenReviewTimeline');
+      const titleEl = document.getElementById('chartGenReviewTimelineTitle');
+      const noteEl = document.getElementById('genReviewTimelineNote');
+      if (!el) return;
+
+      syncReviewTimelineFilterSelects(summary);
+
+      const meta = TELEMETRY_TIMELINE_RANGES[telemetryTimelineRange] || TELEMETRY_TIMELINE_RANGES['14d'];
+      const filterLabel = getReviewTimelineFilterSummaryLabel(summary);
+      if (titleEl) {
+        titleEl.textContent = `Revisão manual — aceites e descartes (${meta.label})`;
+      }
+      const bucket = resolveReviewTimelineBucket(summary, telemetryTimelineRange, {
+        categoryN: reviewTimelineCategoryFilter,
+        issueCode: reviewTimelineIssueCodeFilter,
+      });
+      const totalAcceptedAsIs = Number(bucket?.totalAcceptedAsIs) || 0;
+      const totalAcceptedEdited = Number(bucket?.totalAcceptedEdited) || 0;
+      const totalDismissed = Number(bucket?.totalDismissed) || 0;
+
+      if (!bucket || (!totalAcceptedAsIs && !totalAcceptedEdited && !totalDismissed)) {
+        el.innerHTML = '<div class="chart-empty">Ainda sem aceitações nem descartes neste filtro.</div>';
+        const legendEl = document.getElementById('genReviewTimelineLegend');
+        if (legendEl) legendEl.innerHTML = '';
+        if (noteEl) {
+          const filterNote = filterLabel === 'somatório de todas'
+            ? ''
+            : ` Filtro: ${filterLabel}.`;
+          noteEl.textContent = meta.granularity === 'hour'
+            ? `Quando aceitas ou descartas ocorrências na tabela de causas, aparecem aqui por hora.${filterNote}`
+            : `Quando aceitas ou descartas ocorrências na tabela de causas, aparecem aqui por dia.${filterNote}`;
+        }
+        return;
+      }
+
+      if (noteEl) {
+        noteEl.innerHTML = `Filtro: <strong>${esc(filterLabel)}</strong> · No período: <strong>${totalAcceptedAsIs}</strong> aceite(s) como estavam · <strong>${totalAcceptedEdited}</strong> com edição · <strong>${totalDismissed}</strong> descartada(s).`;
+      }
+      renderGenReviewTimelineLegend();
+      renderDualLineChart(el, bucket.acceptedAsIs, bucket.dismissed, '#10b981', '#94a3b8', {
+        labelA: 'Aceites como estavam',
+        labelB: 'Descartadas',
+        extraSeries: [{
+          data: bucket.acceptedEdited,
+          color: '#f59e0b',
+          label: 'Aceites com edição',
+        }],
+        granularity: meta.granularity,
+        formatLabel: formatRoomsTimelineLabel,
       });
     }
 
@@ -8155,6 +8616,8 @@
         if (detailEl) detailEl.innerHTML = '';
         renderGenRuleOverridesPanel(overrides);
         renderGenTelemetryTimeline(summary);
+        const reviewEl = document.getElementById('chartGenReviewTimeline');
+        if (reviewEl) reviewEl.innerHTML = '';
         catEl.innerHTML = '';
         fmtEl.innerHTML = '';
         modeEl.innerHTML = '';
@@ -8179,6 +8642,9 @@
       const cat20NonAiPct = cat20.accepted ? Math.round((cat20.nonAiShare || 0) * 100) : null;
       const techErrors = (summary.parseErrors || 0) + (summary.apiErrors || 0);
       const validatedInBank = Number(summary.validatedInBank) || 0;
+      const validatedAsIs = Number(summary.validatedInBankAsIs) || 0;
+      const validatedEdited = Number(summary.validatedInBankEdited) || 0;
+      const dismissedTotal = Number(summary.dismissedTotal) || 0;
       const avgAttempts = summary.aiAvgAttempts != null
         ? summary.aiAvgAttempts.toFixed(1)
         : '—';
@@ -8197,6 +8663,9 @@
         <div class="stat stat-resolved"><strong>${summary.accepted}</strong><span>Aceites (${acceptPct}%)</span></div>
         <div class="stat stat-open"><strong>${summary.rejected}</strong><span>Rejeit. validação</span></div>
         <div class="stat stat-resolved"><strong>${validatedInBank}</strong><span>Validadas no banco</span></div>
+        <div class="stat stat-resolved"><strong>${validatedAsIs}</strong><span>Aceites como estavam</span></div>
+        <div class="stat stat-open"><strong>${validatedEdited}</strong><span>Aceites com edição</span></div>
+        <div class="stat stat-cancelled"><strong>${dismissedTotal}</strong><span>Descartadas</span></div>
         <div class="stat stat-cancelled"><strong>${techErrors}</strong><span>Erros parse/API</span></div>
         <div class="stat stat-top-issue"><strong>${rejectPct}%</strong><span>Taxa rejeição</span></div>
         <div class="stat stat-repository"><strong>${bankPct}%</strong><span>Banco Supabase</span></div>
@@ -8529,6 +8998,7 @@
     }
 
     function showDashboard() {
+      initAdminDraftStores();
       loginCard.classList.add('hidden');
       dashboard.classList.remove('hidden');
       document.getElementById('adminToolsLinks')?.classList.remove('hidden');
@@ -8826,12 +9296,9 @@
     };
     const selectedBankHashes = new Set();
     let bankSearchLoading = false;
-    /** Rascunhos de edição nas linhas expandidas da pesquisa do banco. */
-    const bankEditDraftsByHash = new Map();
     let lastPendingReviewItems = [];
     let pendingReviewLoading = false;
-    /** Rascunhos da fila de revisão — sobrevivem a refresh/re-render da lista. */
-    const pendingReviewDraftsById = new Map();
+    let lastPendingReviewIssueCodes = [];
     const openBankHashes = new Set();
     let bankDeleteLoading = false;
 
@@ -9006,6 +9473,7 @@
       if (!draft.question && !draft.answer && !draft.options?.length
         && !draft.categoryNs?.length && !draft.ageBands?.length) return;
       pendingReviewDraftsById.set(pendingId, draft);
+      persistAdminDraftMap(pendingReviewDraftsById, ADMIN_DRAFT_SESSION.pending);
     }
 
     function saveAllPendingReviewDraftsFromDom() {
@@ -9019,6 +9487,7 @@
           pendingReviewDraftsById.set(pendingId, draft);
         }
       });
+      persistAdminDraftMap(pendingReviewDraftsById, ADMIN_DRAFT_SESSION.pending);
     }
 
     function mergePendingReviewWithDraft(pendingId, row) {
@@ -9045,6 +9514,37 @@
 
     function clearPendingReviewDraft(pendingId) {
       pendingReviewDraftsById.delete(pendingId);
+      persistAdminDraftMap(pendingReviewDraftsById, ADMIN_DRAFT_SESSION.pending);
+    }
+
+    function animateHideAdminItem(itemEl) {
+      if (!itemEl) return Promise.resolve();
+      return new Promise((resolve) => {
+        itemEl.style.overflow = 'hidden';
+        itemEl.style.maxHeight = `${itemEl.offsetHeight}px`;
+        itemEl.style.opacity = '1';
+        requestAnimationFrame(() => {
+          itemEl.classList.add('admin-item--leaving');
+          itemEl.style.maxHeight = '0';
+          itemEl.style.opacity = '0';
+          itemEl.style.marginTop = '0';
+          itemEl.style.marginBottom = '0';
+          itemEl.style.paddingTop = '0';
+          itemEl.style.paddingBottom = '0';
+          itemEl.style.borderWidth = '0';
+        });
+        const done = () => {
+          itemEl.remove();
+          resolve();
+        };
+        itemEl.addEventListener('transitionend', done, { once: true });
+        setTimeout(done, 400);
+      });
+    }
+
+    function removePendingReviewItemFromQueue(id) {
+      lastPendingReviewItems = lastPendingReviewItems.filter((row) => row.id !== id);
+      updatePendingReviewCount(lastPendingReviewItems.length);
     }
 
     function renderPendingReviewList(items) {
@@ -9058,7 +9558,7 @@
           <div class="pending-review-empty">
             <span class="pending-review-empty-icon" aria-hidden="true">📋</span>
             <p><strong>Sem perguntas pendentes</strong></p>
-            <p class="sub" style="margin:0;">Novas entram ao jogar; usa «Importar da telemetria» para histórico.</p>
+            <p class="sub" style="margin:0;">Novas entram ao jogar; usa «Importar código» para trazer histórico da telemetria.</p>
           </div>
         `;
         return;
@@ -9069,11 +9569,14 @@
         const when = display.createdAt ? formatPortugalDateTime(display.createdAt) : '';
         const issueLabel = display.issueCodes?.length
           ? formatPendingIssueLabel(display.issueCodes[0])
-          : 'Dificuldade';
+          : 'Rejeição';
         const classifierCategoryNs = display._classifierCategoryNs
           ?? (display.categoryN ? [display.categoryN] : []);
         const classifierAgeBands = display._classifierAgeBands
           ?? (display.ageBand ? [display.ageBand] : []);
+        const draftHint = pendingReviewDraftsById.has(row.id)
+          ? '<span class="pending-pill draft-local-hint">Rascunho</span>'
+          : '';
         return `
           <article class="pending-review-item" data-pending-id="${esc(row.id)}">
             <header class="pending-review-header">
@@ -9081,6 +9584,7 @@
                 <span class="pending-pill pending-pill-cat">${esc(bankCategoryLabel(display.categoryN))}</span>
                 <span class="pending-pill pending-pill-age">${esc(display.ageBand || '—')}</span>
                 <span class="pending-pill pending-pill-issue">${esc(issueLabel)}</span>
+                ${draftHint}
               </div>
               ${when ? `<time class="pending-review-time" datetime="${esc(display.createdAt || '')}">${esc(when)}</time>` : ''}
             </header>
@@ -9124,40 +9628,128 @@
       }).join('');
     }
 
-    async function importPendingReviewFromTelemetry() {
-      const statusEl = document.getElementById('bankPendingStatus');
-      const ok = await confirmAction(
-        'Importar rejeições de dificuldade da telemetria IA para a fila de revisão?\n\nSó entram perguntas cuja única causa de rejeição foi dificuldade (últimos 90 dias).',
-        { okLabel: 'Importar' },
-      );
-      if (!ok) return null;
-      if (statusEl) {
-        statusEl.textContent = 'A importar da telemetria…';
-        statusEl.className = 'status';
+    function formatPendingIssueCodeOption(entry) {
+      const label = formatPendingIssueLabel(entry.code);
+      const parts = [];
+      if (entry.pendingCount) parts.push(`${entry.pendingCount} na fila`);
+      if (entry.telemetryCount) parts.push(`${entry.telemetryCount} na telemetria`);
+      return parts.length ? `${label} (${parts.join(' · ')})` : label;
+    }
+
+    function syncPendingReviewIssueCodeSelect(codes, selected = '') {
+      const sel = document.getElementById('bankPendingIssueCodeSelect');
+      const dismissBtn = document.getElementById('bankPendingDismissCodeBtn');
+      if (!sel) return;
+      const list = Array.isArray(codes) ? codes : [];
+      sel.innerHTML = [
+        '<option value="">Selecciona um código…</option>',
+        ...list.map((entry) => `<option value="${esc(entry.code)}">${esc(formatPendingIssueCodeOption(entry))}</option>`),
+      ].join('');
+      if (selected && list.some((entry) => entry.code === selected)) {
+        sel.value = selected;
       }
+      const current = list.find((entry) => entry.code === sel.value);
+      if (dismissBtn) {
+        const pendingCount = Number(current?.pendingCount) || 0;
+        dismissBtn.disabled = !pendingCount;
+        dismissBtn.textContent = pendingCount
+          ? `✕ Descartar todas na fila (${pendingCount})`
+          : '✕ Descartar todas na fila';
+      }
+    }
+
+    async function loadPendingReviewIssueCodeOptions(selected = '') {
       try {
         const data = await api('/api/question-bank-admin', {
           method: 'POST',
-          body: JSON.stringify({ action: 'sync-pending-from-telemetry', limit: 400, days: 90 }),
+          body: JSON.stringify({ action: 'list-pending-review-issue-codes', limit: 400, days: 90 }),
         });
-        await loadPendingReviewQueue({ quiet: true });
-        await loadBankDashboard({ quiet: true });
-        const reviewedNote = data.alreadyReviewed
-          ? `, ${data.alreadyReviewed} já revista(s)`
-          : '';
-        const msg = `Importação concluída: ${data.inserted || 0} nova(s), ${data.updated || 0} actualizada(s), ${data.skipped || 0} ignorada(s)${reviewedNote} (${data.scanned || 0} analisadas).`;
-        if (statusEl) {
-          statusEl.textContent = msg;
-          statusEl.className = (data.inserted || data.updated) ? 'status ok' : 'status';
-        }
+        lastPendingReviewIssueCodes = data.codes || [];
+        syncPendingReviewIssueCodeSelect(lastPendingReviewIssueCodes, selected);
         return data;
-      } catch (err) {
-        if (statusEl) {
-          statusEl.textContent = err.message || 'Erro ao importar da telemetria.';
-          statusEl.className = 'status err';
-        }
+      } catch {
+        lastPendingReviewIssueCodes = [];
+        syncPendingReviewIssueCodeSelect([], '');
         return null;
       }
+    }
+
+    async function importPendingReviewFromTelemetryByCode(issueCode) {
+      const code = String(issueCode || '').trim();
+      if (!code) throw new Error('Selecciona um código de causa.');
+      const statusEl = document.getElementById('bankPendingStatus');
+      const entry = lastPendingReviewIssueCodes.find((item) => item.code === code);
+      const telemetryCount = Number(entry?.telemetryCount) || 0;
+      const ok = await confirmAction(
+        `Importar da telemetria todas as rejeições com o código ${formatPendingIssueLabel(code)}?\n\n${telemetryCount ? `~${telemetryCount} evento(s) na telemetria (últimos 90 dias).` : 'Importa ocorrências com este código nos últimos 90 dias.'}\n\nEntram na fila de revisão para editar e aceitar no banco.`,
+        { okLabel: 'Importar código' },
+      );
+      if (!ok) return null;
+      if (statusEl) {
+        statusEl.textContent = `A importar código ${code}…`;
+        statusEl.className = 'status';
+      }
+      const data = await api('/api/question-bank-admin', {
+        method: 'POST',
+        body: JSON.stringify({
+          action: 'sync-pending-from-telemetry',
+          limit: 400,
+          days: 90,
+          issueCode: code,
+        }),
+      });
+      await loadPendingReviewQueue({ quiet: true });
+      await loadBankDashboard({ quiet: true });
+      await loadPendingReviewIssueCodeOptions(code);
+      await refreshTelemetryIfLoaded();
+      const reviewedNote = data.alreadyReviewed
+        ? `, ${data.alreadyReviewed} já revista(s)`
+        : '';
+      const msg = `Importação ${formatPendingIssueLabel(code)}: ${data.inserted || 0} nova(s), ${data.updated || 0} actualizada(s), ${data.skipped || 0} ignorada(s)${reviewedNote} (${data.scanned || 0} analisadas).`;
+      if (statusEl) {
+        statusEl.textContent = msg;
+        statusEl.className = (data.inserted || data.updated) ? 'status ok' : 'status';
+      }
+      return data;
+    }
+
+    async function dismissPendingReviewByIssueCode(issueCode) {
+      const code = String(issueCode || '').trim();
+      if (!code) throw new Error('Selecciona um código de causa.');
+      const entry = lastPendingReviewIssueCodes.find((item) => item.code === code);
+      const pendingCount = Number(entry?.pendingCount) || 0;
+      const ok = await confirmAction(
+        `Descartar todas as ${pendingCount || ''} pergunta(s) pendentes na fila com o código ${formatPendingIssueLabel(code)}?`,
+        { okLabel: 'Descartar todas', danger: true },
+      );
+      if (!ok) return null;
+      const statusEl = document.getElementById('bankPendingStatus');
+      if (statusEl) {
+        statusEl.textContent = `A descartar pendentes de ${code}…`;
+        statusEl.className = 'status';
+      }
+      const data = await api('/api/question-bank-admin', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'dismiss-pending-by-issue-code', issueCode: code }),
+      });
+      saveAllPendingReviewDraftsFromDom();
+      for (const row of lastPendingReviewItems) {
+        if ((row.issueCodes || []).includes(code)) {
+          clearPendingReviewDraft(row.id);
+        }
+      }
+      await loadPendingReviewQueue({ quiet: true });
+      await loadBankDashboard({ quiet: true });
+      await loadPendingReviewIssueCodeOptions(code);
+      await refreshTelemetryIfLoaded();
+      const n = Number(data.dismissed) || 0;
+      if (statusEl) {
+        statusEl.textContent = n
+          ? `${n} pergunta(s) de ${formatPendingIssueLabel(code)} descartada(s) da fila.`
+          : `Nenhuma pendente de ${formatPendingIssueLabel(code)} na fila.`;
+        statusEl.className = 'status ok';
+      }
+      return data;
     }
 
     async function loadPendingReviewQueue(options = {}) {
@@ -9173,16 +9765,24 @@
       try {
         const data = await api('/api/question-bank-admin', {
           method: 'POST',
-          body: JSON.stringify({ action: 'list-pending-review', limit: 50 }),
+          body: JSON.stringify({ action: 'list-pending-review', limit: 1000 }),
         });
         lastPendingReviewItems = data.items || [];
         if (data.stats) renderPendingReviewStats(data.stats);
         else if (lastBankStats?.pendingReview) renderPendingReviewStats(lastBankStats.pendingReview);
         renderPendingReviewList(lastPendingReviewItems);
+        await loadPendingReviewIssueCodeOptions(
+          document.getElementById('bankPendingIssueCodeSelect')?.value || '',
+        );
         if (statusEl) {
-          statusEl.textContent = lastPendingReviewItems.length
-            ? `${lastPendingReviewItems.length} pergunta(s) pendente(s).`
-            : 'Sem perguntas pendentes de revisão. Novas entram ao jogar; usa «Importar da telemetria» para histórico.';
+          const pendingTotal = Number(data.pendingTotal ?? data.stats?.pending) || lastPendingReviewItems.length;
+          if (data.truncated && pendingTotal > lastPendingReviewItems.length) {
+            statusEl.textContent = `A mostrar ${lastPendingReviewItems.length} de ${pendingTotal} pendentes.`;
+          } else {
+            statusEl.textContent = lastPendingReviewItems.length
+              ? `${lastPendingReviewItems.length} pergunta(s) pendente(s).`
+              : 'Sem perguntas pendentes. Novas entram ao jogar; importa da telemetria por código.';
+          }
           statusEl.className = lastPendingReviewItems.length ? 'status ok' : 'status';
         }
       } catch (err) {
@@ -9379,6 +9979,7 @@
       if (!draft.question && !draft.answer && !draft.options?.length && draft.difficulty == null
         && !draft.categoryNs?.length && !draft.ageBands?.length) return;
       bankEditDraftsByHash.set(hash, draft);
+      persistAdminDraftMap(bankEditDraftsByHash, ADMIN_DRAFT_SESSION.bank);
     }
 
     function saveAllBankEditDraftsFromDom() {
@@ -9391,6 +9992,7 @@
           bankEditDraftsByHash.set(hash, draft);
         }
       });
+      persistAdminDraftMap(bankEditDraftsByHash, ADMIN_DRAFT_SESSION.bank);
     }
 
     function mergeBankRowWithDraft(hash, row) {
@@ -9413,6 +10015,7 @@
 
     function clearBankEditDraft(hash) {
       bankEditDraftsByHash.delete(hash);
+      persistAdminDraftMap(bankEditDraftsByHash, ADMIN_DRAFT_SESSION.bank);
     }
 
     function renderBankDetailPanel(row) {
@@ -10870,7 +11473,7 @@
       const bankDiff = stats.bankWithDifficulty != null ? stats.bankWithDifficulty : '—';
       el.innerHTML = `
         <div class="stat stat-resolved"><strong>${stats.validActive ?? stats.active ?? 0}</strong><span>Com opções (jogáveis)</span></div>
-        <div class="stat stat-open"><strong>${prPending}</strong><span>Revisão dificuldade</span></div>
+        <div class="stat stat-open"><strong>${prPending}</strong><span>Fila de revisão</span></div>
         <div class="stat stat-quarantine"><strong>${qBank}</strong><span>Quarentena banco (${qDays}d)</span></div>
         <div class="stat stat-top-issue"><strong>${bankDiff}</strong><span>Com dificuldade no banco</span></div>
         <div class="stat stat-open"><strong>${stats.invalidActive || 0}</strong><span>Sem opções válidas</span></div>
@@ -12466,6 +13069,11 @@
         && !e.target.classList.contains('pending-review-options')) return;
       savePendingReviewDraftFromDom(itemEl.dataset.pendingId);
     });
+    document.getElementById('chartGenIssueDetail')?.addEventListener('toggle', (e) => {
+      const block = e.target.closest('.issue-occ-block[data-issue-code]');
+      if (!block || e.target !== block || !block.open) return;
+      loadIssueOccurrencesForBlock(block);
+    });
     document.getElementById('chartGenIssueDetail')?.addEventListener('change', (e) => {
       const ageCheck = e.target.closest('.telemetry-validation-age-check');
       if (ageCheck) {
@@ -12490,7 +13098,33 @@
     document.getElementById('bankPendingReviewDetails')?.addEventListener('toggle', (e) => {
       if (e.target.open) loadPendingReviewQueue({ quiet: true });
     });
-    document.getElementById('bankPendingImportBtn')?.addEventListener('click', () => importPendingReviewFromTelemetry());
+    document.getElementById('bankPendingImportCodeBtn')?.addEventListener('click', async () => {
+      const statusEl = document.getElementById('bankPendingStatus');
+      const code = document.getElementById('bankPendingIssueCodeSelect')?.value || '';
+      try {
+        await importPendingReviewFromTelemetryByCode(code);
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao importar código.';
+          statusEl.className = 'status err';
+        }
+      }
+    });
+    document.getElementById('bankPendingDismissCodeBtn')?.addEventListener('click', async () => {
+      const statusEl = document.getElementById('bankPendingStatus');
+      const code = document.getElementById('bankPendingIssueCodeSelect')?.value || '';
+      try {
+        await dismissPendingReviewByIssueCode(code);
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao descartar pendentes.';
+          statusEl.className = 'status err';
+        }
+      }
+    });
+    document.getElementById('bankPendingIssueCodeSelect')?.addEventListener('change', (e) => {
+      syncPendingReviewIssueCodeSelect(lastPendingReviewIssueCodes, e.target.value || '');
+    });
     document.getElementById('bankPendingRefreshBtn')?.addEventListener('click', () => loadPendingReviewQueue());
     document.getElementById('bankPendingList')?.addEventListener('click', async (e) => {
       const acceptBtn = e.target.closest('.pending-review-accept-btn');
@@ -12498,29 +13132,46 @@
       const statusEl = document.getElementById('bankPendingStatus');
       const id = (acceptBtn || dismissBtn)?.getAttribute('data-pending-id') || '';
       if (!id) return;
+      const itemEl = document.querySelector(`.pending-review-item[data-pending-id="${id}"]`);
       try {
         if (acceptBtn) {
           acceptBtn.disabled = true;
-          await acceptPendingReviewItem(id);
+          const data = await acceptPendingReviewItem(id);
+          if (!data) {
+            acceptBtn.disabled = false;
+            return;
+          }
           clearPendingReviewDraft(id);
+          await animateHideAdminItem(itemEl);
+          removePendingReviewItemFromQueue(id);
+          renderPendingReviewList(lastPendingReviewItems);
           if (statusEl) {
-            statusEl.textContent = 'Pergunta aceite no banco.';
+            statusEl.textContent = lastPendingReviewItems.length
+              ? 'Pergunta aceite no banco. Seguinte na fila.'
+              : 'Pergunta aceite no banco. Fila vazia.';
             statusEl.className = 'status ok';
           }
         } else if (dismissBtn) {
           dismissBtn.disabled = true;
-          await dismissPendingReviewItem(id);
+          const data = await dismissPendingReviewItem(id);
+          if (!data) {
+            dismissBtn.disabled = false;
+            return;
+          }
           clearPendingReviewDraft(id);
+          await animateHideAdminItem(itemEl);
+          removePendingReviewItemFromQueue(id);
+          renderPendingReviewList(lastPendingReviewItems);
           if (statusEl) {
-            statusEl.textContent = 'Entrada descartada.';
+            statusEl.textContent = lastPendingReviewItems.length
+              ? 'Entrada descartada. Seguinte na fila.'
+              : 'Entrada descartada. Fila vazia.';
             statusEl.className = 'status ok';
           }
         }
         await loadPendingReviewQueue({ quiet: true });
         await loadBankDashboard({ quiet: true });
-        if (activeAdminTab === 'telemetry') {
-          await loadTelemetryDashboard({ quiet: true });
-        }
+        await refreshTelemetryIfLoaded();
       } catch (err) {
         if (statusEl) {
           statusEl.textContent = err.message || 'Erro na fila de revisão.';
@@ -12759,9 +13410,91 @@
     document.getElementById('telemetryRefreshBtn')?.addEventListener('click', () => loadTelemetryDashboard({ refreshQuota: true }));
     document.getElementById('telemetryExportBtn')?.addEventListener('click', exportTelemetryJson);
     document.getElementById('chartGenIssueDetail')?.addEventListener('click', async (e) => {
+      const dismissCodeBtn = e.target.closest('.telemetry-dismiss-code-btn');
+      if (dismissCodeBtn) {
+        const statusEl = document.getElementById('telemetryListStatus');
+        const issueCode = dismissCodeBtn.getAttribute('data-issue-code') || '';
+        const openCount = Number(dismissCodeBtn.getAttribute('data-open-count')) || 0;
+        try {
+          dismissCodeBtn.disabled = true;
+          const data = await dismissTelemetryOccurrencesByCode(issueCode, openCount);
+          if (!data) {
+            dismissCodeBtn.disabled = false;
+            return;
+          }
+          if (data.skipped === 'column_missing') {
+            if (statusEl) {
+              statusEl.textContent = 'Coluna dismissed_at em falta — executa supabase/gen-telemetry-dismissed.sql no Supabase.';
+              statusEl.className = 'status err';
+            }
+            dismissCodeBtn.disabled = false;
+            return;
+          }
+          const n = Number(data.dismissed) || 0;
+          if (statusEl) {
+            if (n) {
+              statusEl.textContent = `${n} ocorrência(s) de ${issueCode} descartada(s).`;
+              statusEl.className = 'status ok';
+            } else if (openCount > 0) {
+              statusEl.textContent = `Nenhuma ocorrência descartada (esperadas ~${openCount}). Verifica a coluna dismissed_at no Supabase.`;
+              statusEl.className = 'status err';
+              dismissCodeBtn.disabled = false;
+              return;
+            } else {
+              statusEl.textContent = `Nenhuma ocorrência pendente de ${issueCode}.`;
+              statusEl.className = 'status ok';
+            }
+          }
+          await loadTelemetryDashboard({ quiet: true });
+        } catch (err) {
+          if (statusEl) {
+            statusEl.textContent = err.message || 'Erro ao descartar ocorrências.';
+            statusEl.className = 'status err';
+          }
+          dismissCodeBtn.disabled = false;
+        }
+        return;
+      }
+      const dismissBtn = e.target.closest('.telemetry-dismiss-occ-btn');
+      if (dismissBtn) {
+        const statusEl = document.getElementById('telemetryListStatus');
+        const eventId = dismissBtn.getAttribute('data-event-id') || '';
+        const occItem = dismissBtn.closest('.issue-occ-item');
+        try {
+          dismissBtn.disabled = true;
+          const data = await dismissTelemetryOccurrence(eventId);
+          if (!data) {
+            dismissBtn.disabled = false;
+            return;
+          }
+          const occKey = dismissBtn.getAttribute('data-occ-key')
+            || dismissBtn.getAttribute('data-event-id')
+            || '';
+          if (occKey) clearTelemetryAcceptDraft(occKey);
+          await animateHideAdminItem(occItem);
+          if (statusEl) {
+            statusEl.textContent = 'Ocorrência descartada. A carregar seguinte…';
+            statusEl.className = 'status ok';
+          }
+          const parentBlock = dismissBtn.closest('.issue-occ-block[data-issue-code]');
+          if (parentBlock) parentBlock.dataset.occLoaded = '';
+          await loadTelemetryDashboard({ quiet: true });
+          if (parentBlock?.open) {
+            await loadIssueOccurrencesForBlock(parentBlock, { force: true });
+          }
+        } catch (err) {
+          if (statusEl) {
+            statusEl.textContent = err.message || 'Erro ao descartar ocorrência.';
+            statusEl.className = 'status err';
+          }
+          dismissBtn.disabled = false;
+        }
+        return;
+      }
       const acceptBtn = e.target.closest('.telemetry-accept-save-btn');
       if (acceptBtn) {
         const statusEl = document.getElementById('telemetryListStatus');
+        const occItem = acceptBtn.closest('.issue-occ-item');
         try {
           acceptBtn.disabled = true;
           const data = await saveTelemetryAcceptToBank(acceptBtn);
@@ -12771,12 +13504,13 @@
           }
           const occKey = acceptBtn.closest('.telemetry-accept-form')?.getAttribute('data-occ-key');
           if (occKey) clearTelemetryAcceptDraft(occKey);
+          await animateHideAdminItem(occItem);
           if (statusEl) {
             const action = data.action === 'inserted' ? 'inserida' : 'actualizada';
             const telemetryNote = data.telemetryValidated
               ? ` · ${data.telemetryValidated} evento(s) marcado(s) na telemetria`
               : '';
-            statusEl.textContent = `Pergunta ${action} no banco (${data.questionHash || 'ok'})${telemetryNote}.`;
+            statusEl.textContent = `Pergunta ${action} no banco (${data.questionHash || 'ok'})${telemetryNote}. A carregar seguinte…`;
             statusEl.className = 'status ok';
           }
           await loadPendingReviewQueue({ quiet: true });
@@ -12854,6 +13588,16 @@
       telemetryTimelineRange = btn.dataset.telemetryRange;
       try { localStorage.setItem(TELEMETRY_TIMELINE_STORAGE_KEY, telemetryTimelineRange); } catch { /* ignore */ }
       if (lastTelemetryPayload?.stats) renderGenTelemetryTimeline(lastTelemetryPayload.stats);
+    });
+    document.getElementById('reviewTimelineCategoryFilter')?.addEventListener('change', (e) => {
+      reviewTimelineCategoryFilter = e.target.value || '';
+      try { localStorage.setItem(REVIEW_TIMELINE_CATEGORY_STORAGE_KEY, reviewTimelineCategoryFilter); } catch { /* ignore */ }
+      if (lastTelemetryPayload?.stats) renderGenReviewTimeline(lastTelemetryPayload.stats);
+    });
+    document.getElementById('reviewTimelineIssueCodeFilter')?.addEventListener('change', (e) => {
+      reviewTimelineIssueCodeFilter = e.target.value || '';
+      try { localStorage.setItem(REVIEW_TIMELINE_ISSUE_CODE_STORAGE_KEY, reviewTimelineIssueCodeFilter); } catch { /* ignore */ }
+      if (lastTelemetryPayload?.stats) renderGenReviewTimeline(lastTelemetryPayload.stats);
     });
     document.getElementById('telemetryTimelineChartTypes')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-telemetry-chart-type]');

@@ -17,6 +17,8 @@ const {
   acceptPendingReview,
   dismissPendingReview,
   syncPendingReviewFromTelemetry,
+  getPendingReviewIssueCodeOptions,
+  dismissPendingReviewByIssueCode,
 } = require('./lib/question-pending-review-store');
 const { regenerateAdivinhaBankOptions } = require('./lib/adivinha-bank-fix');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
@@ -261,6 +263,7 @@ exports.handler = async (event) => {
           const result = await syncPendingReviewFromTelemetry({
             limit: body.limit,
             days: body.days,
+            issueCode: body.issueCode,
           });
           return json(200, { ok: true, ...result });
         } catch (err) {
@@ -289,6 +292,34 @@ exports.handler = async (event) => {
             return json(400, { error: err.message });
           }
           return json(503, { error: 'Não foi possível descartar a entrada da fila.' });
+        }
+      }
+
+      if (body.action === 'list-pending-review-issue-codes') {
+        try {
+          const result = await getPendingReviewIssueCodeOptions({
+            days: body.days,
+            limit: body.limit,
+          });
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] list-pending-review-issue-codes failed:', err);
+          const msg = String(err?.message || '');
+          if (msg.includes('question_pending_review') || msg.includes('gen_telemetry_events') || msg.includes('PGRST205')) {
+            return json(503, { error: 'Tabelas em falta — executa supabase/question-pending-review.sql e gen-telemetry.sql no Supabase.' });
+          }
+          return json(503, { error: 'Não foi possível listar códigos da fila.' });
+        }
+      }
+
+      if (body.action === 'dismiss-pending-by-issue-code') {
+        try {
+          const result = await dismissPendingReviewByIssueCode({ issueCode: body.issueCode });
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] dismiss-pending-by-issue-code failed:', err);
+          if (err.code === 'MISSING_ISSUE_CODE') return json(400, { error: err.message });
+          return json(503, { error: 'Não foi possível descartar as entradas deste código.' });
         }
       }
 

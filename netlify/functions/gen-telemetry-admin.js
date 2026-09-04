@@ -2,7 +2,7 @@
 
 const { json, validateAdminAuth } = require('./lib/report-utils');
 const { getSupabaseAdmin } = require('./lib/rooms-store');
-const { getStats, clearAll } = require('./lib/gen-telemetry-store');
+const { getStats, clearAll, dismissTelemetryEvent, dismissTelemetryEventsByIssueCode, listOpenIssueOccurrencesByCode } = require('./lib/gen-telemetry-store');
 const { getAiUsageStats } = require('./lib/ai-usage-store');
 const { listActiveOverrides } = require('./lib/validation-rule-overrides-store');
 
@@ -46,6 +46,71 @@ exports.handler = async (event) => {
         console.error('[gen-telemetry-admin] stats failed:', err);
         return json(503, { error: 'Não foi possível ler telemetria.' });
       }
+    }
+
+    if (event.httpMethod === 'POST') {
+      let body = {};
+      try {
+        body = event.body ? JSON.parse(event.body) : {};
+      } catch {
+        return json(400, { error: 'JSON inválido.' });
+      }
+      if (body.action === 'dismiss') {
+        try {
+          const result = await dismissTelemetryEvent({ eventId: body.eventId });
+          if (result.skipped === 'column_missing') {
+            return json(503, {
+              error: 'Coluna dismissed_at em falta — executa supabase/gen-telemetry-dismissed.sql no Supabase.',
+            });
+          }
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[gen-telemetry-admin] dismiss failed:', err);
+          const msg = String(err?.message || err);
+          if (err.code === 'MISSING_EVENT_ID') return json(400, { error: msg });
+          return json(503, { error: 'Não foi possível descartar a ocorrência.' });
+        }
+      }
+      if (body.action === 'dismiss-code') {
+        try {
+          const result = await dismissTelemetryEventsByIssueCode({
+            issueCode: body.issueCode,
+            gameMode: body.gameMode,
+          });
+          if (result.skipped === 'column_missing') {
+            return json(503, {
+              error: 'Coluna dismissed_at em falta — executa supabase/gen-telemetry-dismissed.sql no Supabase.',
+            });
+          }
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[gen-telemetry-admin] dismiss-code failed:', err);
+          const msg = String(err?.message || err);
+          if (err.code === 'MISSING_ISSUE_CODE') return json(400, { error: msg });
+          return json(503, { error: 'Não foi possível descartar as ocorrências deste código.' });
+        }
+      }
+      if (body.action === 'list-issue-occurrences') {
+        try {
+          const occurrences = await listOpenIssueOccurrencesByCode({
+            issueCode: body.issueCode,
+            gameMode: body.gameMode,
+            limit: body.limit,
+          });
+          return json(200, {
+            ok: true,
+            issueCode: body.issueCode,
+            occurrences,
+            total: occurrences.length,
+          });
+        } catch (err) {
+          console.error('[gen-telemetry-admin] list-issue-occurrences failed:', err);
+          const msg = String(err?.message || err);
+          if (err.code === 'MISSING_ISSUE_CODE') return json(400, { error: msg });
+          return json(503, { error: 'Não foi possível listar as ocorrências deste código.' });
+        }
+      }
+      return json(400, { error: 'Ação inválida.' });
     }
 
     if (event.httpMethod === 'DELETE') {
