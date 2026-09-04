@@ -4803,7 +4803,8 @@
   function refreshBankMissFoot(){
     const el = document.getElementById('q-bank-miss-foot');
     if(!el) return;
-    if(!bankReplenishMissCount || currentScreenId !== 'question'){
+    const showMiss = bankReplenishMissCount > 0 && bankAddedBadgeCount === 0 && currentScreenId === 'question';
+    if(!showMiss){
       el.classList.remove('visible');
       el.textContent = '';
       el.hidden = true;
@@ -4811,9 +4812,7 @@
       return;
     }
     el.textContent = '⚠';
-    el.title = bankReplenishMissCount === 1
-      ? 'Reabastecimento não guardou 1 pergunta no banco (validação ou save falhou)'
-      : `Reabastecimento não guardou ${bankReplenishMissCount} perguntas no banco`;
+    el.title = 'Reabastecimento não guardou nenhuma pergunta no banco (validação ou save falhou)';
     el.setAttribute('aria-label', el.title);
     el.classList.add('visible');
     el.hidden = false;
