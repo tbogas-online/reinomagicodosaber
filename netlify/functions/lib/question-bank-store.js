@@ -1249,6 +1249,53 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
   });
 }
 
+async function saveManualQuestionToBank(correction = {}, meta = {}) {
+  const question = String(correction.question || '').trim();
+  const answer = String(correction.answer || '').trim();
+  const options = Array.isArray(correction.options)
+    ? correction.options.map((o) => String(o || '').trim()).filter(Boolean)
+    : [];
+  if (!question || !answer) {
+    const err = new Error('Indica pergunta e resposta correcta.');
+    err.code = 'MISSING_CONTENT';
+    throw err;
+  }
+  if (options.length < 2) {
+    const err = new Error('Indica pelo menos 2 opções (escolha múltipla).');
+    err.code = 'MISSING_OPTIONS';
+    throw err;
+  }
+  const answerNorm = answer.toLowerCase();
+  if (!options.some((o) => o.toLowerCase() === answerNorm)) {
+    const err = new Error('A resposta correcta tem de estar entre as opções.');
+    err.code = 'INVALID_OPTIONS';
+    throw err;
+  }
+  const categoryNs = normalizeCategoryNs(meta.categoryNs, meta.categoryN, null);
+  const ageBands = normalizeAgeBands(meta.ageBands, meta.ageBand, null);
+  if (!categoryNs.length || !ageBands.length) {
+    const err = new Error('Selecciona pelo menos uma categoria e uma faixa etária.');
+    err.code = 'MISSING_META';
+    throw err;
+  }
+  const hash = hashQuestionKey(`${question}|${answer}`);
+  return applyReportCorrectionToBank(hash, {
+    question,
+    answer,
+    options,
+    format: correction.format || 'ESCOLHA_MULTIPLA',
+    difficulty: correction.difficulty,
+    difficultyByAgeBand: correction.difficultyByAgeBand,
+  }, {
+    ...meta,
+    categoryNs,
+    ageBands,
+    categoryN: categoryNs[0],
+    ageBand: ageBands[0],
+    source: meta.source || 'manual',
+  });
+}
+
 module.exports = {
   getQuestionBankStats,
   purgeQuestionsWithoutOptions,
@@ -1259,6 +1306,7 @@ module.exports = {
   deleteQuestionsByCategory,
   filterRowsByReportStatus,
   applyReportCorrectionToBank,
+  saveManualQuestionToBank,
   parseGameQuestionId,
   hashQuestionKey,
   findBankRowsByContent,

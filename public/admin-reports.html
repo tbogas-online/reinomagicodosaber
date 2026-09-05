@@ -1900,6 +1900,46 @@
       padding-top: 12px;
       border-top: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
     }
+    .bank-manual-add-details > summary {
+      cursor: pointer;
+      list-style: none;
+    }
+    .bank-manual-add-details > summary::-webkit-details-marker {
+      display: none;
+    }
+    .bank-manual-add-summary {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 8px 12px;
+    }
+    .bank-manual-add-hint {
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+    .bank-manual-add-body {
+      margin-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .bank-manual-add-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-width: 920px;
+    }
+    .bank-manual-add-form .pending-field textarea.bank-manual-options {
+      min-height: 96px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 0.82rem;
+    }
+    .bank-manual-add-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
     .bank-matrix-details > summary {
       list-style: none;
       cursor: pointer;
@@ -3276,6 +3316,40 @@
             </div>
           </div>
           <div id="bankSourceBreakdown"></div>
+            </div>
+          </details>
+        </div>
+
+        <div class="card" id="bankManualAddSection">
+          <details class="bank-manual-add-details" id="bankManualAddDetails">
+            <summary class="bank-manual-add-summary">
+              <h2 class="charts-title" style="margin:0;">Adicionar pergunta manualmente</h2>
+              <span class="bank-manual-add-hint">Uma pergunta de escolha múltipla com classificação completa no banco.</span>
+            </summary>
+            <div class="bank-manual-add-body">
+              <p class="sub" style="margin:0;">A pergunta entra no Supabase com origem <strong>manual</strong> (validação manual no painel).</p>
+              <form id="bankManualAddForm" class="bank-manual-add-form" autocomplete="off">
+                <div class="pending-field">
+                  <label for="bankManualQuestion">Pergunta</label>
+                  <textarea id="bankManualQuestion" class="bank-manual-question" rows="3" placeholder="Texto completo da pergunta…"></textarea>
+                </div>
+                <div class="pending-review-row-2">
+                  <div class="pending-field">
+                    <label for="bankManualAnswer">Resposta correcta</label>
+                    <input id="bankManualAnswer" type="text" class="bank-manual-answer" placeholder="Tem de coincidir com uma das opções">
+                  </div>
+                  <div class="pending-field">
+                    <label for="bankManualOptions">Opções (uma por linha)</label>
+                    <textarea id="bankManualOptions" class="bank-manual-options" rows="4" placeholder="Opção 1&#10;Opção 2&#10;Opção 3&#10;Opção 4"></textarea>
+                  </div>
+                </div>
+                <div id="bankManualClassifier"></div>
+                <div class="bank-manual-add-actions">
+                  <button type="submit" class="primary" id="bankManualSaveBtn">Guardar no banco</button>
+                  <button type="button" class="secondary" id="bankManualClearBtn">Limpar</button>
+                </div>
+              </form>
+              <p class="status" id="bankManualAddStatus" aria-live="polite"></p>
             </div>
           </details>
         </div>
@@ -11029,6 +11103,133 @@
       }
     }
 
+    function initBankManualAddForm() {
+      const classifierEl = document.getElementById('bankManualClassifier');
+      if (!classifierEl || classifierEl.dataset.ready === '1') return;
+      classifierEl.innerHTML = renderValidationClassifierEditor('manual', 'new', {
+        categoryNs: [],
+        ageBands: ['10-15'],
+        difficulties: { '10-15': 3 },
+      });
+      classifierEl.dataset.ready = '1';
+    }
+
+    function readManualAddForm() {
+      const root = document.getElementById('bankManualAddForm');
+      if (!root) return null;
+      const optionsRaw = root.querySelector('.bank-manual-options')?.value || '';
+      return {
+        question: root.querySelector('.bank-manual-question')?.value?.trim() || '',
+        answer: root.querySelector('.bank-manual-answer')?.value?.trim() || '',
+        options: optionsRaw.split(/\r?\n/).map((line) => line.trim()).filter(Boolean),
+        ...readValidationClassifier(root, 'manual'),
+      };
+    }
+
+    function clearManualAddForm() {
+      const root = document.getElementById('bankManualAddForm');
+      if (!root) return;
+      root.querySelector('.bank-manual-question')?.value = '';
+      root.querySelector('.bank-manual-answer')?.value = '';
+      root.querySelector('.bank-manual-options')?.value = '';
+      const classifierEl = document.getElementById('bankManualClassifier');
+      if (classifierEl) {
+        classifierEl.innerHTML = renderValidationClassifierEditor('manual', 'new', {
+          categoryNs: [],
+          ageBands: ['10-15'],
+          difficulties: { '10-15': 3 },
+        });
+        classifierEl.dataset.ready = '1';
+      }
+    }
+
+    async function saveManualBankQuestion() {
+      const statusEl = document.getElementById('bankManualAddStatus');
+      const draft = readManualAddForm();
+      if (!draft?.question || !draft?.answer) {
+        if (statusEl) {
+          statusEl.textContent = 'Preenche pergunta e resposta correcta.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      if (!draft.options?.length || draft.options.length < 2) {
+        if (statusEl) {
+          statusEl.textContent = 'Indica pelo menos 2 opções (escolha múltipla).';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      const answerNorm = draft.answer.toLowerCase();
+      if (!draft.options.some((o) => String(o).trim().toLowerCase() === answerNorm)) {
+        if (statusEl) {
+          statusEl.textContent = 'A resposta correcta tem de estar entre as opções.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      if (!draft.categoryNs?.length) {
+        if (statusEl) {
+          statusEl.textContent = 'Selecciona pelo menos uma categoria.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      if (!draft.ageBands?.length) {
+        if (statusEl) {
+          statusEl.textContent = 'Selecciona pelo menos uma faixa etária.';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      const ok = await confirmAction(
+        'Guardar esta pergunta no banco Supabase?',
+        { okLabel: 'Guardar no banco' },
+      );
+      if (!ok) return;
+      if (statusEl) {
+        statusEl.textContent = 'A guardar no banco…';
+        statusEl.className = 'status';
+      }
+      try {
+        const result = await api('/api/question-bank-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'save-manual-question',
+            correction: {
+              question: draft.question,
+              answer: draft.answer,
+              options: draft.options,
+              format: 'ESCOLHA_MULTIPLA',
+              difficulty: draft.difficulty,
+              difficultyByAgeBand: draft.difficultyByAgeBand,
+            },
+            meta: {
+              categoryN: draft.categoryNs[0],
+              ageBand: draft.ageBands[0],
+              categoryNs: draft.categoryNs,
+              ageBands: draft.ageBands,
+              difficulty: draft.difficulty,
+              difficultyByAgeBand: draft.difficultyByAgeBand,
+              source: 'manual',
+            },
+          }),
+        });
+        const action = result?.action === 'inserted' ? 'inserida' : 'actualizada';
+        if (statusEl) {
+          statusEl.textContent = `Pergunta ${action} no banco (${result?.questionHash || 'ok'}).`;
+          statusEl.className = 'status ok';
+        }
+        clearManualAddForm();
+        await loadBankDashboard({ quiet: true });
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao guardar no banco.';
+          statusEl.className = 'status err';
+        }
+      }
+    }
+
     function initQuarantineCategorySelects() {
       for (const id of ['bankQuarantineCategory', 'knowledgeQuarantineCategory']) {
         const sel = document.getElementById(id);
@@ -14580,6 +14781,27 @@
     document.getElementById('roomsRefreshBtn')?.addEventListener('click', () => loadRoomsDashboard());
     document.getElementById('bankRefreshBtn')?.addEventListener('click', () => loadBankDashboard());
     initBankSearchCategorySelect();
+    initBankManualAddForm();
+    document.getElementById('bankManualAddForm')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      saveManualBankQuestion();
+    });
+    document.getElementById('bankManualClearBtn')?.addEventListener('click', () => {
+      clearManualAddForm();
+      const statusEl = document.getElementById('bankManualAddStatus');
+      if (statusEl) {
+        statusEl.textContent = '';
+        statusEl.className = 'status';
+      }
+    });
+    document.getElementById('bankManualAddSection')?.addEventListener('change', (e) => {
+      const ageCheck = e.target.closest('.manual-validation-age-check');
+      if (ageCheck) {
+        const row = ageCheck.closest('.validation-age-diff-row');
+        const sel = row?.querySelector('select');
+        if (sel) sel.disabled = !ageCheck.checked;
+      }
+    });
     initKnowledgeSearchCategorySelect();
     initQuarantineCategorySelects();
     document.getElementById('bankQuarantineReleaseCategoryBtn')?.addEventListener('click', () => {
