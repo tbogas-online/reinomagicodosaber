@@ -9632,9 +9632,151 @@
       const cat = String(categoryN ?? '').trim();
       const code = String(issueCode ?? '').trim();
       if (!cat && !code) return summary?.reviewTimeline?.[range] || null;
-      if (cat && code) return summary?.reviewTimelineByFilter?.[`${cat}|${code}`]?.[range] || null;
+      if (cat && code) {
+        const precomputed = summary?.reviewTimelineByFilter?.[`${cat}|${code}`]?.[range];
+        if (precomputed) return precomputed;
+        const actions = Array.isArray(summary?.reviewActions) ? summary.reviewActions : [];
+        if (!actions.length) return null;
+        const timeline = computeClientReviewTimelineFromActions(actions, {
+          categoryN: Number(cat),
+          issueCode: code,
+        });
+        return timeline?.[range] || null;
+      }
       if (cat) return summary?.reviewTimelineByCategory?.[cat]?.[range] || null;
       return summary?.reviewTimelineByIssueCode?.[code]?.[range] || null;
+    }
+
+    function reviewLisbonDayKey(date) {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Europe/Lisbon',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(date);
+    }
+
+    function reviewLisbonHourKey(date) {
+      const hour = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Europe/Lisbon',
+        hour: '2-digit',
+        hour12: false,
+      }).format(date);
+      return `${reviewLisbonDayKey(date)}T${String(hour).padStart(2, '0')}:00`;
+    }
+
+    function reviewActionMatchesFilter(action, { categoryN = '', issueCode = '' } = {}) {
+      const cat = String(categoryN ?? '').trim();
+      const code = String(issueCode ?? '').trim();
+      if (cat && Number(action?.category) !== Number(cat)) return false;
+      if (code && !(action?.issueCodes || []).includes(code)) return false;
+      return true;
+    }
+
+    function reviewAccumulateActionBuckets(targetDay, targetHour, isoTimestamp) {
+      if (!isoTimestamp) return;
+      const d = new Date(isoTimestamp);
+      if (Number.isNaN(d.getTime())) return;
+      const day = reviewLisbonDayKey(d);
+      const hour = reviewLisbonHourKey(d);
+      if (day) targetDay[day] = (targetDay[day] || 0) + 1;
+      if (hour) targetHour[hour] = (targetHour[hour] || 0) + 1;
+    }
+
+    function reviewSeriesToTv(byBucket, hours, days) {
+      const now = new Date();
+      const points = [];
+      if (hours) {
+        const end = new Date(now);
+        end.setMinutes(0, 0, 0);
+        for (let i = hours - 1; i >= 0; i -= 1) {
+          const t = new Date(end.getTime() - i * 3600000);
+          const key = reviewLisbonHourKey(t);
+          points.push({ t: key, v: byBucket[key] || 0 });
+        }
+      } else {
+        const endDay = reviewLisbonDayKey(now);
+        const [y, m, d] = endDay.split('-').map(Number);
+        const end = new Date(Date.UTC(y, m - 1, d));
+        for (let i = days - 1; i >= 0; i -= 1) {
+          const t = new Date(end.getTime() - i * 86400000);
+          const key = reviewLisbonDayKey(t);
+          points.push({ t: key, v: byBucket[key] || 0 });
+        }
+      }
+      return points;
+    }
+
+    function reviewBuildTimelineBucket(
+      acceptedAsIsByHour,
+      acceptedAsIsByDay,
+      acceptedEditedByHour,
+      acceptedEditedByDay,
+      dismissedByHour,
+      dismissedByDay,
+      hours,
+      days,
+    ) {
+      const acceptedAsIs = reviewSeriesToTv(hours ? acceptedAsIsByHour : acceptedAsIsByDay, hours, days);
+      const acceptedEdited = reviewSeriesToTv(hours ? acceptedEditedByHour : acceptedEditedByDay, hours, days);
+      const dismissed = reviewSeriesToTv(hours ? dismissedByHour : dismissedByDay, hours, days);
+      const sum = (series) => series.reduce((acc, point) => acc + (Number(point.v) || 0), 0);
+      const totalAcceptedAsIs = sum(acceptedAsIs);
+      const totalAcceptedEdited = sum(acceptedEdited);
+      const merge = (a, b) => {
+        const map = new Map();
+        [...a, ...b].forEach((point) => map.set(point.t, (map.get(point.t) || 0) + point.v));
+        return [...map.entries()].sort((x, y) => x[0].localeCompare(y[0])).map(([t, v]) => ({ t, v }));
+      };
+      return {
+        acceptedAsIs,
+        acceptedEdited,
+        accepted: merge(acceptedAsIs, acceptedEdited),
+        dismissed,
+        totalAcceptedAsIs,
+        totalAcceptedEdited,
+        totalAccepted: totalAcceptedAsIs + totalAcceptedEdited,
+        totalDismissed: sum(dismissed),
+      };
+    }
+
+    function computeClientReviewTimelineFromActions(actions, filter = {}) {
+      const acceptedAsIsByDay = {};
+      const acceptedAsIsByHour = {};
+      const acceptedEditedByDay = {};
+      const acceptedEditedByHour = {};
+      const dismissedByDay = {};
+      const dismissedByHour = {};
+
+      (actions || []).forEach((action) => {
+        if (!reviewActionMatchesFilter(action, filter)) return;
+        if (action.kind === 'edited') {
+          reviewAccumulateActionBuckets(acceptedEditedByDay, acceptedEditedByHour, action.at);
+        } else if (action.kind === 'asIs') {
+          reviewAccumulateActionBuckets(acceptedAsIsByDay, acceptedAsIsByHour, action.at);
+        } else if (action.kind === 'dismissed') {
+          reviewAccumulateActionBuckets(dismissedByDay, dismissedByHour, action.at);
+        }
+      });
+
+      return {
+        '24h': reviewBuildTimelineBucket(
+          acceptedAsIsByHour, acceptedAsIsByDay, acceptedEditedByHour, acceptedEditedByDay,
+          dismissedByHour, dismissedByDay, 24, null,
+        ),
+        '3d': reviewBuildTimelineBucket(
+          acceptedAsIsByHour, acceptedAsIsByDay, acceptedEditedByHour, acceptedEditedByDay,
+          dismissedByHour, dismissedByDay, 72, null,
+        ),
+        '7d': reviewBuildTimelineBucket(
+          null, acceptedAsIsByDay, null, acceptedEditedByDay,
+          null, dismissedByDay, null, 7,
+        ),
+        '14d': reviewBuildTimelineBucket(
+          null, acceptedAsIsByDay, null, acceptedEditedByDay,
+          null, dismissedByDay, null, 14,
+        ),
+      };
     }
 
     function syncReviewTimelineFilterSelects(summary) {

@@ -6,6 +6,35 @@ const { getStats, clearAll, dismissTelemetryEvent, dismissTelemetryEventsByIssue
 const { getAiUsageStats } = require('./lib/ai-usage-store');
 const { listActiveOverrides } = require('./lib/validation-rule-overrides-store');
 
+const MAX_STATS_RESPONSE_BYTES = 5_500_000;
+
+function buildStatsJsonResponse(payload) {
+  let body = payload;
+  let serialized = JSON.stringify(body);
+  if (serialized.length > MAX_STATS_RESPONSE_BYTES && body.aiUsage) {
+    body = {
+      ...body,
+      aiUsage: {
+        ...body.aiUsage,
+        dimensionRows: [],
+        minuteDimensionRows: [],
+        slimmed: true,
+      },
+      warning: 'Consumo API resumido para caber no limite da função.',
+    };
+    serialized = JSON.stringify(body);
+  }
+  return {
+    statusCode: 200,
+    headers: {
+      'content-type': 'application/json; charset=utf-8',
+      'cache-control': 'no-store',
+      'access-control-allow-origin': '*',
+    },
+    body: serialized,
+  };
+}
+
 exports.handler = async (event) => {
   try {
     if (event.httpMethod === 'OPTIONS') {
@@ -35,7 +64,7 @@ exports.handler = async (event) => {
             error: err?.message || 'Não foi possível ler pedidos à IA.',
           })),
         ]);
-        return json(200, {
+        return buildStatsJsonResponse({
           ok: true,
           stats,
           aiUsage,

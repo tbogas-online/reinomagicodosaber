@@ -181,7 +181,7 @@ function buildReviewTimelineFilterKeys(actions) {
   return keys;
 }
 
-function buildReviewTimelineBundles(items) {
+function buildReviewTimelineBundles(items, { includeByFilter = false } = {}) {
   const reviewActions = buildReviewActionsFromItems(items);
   const reviewTimelineFilterOptions = buildReviewTimelineFilterOptions(reviewActions);
   const reviewTimeline = computeReviewTimelineFromReviewActions(reviewActions);
@@ -195,12 +195,14 @@ function buildReviewTimelineBundles(items) {
   for (const { code } of reviewTimelineFilterOptions.issueCodes) {
     reviewTimelineByIssueCode[code] = computeReviewTimelineFromReviewActions(reviewActions, { issueCode: code });
   }
-  for (const key of buildReviewTimelineFilterKeys(reviewActions)) {
-    const [categoryN, issueCode] = key.split('|');
-    reviewTimelineByFilter[key] = computeReviewTimelineFromReviewActions(reviewActions, {
-      categoryN: Number(categoryN),
-      issueCode,
-    });
+  if (includeByFilter) {
+    for (const key of buildReviewTimelineFilterKeys(reviewActions)) {
+      const [categoryN, issueCode] = key.split('|');
+      reviewTimelineByFilter[key] = computeReviewTimelineFromReviewActions(reviewActions, {
+        categoryN: Number(categoryN),
+        issueCode,
+      });
+    }
   }
 
   return {
@@ -221,7 +223,17 @@ function resolveReviewTimelineBucket(summary, range, { categoryN = '', issueCode
   const cat = String(categoryN ?? '').trim();
   const code = String(issueCode ?? '').trim();
   if (!cat && !code) return summary?.reviewTimeline?.[range] || null;
-  if (cat && code) return summary?.reviewTimelineByFilter?.[`${cat}|${code}`]?.[range] || null;
+  if (cat && code) {
+    const precomputed = summary?.reviewTimelineByFilter?.[`${cat}|${code}`]?.[range];
+    if (precomputed) return precomputed;
+    const actions = Array.isArray(summary?.reviewActions) ? summary.reviewActions : [];
+    if (!actions.length) return null;
+    const timeline = computeReviewTimelineFromReviewActions(actions, {
+      categoryN: Number(cat),
+      issueCode: code,
+    });
+    return timeline?.[range] || null;
+  }
   if (cat) return summary?.reviewTimelineByCategory?.[cat]?.[range] || null;
   return summary?.reviewTimelineByIssueCode?.[code]?.[range] || null;
 }

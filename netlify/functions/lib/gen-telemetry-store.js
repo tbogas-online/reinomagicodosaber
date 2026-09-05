@@ -23,11 +23,14 @@ const {
 } = require('./review-sync');
 
 const MAX_EVENTS = 10000;
-const STATS_BANK_ENRICH_MAX_PENDING = 120;
+const STATS_REVIEWABLE_EVENT_LIMIT = 2500;
 const TABLE = 'gen_telemetry_events';
 
 const VALID_OUTCOMES = new Set(['accepted', 'rejected', 'parse_error', 'api_error', 'unknown']);
 const VALID_GAME_MODES = new Set(['local', 'multiplayer', 'test']);
+
+const TELEMETRY_ROW_BASE_SELECT = 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options,provider,model,attempt';
+const TELEMETRY_ROW_STATS_LIGHT_SELECT = 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,provider,model,attempt,bank_validated_at,bank_question_hash,bank_validated_edited,dismissed_at';
 
 function clip(value, max) {
   return String(value || '').trim().slice(0, max);
@@ -143,9 +146,16 @@ function isMissingExtendedTelemetryColumnError(msg) {
     || isMissingBankValidatedEditedColumnError(msg);
 }
 
-const TELEMETRY_ROW_BASE_SELECT = 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options,provider,model,attempt';
-
-function buildTelemetryRowSelectVariants({ requireDismissedColumn = false } = {}) {
+function buildTelemetryRowSelectVariants({ requireDismissedColumn = false, statsLight = false } = {}) {
+  if (statsLight) {
+    const lightBase = TELEMETRY_ROW_STATS_LIGHT_SELECT.split(',bank_validated_at')[0];
+    const light = [
+      TELEMETRY_ROW_STATS_LIGHT_SELECT,
+      `${lightBase},bank_validated_at,bank_question_hash`,
+      lightBase,
+    ];
+    return requireDismissedColumn ? light : light;
+  }
   const base = TELEMETRY_ROW_BASE_SELECT;
   const withDismissed = [
     `${base},bank_validated_at,bank_question_hash,bank_validated_edited,dismissed_at`,
@@ -167,12 +177,16 @@ function isRecoverableTelemetrySelectError(msg) {
     || text.includes('42703');
 }
 
-async function fetchTelemetryRowsWithSelectFallback(params, { requireDismissedFilter = false, requireDismissedColumn = false } = {}) {
+async function fetchTelemetryRowsWithSelectFallback(params, {
+  requireDismissedFilter = false,
+  requireDismissedColumn = false,
+  statsLight = false,
+} = {}) {
   const query = new URLSearchParams(params);
   let wantsDismissedFilter = query.has('dismissed_at');
   let wantsBankValidatedFilter = query.has('bank_validated_at');
   let lastErr;
-  const selectVariants = buildTelemetryRowSelectVariants({ requireDismissedColumn });
+  const selectVariants = buildTelemetryRowSelectVariants({ requireDismissedColumn, statsLight });
   for (const select of selectVariants) {
     query.set('select', select);
     const selectHasDismissed = select.includes('dismissed_at');
@@ -421,6 +435,7 @@ function isOpenIssueOccurrence(occ, pendingReviewHashes = null) {
     outcome: occ?.outcome,
     dismissedAt: occ?.dismissedAt,
     bankValidatedAt: occ?.bankValidatedAt,
+    questionHash: occ?.bankQuestionHash,
     questionSnapshot: occ?.questionSnapshot,
     question_text: occ?.questionSnapshot?.q,
     answer_text: occ?.questionSnapshot?.a,
@@ -915,6 +930,35 @@ async function fetchEventItems(filters = {}) {
   return rows.map(rowToItem);
 }
 
+async function fetchEventItemsForStats(filters = {}) {
+  const gameMode = filters.gameMode && VALID_GAME_MODES.has(String(filters.gameMode))
+    ? String(filters.gameMode)
+    : '';
+  const shared = {
+    order: 'created_at.desc',
+  };
+  if (gameMode) shared.game_mode = `eq.${gameMode}`;
+
+  const [acceptedRows, reviewableRows] = await Promise.all([
+    fetchTelemetryRowsWithSelectFallback({
+      ...shared,
+      outcome: 'eq.accepted',
+      limit: String(MAX_EVENTS),
+    }, { requireDismissedColumn: true, statsLight: true }),
+    fetchTelemetryRowsWithSelectFallback({
+      ...shared,
+      outcome: REVIEWABLE_TELEMETRY_OUTCOME_FILTER,
+      limit: String(STATS_REVIEWABLE_EVENT_LIMIT),
+    }, { requireDismissedColumn: true }),
+  ]);
+
+  const merged = new Map();
+  [...acceptedRows, ...reviewableRows].forEach((row) => {
+    if (row?.id) merged.set(row.id, row);
+  });
+  return [...merged.values()].map(rowToItem);
+}
+
 async function dismissTelemetryEvent({ eventId, skipQueueSync = false } = {}) {
   const id = String(eventId || '').trim();
   if (!id) {
@@ -1315,16 +1359,14 @@ async function markTelemetryBankValidated({
 
 async function getStats(_event, filters = {}) {
   const [rawItems, pendingReviewHashes] = await Promise.all([
-    fetchEventItems(filters),
+    fetchEventItemsForStats(filters),
     loadPendingReviewHashSet(),
   ]);
-  const items = await enrichItemsWithBankValidation(rawItems, {
-    maxPending: STATS_BANK_ENRICH_MAX_PENDING,
-  });
+  const items = rawItems;
   return {
     ...computeSummaryFromItems(items, { pendingReviewHashes }),
     ...computeTimelineFromItems(items),
-    ...buildReviewTimelineBundles(items),
+    ...buildReviewTimelineBundles(items, { includeByFilter: false }),
   };
 }
 
