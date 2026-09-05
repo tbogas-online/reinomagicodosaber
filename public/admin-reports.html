@@ -11129,9 +11129,12 @@
     function clearManualAddForm() {
       const root = document.getElementById('bankManualAddForm');
       if (!root) return;
-      root.querySelector('.bank-manual-question')?.value = '';
-      root.querySelector('.bank-manual-answer')?.value = '';
-      root.querySelector('.bank-manual-options')?.value = '';
+      const qEl = root.querySelector('.bank-manual-question');
+      const aEl = root.querySelector('.bank-manual-answer');
+      const oEl = root.querySelector('.bank-manual-options');
+      if (qEl) qEl.value = '';
+      if (aEl) aEl.value = '';
+      if (oEl) oEl.value = '';
       const classifierEl = document.getElementById('bankManualClassifier');
       if (classifierEl) {
         classifierEl.innerHTML = renderValidationClassifierEditor('manual', 'new', {
