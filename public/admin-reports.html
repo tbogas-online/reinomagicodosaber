@@ -1802,6 +1802,11 @@
       color: var(--text);
       cursor: pointer;
     }
+    .validation-cat-icon {
+      flex-shrink: 0;
+      width: 1.1em;
+      text-align: center;
+    }
     .validation-age-diff-list {
       display: flex;
       flex-direction: column;
@@ -1927,7 +1932,18 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      max-width: 920px;
+      max-width: none;
+    }
+    .bank-manual-add-form .validation-tax-grid {
+      max-height: none;
+      overflow: visible;
+      grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+      gap: 6px 12px;
+    }
+    .bank-manual-add-form .validation-classifier {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
     .bank-manual-add-form .pending-field textarea.bank-manual-options {
       min-height: 96px;
@@ -3346,7 +3362,7 @@
                 <div id="bankManualClassifier"></div>
                 <div class="bank-manual-add-actions">
                   <button type="submit" class="primary" id="bankManualSaveBtn">Guardar no banco</button>
-                  <button type="button" class="secondary" id="bankManualClearBtn">Limpar</button>
+                  <button type="button" class="secondary" id="bankManualClearBtn" title="Limpar pergunta, opções e classificação">Limpar todos os campos</button>
                 </div>
               </form>
               <p class="status" id="bankManualAddStatus" aria-live="polite"></p>
@@ -6232,7 +6248,7 @@
       const fallbackDiff = estimatedDifficulty ?? requestedDifficulty;
       const catChecks = BANK_CATEGORIES.map((cat) => {
         const checked = catSet.has(cat.n) ? ' checked' : '';
-        return `<label class="validation-tax-check"><input type="checkbox" class="${prefix}-validation-cat-check" value="${cat.n}" ${idAttr}${checked}> ${cat.n}. ${esc(cat.name)}</label>`;
+        return `<label class="validation-tax-check"><input type="checkbox" class="${prefix}-validation-cat-check" value="${cat.n}" ${idAttr}${checked}> <span class="validation-cat-icon" aria-hidden="true">${cat.e || ''}</span> ${cat.n}. ${esc(cat.name)}</label>`;
       }).join('');
       const ageRows = BANK_AGE_BANDS.map((age) => {
         const checked = ageSet.has(age);
@@ -11103,15 +11119,21 @@
       }
     }
 
+    function renderBankManualClassifier() {
+      const classifierEl = document.getElementById('bankManualClassifier');
+      if (!classifierEl) return;
+      classifierEl.innerHTML = renderValidationClassifierEditor('manual', 'new', {
+        categoryNs: [],
+        ageBands: [],
+        difficulties: {},
+      });
+      classifierEl.dataset.ready = '1';
+    }
+
     function initBankManualAddForm() {
       const classifierEl = document.getElementById('bankManualClassifier');
       if (!classifierEl || classifierEl.dataset.ready === '1') return;
-      classifierEl.innerHTML = renderValidationClassifierEditor('manual', 'new', {
-        categoryNs: [],
-        ageBands: ['10-15'],
-        difficulties: { '10-15': 3 },
-      });
-      classifierEl.dataset.ready = '1';
+      renderBankManualClassifier();
     }
 
     function readManualAddForm() {
@@ -11135,15 +11157,7 @@
       if (qEl) qEl.value = '';
       if (aEl) aEl.value = '';
       if (oEl) oEl.value = '';
-      const classifierEl = document.getElementById('bankManualClassifier');
-      if (classifierEl) {
-        classifierEl.innerHTML = renderValidationClassifierEditor('manual', 'new', {
-          categoryNs: [],
-          ageBands: ['10-15'],
-          difficulties: { '10-15': 3 },
-        });
-        classifierEl.dataset.ready = '1';
-      }
+      renderBankManualClassifier();
     }
 
     async function saveManualBankQuestion() {
