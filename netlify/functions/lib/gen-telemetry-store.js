@@ -23,6 +23,7 @@ const {
 } = require('./review-sync');
 
 const MAX_EVENTS = 10000;
+const STATS_BANK_ENRICH_MAX_PENDING = 120;
 const TABLE = 'gen_telemetry_events';
 
 const VALID_OUTCOMES = new Set(['accepted', 'rejected', 'parse_error', 'api_error', 'unknown']);
@@ -251,23 +252,33 @@ async function fetchExistingBankHashes(hashes) {
   if (!list.length) return new Set();
   const found = new Set();
   const chunkSize = 80;
-  for (let i = 0; i < list.length; i += chunkSize) {
-    const chunk = list.slice(i, i + chunkSize);
+  const parallelChunks = 4;
+  const fetchChunk = async (chunk) => {
     const params = new URLSearchParams({
       select: 'question_hash',
       question_hash: `in.(${chunk.map((h) => encodeURIComponent(h)).join(',')})`,
       limit: String(chunk.length),
     });
-    try {
-      const rows = await supabaseRequest(`/question_bank?${params.toString()}`);
-      (Array.isArray(rows) ? rows : []).forEach((row) => {
-        const hash = String(row.question_hash || '').trim();
-        if (hash) found.add(hash);
-      });
-    } catch (err) {
-      console.warn('[gen-telemetry-store] fetch bank hashes:', err?.message || err);
-      break;
+    const rows = await supabaseRequest(`/question_bank?${params.toString()}`);
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const hash = String(row.question_hash || '').trim();
+      if (hash) found.add(hash);
+    });
+  };
+  for (let i = 0; i < list.length; i += chunkSize * parallelChunks) {
+    const batch = [];
+    for (let j = 0; j < parallelChunks; j += 1) {
+      const start = i + j * chunkSize;
+      if (start >= list.length) break;
+      const chunk = list.slice(start, start + chunkSize);
+      if (!chunk.length) continue;
+      batch.push(
+        fetchChunk(chunk).catch((err) => {
+          console.warn('[gen-telemetry-store] fetchExistingBankHashes chunk failed:', err?.message || err);
+        }),
+      );
     }
+    await Promise.all(batch);
   }
   return found;
 }
@@ -296,14 +307,21 @@ async function backfillBankValidatedRows(entries) {
   return { marked };
 }
 
-async function enrichItemsWithBankValidation(items) {
+async function enrichItemsWithBankValidation(items, { maxPending = Infinity } = {}) {
   const list = Array.isArray(items) ? items : [];
-  const pending = list.filter((ev) => ev.outcome === 'rejected'
+  let pending = list.filter((ev) => ev.outcome === 'rejected'
     && !ev.bankValidatedAt
     && !ev.dismissedAt
     && ev.questionSnapshot?.q
     && ev.questionSnapshot?.a);
   if (!pending.length) return list;
+
+  if (Number.isFinite(maxPending) && maxPending > 0 && pending.length > maxPending) {
+    pending = pending
+      .slice()
+      .sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0))
+      .slice(0, maxPending);
+  }
 
   const hashByEventId = new Map();
   const hashSet = new Set();
@@ -1296,8 +1314,13 @@ async function markTelemetryBankValidated({
 }
 
 async function getStats(_event, filters = {}) {
-  const items = await enrichItemsWithBankValidation(await fetchEventItems(filters));
-  const pendingReviewHashes = await loadPendingReviewHashSet();
+  const [rawItems, pendingReviewHashes] = await Promise.all([
+    fetchEventItems(filters),
+    loadPendingReviewHashSet(),
+  ]);
+  const items = await enrichItemsWithBankValidation(rawItems, {
+    maxPending: STATS_BANK_ENRICH_MAX_PENDING,
+  });
   return {
     ...computeSummaryFromItems(items, { pendingReviewHashes }),
     ...computeTimelineFromItems(items),

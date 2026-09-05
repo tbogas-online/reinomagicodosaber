@@ -39,6 +39,7 @@
 
 [functions."gen-telemetry-admin"]
   node_bundler = "esbuild"
+  timeout = 26
 
 [functions."validation-overrides"]
   node_bundler = "esbuild"
