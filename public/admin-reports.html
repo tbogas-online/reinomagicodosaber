@@ -646,6 +646,9 @@
       font-weight: 600;
     }
     .bank-matrix .cat-name {
+      display: flex;
+      align-items: center;
+      gap: 2px;
       font-weight: 500;
       white-space: nowrap;
     }
@@ -679,17 +682,113 @@
       font-weight: 400;
       background: transparent;
     }
-    .bank-matrix td.num .bank-cell.low {
-      background: rgba(245, 158, 11, 0.18);
-      color: #fbbf24;
+    .bank-matrix tbody tr.bank-matrix-diff-row td {
+      padding: 6px 8px 10px;
+      background: rgba(0, 0, 0, 0.14);
+      border-top: 0;
+      vertical-align: top;
     }
-    .bank-matrix td.num .bank-cell.mid {
-      background: rgba(34, 197, 94, 0.16);
-      color: #4ade80;
+    .bank-matrix tbody tr.bank-matrix-diff-row td.diff-label {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: left;
+      padding-left: 28px;
     }
-    .bank-matrix td.num .bank-cell.high {
-      background: rgba(59, 130, 246, 0.2);
-      color: #93c5fd;
+    .bank-matrix-expand {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 18px;
+      height: 18px;
+      margin-right: 4px;
+      padding: 0;
+      border: 0;
+      border-radius: 4px;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 10px;
+      cursor: pointer;
+      vertical-align: middle;
+      flex-shrink: 0;
+    }
+    .bank-matrix-expand:hover,
+    .bank-matrix-expand:focus-visible {
+      background: rgba(255, 255, 255, 0.16);
+      color: var(--text);
+    }
+    .bank-matrix-expand[aria-expanded="true"] {
+      transform: rotate(90deg);
+    }
+    .bank-diff-stack {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 3px;
+      justify-content: center;
+    }
+    .bank-diff-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 1px 5px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+      line-height: 1.35;
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+    .bank-diff-pill.zero {
+      opacity: 0.45;
+      font-weight: 400;
+    }
+    .bank-matrix th.bank-diff-col,
+    .bank-matrix td.bank-diff-pct {
+      width: 46px;
+      min-width: 46px;
+      font-size: 11px;
+      padding-left: 2px;
+      padding-right: 2px;
+    }
+    .bank-matrix td.bank-diff-pct .bank-diff-pill {
+      min-width: 2.4em;
+      justify-content: center;
+    }
+    .bank-legend-scale {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-left: 4px;
+    }
+    .bank-legend-gradient {
+      width: 132px;
+      height: 10px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: linear-gradient(90deg, #D32F2F, #E53935, #F4511E, #FB8C00, #FFB300, #FDD835, #C0CA33, #7CB342, #43A047, #2E7D32);
+    }
+    .bank-legend-gradient.quarantine-gradient {
+      background: linear-gradient(90deg, #FFB300, #FDD835, #C0CA33, #7CB342, #43A047, #26A69A, #29B6F6, #1E88E5);
+    }
+    .bank-matrix-filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px 14px;
+      margin: 10px 0 12px;
+    }
+    .bank-matrix-filter-bar label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      color: var(--muted);
+    }
+    .bank-matrix-filter-bar select {
+      min-width: 220px;
+      max-width: 100%;
+    }
+    #bankMatrixFilterNote {
+      font-size: 12px;
+      color: var(--muted);
     }
     .bank-matrix tr.total-row td,
     .bank-matrix tr.total-row th {
@@ -718,9 +817,6 @@
       font-style: normal;
     }
     .bank-legend .lg-zero { background: transparent; border: 1px dashed rgba(255,255,255,0.2); }
-    .bank-legend .lg-low { background: rgba(245, 158, 11, 0.35); }
-    .bank-legend .lg-mid { background: rgba(34, 197, 94, 0.35); }
-    .bank-legend .lg-high { background: rgba(59, 130, 246, 0.35); }
     .bank-actions {
       display: flex;
       flex-wrap: wrap;
@@ -3097,12 +3193,23 @@
           <p class="status" id="bankListStatus"></p>
           <p class="sub" style="margin-top:0;">Perguntas activas com <strong>opções válidas</strong> (escolha múltipla) no Supabase.</p>
           <div id="bankInvalidAlert" class="bank-alert hidden"></div>
-          <div class="bank-legend" aria-hidden="true">
+          <div class="bank-legend" id="bankMatrixLegend" aria-hidden="true">
             <span><i class="lg-zero"></i> 0</span>
-            <span><i class="lg-low"></i> 1–2</span>
-            <span><i class="lg-mid"></i> 3–5</span>
-            <span><i class="lg-high"></i> 6+</span>
-            <span style="margin-left:8px; opacity:0.85;">Linha âmbar: categoria com ≤5 perguntas · vermelho: 0 no total</span>
+            <span class="bank-legend-scale">
+              <span id="bankLegendMin">—</span>
+              <i class="bank-legend-gradient" aria-hidden="true" title="Escala relativa: vermelho (mín.) → verde (máx.) em 10 níveis"></i>
+              <span id="bankLegendMax">—</span>
+            </span>
+            <span style="margin-left:8px; opacity:0.85;">Cores relativas às categorias visíveis · D1–s/n% = % do Σ da linha · s/n = sem dificuldade gravada</span>
+          </div>
+          <div class="bank-matrix-filter-bar bulk-bar">
+            <label for="bankMatrixCategorySelect">Categoria
+              <select id="bankMatrixCategorySelect" aria-label="Filtrar tabela por categoria">
+                <option value="">Todas com perguntas</option>
+                <option value="all">Todas (incluir vazias)</option>
+              </select>
+            </label>
+            <span id="bankMatrixFilterNote" aria-live="polite"></span>
           </div>
           <div id="bankGapsSummary" class="bank-gaps hidden" aria-live="polite"></div>
           <div class="bank-matrix-wrap">
@@ -3113,6 +3220,12 @@
                   <th class="num sortable" data-bank-age="6-9" data-bank-sort="6-9" title="6 a 9 anos">6–9</th>
                   <th class="num sortable" data-bank-age="10-15" data-bank-sort="10-15" title="10 a 15 anos">10–15</th>
                   <th class="num sortable" data-bank-age="15+" data-bank-sort="15+" title="Mais de 15 anos">+15</th>
+                  <th class="num sortable bank-diff-col" data-bank-sort="diff-1" title="Dificuldade 1 — % do total Σ desta categoria">D1%</th>
+                  <th class="num sortable bank-diff-col" data-bank-sort="diff-2" title="Dificuldade 2 — % do total Σ desta categoria">D2%</th>
+                  <th class="num sortable bank-diff-col" data-bank-sort="diff-3" title="Dificuldade 3 — % do total Σ desta categoria">D3%</th>
+                  <th class="num sortable bank-diff-col" data-bank-sort="diff-4" title="Dificuldade 4 — % do total Σ desta categoria">D4%</th>
+                  <th class="num sortable bank-diff-col" data-bank-sort="diff-5" title="Dificuldade 5 — % do total Σ desta categoria">D5%</th>
+                  <th class="num sortable bank-diff-col" data-bank-sort="diff-0" title="Sem dificuldade gravada no banco — % do total Σ desta categoria">s/n%</th>
                   <th class="num sortable" data-bank-sort="total" title="Total por categoria">Σ</th>
                 </tr>
               </thead>
@@ -3138,6 +3251,14 @@
               <button type="button" class="danger" id="bankQuarantineReleaseEverythingBtn">Libertar tudo</button>
             </div>
             <p class="status" id="bankQuarantineStatus"></p>
+            <div class="bank-legend" id="bankQuarantineLegend" aria-hidden="true">
+              <span class="bank-legend-scale">
+                <span id="bankQuarantineLegendMin">—</span>
+                <i class="bank-legend-gradient quarantine-gradient" aria-hidden="true" title="Escala relativa ao min/máx dos dados: âmbar (mín.) → verde → azul (máx.)"></i>
+                <span id="bankQuarantineLegendMax">—</span>
+              </span>
+              <span style="margin-left:8px; opacity:0.85;">Cores relativas ao intervalo real · âmbar (mín.) → verde → azul (máx.)</span>
+            </div>
             <div class="bank-matrix-wrap">
               <table class="bank-matrix quarantine-matrix">
                 <thead>
@@ -10139,6 +10260,7 @@
       { n: 20, e: '🤔', name: 'Adivinhas e Curiosidades' },
     ];
     const BANK_AGE_BANDS = ['6-9', '10-15', '15+'];
+    const BANK_DIFFICULTY_LEVELS = [1, 2, 3, 4, 5, 0];
     const BANK_AGE_CHART_LABELS = {
       '6-9': '6–9 anos',
       '10-15': '10–15 anos',
@@ -11777,6 +11899,11 @@
     }
     let bankTimelineRange = '24h';
     let bankMatrixSort = { key: 'cat', dir: 'asc' };
+    const bankMatrixExpandedCats = new Set();
+    let bankMatrixCountRange = { min: 0, max: 0 };
+    let bankMatrixCategorySelect = '';
+    let lastBankMatrixGrid = null;
+    let lastBankMatrixDiffGrid = null;
     try {
       const savedBankRange = localStorage.getItem(BANK_TIMELINE_STORAGE_KEY);
       if (savedBankRange && BANK_TIMELINE_RANGES[savedBankRange]) bankTimelineRange = savedBankRange;
@@ -12543,12 +12670,313 @@
       }
     }
 
+    const BANK_HEAT_COLORS = [
+      '#D32F2F', '#E53935', '#F4511E', '#FB8C00', '#FFB300',
+      '#FDD835', '#C0CA33', '#7CB342', '#43A047', '#2E7D32',
+    ];
+    const QUARANTINE_HEAT_COLORS = [
+      '#FFB300', '#FDD835', '#C0CA33', '#7CB342', '#43A047', '#26A69A', '#29B6F6', '#1E88E5',
+    ];
+
+    function hexToRgba(hex, alpha) {
+      const h = String(hex || '').replace('#', '');
+      if (h.length !== 6) return `rgba(128,128,128,${alpha})`;
+      const r = parseInt(h.slice(0, 2), 16);
+      const g = parseInt(h.slice(2, 4), 16);
+      const b = parseInt(h.slice(4, 6), 16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+
+    function bankHeatLevelFromRatio(ratio) {
+      const t = Math.max(0, Math.min(1, Number(ratio) || 0));
+      return Math.min(BANK_HEAT_COLORS.length - 1, Math.floor(t * BANK_HEAT_COLORS.length));
+    }
+
+    function bankHeatColorFromRatio(ratio) {
+      return BANK_HEAT_COLORS[bankHeatLevelFromRatio(ratio)];
+    }
+
+    function bankHeatTextColor(bgHex) {
+      const idx = BANK_HEAT_COLORS.indexOf(bgHex);
+      return idx >= 5 ? '#1b1b1b' : '#ffffff';
+    }
+
+    function bankHeatInlineStyle(ratio) {
+      const bg = bankHeatColorFromRatio(ratio);
+      const fg = bankHeatTextColor(bg);
+      return `background:${hexToRgba(bg, 0.38)};color:${fg};`;
+    }
+
+    function quarantineHeatLevelFromRatio(ratio) {
+      const t = Math.max(0, Math.min(1, Number(ratio) || 0));
+      return Math.min(QUARANTINE_HEAT_COLORS.length - 1, Math.floor(t * QUARANTINE_HEAT_COLORS.length));
+    }
+
+    function quarantineHeatColorFromRatio(ratio) {
+      return QUARANTINE_HEAT_COLORS[quarantineHeatLevelFromRatio(ratio)];
+    }
+
+    function quarantineHeatTextColor(bgHex) {
+      const idx = QUARANTINE_HEAT_COLORS.indexOf(bgHex);
+      return idx >= 4 ? '#ffffff' : '#1b1b1b';
+    }
+
+    function quarantineHeatInlineStyle(ratio) {
+      const bg = quarantineHeatColorFromRatio(ratio);
+      const fg = quarantineHeatTextColor(bg);
+      return `background:${hexToRgba(bg, 0.38)};color:${fg};`;
+    }
+
+    function computeQuarantineCountRange(grid) {
+      let min = Infinity;
+      let max = -Infinity;
+      for (const cat of BANK_CATEGORIES) {
+        const row = grid[cat.n] || {};
+        for (const age of BANK_AGE_BANDS) {
+          const v = Number(row[age]) || 0;
+          if (v > 0) {
+            min = Math.min(min, v);
+            max = Math.max(max, v);
+          }
+        }
+      }
+      if (!Number.isFinite(min)) return { min: 0, max: 0 };
+      return { min, max };
+    }
+
+    function quarantineCountHeatStyle(n, range) {
+      const v = Number(n) || 0;
+      if (!v) return '';
+      const { min, max } = range || { min: 0, max: 0 };
+      if (max <= 0) return quarantineHeatInlineStyle(0.5);
+      const ratio = max === min ? 0.5 : (v - min) / (max - min);
+      return quarantineHeatInlineStyle(ratio);
+    }
+
+    function quarantineCountCell(n, range, title = '') {
+      const v = Number(n) || 0;
+      const cls = bankCountClass(v);
+      const style = quarantineCountHeatStyle(v, range);
+      const tip = title ? ` title="${esc(title)}"` : '';
+      const styleAttr = style ? ` style="${style}"` : '';
+      return `<span class="bank-cell ${cls}"${styleAttr}${tip}>${v || 0}</span>`;
+    }
+
+    function renderQuarantineMatrixLegend(range) {
+      const minEl = document.getElementById('bankQuarantineLegendMin');
+      const maxEl = document.getElementById('bankQuarantineLegendMax');
+      if (!minEl || !maxEl) return;
+      if (!range.max) {
+        minEl.textContent = '—';
+        maxEl.textContent = '—';
+        return;
+      }
+      minEl.textContent = String(range.min);
+      maxEl.textContent = String(range.max);
+    }
+
+    function getBankMatrixRowTotal(grid, catN) {
+      const row = grid?.[catN] || {};
+      return BANK_AGE_BANDS.reduce((sum, age) => sum + (Number(row[age]) || 0), 0);
+    }
+
+    function getBankMatrixVisibleCategories(grid) {
+      const mode = bankMatrixCategorySelect;
+      if (mode === 'all') return BANK_CATEGORIES.slice();
+      const picked = Number(mode);
+      if (Number.isFinite(picked) && picked >= 1 && picked <= 20) {
+        const cat = BANK_CATEGORIES.find((c) => c.n === picked);
+        return cat ? [cat] : [];
+      }
+      return BANK_CATEGORIES.filter((c) => getBankMatrixRowTotal(grid, c.n) > 0);
+    }
+
+    function computeBankMatrixTotals(grid, categories) {
+      const ageTotals = Object.fromEntries(BANK_AGE_BANDS.map((b) => [b, 0]));
+      let grandTotal = 0;
+      for (const cat of categories) {
+        const row = grid[cat.n] || {};
+        for (const age of BANK_AGE_BANDS) {
+          const v = Number(row[age]) || 0;
+          ageTotals[age] += v;
+          grandTotal += v;
+        }
+      }
+      return { ageTotals, grandTotal };
+    }
+
+    function syncBankMatrixCategorySelect(grid) {
+      const select = document.getElementById('bankMatrixCategorySelect');
+      if (!select) return;
+      const prev = select.value;
+      const present = BANK_CATEGORIES.filter((c) => getBankMatrixRowTotal(grid, c.n) > 0);
+      const head = `
+        <option value="">Todas com perguntas (${present.length})</option>
+        <option value="all">Todas (incluir vazias)</option>
+      `;
+      const opts = BANK_CATEGORIES.map((cat) => {
+        const total = getBankMatrixRowTotal(grid, cat.n);
+        const label = `${cat.n}. ${cat.name}${total ? ` (${total})` : ' (0)'}`;
+        return `<option value="${cat.n}">${esc(label)}</option>`;
+      }).join('');
+      select.innerHTML = head + opts;
+      if ([...select.options].some((o) => o.value === prev)) select.value = prev;
+      else select.value = bankMatrixCategorySelect;
+    }
+
+    function updateBankMatrixFilterNote(visibleCats, range) {
+      const el = document.getElementById('bankMatrixFilterNote');
+      if (!el) return;
+      const n = visibleCats.length;
+      const rangeTxt = range.max > 0 ? `gradiente ${range.min}–${range.max}` : 'sem dados';
+      if (bankMatrixCategorySelect === 'all') {
+        el.textContent = `${n} categorias · ${rangeTxt}`;
+      } else if (Number(bankMatrixCategorySelect)) {
+        el.textContent = `1 categoria · ${rangeTxt}`;
+      } else {
+        el.textContent = `${n} com perguntas · ${rangeTxt}`;
+      }
+    }
+
+    function computeBankMatrixCountRange(grid, categories) {
+      const cats = categories || BANK_CATEGORIES;
+      let min = Infinity;
+      let max = -Infinity;
+      for (const cat of cats) {
+        const row = grid[cat.n] || {};
+        for (const age of BANK_AGE_BANDS) {
+          const v = Number(row[age]) || 0;
+          if (v > 0) {
+            min = Math.min(min, v);
+            max = Math.max(max, v);
+          }
+        }
+      }
+      if (!Number.isFinite(min)) return { min: 0, max: 0 };
+      return { min, max };
+    }
+
+    function bankCountHeatStyle(n) {
+      const v = Number(n) || 0;
+      if (!v) return '';
+      const { min, max } = bankMatrixCountRange;
+      if (max <= 0) return bankHeatInlineStyle(1);
+      const ratio = max === min ? 1 : (v - min) / (max - min);
+      return bankHeatInlineStyle(ratio);
+    }
+
+    function bankPercentHeatStyle(pct) {
+      const p = Number(pct) || 0;
+      if (!p) return '';
+      return bankHeatInlineStyle(p / 100);
+    }
+
     function bankCountClass(n) {
       const v = Number(n) || 0;
-      if (!v) return 'zero';
-      if (v <= 2) return 'low';
-      if (v <= 5) return 'mid';
-      return 'high';
+      return v ? '' : 'zero';
+    }
+
+    function renderBankMatrixLegend(range) {
+      const minEl = document.getElementById('bankLegendMin');
+      const maxEl = document.getElementById('bankLegendMax');
+      if (!minEl || !maxEl) return;
+      if (!range.max) {
+        minEl.textContent = '—';
+        maxEl.textContent = '—';
+        return;
+      }
+      minEl.textContent = String(range.min);
+      maxEl.textContent = String(range.max);
+    }
+
+    function buildBankDifficultyGrid(rows) {
+      const grid = {};
+      for (const row of rows || []) {
+        const cat = Number(row.category_n);
+        const age = row.age_band;
+        const diff = Number(row.difficulty) || 0;
+        const count = Number(row.count) || 0;
+        if (!cat || !BANK_AGE_BANDS.includes(age) || !count) continue;
+        if (!grid[cat]) grid[cat] = {};
+        if (!grid[cat][age]) grid[cat][age] = {};
+        grid[cat][age][diff] = (grid[cat][age][diff] || 0) + count;
+      }
+      return grid;
+    }
+
+    function bankDifficultyLabel(diff) {
+      const d = Number(diff) || 0;
+      if (!d) return 's/n';
+      return `D${d}`;
+    }
+
+    function renderBankDifficultyBreakdown(diffMap) {
+      const levels = BANK_DIFFICULTY_LEVELS;
+      const parts = levels.map((diff) => {
+        const count = Number(diffMap?.[diff]) || 0;
+        if (!count) return '';
+        const label = bankDifficultyLabel(diff);
+        const style = bankCountHeatStyle(count);
+        const tip = esc(`dificuldade ${diff || 'sem nível'}: ${count}`);
+        return `<span class="bank-diff-pill" style="${style}" title="${tip}">${label}:${count}</span>`;
+      }).filter(Boolean);
+      return parts.length
+        ? `<div class="bank-diff-stack">${parts.join('')}</div>`
+        : '<span class="bank-diff-pill zero">—</span>';
+    }
+
+    function sumDifficultyMap(diffMap) {
+      const totals = {};
+      for (const diff of Object.keys(diffMap || {})) {
+        totals[diff] = (totals[diff] || 0) + (Number(diffMap[diff]) || 0);
+      }
+      return totals;
+    }
+
+    function getCategoryDiffTotals(diffGrid, catN) {
+      const diffRow = diffGrid?.[catN] || {};
+      return sumDifficultyMap(
+        BANK_AGE_BANDS.reduce((acc, age) => {
+          const ageMap = diffRow[age] || {};
+          for (const [diff, count] of Object.entries(ageMap)) {
+            acc[diff] = (acc[diff] || 0) + (Number(count) || 0);
+          }
+          return acc;
+        }, {}),
+      );
+    }
+
+    function adjustDifficultyTotalsForRow(diffTotals, rowTotal) {
+      const adjusted = { ...(diffTotals || {}) };
+      const labeledSum = BANK_DIFFICULTY_LEVELS.reduce((sum, diff) => sum + (Number(adjusted[diff]) || 0), 0);
+      const unlabeled = Math.max(0, (Number(rowTotal) || 0) - labeledSum);
+      if (unlabeled > 0) adjusted[0] = (Number(adjusted[0]) || 0) + unlabeled;
+      return adjusted;
+    }
+
+    function difficultyPercent(count, total) {
+      const c = Number(count) || 0;
+      const t = Number(total) || 0;
+      if (!c || !t) return 0;
+      return Math.round((c / t) * 100);
+    }
+
+    function bankDifficultyPercentCell(diff, diffTotals, rowTotal, catName) {
+      const adjusted = adjustDifficultyTotalsForRow(diffTotals, rowTotal);
+      const count = Number(adjusted?.[diff]) || 0;
+      const pct = difficultyPercent(count, rowTotal);
+      if (!count || !pct) {
+        return '<td class="num bank-diff-pct"><span class="bank-diff-pill zero">—</span></td>';
+      }
+      const label = bankDifficultyLabel(diff);
+      const style = bankPercentHeatStyle(pct);
+      const snHint = diff === 0 ? ' · sem difficulty/estimated no Supabase' : '';
+      const tip = esc(`${catName} · ${label}: ${count} de ${rowTotal} (${pct}% do Σ${snHint})`);
+      return `<td class="num bank-diff-pct"><span class="bank-diff-pill" style="${style}" title="${tip}">${pct}%</span></td>`;
+    }
+
+    function renderBankDifficultyPercentCells(diffTotals, rowTotal, catName) {
+      return BANK_DIFFICULTY_LEVELS.map((diff) => bankDifficultyPercentCell(diff, diffTotals, rowTotal, catName)).join('');
     }
 
     const BANK_ROW_LOW_MAX = 5;
@@ -12562,12 +12990,18 @@
     }
 
     function bankCellGapClass(n) {
-      return (Number(n) || 0) <= BANK_CELL_GAP_MAX ? 'cell-gap' : '';
+      const v = Number(n) || 0;
+      if (!v) return 'cell-gap';
+      const { min, max } = bankMatrixCountRange;
+      if (max <= min) return v <= BANK_CELL_GAP_MAX ? 'cell-gap' : '';
+      const threshold = min + (max - min) * 0.12;
+      return v <= threshold ? 'cell-gap' : '';
     }
 
-    function buildBankWorstGaps(grid, limit = 3) {
+    function buildBankWorstGaps(grid, categories, limit = 3) {
+      const cats = categories || BANK_CATEGORIES.filter((c) => grid?.[c.n]);
       const items = [];
-      for (const cat of BANK_CATEGORIES) {
+      for (const cat of cats) {
         const row = grid[cat.n] || {};
         for (const age of BANK_AGE_BANDS) {
           items.push({ cat, age, count: Number(row[age]) || 0 });
@@ -12582,10 +13016,12 @@
       return items.slice(0, limit);
     }
 
-    function renderBankMatrixCollapsedSummary(grid) {
+    function renderBankMatrixCollapsedSummary(grid, categories) {
       const el = document.getElementById('bankMatrixCollapsedSummary');
       if (!el) return;
-      const worst = buildBankWorstGaps(grid, 3);
+      const scoped = {};
+      for (const cat of categories) scoped[cat.n] = grid[cat.n] || {};
+      const worst = buildBankWorstGaps(scoped, categories, 3);
       if (!worst.length) {
         el.innerHTML = '';
         return;
@@ -12601,11 +13037,11 @@
         </div>`;
     }
 
-    function renderBankGapsSummary(grid) {
+    function renderBankGapsSummary(grid, categories) {
       const el = document.getElementById('bankGapsSummary');
       if (!el) return;
 
-      const gaps = BANK_CATEGORIES.map((cat) => {
+      const gaps = categories.map((cat) => {
         const row = grid[cat.n] || {};
         const weakAges = BANK_AGE_BANDS.filter((age) => (Number(row[age]) || 0) <= BANK_CELL_GAP_MAX);
         const rowTotal = BANK_AGE_BANDS.reduce((sum, age) => sum + (Number(row[age]) || 0), 0);
@@ -12632,11 +13068,15 @@
         </div>`;
     }
 
-    function updateBankMatrixHeaders(ageTotals) {
+    function updateBankMatrixHeaders(ageTotals, categories) {
+      const colTotals = categories.length
+        ? categories.map((cat) => getBankMatrixRowTotal(lastBankMatrixGrid || {}, cat.n))
+        : [];
+      const colMax = colTotals.length ? Math.max(...colTotals) : 0;
       document.querySelectorAll('.bank-matrix thead th[data-bank-age]').forEach((th) => {
         const age = th.dataset.bankAge;
         const total = Number(ageTotals[age]) || 0;
-        th.classList.toggle('col-weak', total <= BANK_ROW_LOW_MAX);
+        th.classList.toggle('col-weak', colMax > 0 && total <= Math.max(BANK_ROW_LOW_MAX, Math.floor(colMax * 0.12)));
         const label = BANK_AGE_CHART_LABELS[age] || age;
         th.title = `${label} — total: ${total} pergunta(s). Clica para ordenar.`;
       });
@@ -12656,11 +13096,12 @@
       });
     }
 
-    function sortBankMatrixRows(grid) {
-      const rows = BANK_CATEGORIES.map((cat) => {
+    function sortBankMatrixRows(grid, diffGrid, categories) {
+      const rows = categories.map((cat) => {
         const row = grid[cat.n] || {};
         const rowTotal = BANK_AGE_BANDS.reduce((sum, age) => sum + (Number(row[age]) || 0), 0);
-        return { cat, row, rowTotal };
+        const rowDiffTotals = getCategoryDiffTotals(diffGrid, cat.n);
+        return { cat, row, rowTotal, rowDiffTotals };
       });
       rows.sort((a, b) => {
         let cmp = 0;
@@ -12668,6 +13109,11 @@
           cmp = a.cat.n - b.cat.n;
         } else if (bankMatrixSort.key === 'total') {
           cmp = a.rowTotal - b.rowTotal;
+        } else if (bankMatrixSort.key.startsWith('diff-')) {
+          const diff = Number(bankMatrixSort.key.slice(5));
+          const pctA = difficultyPercent(adjustDifficultyTotalsForRow(a.rowDiffTotals, a.rowTotal)[diff], a.rowTotal);
+          const pctB = difficultyPercent(adjustDifficultyTotalsForRow(b.rowDiffTotals, b.rowTotal)[diff], b.rowTotal);
+          cmp = pctA - pctB;
         } else {
           cmp = (Number(a.row[bankMatrixSort.key]) || 0) - (Number(b.row[bankMatrixSort.key]) || 0);
         }
@@ -12680,8 +13126,10 @@
     function bankCountCell(n, title = '') {
       const v = Number(n) || 0;
       const cls = bankCountClass(v);
+      const style = bankCountHeatStyle(v);
       const tip = title ? ` title="${esc(title)}"` : '';
-      return `<span class="bank-cell ${cls}"${tip}>${v || 0}</span>`;
+      const styleAttr = style ? ` style="${style}"` : '';
+      return `<span class="bank-cell ${cls}"${styleAttr}${tip}>${v || 0}</span>`;
     }
 
     function buildCategoryAgeGrid(rows) {
@@ -12718,10 +13166,9 @@
       }
 
       const { grid, ageTotals, grandTotal } = buildCategoryAgeGrid(q.bankByCategoryAge);
-      const cell = (n, title) => {
-        const gapCls = bankCellGapClass(n);
-        return `<td class="num${gapCls ? ` ${gapCls}` : ''}">${bankCountCell(n, title)}</td>`;
-      };
+      const quarantineRange = computeQuarantineCountRange(grid);
+      renderQuarantineMatrixLegend(quarantineRange);
+      const cell = (n, title) => `<td class="num">${quarantineCountCell(n, quarantineRange, title)}</td>`;
 
       const rows = BANK_CATEGORIES.map((cat) => {
         const row = grid[cat.n] || {};
@@ -12739,26 +13186,106 @@
         <tr>
           <td class="cat-name"><span class="cat-num">${cat.n}</span>${esc(cat.name)}</td>
           ${BANK_AGE_BANDS.map((age) => cell(row[age] || 0, `${cat.name} · ${age}: ${row[age] || 0} em quarentena`)).join('')}
-          <td class="num">${bankCountCell(rowTotal, `${cat.name} · total: ${rowTotal}`)}</td>
+          <td class="num">${quarantineCountCell(rowTotal, quarantineRange, `${cat.name} · total: ${rowTotal}`)}</td>
         </tr>
       `).join('');
 
       foot.innerHTML = `<tr class="total-row">
         <th>Total</th>
-        ${BANK_AGE_BANDS.map((age) => `<th class="num">${bankCountCell(ageTotals[age] || 0, `Total ${age}: ${ageTotals[age] || 0}`)}</th>`).join('')}
-        <th class="num">${bankCountCell(grandTotal, `Total geral: ${grandTotal}`)}</th>
+        ${BANK_AGE_BANDS.map((age) => `<th class="num">${quarantineCountCell(ageTotals[age] || 0, quarantineRange, `Total ${age}: ${ageTotals[age] || 0}`)}</th>`).join('')}
+        <th class="num">${quarantineCountCell(grandTotal, quarantineRange, `Total geral: ${grandTotal}`)}</th>
       </tr>`;
     }
 
-    function renderBankMatrix(stats) {
+    function renderBankMatrixFromGrid(grid, diffGrid) {
       const body = document.getElementById('bankMatrixBody');
       const foot = document.getElementById('bankMatrixFoot');
       const sourceEl = document.getElementById('bankSourceBreakdown');
       if (!body || !foot) return;
 
+      const visibleCats = getBankMatrixVisibleCategories(grid);
+      syncBankMatrixCategorySelect(grid);
+      bankMatrixCountRange = computeBankMatrixCountRange(grid, visibleCats);
+      renderBankMatrixLegend(bankMatrixCountRange);
+      updateBankMatrixFilterNote(visibleCats, bankMatrixCountRange);
+
+      const { ageTotals, grandTotal } = computeBankMatrixTotals(grid, visibleCats);
+
+      const cell = (n, title) => {
+        const gapCls = bankCellGapClass(n);
+        return `<td class="num${gapCls ? ` ${gapCls}` : ''}">${bankCountCell(n, title)}</td>`;
+      };
+
+      if (!visibleCats.length) {
+        body.innerHTML = `<tr><td colspan="12" class="sub">Nenhuma categoria corresponde ao filtro.</td></tr>`;
+      } else {
+        body.innerHTML = sortBankMatrixRows(grid, diffGrid, visibleCats).map(({ cat, row, rowTotal, rowDiffTotals }) => {
+          const rowCls = bankRowHighlightClass(rowTotal);
+          const expanded = bankMatrixExpandedCats.has(cat.n);
+          const diffRow = diffGrid[cat.n] || {};
+          const diffPctCells = renderBankDifficultyPercentCells(rowDiffTotals, rowTotal, cat.name);
+          const mainRow = `<tr${rowCls ? ` class="${rowCls}"` : ''}>
+            <td class="cat-name">
+              <button type="button" class="bank-matrix-expand" data-bank-expand-cat="${cat.n}" aria-expanded="${expanded ? 'true' : 'false'}" aria-label="Ver por dificuldade e faixa: ${esc(cat.name)}" title="Expandir detalhe por faixa etária">▶</button>
+              <span class="cat-num">${cat.n}</span>${esc(cat.name)}
+            </td>
+            ${BANK_AGE_BANDS.map((age) => cell(row[age] || 0, `${cat.name} · ${age}: ${row[age] || 0} pergunta(s) com opções`)).join('')}
+            ${diffPctCells}
+            <td class="num">${bankCountCell(rowTotal, `${cat.name} · total: ${rowTotal}`)}</td>
+          </tr>`;
+          if (!expanded) return mainRow;
+          const detailRow = `<tr class="bank-matrix-diff-row">
+            <td class="diff-label">por faixa</td>
+            ${BANK_AGE_BANDS.map((age) => `<td class="num">${renderBankDifficultyBreakdown(diffRow[age])}</td>`).join('')}
+            ${BANK_DIFFICULTY_LEVELS.map(() => '<td class="num bank-diff-pct"><span class="bank-diff-pill zero">—</span></td>').join('')}
+            <td class="num">${renderBankDifficultyBreakdown(rowDiffTotals)}</td>
+          </tr>`;
+          return mainRow + detailRow;
+        }).join('');
+      }
+
+      updateBankMatrixHeaders(ageTotals, visibleCats);
+      renderBankGapsSummary(grid, visibleCats);
+      renderBankMatrixCollapsedSummary(grid, visibleCats);
+
+      const globalDiffTotals = visibleCats.reduce((acc, cat) => {
+        const rowTotals = getCategoryDiffTotals(diffGrid, cat.n);
+        for (const [diff, count] of Object.entries(rowTotals)) {
+          acc[diff] = (acc[diff] || 0) + (Number(count) || 0);
+        }
+        return acc;
+      }, {});
+
+      foot.innerHTML = `<tr class="total-row">
+        <th>Total${visibleCats.length < BANK_CATEGORIES.length ? ' (filtro)' : ''}</th>
+        ${BANK_AGE_BANDS.map((age) => `<th class="num">${bankCountCell(ageTotals[age] || 0, `Total ${age}: ${ageTotals[age] || 0}`)}</th>`).join('')}
+        ${renderBankDifficultyPercentCells(globalDiffTotals, grandTotal, 'Categorias visíveis')}
+        <th class="num">${bankCountCell(grandTotal, `Total visível: ${grandTotal}`)}</th>
+      </tr>`;
+
+      if (sourceEl && lastBankStats) {
+        const sources = lastBankStats?.bySource || [];
+        if (!sources.length) {
+          sourceEl.innerHTML = '<p class="sub" style="margin-bottom:0;">Sem perguntas activas por origem.</p>';
+        } else {
+          sourceEl.innerHTML = `
+            <h3 class="charts-title" style="font-size:1rem; margin:0 0 4px;">Por origem</h3>
+            <div class="bank-source-list">
+              ${sources.map((s) => {
+                const label = BANK_SOURCE_LABELS[s.source] || s.source || '—';
+                return `<span class="pill">${esc(label)}: <strong>${s.count || 0}</strong></span>`;
+              }).join('')}
+            </div>`;
+        }
+      }
+    }
+
+    function renderBankMatrix(stats) {
+      const body = document.getElementById('bankMatrixBody');
+      const foot = document.getElementById('bankMatrixFoot');
+      if (!body || !foot) return;
+
       const grid = {};
-      const ageTotals = Object.fromEntries(BANK_AGE_BANDS.map((b) => [b, 0]));
-      let grandTotal = 0;
 
       for (const row of stats?.byCategoryAge || []) {
         const cat = Number(row.category_n);
@@ -12767,49 +13294,12 @@
         if (!cat || !BANK_AGE_BANDS.includes(age)) continue;
         if (!grid[cat]) grid[cat] = {};
         grid[cat][age] = count;
-        ageTotals[age] += count;
-        grandTotal += count;
       }
 
-      const cell = (n, title) => {
-        const gapCls = bankCellGapClass(n);
-        return `<td class="num${gapCls ? ` ${gapCls}` : ''}">${bankCountCell(n, title)}</td>`;
-      };
-
-      body.innerHTML = sortBankMatrixRows(grid).map(({ cat, row, rowTotal }) => {
-        const rowCls = bankRowHighlightClass(rowTotal);
-        return `<tr${rowCls ? ` class="${rowCls}"` : ''}>
-          <td class="cat-name"><span class="cat-num">${cat.n}</span>${esc(cat.name)}</td>
-          ${BANK_AGE_BANDS.map((age) => cell(row[age] || 0, `${cat.name} · ${age}: ${row[age] || 0} pergunta(s) com opções`)).join('')}
-          <td class="num">${bankCountCell(rowTotal, `${cat.name} · total: ${rowTotal}`)}</td>
-        </tr>`;
-      }).join('');
-
-      updateBankMatrixHeaders(ageTotals);
-      renderBankGapsSummary(grid);
-      renderBankMatrixCollapsedSummary(grid);
-
-      foot.innerHTML = `<tr class="total-row">
-        <th>Total</th>
-        ${BANK_AGE_BANDS.map((age) => `<th class="num">${bankCountCell(ageTotals[age] || 0, `Total ${age}: ${ageTotals[age] || 0}`)}</th>`).join('')}
-        <th class="num">${bankCountCell(grandTotal, `Total geral: ${grandTotal}`)}</th>
-      </tr>`;
-
-      if (sourceEl) {
-        const sources = stats?.bySource || [];
-        if (!sources.length) {
-          sourceEl.innerHTML = '<p class="sub" style="margin-bottom:0;">Sem perguntas activas por origem.</p>';
-          return;
-        }
-        sourceEl.innerHTML = `
-          <h3 class="charts-title" style="font-size:1rem; margin:0 0 4px;">Por origem</h3>
-          <div class="bank-source-list">
-            ${sources.map((s) => {
-              const label = BANK_SOURCE_LABELS[s.source] || s.source || '—';
-              return `<span class="pill">${esc(label)}: <strong>${s.count || 0}</strong></span>`;
-            }).join('')}
-          </div>`;
-      }
+      const diffGrid = buildBankDifficultyGrid(stats?.byCategoryAgeDifficulty || []);
+      lastBankMatrixGrid = grid;
+      lastBankMatrixDiffGrid = diffGrid;
+      renderBankMatrixFromGrid(grid, diffGrid);
     }
 
     function formatBankTimelineLabel(t, granularity) {
@@ -14468,7 +14958,22 @@
         bankMatrixSort.key = key;
         bankMatrixSort.dir = 'asc';
       }
-      if (lastBankStats) renderBankMatrix(lastBankStats);
+      if (lastBankMatrixGrid) renderBankMatrixFromGrid(lastBankMatrixGrid, lastBankMatrixDiffGrid || {});
+      else if (lastBankStats) renderBankMatrix(lastBankStats);
+    });
+    document.getElementById('bankMatrixCategorySelect')?.addEventListener('change', (e) => {
+      bankMatrixCategorySelect = String(e.target.value || '');
+      if (lastBankMatrixGrid) renderBankMatrixFromGrid(lastBankMatrixGrid, lastBankMatrixDiffGrid || {});
+    });
+    document.getElementById('bankMatrixBody')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-bank-expand-cat]');
+      if (!btn) return;
+      e.preventDefault();
+      const cat = Number(btn.dataset.bankExpandCat);
+      if (!cat) return;
+      if (bankMatrixExpandedCats.has(cat)) bankMatrixExpandedCats.delete(cat);
+      else bankMatrixExpandedCats.add(cat);
+      if (lastBankMatrixGrid) renderBankMatrixFromGrid(lastBankMatrixGrid, lastBankMatrixDiffGrid || {});
     });
     document.getElementById('bankTimelineFilters')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-bank-range]');

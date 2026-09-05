@@ -271,7 +271,11 @@
     if (!hasValidMcOptions(meta.options, meta.format, meta.correctAnswer)) {
       return { ok: false, reason: 'missing_options' };
     }
-    const { data, error } = await c.rpc('save_question_to_bank', {
+    const roundDifficulty = (value) => {
+      const n = Number(value);
+      return Number.isFinite(n) ? Math.max(1, Math.min(5, Math.round(n))) : null;
+    };
+    const rpcArgs = {
       p_category_n: meta.categoryN,
       p_age_band: meta.ageBand,
       p_question: meta.question,
@@ -284,8 +288,15 @@
       p_knowledge_id: meta.knowledgeId || null,
       p_source_id: meta.sourceId || null,
       p_confidence: meta.confidence ?? null,
-      p_difficulty: meta.difficulty != null ? Math.round(Number(meta.difficulty)) : null,
-    });
+      p_difficulty: roundDifficulty(meta.difficulty),
+      p_estimated_difficulty: roundDifficulty(meta.estimatedDifficulty),
+    };
+    let { data, error } = await c.rpc('save_question_to_bank', rpcArgs);
+    if (error && /p_estimated_difficulty/i.test(String(error.message || ''))) {
+      const fallbackArgs = { ...rpcArgs };
+      delete fallbackArgs.p_estimated_difficulty;
+      ({ data, error } = await c.rpc('save_question_to_bank', fallbackArgs));
+    }
     if (error) {
       console.warn('[QuestionBank] save falhou:', error.message);
       return { ok: false, error };

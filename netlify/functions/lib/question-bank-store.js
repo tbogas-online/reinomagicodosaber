@@ -506,6 +506,7 @@ async function getQuestionBankStats() {
       reported: 0,
       blocked: 0,
       byCategoryAge: [],
+      byCategoryAgeDifficulty: [],
       bySource: [],
     }
     : {
@@ -516,6 +517,7 @@ async function getQuestionBankStats() {
       reported: Number(data.reported) || 0,
       blocked: Number(data.blocked) || 0,
       byCategoryAge: Array.isArray(data.byCategoryAge) ? data.byCategoryAge : [],
+      byCategoryAgeDifficulty: Array.isArray(data.byCategoryAgeDifficulty) ? data.byCategoryAgeDifficulty : [],
       bySource: Array.isArray(data.bySource) ? data.bySource : [],
     };
 
