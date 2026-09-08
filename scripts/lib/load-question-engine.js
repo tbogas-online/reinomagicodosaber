@@ -31,6 +31,7 @@ function loadQuestionEngine(options = {}) {
   );
   return {
     QE: sandbox.globalThis.QuestionEngine,
+    Learning: sandbox.globalThis.QuestionEngineLearning,
     ReportDiagnosis: sandbox.globalThis.QuestionEngineReportDiagnosis,
   };
 }

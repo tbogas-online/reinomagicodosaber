@@ -3658,6 +3658,7 @@
 <script src="question-engine/knowledge-key-compute.js?v=20260908-120850"></script>
 <script src="question-engine/persistent-history.js?v=20260908-120850"></script>
 <script src="question-engine/question-archetypes.js?v=20260908-120850"></script>
+<script src="question-engine/learning-engine.js?v=20260908-120850"></script>
 <script src="question-engine/prompt-builder.js?v=20260908-120850"></script>
 <script src="question-engine/mc-assembly.js?v=20260908-120850"></script>
 <script src="question-engine/issue-overrides.js?v=20260908-120850"></script>
@@ -6245,6 +6246,9 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     if(!bankReplenishOnly && !localOnly && !aiStatusOnline){
       await probeAiStatusQuick();
     }
+    if(!localOnly){
+      await loadLearningRules();
+    }
     const remember = (qText) => rememberGlobalQuestion(ageBandKey, qText);
     const questionPlan = chooseQuestionPlan(category.n, ageBandKey);
     const questionFormat = questionPlan.format;
@@ -8817,6 +8821,20 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
     } catch { /* ignore */ }
   }
 
+  let learningRulesLoadedAt = 0;
+  const LEARNING_RULES_TTL_MS = 60 * 1000;
+
+  async function loadLearningRules(force = false){
+    if(!force && learningRulesLoadedAt && (Date.now() - learningRulesLoadedAt) < LEARNING_RULES_TTL_MS) return;
+    try {
+      const response = await fetch('/api/test-eval?t=' + Date.now(), { cache: 'no-store' });
+      if(!response.ok) return;
+      const data = await response.json().catch(() => ({}));
+      window.QuestionEngineLearning?.setCachedRules?.(data.rules || []);
+      learningRulesLoadedAt = Date.now();
+    } catch { /* ignore */ }
+  }
+
   function warnIfQuestionEngineMissing(){
     if(window.QuestionEngine) return;
     if(!DEBUG_MODE) return;
@@ -8977,6 +8995,7 @@ Usa APENAS caracteres latinos portugueses — nunca chinês, japonês, coreano n
   function bootAfterQuestionEngine(){
     warnIfQuestionEngineMissing();
     loadValidationRuleOverrides();
+    loadLearningRules();
     maybeOpenAiSettingsFromUrl();
     if(window.MultiplayerController){
       window.MultiplayerController.bindGame({

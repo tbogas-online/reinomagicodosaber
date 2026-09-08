@@ -222,5 +222,6 @@
     mkIssue,
     issueMessage,
     issueCode,
+    Learning: global.QuestionEngineLearning || null,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

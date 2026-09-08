@@ -31,6 +31,7 @@
     'question-engine/knowledge-key-compute.js',
     'question-engine/persistent-history.js',
     'question-engine/question-archetypes.js',
+    'question-engine/learning-engine.js',
     'question-engine/prompt-builder.js',
     'question-engine/mc-assembly.js',
     'question-engine/issue-overrides.js',

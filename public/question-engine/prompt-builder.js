@@ -371,9 +371,13 @@ ${ageRulesText}`;
     const sub = subtopic || chooseSubtopic(category?.n || 1, ctx.recentSubtopics);
     const archId = archetypeId || null;
     const arch = archId ? Archetypes.getArchetype(archId) : null;
+    const Learning = global.QuestionEngineLearning;
+    const learningBlock = ctx.learningRulesText
+      || (typeof Learning?.getPersistentPromptBlock === 'function' ? Learning.getPersistentPromptBlock() : '');
     const retryBlock = (retryHint || ctx.formatRetryHint)
       ? `\n${retryHint || ctx.formatRetryHint}\n`
       : '';
+    const learnedBlock = learningBlock ? `\n${learningBlock}\n` : '';
     const archetypeBlock = arch
       ? `\n${Archetypes.buildArchetypeRules(arch.id)}\n`
       : '';
@@ -396,7 +400,7 @@ ${ageRulesText}`;
 FORMATO OBRIGATÓRIO DESTA RODADA: ${formatLabel} (${formatId}) — não uses outro tipo de pergunta.
 SUBTÓPICO DESTA RODADA: ${sub} — a pergunta deve reflectir este subtipo dentro da categoria.
 ${arch ? `TIPO DE PERGUNTA (ARCHETYPE): ${arch.label} (${arch.id}) — testa ${cogLabel.toLowerCase()}, não outra intenção.\n` : ''}DIFICULDADE: ${diff}/5 (${diffLabel}) — adequada à faixa etária.
-${retryBlock}${archetypeBlock}${musicFocusBlock}${techFocusBlock}${diffExtra}
+${retryBlock}${learnedBlock}${archetypeBlock}${musicFocusBlock}${techFocusBlock}${diffExtra}
 ${buildGlobalRules()}
 
 REGRAS DA CATEGORIA:
@@ -447,7 +451,11 @@ Só json válido, sem markdown: ${jsonFormat}`;
     }
 
     const formatLabel = FORMAT_LABELS[formatId] || formatId;
+    const Learning = global.QuestionEngineLearning;
+    const learningBlock = ctx.learningRulesText
+      || (typeof Learning?.getPersistentPromptBlock === 'function' ? Learning.getPersistentPromptBlock() : '');
     const retryBlock = retryHint ? `\n${retryHint}\n` : '';
+    const learnedBlock = learningBlock ? `\n${learningBlock}\n` : '';
     const sourceLine = record.sourceId
       ? `${record.source} · ${record.sourceId}`
       : String(record.source || 'repositório');
@@ -473,7 +481,7 @@ REGRAS DO REPOSITÓRIO (obrigatórias):
 CATEGORIA: ${category.name} (${category.desc})
 FORMATO: ${formatLabel} (${formatId})
 IDADE: ${ageBandPromptText}
-${retryBlock}
+${retryBlock}${learnedBlock}
 ${buildGlobalRules()}
 
 ${buildFormatRules(formatId, { ageBandKey, isMC, isTrueFalse })}
@@ -512,7 +520,7 @@ REGRAS DO REPOSITÓRIO (obrigatórias):
 CATEGORIA: ${category.name} (${category.desc})
 FORMATO: ${formatLabel} (${formatId})
 IDADE: ${ageBandPromptText}
-${retryBlock}
+${retryBlock}${learnedBlock}
 ${buildGlobalRules()}
 
 ${buildFormatRules(formatId === FORMAT_IDS.VERDADEIRO_FALSO ? FORMAT_IDS.CURIOSIDADE : formatId, { ageBandKey, isMC, isTrueFalse: true })}

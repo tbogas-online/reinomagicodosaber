@@ -1526,6 +1526,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('148. validateFactualConsistency', Array.isArray(woody));
   const manifest = manifestSandbox.globalThis.QuestionEngineManifest;
   assert('149. manifest ordem', manifest.ENGINE_SCRIPT_PATHS[0].endsWith('engine-config.js')
+    && manifest.ENGINE_SCRIPT_PATHS.includes('question-engine/learning-engine.js')
     && manifest.ENGINE_SCRIPT_PATHS.at(-1) === 'question-engine.js');
 }
 {
@@ -2186,6 +2187,54 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     normalizeFn: (s) => String(s || '').trim().toLowerCase(),
   });
   assert('233. prompt calibra distractores à dificuldade', /OPÇÕES MC CALIBRADAS À DIFICULDADE 5/.test(prompt));
+}
+
+{
+  const Learning = sandbox.globalThis.QuestionEngineLearning;
+  assert('234. learning engine carregado', !!(Learning && QE.Learning));
+  const sample = (n) => ({
+    id: `q-${n}`,
+    schemaVersion: 2,
+    input: { category: 'História', age: '6-9', difficulty: 4, format: 'ESCOLHA_MULTIPLA' },
+    generated: { question: `Pergunta secreta número ${n} sobre a batalha de Aljubarrota`, answer: '1385' },
+    engine: { accepted: true, score: 90, layers: { mcOptions: 12, age: 12, difficulty: 8 } },
+    human: {
+      verdict: 'false-positive',
+      rating: 2,
+      issues: ['too-hard', 'obvious-distractor'],
+      fieldErrors: [
+        { field: 'difficulty', ai_value: 4, human_value: 2, error: true },
+        { field: 'category', ai_value: 'História', human_value: 'Geografia', error: true },
+      ],
+      corrections: { difficulty: 2, category: 'Geografia' },
+      layerScores: { mcOptions: 5, age: 4, difficulty: 3 },
+      comment: 'Demasiado difícil para 8 anos.',
+    },
+  });
+  const rules = Learning.deriveRules([sample(1), sample(2), sample(3)]);
+  assert('235. deriva regra de dificuldade 6-9', rules.some((r) => /6-9/.test(r.rule) && /dificuldade/i.test(r.rule)));
+  assert('236. deriva regra de distractores', rules.some((r) => /distractor/i.test(r.rule)));
+  assert('237. deriva correcção História→Geografia', rules.some((r) => /História/.test(r.rule) && /Geografia/.test(r.rule)));
+  assert('238. deriva sobrevalorização MC', rules.some((r) => /sobrevaloriza/i.test(r.rule) && /MC/.test(r.rule)));
+  const hints = Learning.formatSessionHints([sample(1)]);
+  assert('239. hints de sessão sem texto da pergunta', hints.includes('too-hard') === false && !hints.includes('Aljubarrota') && hints.includes('6-9'));
+  assert('240. hints usam problemas estruturados', /demasiado difícil/.test(hints) && /False positive/.test(hints));
+  Learning.setCachedRules(rules);
+  const learnedPrompt = QE.buildPrompt({
+    category: QE.CATEGORIES[3],
+    ageBandKey: '6-9',
+    ageBandPromptText: '6 a 9 anos',
+    formatId: 'ESCOLHA_MULTIPLA',
+    ptPtRules: '',
+    isMC: true,
+    isTrueFalse: false,
+    difficulty: 3,
+    jsonFormat: '{"q":"","a":""}',
+    normalizeFn: (s) => String(s || '').trim().toLowerCase(),
+  });
+  assert('241. prompt inclui regras persistentes', /REGRAS APRENDIDAS/.test(learnedPrompt));
+  assert('242. prompt persistente não copia a pergunta', !learnedPrompt.includes('Aljubarrota'));
+  Learning.setCachedRules([]);
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

@@ -44,6 +44,9 @@
 [functions."validation-overrides"]
   node_bundler = "esbuild"
 
+[functions."test-eval"]
+  node_bundler = "esbuild"
+
 [functions."game-stats-admin"]
   node_bundler = "esbuild"
 
@@ -103,6 +106,11 @@
 [[redirects]]
   from = "/api/validation-overrides"
   to = "/.netlify/functions/validation-overrides"
+  status = 200
+
+[[redirects]]
+  from = "/api/test-eval"
+  to = "/.netlify/functions/test-eval"
   status = 200
 
 [[redirects]]
