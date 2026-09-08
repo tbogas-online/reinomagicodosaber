@@ -110,8 +110,100 @@ a informacao <!DOCTYPE html>
     .badge.ok { background: rgba(16, 185, 129, 0.22); color: #34d399; }
     .badge.err { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
     .score-big { font-size: 1.4rem; color: var(--accent); }
-    .resolved { font-size: 0.88rem; color: var(--muted); margin: 8px 0 4px; }
-    .resolved strong { color: var(--accent); }
+    .resolved { font-size: 0.82rem; color: var(--muted); margin: 8px 0 4px; }
+    .resolved strong { color: var(--text); }
+    .result-context {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin: 0 0 12px;
+    }
+    .ctx-chip {
+      flex: 1 1 140px;
+      min-width: 140px;
+      background: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+    .ctx-chip span {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
+    }
+    .ctx-chip strong {
+      display: block;
+      font-size: 1.05rem;
+      line-height: 1.25;
+      color: var(--text);
+    }
+    .ctx-chip.cat {
+      border-color: #1d4ed8;
+      background: linear-gradient(180deg, rgba(59, 130, 246, 0.18) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.cat strong { color: #93c5fd; }
+    .ctx-chip.age {
+      border-color: #b45309;
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.18) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.age strong { color: #fbbf24; }
+    .ctx-chip.diff {
+      border-color: #0d9488;
+      background: linear-gradient(180deg, rgba(20, 184, 166, 0.16) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.diff strong { color: #5eead4; }
+    .ctx-chip.diff-est {
+      border-color: #64748b;
+      background: linear-gradient(180deg, rgba(100, 116, 139, 0.16) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.diff-est strong { color: #cbd5e1; }
+    .ctx-chip.mismatch {
+      border-color: #b45309;
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.2) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.mismatch strong { color: #fbbf24; }
+    .ctx-chip.mismatch span::after { content: ' · divergente'; }
+    .ctx-chip.diff-corr {
+      border-color: #7c3aed;
+      background: linear-gradient(180deg, rgba(139, 92, 246, 0.2) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip select.ctx-select {
+      width: 100%;
+      margin: 0;
+      padding: 4px 2px 2px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1.25;
+      background: transparent;
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+    }
+    .ctx-chip.cat select.ctx-select { color: #93c5fd; }
+    .ctx-chip.diff-corr select.ctx-select { color: #ddd6fe; }
+    .ctx-adjust {
+      display: grid;
+      gap: 10px;
+      margin: -4px 0 12px;
+      padding: 10px 12px;
+      background: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+    @media (min-width: 720px) {
+      .ctx-adjust { grid-template-columns: 1fr auto; align-items: start; }
+    }
+    .ctx-adjust-label {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 6px;
+    }
+    .ctx-adjust .rate-btns button { font-size: 0.82rem; padding: 6px 10px; }
+    .ctx-extra { margin: 0 0 10px; }
     .layers { display: grid; gap: 8px; margin: 10px 0; font-size: 0.84rem; }
     .layer-card {
       background: var(--input); border: 1px solid var(--border);
@@ -140,7 +232,11 @@ a informacao <!DOCTYPE html>
     .mc-opt-list li.correct { border-color: #047857; background: rgba(16, 185, 129, 0.12); }
     .mc-opt-list li.missing { border-color: #991b1b; color: #fca5a5; }
     .mc-opt-tag { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
-    .mc-opt-list li.correct .mc-opt-tag { color: #34d399; }
+    .edit-box { margin: 12px 0; padding-top: 12px; border-top: 1px solid var(--border); }
+    .edit-box h3 { margin: 0 0 6px; font-size: 0.92rem; }
+    .mc-edit-list { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+    .mc-edit-list li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: center; }
+    .mc-edit-list li span { color: var(--muted); font-size: 0.8rem; }
     ul.issues { margin: 8px 0 0; padding-left: 1.1rem; color: #fca5a5; font-size: 0.9rem; }
     pre { margin: 8px 0 0; padding: 10px; border-radius: 8px; background: var(--input); font-size: 0.76rem; white-space: pre-wrap; }
     .hint { font-size: 0.84rem; color: var(--muted); margin: 0 0 8px; }
@@ -344,6 +440,42 @@ a informacao <!DOCTYPE html>
     <!-- Resultado -->
     <div class="card" id="result-card" hidden>
       <h2>1. Resultado</h2>
+      <div class="result-context" id="result-context">
+        <div class="ctx-chip cat">
+          <span>Categoria</span>
+          <select id="eval-cat" class="ctx-select" aria-label="Categoria principal"></select>
+        </div>
+        <div class="ctx-chip age"><span>Faixa etária</span><strong id="ctx-age">—</strong></div>
+        <div class="ctx-chip diff"><span>Dificuldade pedida</span><strong id="ctx-diff-req">—</strong></div>
+        <div class="ctx-chip diff-est" id="ctx-diff-est-chip"><span>Dificuldade estimada</span><strong id="ctx-diff-est">—</strong></div>
+        <div class="ctx-chip diff-corr">
+          <span>Dificuldade correcta</span>
+          <select id="eval-diff" class="ctx-select" aria-label="Dificuldade correcta">
+            <option value="1">1 — muito fácil</option>
+            <option value="2">2 — fácil</option>
+            <option value="3">3 — médio</option>
+            <option value="4">4 — difícil</option>
+            <option value="5">5 — especialista</option>
+          </select>
+        </div>
+      </div>
+      <div class="ctx-adjust" id="ctx-adjust">
+        <div>
+          <span class="ctx-adjust-label">Também cabe em (adicionar categorias)</span>
+          <div class="chip-group" id="eval-cat-extra"></div>
+        </div>
+        <div>
+          <span class="ctx-adjust-label">Ponderação (nota 1–5)</span>
+          <div class="rate-btns" id="ctx-rate">
+            <button type="button" class="secondary" data-rate="5">5 Excelente</button>
+            <button type="button" class="secondary" data-rate="4">4 Boa</button>
+            <button type="button" class="secondary" data-rate="3">3 Aceitável</button>
+            <button type="button" class="secondary" data-rate="2">2 Fraca</button>
+            <button type="button" class="secondary" data-rate="1">1 Má</button>
+          </div>
+        </div>
+      </div>
+      <p class="hint ctx-extra" id="ctx-extra" hidden></p>
       <div id="ai-usage-line" class="ai-usage-line" hidden></div>
       <div id="resolved-line" class="resolved"></div>
       <div id="q-preview" class="q-preview"></div>
@@ -353,8 +485,31 @@ a informacao <!DOCTYPE html>
       <div id="result" class="result idle"></div>
 
       <div class="feedback-box" id="feedback-form" hidden>
-        <h3>2. Avaliar esta pergunta</h3>
-        <p class="check-box" id="eval-gate">O motor só gera a seguinte depois desta avaliação. Veredito + nota 1–5 são obrigatórios; o comentário ajuda o próximo prompt.</p>
+        <h3>2. Ajustar e avaliar</h3>
+        <p class="check-box" id="eval-gate">Na barra acima: corrige categoria e dificuldade, dá a nota 1–5. Em baixo: corrige enunciado/opções se precisares, depois o veredito. O motor usa estes ajustes na próxima geração.</p>
+
+        <div class="edit-box">
+          <p class="hint">Categoria, dificuldade e nota 1–5 ajustam-se na barra acima. Aqui podes corrigir o enunciado e as opções.</p>
+          <label for="q">Pergunta</label>
+          <textarea id="q" rows="2" placeholder="Enunciado completo"></textarea>
+          <label for="a">Resposta correcta</label>
+          <input type="text" id="a" placeholder="Tem de coincidir com uma das opções">
+          <div id="mc-edit-wrap">
+            <label>Opções MC</label>
+            <ol class="mc-edit-list" id="mc-edit-list">
+              <li><span>A</span><input type="text" id="mc-opt-0" autocomplete="off"></li>
+              <li><span>B</span><input type="text" id="mc-opt-1" autocomplete="off"></li>
+              <li><span>C</span><input type="text" id="mc-opt-2" autocomplete="off"></li>
+              <li><span>D</span><input type="text" id="mc-opt-3" autocomplete="off"></li>
+            </ol>
+          </div>
+          <textarea id="options" hidden></textarea>
+          <div class="row" style="margin-top:10px;">
+            <button type="button" class="secondary" id="btn-apply-edits">Aplicar ajustes e revalidar</button>
+          </div>
+          <p class="hint" id="edit-status" hidden></p>
+        </div>
+
         <p class="hint">O motor acertou nesta validação?</p>
         <div class="verdict-btns" id="verdict-btns">
           <button type="button" data-verdict="motor-ok" class="secondary">✅ Correcto</button>
@@ -423,12 +578,6 @@ a informacao <!DOCTYPE html>
         <div class="row" style="margin-top:12px;">
           <button type="button" class="secondary" id="btn-validate-manual">Revalidar pergunta actual</button>
         </div>
-        <label for="q" style="margin-top:10px;">Pergunta (editar)</label>
-        <textarea id="q" rows="2"></textarea>
-        <label for="a">Resposta</label>
-        <input type="text" id="a">
-        <label for="options">Opções MC</label>
-        <textarea id="options" rows="2"></textarea>
       </div>
     </details>
 
@@ -557,6 +706,7 @@ a informacao <!DOCTYPE html>
     let lastResolved = null;
     let lastAiUsage = null;
     let generating = false;
+    let applyingEdits = false;
 
     const session = {
       usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedFormats: [],
@@ -789,6 +939,165 @@ a informacao <!DOCTYPE html>
       if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
     }
 
+    function populateEvalAdjusts() {
+      const sel = $('eval-cat');
+      if (sel && !sel.options.length) {
+        sel.innerHTML = CATEGORIES.map((c) => `<option value="${c.n}">${c.n}. ${c.name}</option>`).join('');
+      }
+      const extra = $('eval-cat-extra');
+      if (extra && !extra.children.length) {
+        extra.innerHTML = CATEGORIES.map((c) =>
+          `<label class="chip"><input type="checkbox" value="${c.n}"> ${c.n}. ${c.name}</label>`
+        ).join('');
+      }
+    }
+
+    function diffLabel(n) {
+      const labels = QE.DIFFICULTY_LABELS || {};
+      const v = Number(n);
+      return Number.isFinite(v) ? `${v} — ${labels[v] || ''}`.replace(/\s—\s$/, '') : '—';
+    }
+
+    function readMcEditOptions() {
+      const fromInputs = [0, 1, 2, 3].map((i) => ($('mc-opt-' + i)?.value || '').trim()).filter(Boolean);
+      if (fromInputs.length) return fromInputs;
+      return linesToArray($('options')?.value);
+    }
+
+    function fillMcEditOptions(options) {
+      const list = Array.isArray(options) ? options.slice(0, 4) : [];
+      for (let i = 0; i < 4; i += 1) {
+        const el = $('mc-opt-' + i);
+        if (el) el.value = list[i] || '';
+      }
+      if ($('options')) $('options').value = list.join('\n');
+    }
+
+    function syncExtraCatChips(primaryN) {
+      document.querySelectorAll('#eval-cat-extra input').forEach((box) => {
+        const n = Number(box.value);
+        box.disabled = n === Number(primaryN);
+        if (box.disabled) box.checked = false;
+        const label = box.closest('label');
+        if (label) label.style.opacity = box.disabled ? '0.4' : '';
+      });
+    }
+
+    function readExtraCategories(primaryN) {
+      return [...document.querySelectorAll('#eval-cat-extra input:checked')]
+        .map((box) => Number(box.value))
+        .filter((n) => n && n !== Number(primaryN))
+        .map((n) => CATEGORIES.find((c) => c.n === n))
+        .filter(Boolean);
+    }
+
+    function cloneParsed(parsed) {
+      return {
+        ...(parsed || {}),
+        options: Array.isArray(parsed?.options) ? parsed.options.slice() : parsed?.options,
+      };
+    }
+
+    function isMcResolved(resolved) {
+      return resolved?.answerMode === 'mc'
+        || resolved?.formatId === QE.FORMAT_IDS?.ESCOLHA_MULTIPLA
+        || resolved?.formatId === QE.FORMAT_IDS?.VERDADEIRO_FALSO;
+    }
+
+    function setExtraCatChecks(extras) {
+      const wanted = new Set((extras || []).map((c) => Number(c.n || c)));
+      document.querySelectorAll('#eval-cat-extra input').forEach((box) => {
+        if (box.disabled) return;
+        box.checked = wanted.has(Number(box.value));
+      });
+    }
+
+    function renderExtraContext(resolved, extras, originalResolved) {
+      const el = $('ctx-extra');
+      if (!el) return;
+      const bits = [];
+      const origCat = originalResolved?.cat;
+      if (origCat?.n && resolved?.cat?.n && origCat.n !== resolved.cat.n) {
+        bits.push(`categoria original: ${origCat.n}. ${origCat.name}`);
+      }
+      const extraNames = (extras || []).map((c) => `${c.n}. ${c.name}`);
+      if (extraNames.length) bits.push('também cabe em: ' + extraNames.join(', '));
+      const req = Number(resolved?.requestedDifficulty ?? originalResolved?.requestedDifficulty);
+      const corr = Number(resolved?.difficulty);
+      if (Number.isFinite(req) && Number.isFinite(corr) && req !== corr) {
+        bits.push(`dificuldade correcta (tester): ${diffLabel(corr)}`);
+      }
+      if (!bits.length) {
+        el.hidden = true;
+        el.textContent = '';
+        return;
+      }
+      el.hidden = false;
+      el.textContent = bits.join(' · ');
+    }
+
+    function estimateForParsed(parsed, ageBandKey) {
+      if (!QE.estimateDifficulty || !parsed?.q) return { estimatedDifficulty: null, difficultyConfidence: null };
+      return QE.estimateDifficulty(parsed.q, parsed.a, { ageBandKey }) || {};
+    }
+
+    function fillDifficultyChips(parsed, resolved) {
+      const requested = Number(resolved?.requestedDifficulty ?? resolved?.difficulty);
+      const est = estimateForParsed(parsed, resolved?.ageBandKey);
+      const estimated = Number(est.estimatedDifficulty);
+      const confidence = Number(est.difficultyConfidence);
+      const reqEl = $('ctx-diff-req');
+      const estEl = $('ctx-diff-est');
+      const chip = $('ctx-diff-est-chip');
+      if (reqEl) reqEl.textContent = Number.isFinite(requested) ? diffLabel(requested) : '—';
+      if (estEl) {
+        if (Number.isFinite(estimated)) {
+          const conf = Number.isFinite(confidence) ? ` · ${Math.round(confidence * 100)}%` : '';
+          estEl.textContent = diffLabel(estimated) + conf;
+        } else {
+          estEl.textContent = '—';
+        }
+      }
+      if (chip) {
+        chip.classList.toggle(
+          'mismatch',
+          Number.isFinite(requested) && Number.isFinite(estimated) && requested !== estimated,
+        );
+      }
+      const corrChip = document.querySelector('.ctx-chip.diff-corr');
+      const corrected = Number(resolved?.difficulty);
+      if (corrChip) {
+        corrChip.classList.toggle(
+          'mismatch',
+          Number.isFinite(requested) && Number.isFinite(corrected) && requested !== corrected,
+        );
+      }
+      if (resolved) {
+        resolved.estimatedDifficulty = Number.isFinite(estimated) ? estimated : null;
+        resolved.difficultyConfidence = Number.isFinite(confidence) ? confidence : null;
+      }
+      return { requested, estimated, confidence };
+    }
+
+    function fillEditorFromParsed(parsed, resolved, { keepEval } = {}) {
+      populateEvalAdjusts();
+      if ($('q')) $('q').value = parsed?.q || '';
+      if ($('a')) $('a').value = parsed?.a || '';
+      fillMcEditOptions(parsed?.options);
+      const wrap = $('mc-edit-wrap');
+      if (wrap) wrap.hidden = !isMcResolved(resolved);
+      const catN = resolved?.cat?.n;
+      if (!keepEval) {
+        if ($('eval-cat') && catN) $('eval-cat').value = String(catN);
+        const diffVal = Number(resolved?.difficulty);
+        if ($('eval-diff') && Number.isFinite(diffVal)) $('eval-diff').value = String(diffVal);
+        syncExtraCatChips(catN);
+        setExtraCatChecks([]);
+      } else {
+        syncExtraCatChips($('eval-cat')?.value || catN);
+      }
+    }
+
     function populateFormatSelect(catN, ageBandKey, answerMode) {
       const formats = QE.getAllowedFormats(catN, ageBandKey, answerMode);
       const sel = $('format');
@@ -993,7 +1302,7 @@ a informacao <!DOCTYPE html>
     }
 
     function syncResultRateButtons(rating) {
-      document.querySelectorAll('#result-rate button').forEach((b) => {
+      document.querySelectorAll('#result-rate button, #ctx-rate button').forEach((b) => {
         b.classList.toggle('selected', Number(b.dataset.rate) === Number(rating));
       });
     }
@@ -1115,7 +1424,8 @@ a informacao <!DOCTYPE html>
         || formatId === QE.FORMAT_IDS.ESCOLHA_MULTIPLA
         || formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO;
       const parsed = { q, a };
-      const options = linesToArray($('options').value);
+      const options = readMcEditOptions();
+      if ($('options')) $('options').value = options.join('\n');
       if (isMC && options.length >= 2) parsed.options = options;
       return { parsed, isMC };
     }
@@ -1135,7 +1445,7 @@ a informacao <!DOCTYPE html>
         formatId,
         ageBandKey,
         categoryNumber: cat.n,
-        difficulty: r?.difficulty || Number($('difficulty').value) || 3,
+        difficulty: r?.difficulty || Number($('eval-diff')?.value) || Number($('difficulty').value) || 3,
         minQualityScore: 0,
         usedQuestions: useSession ? session.usedQuestions : [],
         usedAnswers: useSession ? session.usedAnswers : [],
@@ -1182,36 +1492,114 @@ a informacao <!DOCTYPE html>
       });
     }
 
-    function showResult(result, parsed, resolved, aiUsage = null) {
+    function applyEditsAndRevalidate({ silent } = {}) {
+      if (applyingEdits) return false;
+      if (!lastResolved && !currentEntry) {
+        if (!silent) {
+          const st = $('edit-status');
+          if (st) { st.hidden = false; st.textContent = 'Gera uma pergunta primeiro.'; }
+        }
+        return false;
+      }
+      const { parsed, isMC } = buildParsedFromForm();
+      if (!parsed.q || !parsed.a) {
+        if (!silent) {
+          const st = $('edit-status');
+          if (st) { st.hidden = false; st.textContent = 'Preenche pergunta e resposta.'; }
+        }
+        return false;
+      }
+      applyingEdits = true;
+      try {
+        populateEvalAdjusts();
+        const catN = Number($('eval-cat')?.value);
+        const cat = CATEGORIES.find((c) => c.n === catN) || lastResolved?.cat || currentEntry?.resolved?.cat;
+        const difficulty = Number($('eval-diff')?.value) || lastResolved?.difficulty;
+        const extras = readExtraCategories(cat?.n);
+        const prev = currentEntry;
+        const requestedDifficulty = prev?.requestedDifficulty
+          ?? lastResolved?.requestedDifficulty
+          ?? lastResolved?.difficulty
+          ?? difficulty;
+        const resolved = {
+          ...(lastResolved || prev?.resolved || {}),
+          cat,
+          difficulty,
+          requestedDifficulty,
+        };
+        const ctx = buildValidationCtx({
+          isMC,
+          categoryNumber: cat.n,
+          difficulty,
+          formatId: resolved.formatId,
+        });
+        lastResolved = resolved;
+        const result = validateParsed(parsed, ctx);
+        showResult(result, parsed, resolved, prev?.aiUsage, { keepEval: true });
+        if (currentEntry) currentEntry.extraCategories = extras;
+        setExtraCatChecks(extras);
+        renderExtraContext(resolved, extras, currentEntry?.originalResolved);
+        const st = $('edit-status');
+        if (st && !silent) {
+          st.hidden = false;
+          const extraNote = extras.length ? ` · também ${extras.map((c) => c.n).join(', ')}` : '';
+          st.textContent = result.ok
+            ? `Revalidado: aceite (${result.score}/100). ${cat.n}. ${cat.name}, D${difficulty}${extraNote}.`
+            : `Revalidado: rejeitada (${result.score}/100). Os ajustes da barra entram na próxima geração.`;
+        }
+        return true;
+      } finally {
+        applyingEdits = false;
+      }
+    }
+
+    function showResult(result, parsed, resolved, aiUsage = null, opts = {}) {
+      const keepEval = !!opts.keepEval;
       $('result-card').hidden = false;
+      if (resolved && resolved.requestedDifficulty == null && resolved.difficulty != null) {
+        resolved.requestedDifficulty = resolved.difficulty;
+      }
       lastResolved = resolved;
       renderAiUsageLine(aiUsage || lastAiUsage);
 
+      const diffs = fillDifficultyChips(parsed, resolved);
+      const ageEl = $('ctx-age');
+      if (ageEl) ageEl.textContent = resolved.ageBandKey === '15+'
+        ? '15+ anos'
+        : (resolved.ageBandKey ? `${resolved.ageBandKey} anos` : '—');
+
       const modeLabel = MODE_LABELS[resolved.answerMode] || resolved.answerMode;
-      $('resolved-line').innerHTML = `<strong>${escapeHtml(resolved.cat.name)}</strong> · ${resolved.ageBandKey} · ${modeLabel} · dif. ${resolved.difficulty} · <em>${escapeHtml(QE.ARCHETYPE_LABELS?.[resolved.archetypeId] || resolved.archetypeId || '')}</em> · <em>${escapeHtml(QE.FORMAT_LABELS[resolved.formatId] || resolved.formatId)}</em>${escapeHtml(resolved.sparseNote || '')}`;
+      const reqN = Number.isFinite(diffs.requested) ? diffs.requested : '—';
+      const estN = Number.isFinite(diffs.estimated) ? diffs.estimated : '—';
+      $('resolved-line').innerHTML = `${modeLabel} · pedida D${reqN} · estimada D${estN} · correcta D${resolved.difficulty ?? '—'} · <em>${escapeHtml(QE.ARCHETYPE_LABELS?.[resolved.archetypeId] || resolved.archetypeId || '')}</em> · <em>${escapeHtml(QE.FORMAT_LABELS[resolved.formatId] || resolved.formatId)}</em>${escapeHtml(resolved.sparseNote || '')}`;
 
       $('q-preview').textContent = parsed.q || '';
       $('a-preview').textContent = parsed.a ? `→ ${parsed.a}` : '';
       renderMcReview(parsed, result, resolved);
+      fillEditorFromParsed(parsed, resolved, { keepEval });
 
-      $('q').value = parsed.q || '';
-      $('a').value = parsed.a || '';
-      $('options').value = parsed.options?.join('\n') || '';
-
-      const el = $('result');
-      const minScore = Number($('minScore').value) || 75;
-      const existingId = currentEntry?.parsed?.q === parsed.q && currentEntry?.id ? currentEntry.id : '';
+      const prev = keepEval ? currentEntry : null;
+      const existingId = prev?.id
+        || (currentEntry?.parsed?.q === parsed.q && currentEntry?.id ? currentEntry.id : '');
       const logMatch = session.log.find((x) => x.q === parsed.q && x.a === parsed.a);
       currentEntry = {
         id: existingId || logMatch?.id || `log-${Date.now()}`,
-        parsed: { ...parsed },
+        parsed: cloneParsed(parsed),
         result: { ...result },
         resolved: { ...resolved },
-        aiUsage: aiUsage || lastAiUsage,
-        humanRating: logMatch?.humanRating || null,
-        ts: Date.now(),
+        originalParsed: prev?.originalParsed || cloneParsed(parsed),
+        originalResolved: prev?.originalResolved || { ...resolved },
+        extraCategories: prev?.extraCategories || [],
+        requestedDifficulty: prev?.requestedDifficulty ?? resolved.requestedDifficulty,
+        estimatedDifficulty: resolved.estimatedDifficulty,
+        aiUsage: aiUsage || lastAiUsage || prev?.aiUsage,
+        humanRating: keepEval ? (prev?.humanRating || null) : (logMatch?.humanRating || null),
+        ts: prev?.ts || Date.now(),
       };
+      if (keepEval) setExtraCatChecks(currentEntry.extraCategories);
+      renderExtraContext(resolved, currentEntry.extraCategories, currentEntry.originalResolved);
 
+      const el = $('result');
       if (result.ok) {
         el.className = 'result ok';
         el.innerHTML = `<span class="badge ok">ACEITE</span> <span class="score-big">${result.score}/100</span>
@@ -1228,7 +1616,11 @@ a informacao <!DOCTYPE html>
           ${hint ? `<pre>${escapeHtml(hint)}</pre>` : ''}`;
       }
       $('feedback-form').hidden = false;
-      resetFeedbackForm();
+      if (!keepEval) {
+        resetFeedbackForm();
+        const st = $('edit-status');
+        if (st) { st.hidden = true; st.textContent = ''; }
+      }
       syncResultRateButtons(currentEntry.humanRating);
     }
 
@@ -1315,9 +1707,21 @@ a informacao <!DOCTYPE html>
         bits.push(f.motorAccepted ? 'motor aceitou' : 'motor rejeitou');
         if (f.tags?.length) bits.push('problemas: ' + f.tags.join(', '));
         if (f.comment) bits.push('indicação: ' + f.comment);
-        if (f.category) bits.push('categoria ' + f.category);
+        if (f.originalCategory && f.category && f.originalCategory !== f.category) {
+          bits.push(`categoria correcta: ${f.category} (não ${f.originalCategory})`);
+        } else if (f.category) {
+          bits.push('categoria ' + f.category);
+        }
+        if (f.extraCategories?.length) bits.push('também cabe em: ' + f.extraCategories.join(', '));
+        if (f.requestedDifficulty != null && f.estimatedDifficulty != null && Number(f.requestedDifficulty) !== Number(f.estimatedDifficulty)) {
+          bits.push(`pedida D${f.requestedDifficulty}, estimada D${f.estimatedDifficulty}`);
+        }
+        if (f.correctedDifficulty != null && f.requestedDifficulty != null && Number(f.correctedDifficulty) !== Number(f.requestedDifficulty)) {
+          bits.push(`tester definiu dificuldade D${f.correctedDifficulty}`);
+        }
         if (f.archetype) bits.push('arquétipo ' + f.archetype);
         if (f.age) bits.push('idade ' + f.age);
+        if (f.questionEdited) bits.push('enunciado corrigido pelo tester');
         lines.push('- ' + bits.join(' | '));
       });
       const avoid = recent.filter((f) =>
@@ -1333,6 +1737,18 @@ a informacao <!DOCTYPE html>
       const goods = recent.filter((f) => f.humanRating >= 4 && f.verdict === 'motor-ok');
       if (goods.length) {
         lines.push('Mantém o estilo das perguntas com nota 4–5 e veredito «motor correcto».');
+      }
+      const catFixes = recent.filter((f) => f.originalCategory && f.category && f.originalCategory !== f.category);
+      if (catFixes.length) {
+        lines.push('CATEGORIAS CORRIGIDAS: ' + catFixes.map((f) => `${f.originalCategory} → ${f.category}`).join('; ') + '. Usa a categoria correcta.');
+      }
+      const extraFixes = recent.filter((f) => f.extraCategories?.length);
+      if (extraFixes.length) {
+        lines.push('CATEGORIAS EXTRA (também cabe): ' + extraFixes.map((f) => (f.extraCategories || []).join(', ')).join('; ') + '.');
+      }
+      const diffFixes = recent.filter((f) => f.correctedDifficulty != null && f.requestedDifficulty != null && Number(f.correctedDifficulty) !== Number(f.requestedDifficulty));
+      if (diffFixes.length) {
+        lines.push('DIFICULDADE CORRIGIDA PELO TESTER: ' + diffFixes.map((f) => `pedida D${f.requestedDifficulty} → D${f.correctedDifficulty}`).join('; ') + '. Gera no nível corrigido.');
       }
       return lines.join('\n');
     }
@@ -1371,6 +1787,7 @@ a informacao <!DOCTYPE html>
 
     async function submitEvaluation({ generateNext }) {
       if (!evaluationReady()) return false;
+      applyEditsAndRevalidate({ silent: true });
       const entry = buildFeedbackEntry();
       if (!entry) return false;
       const logItem = session.log.find((x) => x.id === currentEntry.id);
@@ -1435,6 +1852,7 @@ a informacao <!DOCTYPE html>
     async function generateOne() {
       const resolved = await resolveConfig();
       const { cat, ageBandKey, answerMode, difficulty } = resolved;
+      resolved.requestedDifficulty = difficulty;
       const archetypeId = QE.chooseArchetype
         ? QE.chooseArchetype(cat.n, ageBandKey, answerMode, session.usedArchetypes)
         : '';
@@ -1641,16 +2059,34 @@ a informacao <!DOCTYPE html>
       if (!currentEntry) return null;
       const tags = [...document.querySelectorAll('#issue-chips input:checked')].map((c) => c.value);
       const r = currentEntry.resolved || {};
+      const orig = currentEntry.originalResolved || {};
+      const origP = currentEntry.originalParsed || {};
+      const extras = (currentEntry.extraCategories || []).map((c) => c.name || c).filter(Boolean);
+      const origCat = orig.cat?.name || '';
+      const corrCat = r.cat?.name || '';
+      const requested = currentEntry.requestedDifficulty ?? orig.requestedDifficulty ?? orig.difficulty;
+      const corrected = r.difficulty;
       return {
         id: `fb-${Date.now()}`, ts: new Date().toISOString(),
         verdict: selectedVerdict, tags, comment: $('fb-comment').value.trim(),
         motorAccepted: currentEntry.result.ok,
         question: currentEntry.parsed.q, answer: currentEntry.parsed.a,
         options: currentEntry.parsed.options,
+        originalQuestion: origP.q || '',
+        originalAnswer: origP.a || '',
+        originalOptions: origP.options,
+        questionEdited: (origP.q || '') !== (currentEntry.parsed.q || ''),
+        answerEdited: (origP.a || '') !== (currentEntry.parsed.a || ''),
         score: currentEntry.result.score, issues: currentEntry.result.issues,
         knowledgeKey: currentEntry.result.knowledgeKey,
-        category: r.cat?.name, age: r.ageBandKey, format: r.formatId,
-        difficulty: r.difficulty, answerMode: r.answerMode,
+        category: corrCat,
+        originalCategory: origCat,
+        extraCategories: extras,
+        age: r.ageBandKey, format: r.formatId,
+        difficulty: corrected, answerMode: r.answerMode,
+        requestedDifficulty: requested,
+        estimatedDifficulty: currentEntry.estimatedDifficulty ?? r.estimatedDifficulty,
+        correctedDifficulty: corrected,
         archetype: r.archetypeId || '',
         humanRating: currentEntry.humanRating || null,
         gameVersion: session.gameVersion,
@@ -1664,7 +2100,7 @@ a informacao <!DOCTYPE html>
       if (!list.length) { el.innerHTML = '<p class="hint">Nenhum feedback.</p>'; return; }
       el.innerHTML = list.map((f) => `
         <div class="feedback-entry">
-          <div class="fb-meta">${new Date(f.ts).toLocaleString('pt-PT')} · ${escapeHtml(f.verdict||'—')} · motor ${f.motorAccepted?'aceitou':'rejeitou'}</div>
+          <div class="fb-meta">${new Date(f.ts).toLocaleString('pt-PT')} · ${escapeHtml(f.verdict||'—')} · motor ${f.motorAccepted?'aceitou':'rejeitou'}${f.humanRating ? ` · nota ${f.humanRating}/5` : ''}${f.correctedDifficulty != null ? ` · D${f.requestedDifficulty ?? '?'}→D${f.correctedDifficulty}` : ''}${f.category ? ` · ${escapeHtml(f.category)}` : ''}</div>
           <div>${escapeHtml(f.question)}</div>
           ${f.comment ? `<div class="hint">${escapeHtml(f.comment)}</div>` : ''}
         </div>`).join('');
@@ -1677,10 +2113,22 @@ a informacao <!DOCTYPE html>
     $('btn-generate').addEventListener('click', () => runGenerate());
     $('btn-stop').addEventListener('click', () => { stopBatch = true; });
     $('btn-validate-manual').addEventListener('click', async () => {
+      if (lastResolved || currentEntry) {
+        applyEditsAndRevalidate();
+        return;
+      }
       const { parsed, isMC } = buildParsedFromForm();
       const ctx = buildValidationCtx({ isMC });
-      const resolved = lastResolved || await resolveConfig();
+      const resolved = await resolveConfig();
       showResult(validateParsed(parsed, ctx), parsed, resolved);
+    });
+    $('btn-apply-edits')?.addEventListener('click', () => applyEditsAndRevalidate());
+    $('eval-cat')?.addEventListener('change', () => applyEditsAndRevalidate({ silent: true }));
+    $('eval-diff')?.addEventListener('change', () => applyEditsAndRevalidate({ silent: true }));
+    $('eval-cat-extra')?.addEventListener('change', () => {
+      if (!currentEntry) return;
+      currentEntry.extraCategories = readExtraCategories(Number($('eval-cat')?.value));
+      renderExtraContext(lastResolved || currentEntry.resolved, currentEntry.extraCategories, currentEntry.originalResolved);
     });
     document.querySelectorAll('#verdict-btns button').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -1689,7 +2137,7 @@ a informacao <!DOCTYPE html>
         btn.classList.add('selected');
       });
     });
-    document.querySelectorAll('#result-rate button').forEach((btn) => {
+    document.querySelectorAll('#result-rate button, #ctx-rate button').forEach((btn) => {
       btn.addEventListener('click', () => {
         const rating = Number(btn.dataset.rate);
         if (!currentEntry) return;
@@ -1755,6 +2203,7 @@ a informacao <!DOCTYPE html>
     });
 
     populateCategorySelect();
+    populateEvalAdjusts();
     applyReportUrlParams();
     renderFeedbackList();
     renderLayerGuideStatic();
