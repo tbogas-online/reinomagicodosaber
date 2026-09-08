@@ -63,6 +63,8 @@
     MC_ABSURD_DISTRACTORS: 'Distratores demasiado absurdos — mantém opções plausíveis do mesmo tipo.',
     MC_OPTION_LEAKS_QUESTION: 'Opção errada não deve repetir palavras-chave da pergunta.',
     MC_TOO_OBVIOUS: 'Resposta correcta destoa dos distractores — torna os errados plausíveis.',
+    MC_DISTRACTORS_TOO_FAR: 'Em dificuldade alta os distractores têm de ser próximos da resposta (mesma classe, entidades irmãs, anos próximos) — não opções óbvias ou desconexas.',
+    MC_DISTRACTORS_TOO_CLOSE: 'Em dificuldade baixa os distractores devem ser fáceis de distinguir da resposta — evita nomes ou anos quase iguais.',
     MC_OPTIONS_TOO_LONG: 'Opções MC demasiado longas para a faixa etária.',
     FORMAT_VIOLATION: 'Reformula para respeitar o formato pedido.',
     DIFFICULTY_OUT_OF_RANGE: 'Ajusta a dificuldade ao intervalo da faixa etária.',

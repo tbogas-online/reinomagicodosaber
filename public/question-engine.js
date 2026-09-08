@@ -37,6 +37,7 @@
   const {
     ENGINE_CONFIG,
     LAYER_WEIGHTS,
+    LAYER_GUIDE,
     TRUE_FALSE_CHANCE,
     TRUE_FALSE_MIN_GAP,
     FORMAT_MAX_CONSECUTIVE,
@@ -103,6 +104,7 @@
   global.QuestionEngine = {
     ENGINE_CONFIG,
     LAYER_WEIGHTS,
+    LAYER_GUIDE,
     FORMAT_IDS: Object.freeze({ ...FORMAT_IDS }),
     FORMAT_LABELS: Object.freeze({ ...FORMAT_LABELS }),
     CATEGORIES,
@@ -198,6 +200,10 @@
     shuffleMcOptions,
     recordMcAnswerPosition,
     resetMcPositions,
+    buildMcDifficultyRules: PromptBuilder.buildMcDifficultyRules,
+    getMcDistractorProfile: global.QuestionEngineMcDistractorQuality?.getMcDistractorProfile,
+    describeMcDistractorTarget: global.QuestionEngineMcDistractorQuality?.describeMcDistractorTarget,
+    validateMcDistractorProximity: global.QuestionEngineMcDistractorQuality?.validateMcDistractorProximity,
     getPersistentSlice,
     getAntiReuseSnapshot,
     persistQuestion,

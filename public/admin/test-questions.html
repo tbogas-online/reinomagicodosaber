@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+a informacao <!DOCTYPE html>
 <html lang="pt-PT">
 <head>
   <meta charset="UTF-8">
@@ -8,151 +8,264 @@
   <link rel="icon" href="/favicon.ico">
   <style>
     :root {
-      --night: #0f1f18; --night-2: #162820; --gold: #c9a227; --gold-bright: #eecb6b;
-      --parchment: #f3ead8; --parchment-dim: #c8bda8; --ok: #3ecf72; --err: #f4a6a8;
-      --warn: #f0c674; --link: #7dd3fc;
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --ok: #10b981;
+      --border: #334155;
+      --input: #0b1220;
+      --link: #60a5fa;
+      --warn: #fbbf24;
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0; min-height: 100dvh; font-family: Georgia, "Times New Roman", serif;
-      color: var(--parchment); background: linear-gradient(180deg, var(--night), var(--night-2));
-      padding: 20px 14px 48px;
+      margin: 0;
+      min-height: 100dvh;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.45;
+      padding: 20px 24px 48px;
     }
-    .wrap { max-width: 720px; margin: 0 auto; }
-    h1 { font-size: clamp(1.3rem, 4vw, 1.75rem); color: var(--gold-bright); margin: 0 0 6px; }
-    .sub { color: var(--parchment-dim); margin: 0 0 16px; line-height: 1.5; font-size: 0.95rem; }
-    .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; font-size: 0.85rem; color: var(--parchment-dim); }
-    .stats span { background: rgba(255,255,255,0.05); padding: 4px 11px; border-radius: 999px; }
-    .stats strong { color: var(--gold-bright); }
+    .wrap { max-width: 880px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; color: var(--text); margin: 0 0 6px; }
+    .sub { color: var(--muted); margin: 0 0 16px; line-height: 1.5; font-size: 0.95rem; }
+    .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; font-size: 0.85rem; color: var(--muted); }
+    .stats span { background: var(--card); border: 1px solid var(--border); padding: 4px 11px; border-radius: 8px; }
+    .stats strong { color: var(--accent); }
     .card {
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(201,162,39,0.35);
-      border-radius: 14px; padding: 16px 18px; margin-bottom: 12px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px; margin-bottom: 16px;
     }
-    .card h2 { margin: 0 0 12px; font-size: 1rem; color: var(--gold-bright); }
+    .card h2 { margin: 0 0 12px; font-size: 1rem; color: var(--text); }
     label {
-      display: block; font-size: 0.72rem; letter-spacing: 0.05em;
-      text-transform: uppercase; color: var(--gold); margin-bottom: 4px;
+      display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px;
     }
-    select, textarea, input[type="text"], input[type="number"] {
-      width: 100%; background: rgba(0,0,0,0.25); color: var(--parchment);
-      border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-      padding: 10px 12px; margin-bottom: 0; font: inherit;
+    select, textarea, input[type="text"], input[type="number"], input[type="password"] {
+      width: 100%; background: var(--input); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 10px; margin-bottom: 0; font: inherit;
     }
     select { margin-bottom: 0; cursor: pointer; }
     textarea { min-height: 64px; resize: vertical; margin-top: 4px; }
     .config-grid {
       display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 14px; margin-bottom: 16px;
     }
-    @media (min-width: 560px) { .config-grid { grid-template-columns: repeat(4, 1fr); } }
+    @media (min-width: 720px) { .config-grid { grid-template-columns: repeat(3, 1fr); } }
+    .config-grid .span-2 { grid-column: span 2; }
+    @media (max-width: 719px) { .config-grid .span-2 { grid-column: span 1; } }
+    .scenario-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .scenario-btn {
+      font-size: 0.78rem; padding: 7px 11px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--input);
+      color: var(--text); text-align: left;
+    }
+    .scenario-btn.active {
+      border-color: #3b82f6; background: rgba(29, 78, 216, 0.35); color: #93c5fd;
+    }
+    .check-box {
+      margin: 10px 0 0; padding: 10px 12px; border-radius: 10px;
+      background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.35);
+      font-size: 0.88rem; color: var(--link); line-height: 1.45;
+    }
+    .check-box.pulse {
+      animation: evalPulse 1.2s ease 2;
+    }
+    @keyframes evalPulse {
+      0%, 100% { border-color: rgba(59, 130, 246, 0.35); }
+      50% { border-color: var(--accent); background: rgba(245, 158, 11, 0.14); }
+    }
+    .coverage { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .cov-chip {
+      font-size: 0.75rem; padding: 3px 8px; border-radius: 999px;
+      border: 1px solid var(--border); color: var(--muted);
+    }
+    .cov-chip.done { border-color: #047857; color: #34d399; background: rgba(16, 185, 129, 0.12); }
+    .fit-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
     .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
     button {
-      cursor: pointer; border: 1px solid rgba(201,162,39,0.55);
-      background: linear-gradient(180deg, rgba(201,162,39,0.28), rgba(201,162,39,0.12));
-      color: var(--gold-bright); border-radius: 999px; padding: 10px 18px; font: inherit;
+      cursor: pointer; font: inherit; border-radius: 8px;
+      border: 1px solid #1d4ed8; background: #1d4ed8; color: #fff;
+      padding: 8px 14px;
     }
-    button:hover { filter: brightness(1.08); }
-    button:disabled { opacity: 0.5; cursor: wait; }
-    button.secondary { background: transparent; color: var(--parchment-dim); border-color: rgba(255,255,255,0.2); font-size: 0.9rem; padding: 8px 14px; }
-    button.primary { font-size: 1.08rem; padding: 12px 24px; width: 100%; }
+    button:hover { background: #2563eb; border-color: #60a5fa; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary {
+      background: transparent; border-color: var(--border); color: var(--text);
+      font-size: 0.9rem;
+    }
+    button.secondary:hover { background: #334155; border-color: #64748b; }
+    button.primary { font-size: 1rem; padding: 10px 18px; width: 100%; }
     @media (min-width: 480px) { button.primary { width: auto; } }
-    .result { border-radius: 12px; padding: 14px; line-height: 1.5; margin-top: 12px; }
-    .result.idle { background: rgba(255,255,255,0.04); color: var(--parchment-dim); }
-    .result.ok { background: rgba(62,207,114,0.12); border: 1px solid rgba(62,207,114,0.4); }
-    .result.err { background: rgba(229,72,77,0.12); border: 1px solid rgba(229,72,77,0.4); }
-    .result.run { background: rgba(240,198,116,0.12); border: 1px solid rgba(240,198,116,0.4); color: var(--warn); }
+    .result { border-radius: 10px; padding: 14px; line-height: 1.5; margin-top: 12px; }
+    .result.idle { background: var(--input); color: var(--muted); border: 1px solid var(--border); }
+    .result.ok { background: rgba(16, 185, 129, 0.12); border: 1px solid #047857; }
+    .result.err { background: rgba(239, 68, 68, 0.12); border: 1px solid #991b1b; }
+    .result.run { background: rgba(245, 158, 11, 0.12); border: 1px solid #b45309; color: var(--warn); }
     .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.8rem; font-weight: bold; margin-right: 6px; }
-    .badge.ok { background: rgba(62,207,114,0.25); color: #b8f5cd; }
-    .badge.err { background: rgba(229,72,77,0.25); color: var(--err); }
-    .score-big { font-size: 1.4rem; color: var(--gold-bright); }
-    .resolved { font-size: 0.88rem; color: var(--parchment-dim); margin: 8px 0 4px; }
-    .resolved strong { color: var(--gold-bright); }
-    .layers { display: grid; gap: 4px; margin: 10px 0; font-size: 0.84rem; }
-    .layer-row { display: grid; grid-template-columns: 90px 1fr 32px; gap: 6px; align-items: center; }
-    .layer-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
-    .layer-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--ok)); }
-    .layer-bar.zero > span { background: var(--err); width: 0 !important; }
-    ul.issues { margin: 8px 0 0; padding-left: 1.1rem; color: var(--err); font-size: 0.9rem; }
-    pre { margin: 8px 0 0; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); font-size: 0.76rem; white-space: pre-wrap; }
-    .hint { font-size: 0.84rem; color: var(--parchment-dim); margin: 0 0 8px; }
+    .badge.ok { background: rgba(16, 185, 129, 0.22); color: #34d399; }
+    .badge.err { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
+    .score-big { font-size: 1.4rem; color: var(--accent); }
+    .resolved { font-size: 0.88rem; color: var(--muted); margin: 8px 0 4px; }
+    .resolved strong { color: var(--accent); }
+    .layers { display: grid; gap: 8px; margin: 10px 0; font-size: 0.84rem; }
+    .layer-card {
+      background: var(--input); border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 10px;
+    }
+    .layer-card.fail { border-color: #991b1b; }
+    .layer-card.ok { border-color: #047857; }
+    .layer-head { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .layer-head strong { font-size: 0.88rem; }
+    .layer-pts { font-variant-numeric: tabular-nums; color: var(--muted); }
+    .layer-card.ok .layer-pts { color: #34d399; }
+    .layer-card.fail .layer-pts { color: #fca5a5; }
+    .layer-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; margin: 6px 0; }
+    .layer-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #3b82f6, var(--ok)); }
+    .layer-bar.zero > span { background: var(--danger); width: 0 !important; }
+    .layer-desc { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.4; }
+    .layer-desc em { color: var(--text); font-style: normal; }
+    .layer-hits { margin: 6px 0 0; padding-left: 1.1rem; color: #fca5a5; font-size: 0.78rem; }
+    .mc-review { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--input); }
+    .mc-review h3 { margin: 0 0 6px; font-size: 0.9rem; }
+    .mc-opt-list { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+    .mc-opt-list li {
+      padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border);
+      display: flex; justify-content: space-between; gap: 8px; align-items: center;
+    }
+    .mc-opt-list li.correct { border-color: #047857; background: rgba(16, 185, 129, 0.12); }
+    .mc-opt-list li.missing { border-color: #991b1b; color: #fca5a5; }
+    .mc-opt-tag { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+    .mc-opt-list li.correct .mc-opt-tag { color: #34d399; }
+    ul.issues { margin: 8px 0 0; padding-left: 1.1rem; color: #fca5a5; font-size: 0.9rem; }
+    pre { margin: 8px 0 0; padding: 10px; border-radius: 8px; background: var(--input); font-size: 0.76rem; white-space: pre-wrap; }
+    .hint { font-size: 0.84rem; color: var(--muted); margin: 0 0 8px; }
     details {
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px; margin-bottom: 10px; padding: 0 14px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 16px; padding: 0 16px;
     }
     details summary {
-      cursor: pointer; padding: 12px 0; color: var(--parchment-dim); font-size: 0.92rem; list-style: none;
+      cursor: pointer; padding: 12px 0; color: var(--muted); font-size: 0.92rem; list-style: none;
     }
     details summary::-webkit-details-marker { display: none; }
-    details summary::before { content: '▸ '; color: var(--gold); }
+    details summary::before { content: '▸ '; color: var(--accent); }
     details[open] summary::before { content: '▾ '; }
     details .inner { padding-bottom: 14px; }
-    .feedback-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(201,162,39,0.2); }
-    .feedback-box h3 { margin: 0 0 8px; font-size: 0.92rem; color: var(--gold); }
+    .feedback-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .feedback-box h3 { margin: 0 0 8px; font-size: 0.92rem; color: var(--text); }
     .verdict-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
     .verdict-btns button { font-size: 0.82rem; padding: 6px 11px; }
-    .verdict-btns button.selected { border-color: var(--gold-bright); background: rgba(201,162,39,0.28); }
+    .verdict-btns button.selected { border-color: #3b82f6; background: rgba(29, 78, 216, 0.45); color: #fff; }
     .chip-group { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
     .chip {
       font-size: 0.8rem; padding: 4px 9px; border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.15); cursor: pointer;
+      border: 1px solid var(--border); cursor: pointer; background: var(--input);
     }
-    .chip:has(input:checked) { border-color: var(--gold); background: rgba(201,162,39,0.15); color: var(--gold-bright); }
+    .chip:has(input:checked) { border-color: #3b82f6; background: rgba(29, 78, 216, 0.28); color: #93c5fd; }
     .chip input { margin-right: 4px; }
     .log-item {
       padding: 8px 10px; margin-bottom: 5px; border-radius: 8px; font-size: 0.84rem;
-      background: rgba(0,0,0,0.2); border-left: 3px solid rgba(255,255,255,0.15); cursor: pointer;
+      background: var(--input); border-left: 3px solid var(--border); cursor: pointer;
     }
     .log-item.accepted { border-left-color: var(--ok); }
-    .log-item.rejected { border-left-color: var(--err); }
-    .log-item .meta { color: var(--parchment-dim); font-size: 0.76rem; margin-top: 2px; }
-    .feedback-entry { padding: 10px; margin-bottom: 6px; border-radius: 8px; background: rgba(0,0,0,0.2); font-size: 0.84rem; }
-    .feedback-entry .fb-meta { color: var(--parchment-dim); font-size: 0.76rem; }
-    code { background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; font-size: 0.86em; }
+    .log-item.rejected { border-left-color: var(--danger); }
+    .log-item .meta { color: var(--muted); font-size: 0.76rem; margin-top: 2px; }
+    .feedback-entry { padding: 10px; margin-bottom: 6px; border-radius: 8px; background: var(--input); font-size: 0.84rem; }
+    .feedback-entry .fb-meta { color: var(--muted); font-size: 0.76rem; }
+    code { background: var(--input); padding: 1px 4px; border-radius: 3px; font-size: 0.86em; }
     .q-preview { font-size: 1.05rem; margin: 8px 0 4px; line-height: 1.45; }
-    .a-preview { color: var(--gold-bright); margin-bottom: 6px; }
-    .opts-preview { font-size: 0.88rem; color: var(--parchment-dim); }
+    .a-preview { color: var(--accent); margin-bottom: 6px; }
+    .opts-preview { font-size: 0.88rem; color: var(--muted); }
     .ai-usage-line {
-      font-size: 0.86rem; color: var(--parchment-dim); margin: 0 0 10px;
-      padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(201,162,39,0.2);
+      font-size: 0.86rem; color: var(--muted); margin: 0 0 10px;
+      padding: 6px 10px; border-radius: 8px; background: var(--input);
+      border: 1px solid var(--border);
     }
-    .ai-usage-line strong { color: var(--gold-bright); }
+    .ai-usage-line strong { color: var(--accent); }
     .admin-login-card {
       max-width: 420px; margin: 40px auto; padding: 20px;
-      border: 1px solid rgba(201,162,39,0.35); border-radius: 14px;
-      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); border-radius: 12px;
+      background: var(--card);
     }
-    .admin-login-card label { display: block; font-size: 0.75rem; color: var(--gold); margin: 10px 0 4px; }
+    .admin-login-card label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
     .admin-login-card input {
-      width: 100%; padding: 10px 12px; border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.25); color: var(--parchment);
+      width: 100%; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--input); color: var(--text);
     }
     .admin-login-status { font-size: 0.9rem; margin: 10px 0 0; min-height: 1.2em; }
-    .admin-login-status.err { color: var(--err); }
+    .admin-login-status.err { color: var(--danger); }
     .admin-nav {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 14px;
+      margin-bottom: 20px;
+      align-items: center;
     }
     .admin-nav a {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       padding: 8px 14px;
-      border-radius: 10px;
-      border: 1px solid rgba(201,162,39,0.5);
-      background: rgba(201,162,39,0.18);
-      color: var(--gold-bright);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
       text-decoration: none;
-      font-size: 0.88rem;
+      font-size: 0.9rem;
       font-weight: 600;
+      line-height: 1.2;
     }
-    .admin-nav a:hover { background: rgba(201,162,39,0.32); }
+    .admin-nav a:hover { background: #334155; border-color: #64748b; }
+    .page-head {
+      display: flex; flex-wrap: wrap; justify-content: space-between;
+      align-items: flex-start; gap: 10px 16px; margin-bottom: 6px;
+    }
+    .page-head h1 { margin: 0; }
+    .version-badge {
+      font-size: 0.82rem; color: var(--muted); background: var(--card);
+      border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px;
+      min-width: 180px;
+    }
+    .version-badge strong { color: var(--accent); display: block; font-size: 0.95rem; }
+    .ponder-kpis {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px;
+    }
+    @media (min-width: 640px) { .ponder-kpis { grid-template-columns: repeat(4, 1fr); } }
+    .ponder-kpi {
+      background: var(--input); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px;
+    }
+    .ponder-kpi strong { display: block; font-size: 1.25rem; line-height: 1.2; color: var(--accent); }
+    .ponder-kpi span { color: var(--muted); font-size: 11px; }
+    .ponder-kpi.good strong { color: #34d399; }
+    .ponder-kpi.mid strong { color: #fbbf24; }
+    .ponder-kpi.bad strong { color: #f87171; }
+    .ponder-table-wrap { overflow-x: auto; margin-top: 10px; }
+    .ponder-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .ponder-table th, .ponder-table td {
+      text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--border); vertical-align: top;
+    }
+    .ponder-table th { color: var(--muted); font-weight: 600; font-size: 11px; }
+    .ponder-table .q-cell { max-width: 260px; }
+    .rate-btns { display: flex; flex-wrap: wrap; gap: 4px; }
+    .rate-btns button { font-size: 0.75rem; padding: 4px 8px; }
+    .rate-btns button.selected { background: #047857; border-color: #047857; color: #fff; }
+    .breakdown { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+    .breakdown span {
+      font-size: 0.75rem; padding: 3px 8px; border-radius: 999px;
+      border: 1px solid var(--border); color: var(--muted); background: var(--input);
+    }
   </style>
 </head>
 <body>
   <section class="admin-login-card" id="adminLoginGate">
-    <h1 style="margin:0 0 8px; font-size:1.3rem; color:var(--gold-bright);">🧪 Teste de perguntas</h1>
-    <p class="sub" style="margin:0 0 12px;">Acesso reservado — mesmas credenciais do painel admin.</p>
+    <h1 style="margin:0 0 8px; font-size:1.3rem;">🧪 Teste de perguntas</h1>
+    <p class="sub" style="margin:0 0 8px;">Acesso reservado — mesmas credenciais do painel admin.</p>
+    <p class="version-badge" id="loginVersionBadge" style="margin:0 0 12px;">A carregar versão…</p>
     <label for="adminUser">Utilizador</label>
     <input id="adminUser" type="text" autocomplete="username">
     <label for="adminPass">Palavra-passe</label>
@@ -170,8 +283,11 @@
       <a href="/admin-reports.html">Painel admin</a>
       <a href="/admin/test-ai.html">Teste de IA</a>
     </nav>
-    <h1>🧪 Teste de Perguntas</h1>
-    <p class="sub">Ferramenta interna (admin): gera com IA, valida com o motor e dá feedback. Chamadas à API usam credenciais admin.</p>
+    <div class="page-head">
+      <h1>🧪 Teste de Perguntas</h1>
+      <div class="version-badge" id="pageVersionBadge">A carregar versão…</div>
+    </div>
+    <p class="sub">Ciclo de teste: gera <strong>uma</strong> pergunta, avalia o resultado, e só depois gera a seguinte. As tuas notas e comentários entram no próximo prompt para o motor ajustar.</p>
 
     <div class="stats">
       <span><strong id="stat-total">0</strong> geradas</span>
@@ -219,31 +335,40 @@
       </div>
 
       <div class="row">
-        <button type="button" class="primary" id="btn-generate">▶ Gerar e validar</button>
-        <button type="button" class="secondary" id="btn-generate-5">×5</button>
+        <button type="button" class="primary" id="btn-generate">▶ Gerar pergunta</button>
         <button type="button" class="secondary" id="btn-stop" disabled>Parar</button>
       </div>
-      <div id="gen-status" class="result idle">Escolhe as opções (ou deixa Aleatório) e clica em Gerar.</div>
+      <div id="gen-status" class="result idle">Gera uma pergunta, avalia-a (veredito + nota 1–5) e só depois pede a seguinte.</div>
     </div>
 
     <!-- Resultado -->
     <div class="card" id="result-card" hidden>
-      <h2>Resultado</h2>
+      <h2>1. Resultado</h2>
       <div id="ai-usage-line" class="ai-usage-line" hidden></div>
       <div id="resolved-line" class="resolved"></div>
       <div id="q-preview" class="q-preview"></div>
       <div id="a-preview" class="a-preview"></div>
-      <div id="opts-preview" class="opts-preview"></div>
+      <div id="mc-review" class="mc-review" hidden></div>
+      <div id="opts-preview" class="opts-preview" hidden></div>
       <div id="result" class="result idle"></div>
 
       <div class="feedback-box" id="feedback-form" hidden>
-        <h3>💬 Feedback ao motor</h3>
+        <h3>2. Avaliar esta pergunta</h3>
+        <p class="check-box" id="eval-gate">O motor só gera a seguinte depois desta avaliação. Veredito + nota 1–5 são obrigatórios; o comentário ajuda o próximo prompt.</p>
         <p class="hint">O motor acertou nesta validação?</p>
         <div class="verdict-btns" id="verdict-btns">
           <button type="button" data-verdict="motor-ok" class="secondary">✅ Correcto</button>
           <button type="button" data-verdict="false-positive" class="secondary">Devia aceitar</button>
           <button type="button" data-verdict="false-negative" class="secondary">Devia rejeitar</button>
           <button type="button" data-verdict="ia-bad" class="secondary">Culpa da IA</button>
+        </div>
+        <p class="hint">Qualidade da pergunta (ponderação):</p>
+        <div class="rate-btns" id="result-rate">
+          <button type="button" class="secondary" data-rate="5">5 Excelente</button>
+          <button type="button" class="secondary" data-rate="4">4 Boa</button>
+          <button type="button" class="secondary" data-rate="3">3 Aceitável</button>
+          <button type="button" class="secondary" data-rate="2">2 Fraca</button>
+          <button type="button" class="secondary" data-rate="1">1 Má</button>
         </div>
         <div class="chip-group" id="issue-chips">
           <label class="chip"><input type="checkbox" value="repeticao"> Repetição</label>
@@ -257,13 +382,29 @@
         <label for="fb-comment">Comentário</label>
         <textarea id="fb-comment" rows="2" placeholder="O que devia mudar?"></textarea>
         <div class="row">
-          <button type="button" id="btn-save-feedback">Guardar feedback</button>
-          <button type="button" class="secondary" id="btn-next-after-fb">Guardar e seguinte →</button>
+          <button type="button" id="btn-save-feedback">Guardar avaliação</button>
+          <button type="button" class="primary" id="btn-next-after-fb">Guardar e gerar seguinte →</button>
         </div>
+        <p class="hint" id="eval-saved-note" hidden>Avaliação guardada — o motor vai usar este input na próxima geração.</p>
       </div>
     </div>
 
-    <!-- Avançado -->
+    <div class="card" id="ponder-card">
+      <h2>Ponderação da sessão</h2>
+      <p class="hint">Notas 1–5 desta sessão. A nota ponderada combina o score do motor (50%) com a tua média (50%).</p>
+      <div class="ponder-kpis" id="ponder-kpis"></div>
+      <div class="breakdown" id="ponder-breakdown"></div>
+      <div class="ponder-table-wrap" id="ponder-table"></div>
+      <div class="row" style="margin-top:10px;">
+        <button type="button" class="secondary" id="btn-copy-ponder">Copiar resumo</button>
+        <button type="button" class="secondary" id="btn-export-ponder">Exportar JSON</button>
+      </div>
+    </div>
+
+    <details>
+      <summary>Como o motor classifica (camadas e pontos)</summary>
+      <div class="inner" id="layer-guide-static"></div>
+    </details>
     <details id="advanced-options">
       <summary>Opções avançadas</summary>
       <div class="inner">
@@ -278,7 +419,7 @@
           </div>
         </div>
         <label style="margin-top:10px;"><input type="checkbox" id="accumulate-history" checked> Acumular histórico na sessão</label><br>
-        <label><input type="checkbox" id="use-feedback-hints" checked> Usar feedback nos retries</label>
+        <label><input type="checkbox" id="use-feedback-hints" checked> Usar avaliações desta sessão no próximo prompt</label>
         <div class="row" style="margin-top:12px;">
           <button type="button" class="secondary" id="btn-validate-manual">Revalidar pergunta actual</button>
         </div>
@@ -334,6 +475,7 @@
   <script src="/question-engine/pt-pt-validators.js?v=20260908-120850"></script>
   <script src="/question-engine/format-validators.js?v=20260908-120850"></script>
   <script src="/question-engine/mc-validators.js?v=20260908-120850"></script>
+  <script src="/question-engine/mc-distractor-quality.js?v=20260908-120850"></script>
   <script src="/question-engine/age-validators.js?v=20260908-120850"></script>
   <script src="/question-engine/category-validators.js?v=20260908-120850"></script>
   <script src="/question-engine/semantic-validators.js?v=20260908-120850"></script>
@@ -356,7 +498,7 @@
     const MODE_LABELS = { mc: 'Escolha múltipla' };
 
     if (!QE) {
-      document.body.innerHTML = '<p style="color:#f4a6a8;padding:24px;">question-engine.js não carregou.</p>';
+      document.body.innerHTML = '<p style="color:#ef4444;padding:24px;">question-engine.js não carregou.</p>';
       return;
     }
 
@@ -389,11 +531,8 @@
       '15+': 'jovens e adultos 15+ — cultura geral exigente',
     };
     const PT_PT_RULES = 'Português de Portugal (PT-PT). Evita brasileirismos.';
-    const LAYER_LABELS = {
-      structural: 'Estrutural', format: 'Formato', age: 'Idade', difficulty: 'Dificuldade',
-      category: 'Categoria', ptPt: 'PT-PT', semantic: 'Semântica', repetition: 'Repetição',
-      mcOptions: 'MC', factual: 'Factual',
-    };
+    const LAYER_GUIDE = QE.LAYER_GUIDE || {};
+    const LAYER_ORDER = Object.keys(QE.LAYER_WEIGHTS || LAYER_GUIDE);
     const AI_PROVIDER_LABELS = {
       groq: 'Groq',
       openai: 'OpenAI',
@@ -417,12 +556,62 @@
     let currentEntry = null;
     let lastResolved = null;
     let lastAiUsage = null;
+    let generating = false;
 
     const session = {
       usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedFormats: [],
       usedArchetypes: [], usedDifficulties: [], usedSubtopics: [], recentMcPositions: [], log: [],
       stats: { total: 0, ok: 0, fail: 0 },
+      pendingReview: false,
+      gameVersion: document.querySelector('meta[name="app-build"]')?.getAttribute('content') || '',
+      gameUpdatedAt: '',
     };
+    const RATE_LABELS = { 5: 'Excelente', 4: 'Boa', 3: 'Aceitável', 2: 'Fraca', 1: 'Má' };
+    const VERDICT_LABELS = {
+      'motor-ok': 'motor correcto',
+      'false-positive': 'devia ter aceite',
+      'false-negative': 'devia ter rejeitado',
+      'ia-bad': 'culpa da IA',
+    };
+    function updateGenerateLock() {
+      const gen = $('btn-generate');
+      if (!gen) return;
+      const locked = generating || session.pendingReview;
+      gen.disabled = locked;
+      gen.textContent = session.log.length ? '▶ Gerar seguinte' : '▶ Gerar pergunta';
+      gen.title = session.pendingReview
+        ? 'Avalia primeiro esta pergunta (veredito do motor + nota 1–5).'
+        : '';
+      const stop = $('btn-stop');
+      if (stop) stop.disabled = !generating;
+      const saved = $('eval-saved-note');
+      if (saved) saved.hidden = session.pendingReview || !session.log.length;
+    }
+
+    function formatVersionBadge(info) {
+      const version = info?.version || session.gameVersion || '—';
+      const when = info?.updatedAtPortugal || session.gameUpdatedAt || '';
+      const env = info?.environment && info.environment !== 'production' ? ` · ${info.environment}` : '';
+      return `<strong>${escapeHtml(version)}</strong>Versão do jogo${when ? ` · ${escapeHtml(when)} (PT)` : ''}${escapeHtml(env)}`;
+    }
+
+    function applyVersionInfo(info) {
+      if (info?.version) session.gameVersion = info.version;
+      if (info?.updatedAtPortugal) session.gameUpdatedAt = info.updatedAtPortugal;
+      const html = formatVersionBadge(info || { version: session.gameVersion, updatedAtPortugal: session.gameUpdatedAt });
+      const page = $('pageVersionBadge');
+      const login = $('loginVersionBadge');
+      if (page) page.innerHTML = html;
+      if (login) login.innerHTML = html;
+    }
+
+    function loadGameVersion() {
+      applyVersionInfo({ version: session.gameVersion });
+      fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error('version.json'))))
+        .then(applyVersionInfo)
+        .catch(() => applyVersionInfo({ version: session.gameVersion }));
+    }
 
     function stripTags(s) { return String(s || '').replace(/<[^>]*>/g, '').trim(); }
     function normalizeQ(s) { return stripTags(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
@@ -693,16 +882,228 @@
       $('stat-fb').textContent = loadFeedback().length;
       $('log-count').textContent = session.log.length;
       $('fb-count').textContent = loadFeedback().length;
+      renderPonderacao();
     }
 
-    function renderLayers(layers) {
+    function computePonderacao() {
+      const log = session.log;
+      const rated = log.filter((e) => e.humanRating >= 1);
+      const motorAvg = log.length
+        ? Math.round(log.reduce((s, e) => s + (Number(e.score) || 0), 0) / log.length)
+        : 0;
+      const acceptPct = log.length ? Math.round((session.stats.ok / log.length) * 100) : 0;
+      const humanAvg = rated.length
+        ? rated.reduce((s, e) => s + e.humanRating, 0) / rated.length
+        : null;
+      const human100 = humanAvg != null ? Math.round(humanAvg * 20) : null;
+      const sessionNote = log.length
+        ? (human100 != null ? Math.round(motorAvg * 0.5 + human100 * 0.5) : motorAvg)
+        : null;
+      const byCat = {};
+      const byArch = {};
+      log.forEach((e) => {
+        const cat = e.resolved?.cat?.name || '—';
+        const arch = QE.ARCHETYPE_LABELS?.[e.resolved?.archetypeId] || e.resolved?.archetypeId || '—';
+        byCat[cat] = (byCat[cat] || 0) + 1;
+        byArch[arch] = (byArch[arch] || 0) + 1;
+      });
+      return { log, rated, motorAvg, acceptPct, humanAvg, human100, sessionNote, byCat, byArch };
+    }
+
+    function kpiTone(value, good, mid) {
+      if (value == null) return '';
+      if (value >= good) return 'good';
+      if (value >= mid) return 'mid';
+      return 'bad';
+    }
+
+    function renderPonderacao() {
+      const kpis = $('ponder-kpis');
+      const table = $('ponder-table');
+      const breakdown = $('ponder-breakdown');
+      if (!kpis || !table) return;
+      const p = computePonderacao();
+      if (!p.log.length) {
+        kpis.innerHTML = '<p class="hint" style="grid-column:1/-1;margin:0;">Gera perguntas para ver a nota da sessão.</p>';
+        table.innerHTML = '';
+        if (breakdown) breakdown.innerHTML = '';
+        return;
+      }
+      kpis.innerHTML = `
+        <div class="ponder-kpi ${kpiTone(p.acceptPct, 80, 50)}"><strong>${p.acceptPct}%</strong><span>aceites pelo motor</span></div>
+        <div class="ponder-kpi ${kpiTone(p.motorAvg, 85, 65)}"><strong>${p.motorAvg}</strong><span>score médio motor</span></div>
+        <div class="ponder-kpi ${p.humanAvg == null ? '' : kpiTone(p.human100, 80, 60)}"><strong>${p.humanAvg == null ? '—' : p.humanAvg.toFixed(1) + '/5'}</strong><span>nota humana (${p.rated.length}/${p.log.length})</span></div>
+        <div class="ponder-kpi ${p.sessionNote == null ? '' : kpiTone(p.sessionNote, 85, 65)}"><strong>${p.sessionNote == null ? '—' : p.sessionNote}</strong><span>nota ponderada /100</span></div>`;
+      if (breakdown) {
+        const cats = Object.entries(p.byCat).map(([k, n]) => `<span>${escapeHtml(k)} · ${n}</span>`).join('');
+        const archs = Object.entries(p.byArch).map(([k, n]) => `<span>${escapeHtml(k)} · ${n}</span>`).join('');
+        breakdown.innerHTML = cats + archs;
+      }
+      table.innerHTML = `<table class="ponder-table">
+        <thead><tr><th>Pergunta</th><th>Contexto</th><th>Motor</th><th>Nota</th></tr></thead>
+        <tbody>${p.log.map((e) => {
+          const arch = QE.ARCHETYPE_LABELS?.[e.resolved?.archetypeId] || e.resolved?.archetypeId || '';
+          const fmt = QE.FORMAT_LABELS?.[e.resolved?.formatId] || e.resolved?.formatId || '';
+          return `<tr data-id="${escapeHtml(e.id)}">
+            <td class="q-cell">${escapeHtml((e.q || '').slice(0, 120))}</td>
+            <td>${escapeHtml(e.resolved?.cat?.name || '')}<br><span class="hint" style="margin:0;">${escapeHtml(e.resolved?.ageBandKey || '')} · ${escapeHtml(arch)} · ${escapeHtml(fmt)}</span></td>
+            <td>${e.ok ? '✅' : '❌'} ${e.score ?? '—'}</td>
+            <td>
+              <div class="rate-btns">${[5,4,3,2,1].map((n) =>
+                `<button type="button" class="secondary${e.humanRating === n ? ' selected' : ''}" data-rate="${n}" data-id="${escapeHtml(e.id)}">${n}</button>`
+              ).join('')}</div>
+              ${e.humanRating ? `<div class="hint" style="margin:4px 0 0;">${RATE_LABELS[e.humanRating]}</div>` : ''}
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+      table.querySelectorAll('button[data-rate]').forEach((btn) => {
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          setHumanRating(btn.dataset.id, Number(btn.dataset.rate));
+        });
+      });
+      table.querySelectorAll('tr[data-id]').forEach((row) => {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', () => {
+          const e = session.log.find((x) => x.id === row.dataset.id);
+          if (!e) return;
+          lastResolved = e.resolved;
+          $('q').value = e.q || '';
+          $('a').value = e.a || '';
+          const ctx = buildValidationCtx();
+          const { parsed, isMC } = buildParsedFromForm();
+          ctx.isMC = isMC;
+          rememberAiUsage(e.aiUsage);
+          showResult(validateParsed(parsed, ctx), parsed, e.resolved, e.aiUsage);
+          currentEntry.id = e.id;
+          currentEntry.humanRating = e.humanRating;
+          syncResultRateButtons(e.humanRating);
+          $('result-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      });
+    }
+
+    function setHumanRating(logId, rating) {
+      const entry = session.log.find((x) => x.id === logId);
+      if (entry) entry.humanRating = rating;
+      if (currentEntry?.id === logId) currentEntry.humanRating = rating;
+      syncResultRateButtons(currentEntry?.id === logId ? rating : currentEntry?.humanRating);
+      renderPonderacao();
+    }
+
+    function syncResultRateButtons(rating) {
+      document.querySelectorAll('#result-rate button').forEach((b) => {
+        b.classList.toggle('selected', Number(b.dataset.rate) === Number(rating));
+      });
+    }
+
+    function formatPonderText() {
+      const p = computePonderacao();
+      const lines = [
+        `Versão do jogo: ${session.gameVersion || '—'}`,
+        session.gameUpdatedAt ? `Actualizado: ${session.gameUpdatedAt} (PT)` : '',
+        `Geradas: ${p.log.length} · Aceites: ${session.stats.ok} (${p.acceptPct}%) · Score médio: ${p.motorAvg}`,
+        `Nota humana: ${p.humanAvg == null ? '—' : p.humanAvg.toFixed(1) + '/5'} (${p.rated.length} classificadas)`,
+        `Nota ponderada: ${p.sessionNote == null ? '—' : p.sessionNote + '/100'}`,
+        '',
+      ].filter((line, i, arr) => line !== '' || arr[i - 1] !== '');
+      p.log.forEach((e, i) => {
+        const arch = QE.ARCHETYPE_LABELS?.[e.resolved?.archetypeId] || e.resolved?.archetypeId || '';
+        lines.push(
+          `[${i + 1}] ${e.ok ? 'ACEITE' : 'REJEITADA'} ${e.score}/100 · nota ${e.humanRating || '—'} · ${e.resolved?.cat?.name || ''} · ${e.resolved?.ageBandKey || ''} · ${arch}`
+        );
+        lines.push(`    ${e.q || ''}`);
+      });
+      return lines.join('\n');
+    }
+
+    function renderLayerGuideStatic() {
+      const el = $('layer-guide-static');
+      if (!el) return;
+      const weights = QE.LAYER_WEIGHTS || {};
+      const total = Object.values(weights).reduce((s, n) => s + Number(n || 0), 0);
+      el.innerHTML = `<p class="hint">O score /100 é a soma das camadas. Qualquer issue reprova a pergunta (gate binário), mesmo com score alto. As opções MC entram na camada «Opções MC» (${weights.mcOptions || 12} pts).</p>`
+        + LAYER_ORDER.map((key) => {
+          const g = LAYER_GUIDE[key] || {};
+          return `<div class="layer-card" style="margin-bottom:8px;">
+            <div class="layer-head"><strong>${escapeHtml(g.label || key)}</strong><span class="layer-pts">${g.points ?? weights[key] ?? '—'} pts</span></div>
+            <p class="layer-desc">${escapeHtml(g.reflects || '')}</p>
+            <p class="layer-desc"><em>Sobe:</em> ${escapeHtml(g.up || '')}</p>
+            <p class="layer-desc"><em>Desce:</em> ${escapeHtml(g.down || '')}</p>
+          </div>`;
+        }).join('')
+        + `<p class="hint">Total das camadas: ${total}/100.</p>`;
+    }
+
+    function issuesByLayer(issueDetails) {
+      const map = {};
+      (issueDetails || []).forEach((item) => {
+        const layer = item?.layer || 'unknown';
+        const msg = typeof item === 'string' ? item : (item.message || item.code || '');
+        if (!msg) return;
+        (map[layer] ||= []).push(msg);
+      });
+      return map;
+    }
+
+    function renderLayers(layers, issueDetails) {
       if (!layers) return '';
-      const maxPts = { structural:15, format:15, age:15, difficulty:10, category:10, ptPt:10, semantic:15, repetition:10, mcOptions:10, factual:10 };
-      return Object.entries(layers).map(([k, pts]) => {
-        const max = maxPts[k] || 10;
+      const hits = issuesByLayer(issueDetails);
+      const weights = QE.LAYER_WEIGHTS || {};
+      return LAYER_ORDER.map((key) => {
+        if (!(key in layers) && weights[key] == null) return '';
+        const g = LAYER_GUIDE[key] || {};
+        const max = Number(g.points ?? weights[key] ?? 10);
+        const pts = Number(layers[key] ?? 0);
         const pct = max ? Math.round((pts / max) * 100) : 0;
-        return `<div class="layer-row"><span>${LAYER_LABELS[k]||k}</span><div class="layer-bar${pts===0?' zero':''}"><span style="width:${pct}%"></span></div><span>${pts}</span></div>`;
+        const failed = pts === 0 && max > 0;
+        const layerHits = hits[key] || [];
+        return `<div class="layer-card ${failed ? 'fail' : 'ok'}">
+          <div class="layer-head"><strong>${escapeHtml(g.label || key)}</strong><span class="layer-pts">${pts}/${max}</span></div>
+          <div class="layer-bar${failed ? ' zero' : ''}"><span style="width:${pct}%"></span></div>
+          <p class="layer-desc">${escapeHtml(g.reflects || '')}</p>
+          <p class="layer-desc"><em>Sobe:</em> ${escapeHtml(g.up || '')} · <em>Desce:</em> ${escapeHtml(g.down || '')}</p>
+          ${layerHits.length ? `<ul class="layer-hits">${layerHits.map((m) => `<li>${escapeHtml(m)}</li>`).join('')}</ul>` : ''}
+        </div>`;
       }).join('');
+    }
+
+    function renderMcReview(parsed, result, resolved) {
+      const el = $('mc-review');
+      const optsEl = $('opts-preview');
+      if (!el) return;
+      const options = Array.isArray(parsed?.options) ? parsed.options : [];
+      const isVF = resolved?.formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO;
+      const answer = String(parsed?.a || '').trim();
+      const target = !isVF && QE.describeMcDistractorTarget
+        ? QE.describeMcDistractorTarget(resolved?.difficulty)
+        : '';
+      const mcIssues = (result?.issueDetails || []).filter((d) => d?.layer === 'mcOptions');
+      if (!options.length) {
+        el.hidden = false;
+        el.innerHTML = `<h3>Opções MC</h3>
+          <p class="hint">O motor valida a pergunta <strong>e</strong> as 4 opções. Faltam opções — a camada «Opções MC» reprova.</p>`;
+        if (optsEl) optsEl.hidden = true;
+        return;
+      }
+      const norm = (s) => String(s || '').trim().toLowerCase();
+      el.hidden = false;
+      el.innerHTML = `<h3>Opções MC</h3>
+        <p class="hint">${escapeHtml(target || 'Uma correcta + três erradas da mesma classe.')} O motor valida enunciado e opções.</p>
+        <ol class="mc-opt-list">${options.map((opt) => {
+          const correct = norm(opt) === norm(answer);
+          return `<li class="${correct ? 'correct' : ''}">
+            <span>${escapeHtml(opt)}</span>
+            <span class="mc-opt-tag">${correct ? 'correcta' : 'distractora'}</span>
+          </li>`;
+        }).join('')}</ol>
+        ${mcIssues.length ? `<ul class="layer-hits">${mcIssues.map((i) => `<li>${escapeHtml(i.message || i)}</li>`).join('')}</ul>` : ''}
+        ${options.length < 4 && !isVF ? '<p class="hint">Devem existir 4 opções distintas.</p>' : ''}`;
+      if (optsEl) {
+        optsEl.hidden = true;
+        optsEl.textContent = '';
+      }
     }
 
     function buildParsedFromForm() {
@@ -791,7 +1192,7 @@
 
       $('q-preview').textContent = parsed.q || '';
       $('a-preview').textContent = parsed.a ? `→ ${parsed.a}` : '';
-      $('opts-preview').textContent = parsed.options?.length ? parsed.options.join(' · ') : '';
+      renderMcReview(parsed, result, resolved);
 
       $('q').value = parsed.q || '';
       $('a').value = parsed.a || '';
@@ -799,11 +1200,15 @@
 
       const el = $('result');
       const minScore = Number($('minScore').value) || 75;
+      const existingId = currentEntry?.parsed?.q === parsed.q && currentEntry?.id ? currentEntry.id : '';
+      const logMatch = session.log.find((x) => x.q === parsed.q && x.a === parsed.a);
       currentEntry = {
+        id: existingId || logMatch?.id || `log-${Date.now()}`,
         parsed: { ...parsed },
         result: { ...result },
         resolved: { ...resolved },
         aiUsage: aiUsage || lastAiUsage,
+        humanRating: logMatch?.humanRating || null,
         ts: Date.now(),
       };
 
@@ -811,19 +1216,20 @@
         el.className = 'result ok';
         el.innerHTML = `<span class="badge ok">ACEITE</span> <span class="score-big">${result.score}/100</span>
           <div style="font-size:0.85rem;margin-top:6px;">knowledgeKey: <code>${escapeHtml(result.knowledgeKey)}</code></div>
-          <div class="layers">${renderLayers(result.layers)}</div>`;
+          <div class="layers">${renderLayers(result.layers, result.issueDetails)}</div>`;
       } else {
         const issues = (result.issues || []).map((i) => `<li>${escapeHtml(i)}</li>`).join('');
         const hint = result.issues?.length ? QE.buildRetryHint(result.issues, resolved.formatId, resolved.ageBandKey) : '';
         el.className = 'result err';
         el.innerHTML = `<span class="badge err">REJEITADA</span> <span class="score-big">${result.score}/100</span>
           <div style="font-size:0.85rem;margin-top:6px;">knowledgeKey: <code>${escapeHtml(result.knowledgeKey)}</code></div>
-          <div class="layers">${renderLayers(result.layers)}</div>
+          <div class="layers">${renderLayers(result.layers, result.issueDetails)}</div>
           ${issues ? `<ul class="issues">${issues}</ul>` : ''}
           ${hint ? `<pre>${escapeHtml(hint)}</pre>` : ''}`;
       }
       $('feedback-form').hidden = false;
       resetFeedbackForm();
+      syncResultRateButtons(currentEntry.humanRating);
     }
 
     function resetFeedbackForm() {
@@ -854,11 +1260,17 @@
     function addLogEntry(parsed, result, resolved, aiUsage = null) {
       session.stats.total += 1;
       if (result.ok) session.stats.ok += 1; else session.stats.fail += 1;
+      const id = currentEntry?.id || `log-${Date.now()}`;
+      if (currentEntry) currentEntry.id = id;
       session.log.unshift({
-        id: `log-${Date.now()}`, ok: result.ok,
+        id, ok: result.ok,
         q: parsed.q, a: parsed.a, score: result.score,
         knowledgeKey: result.knowledgeKey, resolved,
+        issues: result.issues || [],
+        evaluated: false,
+        humanRating: currentEntry?.humanRating || null,
         aiUsage: aiUsage || lastAiUsage,
+        gameVersion: session.gameVersion,
       });
       if (session.log.length > 40) session.log.pop();
       renderSessionLog();
@@ -890,11 +1302,113 @@
     }
 
     function getFeedbackHints() {
-      if (!$('use-feedback-hints').checked) return '';
-      return loadFeedback().slice(-4).map((f) => {
-        const p = [f.verdict, f.comment].filter(Boolean).join(' — ');
-        return p ? `FEEDBACK: ${p}` : '';
-      }).filter(Boolean).join('\n');
+      if (!$('use-feedback-hints')?.checked) return '';
+      const recent = loadFeedback().slice(-8);
+      if (!recent.length) return '';
+      const lines = [
+        'APRENDIZAGEM DA SESSÃO DE TESTE — aplica na próxima pergunta (não copies o texto das perguntas anteriores):',
+      ];
+      recent.forEach((f) => {
+        const bits = [];
+        if (f.verdict) bits.push(VERDICT_LABELS[f.verdict] || f.verdict);
+        if (f.humanRating) bits.push(`nota humana ${f.humanRating}/5 (${RATE_LABELS[f.humanRating] || ''})`);
+        bits.push(f.motorAccepted ? 'motor aceitou' : 'motor rejeitou');
+        if (f.tags?.length) bits.push('problemas: ' + f.tags.join(', '));
+        if (f.comment) bits.push('indicação: ' + f.comment);
+        if (f.category) bits.push('categoria ' + f.category);
+        if (f.archetype) bits.push('arquétipo ' + f.archetype);
+        if (f.age) bits.push('idade ' + f.age);
+        lines.push('- ' + bits.join(' | '));
+      });
+      const avoid = recent.filter((f) =>
+        (f.humanRating && f.humanRating <= 2)
+        || f.verdict === 'ia-bad'
+        || f.verdict === 'false-negative'
+        || (f.tags && f.tags.length)
+      );
+      if (avoid.length) {
+        const notes = avoid.map((f) => f.comment || (f.tags || []).join(', ') || VERDICT_LABELS[f.verdict] || f.verdict).filter(Boolean);
+        if (notes.length) lines.push('EVITA repetir: ' + notes.slice(0, 6).join('; ') + '.');
+      }
+      const goods = recent.filter((f) => f.humanRating >= 4 && f.verdict === 'motor-ok');
+      if (goods.length) {
+        lines.push('Mantém o estilo das perguntas com nota 4–5 e veredito «motor correcto».');
+      }
+      return lines.join('\n');
+    }
+
+    function presentForReview(result, parsed, resolved, aiUsage) {
+      showResult(result, parsed, resolved, aiUsage);
+      session.pendingReview = true;
+      updateGenerateLock();
+      const gate = $('eval-gate');
+      if (gate) {
+        gate.hidden = false;
+        gate.classList.remove('pulse');
+        void gate.offsetWidth;
+        gate.classList.add('pulse');
+      }
+      const saved = $('eval-saved-note');
+      if (saved) saved.hidden = true;
+      $('result-card')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
+    function evaluationReady() {
+      if (!currentEntry) {
+        alert('Não há pergunta para avaliar.');
+        return false;
+      }
+      if (!selectedVerdict) {
+        alert('Escolhe se o motor acertou nesta validação.');
+        return false;
+      }
+      if (!currentEntry.humanRating) {
+        alert('Dá uma nota 1–5 à qualidade da pergunta.');
+        return false;
+      }
+      return true;
+    }
+
+    async function submitEvaluation({ generateNext }) {
+      if (!evaluationReady()) return false;
+      const entry = buildFeedbackEntry();
+      if (!entry) return false;
+      const logItem = session.log.find((x) => x.id === currentEntry.id);
+      if (!logItem?.evaluated) saveFeedbackEntry(entry);
+      if (logItem) {
+        logItem.evaluated = true;
+        logItem.humanRating = currentEntry.humanRating;
+        logItem.verdict = selectedVerdict;
+        logItem.comment = entry.comment;
+        logItem.tags = entry.tags;
+      }
+      session.pendingReview = false;
+      updateGenerateLock();
+      renderPonderacao();
+      const saved = $('eval-saved-note');
+      if (saved) {
+        saved.hidden = false;
+        saved.textContent = generateNext
+          ? 'Avaliação guardada. A gerar a seguinte com este input…'
+          : 'Avaliação guardada — o motor vai usar este input na próxima geração.';
+      }
+      const gate = $('eval-gate');
+      if (gate) gate.classList.remove('pulse');
+
+      const rating = currentEntry.humanRating;
+      const shouldBank = currentEntry.result?.ok && selectedVerdict === 'motor-ok' && rating >= 4;
+      if (shouldBank) {
+        const r = currentEntry.resolved || {};
+        const bankSave = await saveAcceptedToBank(
+          currentEntry.parsed, r, r.formatId, currentEntry.result.knowledgeKey,
+        );
+        const status = $('gen-status');
+        if (status && (bankSave?.ok || bankSave?.reason === 'exists')) {
+          status.textContent += bankSave.reason === 'exists' ? ' · Já no banco.' : ' · Guardada no banco após avaliação.';
+        }
+      }
+      if (generateNext) await runGenerate();
+      return true;
     }
 
     async function saveAcceptedToBank(parsed, resolved, formatId, knowledgeKey) {
@@ -958,6 +1472,7 @@
           : `{"q":"...","a":"..."${knowledgeHint}}`);
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        if (stopBatch) break;
         if (attempt > 1 && QE.shouldRotateSubtopicForRetry(lastIssueDetails, attempt)) {
           subtopic = QE.chooseSubtopic(cat.n, [...session.usedSubtopics, subtopic]);
           resolved.subtopic = subtopic;
@@ -1047,16 +1562,13 @@
             score: result.score,
             aiUsage,
           });
-          showResult(result, parsed, resolved, aiUsage);
+          presentForReview(result, parsed, resolved, aiUsage);
           rememberAccepted(parsed, result, { formatId, archetypeId, difficulty, subtopic });
           addLogEntry(parsed, result, resolved, aiUsage);
-          const bankSave = await saveAcceptedToBank(parsed, resolved, formatId, result.knowledgeKey);
           QE.persistQuestion(ageBandKey, parsed.q, parsed.a, normalizeQ, {
             category: cat.n, format: formatId, knowledgeKey: result.knowledgeKey, difficulty, subtopic,
           });
-          if (bankSave?.ok || bankSave?.reason === 'exists') {
-            $('gen-status').textContent += bankSave.reason === 'exists' ? ' · Já no banco Supabase.' : ' · Guardada no banco Supabase.';
-          }
+          $('gen-status').textContent += ' · Avalia agora para o motor aprender.';
           return { parsed, result, resolved };
         }
         lastIssues = result.issues || ['validação falhou'];
@@ -1075,31 +1587,43 @@
           aiUsage,
           parsed,
         });
-        showResult(result, parsed, resolved, aiUsage);
       }
 
       $('gen-status').className = 'result err';
-      $('gen-status').textContent = `Rejeitada após ${maxAttempts} tentativas.${aiUsageSuffix(lastAttemptUsage)}`;
-      if (lastParsed && lastResult) addLogEntry(lastParsed, lastResult, resolved, lastAttemptUsage);
+      $('gen-status').textContent = `Rejeitada após ${maxAttempts} tentativas.${aiUsageSuffix(lastAttemptUsage)} · Avalia agora para o motor aprender.`;
+      if (lastParsed && lastResult) {
+        presentForReview(lastResult, lastParsed, resolved, lastAttemptUsage);
+        addLogEntry(lastParsed, lastResult, resolved, lastAttemptUsage);
+      }
       return null;
     }
 
-    async function runBatch(n) {
-      stopBatch = false;
-      $('btn-generate').disabled = true;
-      $('btn-generate-5').disabled = true;
-      $('btn-stop').disabled = false;
-      for (let i = 0; i < n && !stopBatch; i += 1) {
-        try { await generateOne(); } catch (err) {
-          $('gen-status').className = 'result err';
-          $('gen-status').textContent = `Erro: ${err.message}`;
-          break;
+    async function runGenerate() {
+      if (session.pendingReview) {
+        $('result-card')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        const gate = $('eval-gate');
+        if (gate) {
+          gate.classList.remove('pulse');
+          void gate.offsetWidth;
+          gate.classList.add('pulse');
         }
-        if (i < n - 1) await new Promise((r) => setTimeout(r, 500));
+        $('gen-status').className = 'result run';
+        $('gen-status').textContent = 'Avalia primeiro esta pergunta (veredito + nota 1–5) para o motor usar o teu input.';
+        return;
       }
-      $('btn-generate').disabled = false;
-      $('btn-generate-5').disabled = false;
-      $('btn-stop').disabled = true;
+      stopBatch = false;
+      generating = true;
+      updateGenerateLock();
+      try {
+        await generateOne();
+      } catch (err) {
+        $('gen-status').className = 'result err';
+        $('gen-status').textContent = `Erro: ${err.message}`;
+        session.pendingReview = false;
+      } finally {
+        generating = false;
+        updateGenerateLock();
+      }
     }
 
     function loadFeedback() {
@@ -1127,6 +1651,9 @@
         knowledgeKey: currentEntry.result.knowledgeKey,
         category: r.cat?.name, age: r.ageBandKey, format: r.formatId,
         difficulty: r.difficulty, answerMode: r.answerMode,
+        archetype: r.archetypeId || '',
+        humanRating: currentEntry.humanRating || null,
+        gameVersion: session.gameVersion,
         aiProvider: currentEntry.aiUsage?.provider || '',
         aiModel: currentEntry.aiUsage?.model || '',
       };
@@ -1147,8 +1674,7 @@
     $('cat').addEventListener('change', onConfigChange);
     $('age').addEventListener('change', onConfigChange);
     $('answerMode').addEventListener('change', onConfigChange);
-    $('btn-generate').addEventListener('click', () => runBatch(1));
-    $('btn-generate-5').addEventListener('click', () => runBatch(5));
+    $('btn-generate').addEventListener('click', () => runGenerate());
     $('btn-stop').addEventListener('click', () => { stopBatch = true; });
     $('btn-validate-manual').addEventListener('click', async () => {
       const { parsed, isMC } = buildParsedFromForm();
@@ -1163,22 +1689,54 @@
         btn.classList.add('selected');
       });
     });
+    document.querySelectorAll('#result-rate button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const rating = Number(btn.dataset.rate);
+        if (!currentEntry) return;
+        if (!currentEntry.id) currentEntry.id = `log-${Date.now()}`;
+        currentEntry.humanRating = rating;
+        const existing = session.log.find((x) => x.id === currentEntry.id);
+        if (existing) existing.humanRating = rating;
+        syncResultRateButtons(rating);
+        renderPonderacao();
+      });
+    });
+    $('btn-copy-ponder').addEventListener('click', () => {
+      navigator.clipboard.writeText(formatPonderText());
+      alert('Resumo copiado.');
+    });
+    $('btn-export-ponder').addEventListener('click', () => {
+      const p = computePonderacao();
+      const blob = new Blob([JSON.stringify({
+        gameVersion: session.gameVersion,
+        gameUpdatedAt: session.gameUpdatedAt,
+        generatedAt: new Date().toISOString(),
+        stats: session.stats,
+        motorAvg: p.motorAvg,
+        acceptPct: p.acceptPct,
+        humanAvg: p.humanAvg,
+        sessionNote: p.sessionNote,
+        results: session.log,
+      }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `teste-perguntas-${session.gameVersion || 'sessao'}-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    });
     $('btn-save-feedback').addEventListener('click', () => {
-      if (!selectedVerdict) { alert('Escolhe um veredito.'); return; }
-      saveFeedbackEntry(buildFeedbackEntry());
-      alert('Guardado.');
+      submitEvaluation({ generateNext: false });
     });
     $('btn-next-after-fb').addEventListener('click', () => {
-      if (selectedVerdict) saveFeedbackEntry(buildFeedbackEntry());
-      runBatch(1);
+      submitEvaluation({ generateNext: true });
     });
     $('btn-clear-session').addEventListener('click', () => {
       Object.assign(session, {
         usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedFormats: [],
         usedArchetypes: [], usedDifficulties: [], usedSubtopics: [], recentMcPositions: [], log: [],
         stats: { total: 0, ok: 0, fail: 0 },
+        pendingReview: false,
       });
-      renderSessionLog(); updateStats();
+      renderSessionLog(); updateStats(); renderPonderacao(); updateGenerateLock();
     });
     $('btn-export-json').addEventListener('click', () => {
       const blob = new Blob([JSON.stringify(loadFeedback(), null, 2)], { type: 'application/json' });
@@ -1199,7 +1757,10 @@
     populateCategorySelect();
     applyReportUrlParams();
     renderFeedbackList();
+    renderLayerGuideStatic();
+    loadGameVersion();
     updateStats();
+    updateGenerateLock();
     ReinoAdminAuth.initGate({ appEl: document.getElementById('adminApp') });
   })();
   </script>

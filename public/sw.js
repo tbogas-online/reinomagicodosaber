@@ -38,6 +38,7 @@ const PRECACHE_URLS = [
   '/question-engine/knowledge-key.js?v=20260908-120850',
   '/question-engine/known-facts.js?v=20260908-120850',
   '/question-engine/mc-assembly.js?v=20260908-120850',
+  '/question-engine/mc-distractor-quality.js?v=20260908-120850',
   '/question-engine/mc-validators.js?v=20260908-120850',
   '/question-engine/persistent-history.js?v=20260908-120850',
   '/question-engine/prompt-builder.js?v=20260908-120850',

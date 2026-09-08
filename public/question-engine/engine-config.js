@@ -34,6 +34,73 @@
     mcOptions: 12,
   });
 
+  /** O que cada camada mede e o que faz o score subir ou descer. */
+  const LAYER_GUIDE = Object.freeze({
+    structural: Object.freeze({
+      label: 'Estrutura',
+      points: LAYER_WEIGHTS.structural,
+      reflects: 'Pergunta e resposta existem e estão completas.',
+      up: 'Campos q e a preenchidos; pergunta inteira.',
+      down: 'Falta pergunta ou resposta; resposta diferente do repositório verificado.',
+    }),
+    format: Object.freeze({
+      label: 'Formato',
+      points: LAYER_WEIGHTS.format,
+      reflects: 'A pergunta obedece ao formato pedido (MC, V/F, QUEM_E, COMPLETA, etc.).',
+      up: 'Estrutura do formato correcta (ex.: termina em ?, V/F no sítio certo, lacuna no fim).',
+      down: 'Formato errado, frase incompleta, ou tipo de pergunta diferente do pedido.',
+    }),
+    age: Object.freeze({
+      label: 'Idade',
+      points: LAYER_WEIGHTS.age,
+      reflects: 'Vocabulário e tema adequados à faixa etária.',
+      up: 'Linguagem e conteúdo próprios da idade.',
+      down: 'Demasiado difícil, técnico, obscuro ou inapropriado para a faixa.',
+    }),
+    difficulty: Object.freeze({
+      label: 'Dificuldade',
+      points: LAYER_WEIGHTS.difficulty,
+      reflects: 'O nível real da pergunta corresponde à dificuldade pedida (1–5).',
+      up: 'Exigência alinhada com o nível (nem banal demais, nem de especialista a mais).',
+      down: 'Pergunta mais fácil ou mais difícil do que o nível pedido.',
+    }),
+    category: Object.freeze({
+      label: 'Categoria',
+      points: LAYER_WEIGHTS.category,
+      reflects: 'O tema pertence à categoria escolhida.',
+      up: 'Pergunta claramente dentro da categoria e do subtópico.',
+      down: 'Tema de outra categoria ou mistura de assuntos.',
+    }),
+    ptPt: Object.freeze({
+      label: 'PT-PT',
+      points: LAYER_WEIGHTS.ptPt,
+      reflects: 'Português de Portugal na pergunta, resposta e opções.',
+      up: 'Ortografia e vocabulário PT-PT; nomes de países em português.',
+      down: 'Brasileirismos, inglês isolado, alfabetos misturados, linguagem ofensiva.',
+    }),
+    semantic: Object.freeze({
+      label: 'Semântica',
+      points: LAYER_WEIGHTS.semantic,
+      reflects: 'A pergunta tem uma única resposta inequívoca e o facto faz sentido.',
+      up: 'Uma resposta certa; não vaza a resposta no enunciado; facto coerente.',
+      down: 'Ambiguidade, resposta revelada, facto incorrecto ou pista a mais.',
+    }),
+    repetition: Object.freeze({
+      label: 'Repetição',
+      points: LAYER_WEIGHTS.repetition,
+      reflects: 'Não repete perguntas, respostas ou conhecimento já usados.',
+      up: 'Tema novo nesta sessão / histórico persistente.',
+      down: 'Pergunta, resposta ou knowledgeKey já vistos, ou conteúdo reportado.',
+    }),
+    mcOptions: Object.freeze({
+      label: 'Opções MC',
+      points: LAYER_WEIGHTS.mcOptions,
+      reflects: 'As 4 opções: uma certa, três erradas da mesma classe, calibradas à dificuldade.',
+      up: '4 opções distintas; uma correcta; distractores plausíveis e à proximidade certa.',
+      down: 'Faltam opções, duplicados, absurdos, classes misturadas, ou distractores demasiado óbvios/próximos para o nível.',
+    }),
+  });
+
   const TRUE_FALSE_CHANCE = ENGINE_CONFIG.TRUE_FALSE_CHANCE;
   const TRUE_FALSE_MIN_GAP = ENGINE_CONFIG.TRUE_FALSE_MIN_GAP;
   const FORMAT_MAX_CONSECUTIVE = ENGINE_CONFIG.FORMAT_MAX_CONSECUTIVE;
@@ -404,6 +471,7 @@
   global.QuestionEngineConfig = Object.freeze({
     ENGINE_CONFIG,
     LAYER_WEIGHTS,
+    LAYER_GUIDE,
     TRUE_FALSE_CHANCE,
     TRUE_FALSE_MIN_GAP,
     FORMAT_MAX_CONSECUTIVE,

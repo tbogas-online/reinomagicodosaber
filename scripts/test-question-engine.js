@@ -2126,5 +2126,67 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('226. telemetria byCognitiveLevel', archSummary.byCognitiveLevel?.L4_ANALISAR?.total === 1);
 }
 
+{
+  const weights = QE.LAYER_WEIGHTS || {};
+  const sum = Object.values(weights).reduce((s, n) => s + Number(n || 0), 0);
+  assert('227. LAYER_WEIGHTS somam 100', sum === 100, `soma=${sum}`);
+  assert('228. LAYER_GUIDE cobre as camadas', Object.keys(weights).every((k) => QE.LAYER_GUIDE?.[k]?.reflects));
+
+  const far = {
+    q: 'Em que ano foi a Restauração da Independência?',
+    a: '1640',
+    options: ['1640', '1800', '1900', '2000'],
+  };
+  const rFar = QE.validateQuestion(far, baseCtx({
+    isMC: true, formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA, categoryNumber: 3, difficulty: 5, ageBandKey: '15+',
+  }));
+  assert('229. D5 anos afastados reprova MC', !rFar.ok && /próxim|afastad/i.test((rFar.issues || []).join(' ')), rFar.issues?.join(', '));
+
+  const closeNames = {
+    q: 'Qual é a capital de Portugal?',
+    a: 'Lisboa',
+    options: ['Lisboa', 'Lisbosa', 'Porto', 'Coimbra'],
+  };
+  const rClose = QE.validateQuestion(closeNames, baseCtx({
+    isMC: true, formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA, categoryNumber: 2, difficulty: 1, ageBandKey: '6-9',
+  }));
+  assert('230. D1 nomes quase iguais reprova MC', !rClose.ok, rClose.issues?.join(', '));
+
+  const nearYears = {
+    q: 'Em que ano foi a Restauração da Independência?',
+    a: '1640',
+    options: ['1640', '1641', '1638', '1648'],
+  };
+  const rNear = QE.validateQuestion(nearYears, baseCtx({
+    isMC: true, formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA, categoryNumber: 3, difficulty: 5, ageBandKey: '15+',
+  }));
+  const nearMcFail = (rNear.issueDetails || []).some((d) => d.code === 'MC_DISTRACTORS_TOO_FAR');
+  assert('231. D5 anos próximos não disparam TOO_FAR', !nearMcFail, rNear.issues?.join(', '));
+
+  const planets = {
+    q: 'Qual é o planeta mais próximo do Sol?',
+    a: 'Mercúrio',
+    options: ['Mercúrio', 'Vénus', 'Terra', 'Marte'],
+  };
+  const rPlanets = QE.validateQuestion(planets, baseCtx({
+    isMC: true, formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA, categoryNumber: 6, difficulty: 3,
+  }));
+  assert('232. MC planetas nível 3 aceite nas opções', !(rPlanets.issueDetails || []).some((d) => d.layer === 'mcOptions'), rPlanets.issues?.join(', '));
+
+  const prompt = QE.buildPrompt({
+    category: QE.CATEGORIES[2],
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: 'ESCOLHA_MULTIPLA',
+    ptPtRules: '',
+    isMC: true,
+    isTrueFalse: false,
+    difficulty: 5,
+    jsonFormat: '{"q":"","a":""}',
+    normalizeFn: (s) => String(s || '').trim().toLowerCase(),
+  });
+  assert('233. prompt calibra distractores à dificuldade', /OPÇÕES MC CALIBRADAS À DIFICULDADE 5/.test(prompt));
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

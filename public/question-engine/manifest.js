@@ -22,6 +22,7 @@
     'question-engine/pt-pt-validators.js',
     'question-engine/format-validators.js',
     'question-engine/mc-validators.js',
+    'question-engine/mc-distractor-quality.js',
     'question-engine/age-validators.js',
     'question-engine/category-validators.js',
     'question-engine/semantic-validators.js',

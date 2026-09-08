@@ -28,6 +28,12 @@
     throw new Error('prompt-builder: carrega question-archetypes.js antes deste módulo');
   }
   const ARCHETYPE_MAX_CONSECUTIVE = ENGINE_CONFIG.ARCHETYPE_MAX_CONSECUTIVE || FORMAT_MAX_CONSECUTIVE;
+  const McQuality = global.QuestionEngineMcDistractorQuality;
+
+  function buildMcDifficultyRules(difficulty, ageBandKey, formatId, isMC, isTrueFalse) {
+    if (!isMC || isTrueFalse || !McQuality?.buildMcDistractorRules) return '';
+    return McQuality.buildMcDistractorRules(difficulty, ageBandKey, formatId);
+  }
 
   const MUSIC_FOCUS_AREAS = [
     'uma BANDA ou GRUPO musical (nacional ou internacional)',
@@ -397,6 +403,7 @@ REGRAS DA CATEGORIA:
 ${getCategoryDef(category.n).rules}
 
 ${buildFormatRules(formatId, { ageBandKey, isMC, isTrueFalse })}
+${buildMcDifficultyRules(diff, ageBandKey, formatId, isMC, isTrueFalse)}
 
 ${buildAgeRules(ageBandKey, ageBandPromptText)}
 ${ageDifficultyExtra || ''}
@@ -536,6 +543,7 @@ Só json válido, sem markdown: ${jsonFormat}`;
     chooseFormat,
     chooseArchetype,
     planQuestion,
+    buildMcDifficultyRules,
     buildPrompt,
     buildPromptFromFact,
     getRepositoryExpectedAnswer,

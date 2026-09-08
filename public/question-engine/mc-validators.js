@@ -517,6 +517,9 @@ function collectMcIssues(parsed, ctx) {
     ...(formatId === 'ADIVINHA' && global.QuestionEngineAdivinhaDistractors
       ? global.QuestionEngineAdivinhaDistractors.validateAdivinhaMcDistractors(options, a, stripTags)
       : []),
+    ...(global.QuestionEngineMcDistractorQuality
+      ? global.QuestionEngineMcDistractorQuality.validateMcDistractorProximity(parsed, ctx)
+      : []),
   ];
   if (options.length === 4) {
     issues.push(...validateMcOptionsCoherence(q, options, stripTags));
