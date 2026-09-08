@@ -1,0 +1,10 @@
+---
+description: Só usar agent_review / revisões automáticas quando o utilizador autorizar
+alwaysApply: true
+---
+
+# Agent review — só com autorização
+
+Não lançar `agent_review`, Bugbot, security-review nem outras revisões automáticas de código **a menos que o utilizador o peça de forma explícita** nesta conversa (ex.: «corre o review», «autorizo o agent_review»).
+
+Não inferir autorização a partir de commits, push, PRs ou do facto de haver alterações no working tree.

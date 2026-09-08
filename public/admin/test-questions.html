@@ -182,27 +182,6 @@ a informacao <!DOCTYPE html>
     }
     .ctx-chip.cat select.ctx-select { color: #93c5fd; }
     .ctx-chip.diff-corr select.ctx-select { color: #ddd6fe; }
-    .ctx-adjust {
-      display: grid;
-      gap: 10px;
-      margin: -4px 0 12px;
-      padding: 10px 12px;
-      background: var(--input);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-    }
-    @media (min-width: 720px) {
-      .ctx-adjust { grid-template-columns: 1fr auto; align-items: start; }
-    }
-    .ctx-adjust-label {
-      display: block;
-      font-size: 11px;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: 6px;
-    }
-    .ctx-adjust .rate-btns button { font-size: 0.82rem; padding: 6px 10px; }
     .ctx-extra { margin: 0 0 10px; }
     .layers { display: grid; gap: 8px; margin: 10px 0; font-size: 0.84rem; }
     .layer-card {
@@ -222,6 +201,33 @@ a informacao <!DOCTYPE html>
     .layer-desc { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.4; }
     .layer-desc em { color: var(--text); font-style: normal; }
     .layer-hits { margin: 6px 0 0; padding-left: 1.1rem; color: #fca5a5; font-size: 0.78rem; }
+    .layer-adjust {
+      display: grid; gap: 8px;
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+    }
+    .layer-score-edit, .layer-extra {
+      display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center;
+    }
+    .layer-score-edit > span, .layer-extra > span {
+      font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .layer-score-edit input.layer-score {
+      width: 4.2rem; margin: 0; padding: 4px 6px; font-size: 0.95rem; font-weight: 700;
+      text-align: center; background: var(--card); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px;
+    }
+    .layer-score-edit.changed input.layer-score { border-color: #d97706; color: #fbbf24; }
+    .layer-score-max { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
+    .layer-score-motor { font-size: 0.75rem; color: #fbbf24; }
+    .layer-extra select.layer-set-diff {
+      margin: 0; padding: 4px 8px; font-size: 0.8rem; font-weight: 600;
+      background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
+    }
+    .ctx-chip.format {
+      border-color: #0369a1;
+      background: linear-gradient(180deg, rgba(14, 165, 233, 0.18) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.format select.ctx-select { color: #7dd3fc; }
     .mc-review { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--input); }
     .mc-review h3 { margin: 0 0 6px; font-size: 0.9rem; }
     .mc-opt-list { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
@@ -273,7 +279,12 @@ a informacao <!DOCTYPE html>
     .feedback-entry { padding: 10px; margin-bottom: 6px; border-radius: 8px; background: var(--input); font-size: 0.84rem; }
     .feedback-entry .fb-meta { color: var(--muted); font-size: 0.76rem; }
     code { background: var(--input); padding: 1px 4px; border-radius: 3px; font-size: 0.86em; }
-    .q-preview { font-size: 1.05rem; margin: 8px 0 4px; line-height: 1.45; }
+    .q-preview {
+      font-size: 1.22rem;
+      font-weight: 600;
+      margin: 10px 0 6px;
+      line-height: 1.45;
+    }
     .a-preview { color: var(--accent); margin-bottom: 6px; }
     .opts-preview { font-size: 0.88rem; color: var(--muted); }
     .ai-usage-line {
@@ -350,6 +361,8 @@ a informacao <!DOCTYPE html>
     .rate-btns { display: flex; flex-wrap: wrap; gap: 4px; }
     .rate-btns button { font-size: 0.75rem; padding: 4px 8px; }
     .rate-btns button.selected { background: #047857; border-color: #047857; color: #fff; }
+    #result-rate { margin-bottom: 10px; }
+    #result-rate button { font-size: 0.82rem; padding: 6px 10px; }
     .breakdown { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
     .breakdown span {
       font-size: 0.75rem; padding: 3px 8px; border-radius: 999px;
@@ -445,6 +458,10 @@ a informacao <!DOCTYPE html>
           <span>Categoria</span>
           <select id="eval-cat" class="ctx-select" aria-label="Categoria principal"></select>
         </div>
+        <div class="ctx-chip format">
+          <span>Formato</span>
+          <select id="eval-format" class="ctx-select" aria-label="Formato correcto"></select>
+        </div>
         <div class="ctx-chip age"><span>Faixa etária</span><strong id="ctx-age">—</strong></div>
         <div class="ctx-chip diff"><span>Dificuldade pedida</span><strong id="ctx-diff-req">—</strong></div>
         <div class="ctx-chip diff-est" id="ctx-diff-est-chip"><span>Dificuldade estimada</span><strong id="ctx-diff-est">—</strong></div>
@@ -459,22 +476,6 @@ a informacao <!DOCTYPE html>
           </select>
         </div>
       </div>
-      <div class="ctx-adjust" id="ctx-adjust">
-        <div>
-          <span class="ctx-adjust-label">Também cabe em (adicionar categorias)</span>
-          <div class="chip-group" id="eval-cat-extra"></div>
-        </div>
-        <div>
-          <span class="ctx-adjust-label">Ponderação (nota 1–5)</span>
-          <div class="rate-btns" id="ctx-rate">
-            <button type="button" class="secondary" data-rate="5">5 Excelente</button>
-            <button type="button" class="secondary" data-rate="4">4 Boa</button>
-            <button type="button" class="secondary" data-rate="3">3 Aceitável</button>
-            <button type="button" class="secondary" data-rate="2">2 Fraca</button>
-            <button type="button" class="secondary" data-rate="1">1 Má</button>
-          </div>
-        </div>
-      </div>
       <p class="hint ctx-extra" id="ctx-extra" hidden></p>
       <div id="ai-usage-line" class="ai-usage-line" hidden></div>
       <div id="resolved-line" class="resolved"></div>
@@ -486,10 +487,10 @@ a informacao <!DOCTYPE html>
 
       <div class="feedback-box" id="feedback-form" hidden>
         <h3>2. Ajustar e avaliar</h3>
-        <p class="check-box" id="eval-gate">Na barra acima: corrige categoria e dificuldade, dá a nota 1–5. Em baixo: corrige enunciado/opções se precisares, depois o veredito. O motor usa estes ajustes na próxima geração.</p>
+        <p class="check-box" id="eval-gate">Em cada camada: altera o valor (ex. 10/10 → 8). Idade, dificuldade e categoria têm ajustes próprios. Depois o veredito e a nota 1–5.</p>
 
         <div class="edit-box">
-          <p class="hint">Categoria, dificuldade e nota 1–5 ajustam-se na barra acima. Aqui podes corrigir o enunciado e as opções.</p>
+          <p class="hint">Categoria e formato na barra. Em cada camada podes mudar o valor e, na Idade/Dificuldade/Categoria, onde a pergunta se aplica. Aqui: enunciado e opções.</p>
           <label for="q">Pergunta</label>
           <textarea id="q" rows="2" placeholder="Enunciado completo"></textarea>
           <label for="a">Resposta correcta</label>
@@ -517,7 +518,7 @@ a informacao <!DOCTYPE html>
           <button type="button" data-verdict="false-negative" class="secondary">Devia rejeitar</button>
           <button type="button" data-verdict="ia-bad" class="secondary">Culpa da IA</button>
         </div>
-        <p class="hint">Qualidade da pergunta (ponderação):</p>
+        <p class="hint">Ponderação geral (nota 1–5)</p>
         <div class="rate-btns" id="result-rate">
           <button type="button" class="secondary" data-rate="5">5 Excelente</button>
           <button type="button" class="secondary" data-rate="4">4 Boa</button>
@@ -952,6 +953,22 @@ a informacao <!DOCTYPE html>
       }
     }
 
+    function populateEvalFormat(resolved) {
+      const sel = $('eval-format');
+      if (!sel) return;
+      const catN = Number($('eval-cat')?.value || resolved?.cat?.n || 1);
+      const ageBandKey = resolved?.ageBandKey || lastResolved?.ageBandKey || AGES[0];
+      const answerMode = resolved?.answerMode || lastResolved?.answerMode || 'mc';
+      const formats = QE.getAllowedFormats(catN, ageBandKey, answerMode, {
+        archetypeId: resolved?.archetypeId || lastResolved?.archetypeId,
+      }) || [];
+      const keep = sel.value || resolved?.formatId || lastResolved?.formatId || '';
+      const all = formats.slice();
+      if (keep && !all.includes(keep)) all.unshift(keep);
+      sel.innerHTML = all.map((f) => `<option value="${f}">${QE.FORMAT_LABELS[f] || f}</option>`).join('');
+      if (keep && [...sel.options].some((o) => o.value === keep)) sel.value = keep;
+    }
+
     function diffLabel(n) {
       const labels = QE.DIFFICULTY_LABELS || {};
       const v = Number(n);
@@ -984,9 +1001,10 @@ a informacao <!DOCTYPE html>
     }
 
     function readExtraCategories(primaryN) {
-      return [...document.querySelectorAll('#eval-cat-extra input:checked')]
+      return [...document.querySelectorAll('#eval-cat-extra input:checked, #result input.layer-extra-cat:checked')]
         .map((box) => Number(box.value))
         .filter((n) => n && n !== Number(primaryN))
+        .filter((n, i, arr) => arr.indexOf(n) === i)
         .map((n) => CATEGORIES.find((c) => c.n === n))
         .filter(Boolean);
     }
@@ -1081,6 +1099,7 @@ a informacao <!DOCTYPE html>
 
     function fillEditorFromParsed(parsed, resolved, { keepEval } = {}) {
       populateEvalAdjusts();
+      populateEvalFormat(resolved);
       if ($('q')) $('q').value = parsed?.q || '';
       if ($('a')) $('a').value = parsed?.a || '';
       fillMcEditOptions(parsed?.options);
@@ -1091,6 +1110,8 @@ a informacao <!DOCTYPE html>
         if ($('eval-cat') && catN) $('eval-cat').value = String(catN);
         const diffVal = Number(resolved?.difficulty);
         if ($('eval-diff') && Number.isFinite(diffVal)) $('eval-diff').value = String(diffVal);
+        if ($('eval-format') && resolved?.formatId) $('eval-format').value = resolved.formatId;
+        populateEvalFormat(resolved);
         syncExtraCatChips(catN);
         setExtraCatChecks([]);
       } else {
@@ -1302,7 +1323,7 @@ a informacao <!DOCTYPE html>
     }
 
     function syncResultRateButtons(rating) {
-      document.querySelectorAll('#result-rate button, #ctx-rate button').forEach((b) => {
+      document.querySelectorAll('#result-rate button').forEach((b) => {
         b.classList.toggle('selected', Number(b.dataset.rate) === Number(rating));
       });
     }
@@ -1356,6 +1377,135 @@ a informacao <!DOCTYPE html>
       return map;
     }
 
+    function layerMax(key) {
+      return Number((LAYER_GUIDE[key] || {}).points ?? (QE.LAYER_WEIGHTS || {})[key] ?? 10);
+    }
+
+    function motorLayerPts(key) {
+      return Number(currentEntry?.motorLayers?.[key] ?? currentEntry?.result?.layers?.[key] ?? 0);
+    }
+
+    function testerLayerPts(key, motorPts) {
+      const scores = currentEntry?.layerScores;
+      if (scores && scores[key] != null && scores[key] !== '') return Number(scores[key]);
+      return Number(motorPts ?? 0);
+    }
+
+    function defaultLayerScores(layers) {
+      const out = {};
+      LAYER_ORDER.forEach((key) => {
+        if (layers && key in layers) out[key] = Number(layers[key] ?? 0);
+      });
+      return out;
+    }
+
+    function testerTotalScore() {
+      return LAYER_ORDER.reduce((sum, key) => {
+        const max = layerMax(key);
+        const motor = motorLayerPts(key);
+        const pts = testerLayerPts(key, motor);
+        const n = Number.isFinite(pts) ? Math.min(max, Math.max(0, pts)) : 0;
+        return sum + n;
+      }, 0);
+    }
+
+    function layerDiffOptions(selected) {
+      const labels = QE.DIFFICULTY_LABELS || {};
+      return [1, 2, 3, 4, 5].map((n) =>
+        `<option value="${n}"${Number(selected) === n ? ' selected' : ''}>${n} — ${escapeHtml(labels[n] || String(n))}</option>`
+      ).join('');
+    }
+
+    function renderLayerScoreInput(key, motorPts, max) {
+      const val = testerLayerPts(key, motorPts);
+      const changed = Number(val) !== Number(motorPts);
+      return `<div class="layer-score-edit${changed ? ' changed' : ''}">
+        <span>Valor</span>
+        <input type="number" class="layer-score" data-layer="${escapeHtml(key)}" min="0" max="${max}" step="1" value="${val}">
+        <span class="layer-score-max">/ ${max}</span>
+        ${changed ? `<span class="layer-score-motor">motor ${motorPts}</span>` : ''}
+      </div>`;
+    }
+
+    function renderLayerExtras(key) {
+      if (key === 'age') {
+        const selected = new Set(currentEntry?.applicableAges?.length
+          ? currentEntry.applicableAges
+          : [lastResolved?.ageBandKey].filter(Boolean));
+        return `<div class="layer-extra">
+          <span>Aplicável em</span>
+          <div class="chip-group">${AGES.map((a) =>
+            `<label class="chip"><input type="checkbox" class="layer-age" value="${escapeHtml(a)}"${selected.has(a) ? ' checked' : ''}> ${a === '15+' ? '15+ anos' : `${a} anos`}</label>`
+          ).join('')}</div>
+        </div>`;
+      }
+      if (key === 'difficulty') {
+        const req = Number(currentEntry?.requestedDifficulty ?? lastResolved?.requestedDifficulty ?? lastResolved?.difficulty ?? 3);
+        const corr = Number($('eval-diff')?.value || lastResolved?.difficulty || req);
+        return `<div class="layer-extra">
+          <span>Definir ou aceitar</span>
+          <button type="button" class="secondary" data-accept-diff="${req}">Aceitar pedida D${req}</button>
+          <select class="layer-set-diff" aria-label="Definir dificuldade">${layerDiffOptions(corr)}</select>
+        </div>`;
+      }
+      if (key === 'category') {
+        const primary = Number($('eval-cat')?.value || lastResolved?.cat?.n);
+        const extras = new Set((currentEntry?.extraCategories || []).map((c) => Number(c.n || c)));
+        return `<div class="layer-extra">
+          <span>Também aplicável em</span>
+          <div class="chip-group">${CATEGORIES.map((c) => {
+            const disabled = c.n === primary;
+            const checked = extras.has(c.n) && !disabled;
+            return `<label class="chip"${disabled ? ' style="opacity:0.4"' : ''}><input type="checkbox" class="layer-extra-cat" value="${c.n}"${disabled ? ' disabled' : ''}${checked ? ' checked' : ''}> ${c.n}. ${escapeHtml(c.name)}</label>`;
+          }).join('')}</div>
+        </div>`;
+      }
+      if (key === 'format') {
+        return `<p class="hint" style="margin:0;">Se o tipo estiver errado, muda o formato na barra acima.</p>`;
+      }
+      if (key === 'mcOptions') {
+        return `<p class="hint" style="margin:0;">Avalia as opções: baixa o valor se os distractores não calharem com o nível.</p>`;
+      }
+      if (key === 'ptPt') {
+        return `<p class="hint" style="margin:0;">Avalia o português de Portugal e ajusta o valor se houver brasileirismos ou erros.</p>`;
+      }
+      return '';
+    }
+
+    function renderLayerAdjust(key, motorPts, max) {
+      return `<div class="layer-adjust" data-layer="${escapeHtml(key)}">
+        ${renderLayerScoreInput(key, motorPts, max)}
+        ${renderLayerExtras(key)}
+      </div>`;
+    }
+
+    function updateLayerScoreDisplay(input, layer, n) {
+      const card = input.closest('.layer-card');
+      const max = layerMax(layer);
+      const motor = motorLayerPts(layer);
+      const ptsEl = card?.querySelector('.layer-pts');
+      if (ptsEl) ptsEl.textContent = `${n}/${max}`;
+      const bar = card?.querySelector('.layer-bar > span');
+      if (bar) bar.style.width = `${max ? Math.round((n / max) * 100) : 0}%`;
+      card?.classList.toggle('fail', n === 0 && max > 0);
+      card?.classList.toggle('ok', !(n === 0 && max > 0));
+      const wrap = input.closest('.layer-score-edit');
+      wrap?.classList.toggle('changed', n !== motor);
+      let motorEl = wrap?.querySelector('.layer-score-motor');
+      if (n !== motor) {
+        if (!motorEl && wrap) {
+          motorEl = document.createElement('span');
+          motorEl.className = 'layer-score-motor';
+          wrap.appendChild(motorEl);
+        }
+        if (motorEl) motorEl.textContent = `motor ${motor}`;
+      } else if (motorEl) {
+        motorEl.remove();
+      }
+      const totalEl = $('tester-total');
+      if (totalEl) totalEl.textContent = String(testerTotalScore());
+    }
+
     function renderLayers(layers, issueDetails) {
       if (!layers) return '';
       const hits = issuesByLayer(issueDetails);
@@ -1364,16 +1514,18 @@ a informacao <!DOCTYPE html>
         if (!(key in layers) && weights[key] == null) return '';
         const g = LAYER_GUIDE[key] || {};
         const max = Number(g.points ?? weights[key] ?? 10);
-        const pts = Number(layers[key] ?? 0);
+        const motorPts = Number(layers[key] ?? 0);
+        const pts = testerLayerPts(key, motorPts);
         const pct = max ? Math.round((pts / max) * 100) : 0;
         const failed = pts === 0 && max > 0;
         const layerHits = hits[key] || [];
+        const changed = Number(pts) !== Number(motorPts);
         return `<div class="layer-card ${failed ? 'fail' : 'ok'}">
-          <div class="layer-head"><strong>${escapeHtml(g.label || key)}</strong><span class="layer-pts">${pts}/${max}</span></div>
+          <div class="layer-head"><strong>${escapeHtml(g.label || key)}</strong><span class="layer-pts">${pts}/${max}${changed ? ` · motor ${motorPts}` : ''}</span></div>
           <div class="layer-bar${failed ? ' zero' : ''}"><span style="width:${pct}%"></span></div>
           <p class="layer-desc">${escapeHtml(g.reflects || '')}</p>
-          <p class="layer-desc"><em>Sobe:</em> ${escapeHtml(g.up || '')} · <em>Desce:</em> ${escapeHtml(g.down || '')}</p>
           ${layerHits.length ? `<ul class="layer-hits">${layerHits.map((m) => `<li>${escapeHtml(m)}</li>`).join('')}</ul>` : ''}
+          ${renderLayerAdjust(key, motorPts, max)}
         </div>`;
       }).join('');
     }
@@ -1501,14 +1653,6 @@ a informacao <!DOCTYPE html>
         }
         return false;
       }
-      const { parsed, isMC } = buildParsedFromForm();
-      if (!parsed.q || !parsed.a) {
-        if (!silent) {
-          const st = $('edit-status');
-          if (st) { st.hidden = false; st.textContent = 'Preenche pergunta e resposta.'; }
-        }
-        return false;
-      }
       applyingEdits = true;
       try {
         populateEvalAdjusts();
@@ -1517,6 +1661,7 @@ a informacao <!DOCTYPE html>
         const difficulty = Number($('eval-diff')?.value) || lastResolved?.difficulty;
         const extras = readExtraCategories(cat?.n);
         const prev = currentEntry;
+        const formatId = $('eval-format')?.value || lastResolved?.formatId || prev?.resolved?.formatId;
         const requestedDifficulty = prev?.requestedDifficulty
           ?? lastResolved?.requestedDifficulty
           ?? lastResolved?.difficulty
@@ -1526,12 +1671,22 @@ a informacao <!DOCTYPE html>
           cat,
           difficulty,
           requestedDifficulty,
+          formatId,
         };
+        lastResolved = resolved;
+        const { parsed, isMC } = buildParsedFromForm();
+        if (!parsed.q || !parsed.a) {
+          if (!silent) {
+            const st = $('edit-status');
+            if (st) { st.hidden = false; st.textContent = 'Preenche pergunta e resposta.'; }
+          }
+          return false;
+        }
         const ctx = buildValidationCtx({
           isMC,
           categoryNumber: cat.n,
           difficulty,
-          formatId: resolved.formatId,
+          formatId,
         });
         lastResolved = resolved;
         const result = validateParsed(parsed, ctx);
@@ -1592,6 +1747,13 @@ a informacao <!DOCTYPE html>
         extraCategories: prev?.extraCategories || [],
         requestedDifficulty: prev?.requestedDifficulty ?? resolved.requestedDifficulty,
         estimatedDifficulty: resolved.estimatedDifficulty,
+        motorLayers: { ...(result.layers || {}) },
+        layerScores: keepEval
+          ? { ...(prev?.layerScores || defaultLayerScores(result.layers)) }
+          : defaultLayerScores(result.layers),
+        applicableAges: keepEval
+          ? (prev?.applicableAges || [resolved.ageBandKey].filter(Boolean))
+          : [resolved.ageBandKey].filter(Boolean),
         aiUsage: aiUsage || lastAiUsage || prev?.aiUsage,
         humanRating: keepEval ? (prev?.humanRating || null) : (logMatch?.humanRating || null),
         ts: prev?.ts || Date.now(),
@@ -1600,16 +1762,18 @@ a informacao <!DOCTYPE html>
       renderExtraContext(resolved, currentEntry.extraCategories, currentEntry.originalResolved);
 
       const el = $('result');
+      const testerScore = testerTotalScore();
+      const testerNote = ` · tester <span id="tester-total">${testerScore}</span>/100`;
       if (result.ok) {
         el.className = 'result ok';
-        el.innerHTML = `<span class="badge ok">ACEITE</span> <span class="score-big">${result.score}/100</span>
+        el.innerHTML = `<span class="badge ok">ACEITE</span> <span class="score-big">${result.score}/100</span>${testerNote}
           <div style="font-size:0.85rem;margin-top:6px;">knowledgeKey: <code>${escapeHtml(result.knowledgeKey)}</code></div>
           <div class="layers">${renderLayers(result.layers, result.issueDetails)}</div>`;
       } else {
         const issues = (result.issues || []).map((i) => `<li>${escapeHtml(i)}</li>`).join('');
         const hint = result.issues?.length ? QE.buildRetryHint(result.issues, resolved.formatId, resolved.ageBandKey) : '';
         el.className = 'result err';
-        el.innerHTML = `<span class="badge err">REJEITADA</span> <span class="score-big">${result.score}/100</span>
+        el.innerHTML = `<span class="badge err">REJEITADA</span> <span class="score-big">${result.score}/100</span>${testerNote}
           <div style="font-size:0.85rem;margin-top:6px;">knowledgeKey: <code>${escapeHtml(result.knowledgeKey)}</code></div>
           <div class="layers">${renderLayers(result.layers, result.issueDetails)}</div>
           ${issues ? `<ul class="issues">${issues}</ul>` : ''}
@@ -1722,6 +1886,19 @@ a informacao <!DOCTYPE html>
         if (f.archetype) bits.push('arquétipo ' + f.archetype);
         if (f.age) bits.push('idade ' + f.age);
         if (f.questionEdited) bits.push('enunciado corrigido pelo tester');
+        if (f.originalFormat && f.format && f.originalFormat !== f.format) {
+          bits.push(`formato correcto: ${QE.FORMAT_LABELS[f.format] || f.format} (não ${QE.FORMAT_LABELS[f.originalFormat] || f.originalFormat})`);
+        }
+        if (f.applicableAges?.length) bits.push('idades aplicáveis: ' + f.applicableAges.join(', '));
+        if (f.layerScores && f.motorLayers) {
+          const changed = Object.keys(f.layerScores).filter((k) => Number(f.layerScores[k]) !== Number(f.motorLayers[k]));
+          if (changed.length) {
+            bits.push('valores tester: ' + changed.map((k) => {
+              const max = LAYER_GUIDE[k]?.points ?? '';
+              return `${LAYER_GUIDE[k]?.label || k} ${f.layerScores[k]}/${max} (motor ${f.motorLayers[k]})`;
+            }).join(', '));
+          }
+        }
         lines.push('- ' + bits.join(' | '));
       });
       const avoid = recent.filter((f) =>
@@ -1750,7 +1927,27 @@ a informacao <!DOCTYPE html>
       if (diffFixes.length) {
         lines.push('DIFICULDADE CORRIGIDA PELO TESTER: ' + diffFixes.map((f) => `pedida D${f.requestedDifficulty} → D${f.correctedDifficulty}`).join('; ') + '. Gera no nível corrigido.');
       }
+      const weakLayers = [];
+      recent.forEach((f) => {
+        Object.entries(f.layerScores || {}).forEach(([key, n]) => {
+          const max = Number(LAYER_GUIDE[key]?.points || 0);
+          const motor = Number(f.motorLayers?.[key]);
+          if (max && Number(n) < max * 0.6) weakLayers.push(`${LAYER_GUIDE[key]?.label || key} (${n}/${max})`);
+          else if (Number.isFinite(motor) && Number(n) !== motor) weakLayers.push(`${LAYER_GUIDE[key]?.label || key} motor ${motor} → ${n}`);
+        });
+      });
+      if (weakLayers.length) {
+        lines.push('CAMADAS COM NOTA BAIXA — melhora: ' + weakLayers.slice(0, 8).join(', ') + '.');
+      }
       return lines.join('\n');
+    }
+
+    function scrollToNewQuestion() {
+      const el = $('result-card');
+      if (!el) return;
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
     }
 
     function presentForReview(result, parsed, resolved, aiUsage) {
@@ -1766,7 +1963,7 @@ a informacao <!DOCTYPE html>
       }
       const saved = $('eval-saved-note');
       if (saved) saved.hidden = true;
-      $('result-card')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      scrollToNewQuestion();
     }
 
     function evaluationReady() {
@@ -2018,7 +2215,7 @@ a informacao <!DOCTYPE html>
 
     async function runGenerate() {
       if (session.pendingReview) {
-        $('result-card')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        $('result-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         const gate = $('eval-gate');
         if (gate) {
           gate.classList.remove('pulse');
@@ -2087,6 +2284,10 @@ a informacao <!DOCTYPE html>
         requestedDifficulty: requested,
         estimatedDifficulty: currentEntry.estimatedDifficulty ?? r.estimatedDifficulty,
         correctedDifficulty: corrected,
+        originalFormat: orig.formatId || '',
+        motorLayers: currentEntry.motorLayers || {},
+        layerScores: currentEntry.layerScores || {},
+        applicableAges: currentEntry.applicableAges || [],
         archetype: r.archetypeId || '',
         humanRating: currentEntry.humanRating || null,
         gameVersion: session.gameVersion,
@@ -2125,10 +2326,47 @@ a informacao <!DOCTYPE html>
     $('btn-apply-edits')?.addEventListener('click', () => applyEditsAndRevalidate());
     $('eval-cat')?.addEventListener('change', () => applyEditsAndRevalidate({ silent: true }));
     $('eval-diff')?.addEventListener('change', () => applyEditsAndRevalidate({ silent: true }));
+    $('eval-format')?.addEventListener('change', () => applyEditsAndRevalidate({ silent: true }));
     $('eval-cat-extra')?.addEventListener('change', () => {
       if (!currentEntry) return;
       currentEntry.extraCategories = readExtraCategories(Number($('eval-cat')?.value));
       renderExtraContext(lastResolved || currentEntry.resolved, currentEntry.extraCategories, currentEntry.originalResolved);
+    });
+    $('result-card')?.addEventListener('click', (ev) => {
+      const accept = ev.target.closest('[data-accept-diff]');
+      if (!accept || !currentEntry) return;
+      const d = Number(accept.dataset.acceptDiff);
+      if (!Number.isFinite(d)) return;
+      if ($('eval-diff')) $('eval-diff').value = String(d);
+      applyEditsAndRevalidate({ silent: true });
+    });
+    $('result-card')?.addEventListener('input', (ev) => {
+      const score = ev.target.closest('input.layer-score');
+      if (!score || !currentEntry) return;
+      const layer = score.dataset.layer;
+      const max = layerMax(layer);
+      let n = Number(score.value);
+      if (!layer || !Number.isFinite(n)) return;
+      n = Math.min(max, Math.max(0, Math.round(n)));
+      currentEntry.layerScores = { ...(currentEntry.layerScores || {}), [layer]: n };
+      updateLayerScoreDisplay(score, layer, n);
+    });
+    $('result-card')?.addEventListener('change', (ev) => {
+      if (!currentEntry) return;
+      if (ev.target.classList.contains('layer-age')) {
+        currentEntry.applicableAges = [...document.querySelectorAll('#result input.layer-age:checked')].map((i) => i.value);
+        return;
+      }
+      if (ev.target.classList.contains('layer-extra-cat')) {
+        currentEntry.extraCategories = readExtraCategories(Number($('eval-cat')?.value));
+        renderExtraContext(lastResolved || currentEntry.resolved, currentEntry.extraCategories, currentEntry.originalResolved);
+        return;
+      }
+      const setDiff = ev.target.closest('select.layer-set-diff');
+      if (setDiff && $('eval-diff')) {
+        $('eval-diff').value = setDiff.value;
+        applyEditsAndRevalidate({ silent: true });
+      }
     });
     document.querySelectorAll('#verdict-btns button').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -2137,7 +2375,7 @@ a informacao <!DOCTYPE html>
         btn.classList.add('selected');
       });
     });
-    document.querySelectorAll('#result-rate button, #ctx-rate button').forEach((btn) => {
+    document.querySelectorAll('#result-rate button').forEach((btn) => {
       btn.addEventListener('click', () => {
         const rating = Number(btn.dataset.rate);
         if (!currentEntry) return;
