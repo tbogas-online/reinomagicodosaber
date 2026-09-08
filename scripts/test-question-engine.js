@@ -1333,6 +1333,8 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 {
   const est = QE.estimateDifficulty('Qual é o planeta onde vivemos?', 'Terra', { ageBandKey: '15+' });
   assert('126. estimateDifficulty trivial', est.estimatedDifficulty <= 2 && est.difficultyConfidence >= 0.7);
+  const generic = QE.estimateDifficulty('Qual é a capital de Espanha?', 'Madrid', { ageBandKey: '10-15' });
+  assert('126b. default estimado D2', generic.estimatedDifficulty === 2);
 }
 {
   const parsed = { q: 'Qual é o planeta onde vivemos?', a: 'Terra' };

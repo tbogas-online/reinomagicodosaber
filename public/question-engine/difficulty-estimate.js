@@ -23,7 +23,7 @@
     const range = DIFFICULTY_RANGE[ageBandKey] || DIFFICULTY_RANGE['15+'];
     const blob = `${String(q || '')} ${String(a || '')}`;
     const ql = blob.toLowerCase();
-    let est = 3;
+    let est = 2;
     let confidence = 0.45;
 
     const trivial = /\b(planeta onde vivemos|cor do céu|quantos dedos|quantas pernas tem um cão)\b/i;
