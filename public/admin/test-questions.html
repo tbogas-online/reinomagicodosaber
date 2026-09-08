@@ -219,6 +219,15 @@
     .layer-score-edit.changed input.layer-score { border-color: #d97706; color: #fbbf24; }
     .layer-score-max { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
     .layer-score-motor { font-size: 0.75rem; color: #fbbf24; }
+    .layer-extra .hint { flex-basis: 100%; margin: 0; }
+    .verdict-help {
+      margin: 8px 0 12px; padding: 10px 12px;
+      border-radius: 8px; background: var(--input); border: 1px solid var(--border);
+      font-size: 0.8rem; color: var(--muted); line-height: 1.4;
+    }
+    .verdict-help dt { color: var(--text); font-weight: 600; margin-top: 8px; }
+    .verdict-help dt:first-child { margin-top: 0; }
+    .verdict-help dd { margin: 2px 0 0; }
     .layer-extra select.layer-set-diff {
       margin: 0; padding: 4px 8px; font-size: 0.8rem; font-weight: 600;
       background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
@@ -478,8 +487,8 @@
         <div class="ctx-chip diff"><span>Dificuldade pedida</span><strong id="ctx-diff-req">—</strong></div>
         <div class="ctx-chip diff-est" id="ctx-diff-est-chip"><span>Dificuldade estimada</span><strong id="ctx-diff-est">—</strong></div>
         <div class="ctx-chip diff-corr">
-          <span>Dificuldade correcta</span>
-          <select id="eval-diff" class="ctx-select" aria-label="Dificuldade correcta">
+          <span>Dificuldade correcta (nível real)</span>
+          <select id="eval-diff" class="ctx-select" aria-label="Dificuldade correcta — o nível real desta pergunta">
             <option value="1">1 — muito fácil</option>
             <option value="2">2 — fácil</option>
             <option value="3">3 — médio</option>
@@ -533,13 +542,23 @@
         </div>
         <p class="hint">Problemas estruturados (obrigatório se a nota for 1 ou 2)</p>
         <div class="issue-groups" id="issue-chips"></div>
-        <p class="hint">O motor de validação acertou?</p>
+        <p class="hint">O motor de validação acertou? (não é a qualidade da pergunta)</p>
         <div class="verdict-btns" id="verdict-btns">
-          <button type="button" data-verdict="motor-ok" class="secondary">✅ Motor correcto</button>
-          <button type="button" data-verdict="false-negative" class="secondary">❌ False negative</button>
-          <button type="button" data-verdict="false-positive" class="secondary">❌ False positive</button>
-          <button type="button" data-verdict="ia-gen-error" class="secondary">🤖 Erro de geração IA</button>
+          <button type="button" data-verdict="motor-ok" class="secondary" title="O motor aceitou ou rejeitou como devia">✅ Motor correcto</button>
+          <button type="button" data-verdict="false-negative" class="secondary" title="O motor rejeitou, mas a pergunta era válida">❌ False negative</button>
+          <button type="button" data-verdict="false-positive" class="secondary" title="O motor aceitou, mas a pergunta devia ser rejeitada">❌ False positive</button>
+          <button type="button" data-verdict="ia-gen-error" class="secondary" title="A pergunta é má; a falha é da geração, não do validador">🤖 Erro de geração IA</button>
         </div>
+        <dl class="verdict-help">
+          <dt>✅ Motor correcto</dt>
+          <dd>O motor fez o juízo certo: aceitou uma pergunta boa ou rejeitou uma má. Independente da nota 1–5.</dd>
+          <dt>❌ False negative</dt>
+          <dd>O motor <strong>rejeitou</strong> uma pergunta que <strong>devia ter aceite</strong>. A pergunta serve para o jogo; o validador foi demasiado rígido.</dd>
+          <dt>❌ False positive</dt>
+          <dd>O motor <strong>aceitou</strong> uma pergunta que <strong>devia ter rejeitado</strong>. Passou uma pergunta inválida, ambígua, factualmente errada, etc.</dd>
+          <dt>🤖 Erro de geração IA</dt>
+          <dd>A pergunta é má na origem (facto, idade, distractores…). O motor até pode ter detectado o problema; a falha é da IA que gerou, não do validador.</dd>
+        </dl>
         <label for="fb-comment">Comentário (contexto, não substitui os problemas)</label>
         <textarea id="fb-comment" rows="2" placeholder="Ex.: demasiado difícil para 8 anos."></textarea>
         <div class="row">
@@ -1464,6 +1483,13 @@
       ).join('');
     }
 
+    function difficultyTypeLabel(n) {
+      const labels = QE.DIFFICULTY_LABELS || {};
+      const num = Number(n);
+      if (!Number.isFinite(num)) return '';
+      return labels[num] || String(num);
+    }
+
     function renderLayerScoreInput(key, motorPts, max) {
       const val = testerLayerPts(key, motorPts);
       const changed = Number(val) !== Number(motorPts);
@@ -1489,11 +1515,19 @@
       }
       if (key === 'difficulty') {
         const req = Number(currentEntry?.requestedDifficulty ?? lastResolved?.requestedDifficulty ?? lastResolved?.difficulty ?? 3);
+        const est = Number(currentEntry?.estimatedDifficulty ?? lastResolved?.estimatedDifficulty);
         const corr = Number($('eval-diff')?.value || lastResolved?.difficulty || req);
+        const reqLabel = difficultyTypeLabel(req);
+        const estLabel = difficultyTypeLabel(est);
+        const estBtn = Number.isFinite(est) && est !== req
+          ? `<button type="button" class="secondary" data-accept-diff="${est}" title="A pergunta é ${estLabel}, não o nível pedido">Usar estimada D${est} — ${escapeHtml(estLabel)}</button>`
+          : '';
         return `<div class="layer-extra">
-          <span>Definir ou aceitar</span>
-          <button type="button" class="secondary" data-accept-diff="${req}">Aceitar pedida D${req}</button>
-          <select class="layer-set-diff" aria-label="Definir dificuldade">${layerDiffOptions(corr)}</select>
+          <span>Nível real desta pergunta</span>
+          <p class="hint"><strong>Pedida</strong> = o que pediste à IA. <strong>Estimada</strong> = palpite do motor. <strong>Correcta</strong> = o nível que esta pergunta realmente tem (ground truth). «Aceitar pedida» diz que a pergunta é mesmo ${escapeHtml(reqLabel)} (D${req}).</p>
+          <button type="button" class="secondary" data-accept-diff="${req}" title="A pergunta está no nível pedido: D${req} ${reqLabel}">Aceitar pedida D${req} — ${escapeHtml(reqLabel)}</button>
+          ${estBtn}
+          <select class="layer-set-diff" aria-label="Definir dificuldade correcta">${layerDiffOptions(corr)}</select>
         </div>`;
       }
       if (key === 'category') {
