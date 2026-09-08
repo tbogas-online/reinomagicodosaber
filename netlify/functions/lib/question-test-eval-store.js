@@ -202,11 +202,17 @@ async function upsertRules(rules) {
   return rows;
 }
 
-async function deactivateMissingRules(keepKeys) {
+async function rebuildRules() {
+  const payloads = await listRecentPayloads();
+  const derived = Learning.deriveRules(payloads);
+  await upsertRules(derived);
+  const keep = new Set(derived.map((rule) => rule.rule_key));
   const active = await listActiveRules();
-  const keep = new Set(keepKeys);
-  const stale = active.filter((rule) => !keep.has(rule.rule_key));
-  for (const rule of stale) {
+  const drop = active.filter((rule) => (
+    !keep.has(rule.rule_key)
+    && (rule.type === 'quality' || String(rule.rule_key || '').startsWith('quality|') || Learning.longTermReady(payloads.length))
+  ));
+  for (const rule of drop) {
     await supabaseRequest(
       `/${RULES_TABLE}?rule_key=eq.${encodeURIComponent(rule.rule_key)}`,
       {
@@ -215,16 +221,6 @@ async function deactivateMissingRules(keepKeys) {
         body: JSON.stringify({ active: false, updated_at: new Date().toISOString() }),
       },
     );
-  }
-  return stale.length;
-}
-
-async function rebuildRules() {
-  const payloads = await listRecentPayloads();
-  const derived = Learning.deriveRules(payloads);
-  await upsertRules(derived);
-  if (Learning.longTermReady(payloads.length)) {
-    await deactivateMissingRules(derived.map((rule) => rule.rule_key));
   }
   return listActiveRules();
 }

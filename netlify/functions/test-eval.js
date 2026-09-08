@@ -5,6 +5,7 @@ const { getSupabaseAdmin } = require('./lib/rooms-store');
 const {
   listActiveRules,
   saveResultAndRebuild,
+  rebuildRules,
 } = require('./lib/question-test-eval-store');
 
 exports.handler = async (event) => {
@@ -41,6 +42,15 @@ exports.handler = async (event) => {
         body = event.body ? JSON.parse(event.body) : {};
       } catch {
         return json(400, { error: 'Corpo JSON inválido.' });
+      }
+      if (body.rebuild === true && !body.result) {
+        try {
+          const rules = await rebuildRules();
+          return json(200, { ok: true, rules });
+        } catch (err) {
+          console.error('[test-eval] rebuild failed:', err);
+          return json(err.status || 503, { error: err.message || 'Não foi possível regenerar as regras.' });
+        }
       }
       try {
         const saved = await saveResultAndRebuild(body.result || body);

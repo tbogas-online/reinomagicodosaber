@@ -13,6 +13,13 @@
   const MAX_HIGH_RULES = 12;
   const MAX_MEDIUM_RULES = 8;
   const COMMENT_HINT_MAX = 120;
+  const MC_ISSUE_IDS = Object.freeze([
+    'obvious-distractor', 'too-close-distractor', 'two-answers',
+    'ambiguous-correct', 'unbalanced-options', 'repeated-options',
+  ]);
+  const GENERATOR_RULE_TYPES = Object.freeze(['issue', 'difficulty', 'category', 'format']);
+  const MOTOR_CALIBRATION_LABEL = 'Calibração do motor';
+  const ALL_CATEGORIES_LABEL = 'Todas as categorias';
 
   const LAYER_MAX = Object.freeze({
     structural: 10,
@@ -142,6 +149,14 @@
       out.push(next);
     });
     return out;
+  }
+
+  function isMcIssue(issue) {
+    return MC_ISSUE_IDS.includes(String(issue || ''));
+  }
+
+  function isGeneratorRule(rule) {
+    return GENERATOR_RULE_TYPES.includes(String(rule?.type || ''));
   }
 
   function normalizeVerdict(verdict, schemaVersion) {
@@ -312,9 +327,9 @@
       'too-easy': `${prefix}evitar perguntas triviais para a faixa.`,
       'too-hard': `${prefix}evitar perguntas demasiado especializadas ou difíceis.`,
       'debatable-knowledge': `${prefix}evitar conhecimentos discutíveis ou opinativos.`,
-      uninteresting: `${prefix}preferir perguntas interessantes e concretas.`,
+      uninteresting: `${prefix}evitar definições óbvias; pedir um facto concreto e não trivial.`,
       'pt-br': `${prefix}usar português de Portugal; evitar PT-BR.`,
-      'awkward-pt': `${prefix}usar português natural de Portugal.`,
+      'awkward-pt': `${prefix}PT-PT natural; evitar construções estranhas ou traduzidas.`,
       'confusing-stem': `${prefix}enunciados claros, sem ambiguidade.`,
       grammar: `${prefix}corrigir gramática e concordância.`,
       'wrong-category': `${prefix}classificar na categoria correcta.`,
@@ -362,24 +377,24 @@
       const engine = item.engine || {};
       const age = input.age || '*';
       const format = input.format || '*';
-      const category = input.category || '*';
       const issues = normalizeIssues(human.issues);
 
       issues.forEach((issue) => {
-        const scopeAge = { age };
-        bump(buckets, `issue|${age}|*|${issue}`, {
-          scope: scopeAge,
-          type: 'issue',
-          rule: issueRuleText(issue, scopeAge),
-        });
-        if (format && format !== '*') {
+        if (isMcIssue(issue) && format && format !== '*') {
           const scopeFmt = { age, format };
           bump(buckets, `issue|${age}|${format}|${issue}`, {
             scope: scopeFmt,
             type: 'issue',
             rule: issueRuleText(issue, scopeFmt),
           });
+          return;
         }
+        const scopeAge = { age };
+        bump(buckets, `issue|${age}|*|${issue}`, {
+          scope: scopeAge,
+          type: 'issue',
+          rule: issueRuleText(issue, scopeAge),
+        });
       });
 
       const fieldErrors = Array.isArray(human.fieldErrors) ? human.fieldErrors : [];
@@ -434,14 +449,6 @@
           });
         }
       });
-
-      if (Number(human.rating) <= 2 && issues.length) {
-        bump(buckets, `quality|${age}|${format}`, {
-          scope: { age, format, category },
-          type: 'quality',
-          rule: `${scopeLabel({ age, format }) || 'Geral'}: perguntas fracas (nota 1–2) — melhorar qualidade e evitar os problemas marcados.`,
-        });
-      }
     });
 
     const rules = [];
@@ -514,8 +521,29 @@
     return lines.join('\n');
   }
 
+  function issueKeyParts(ruleKey) {
+    const parts = String(ruleKey || '').split('|');
+    if (parts[0] !== 'issue') return null;
+    return { age: parts[1] || '*', format: parts[2] || '*', issue: parts.slice(3).join('|') };
+  }
+
+  function collapseDuplicateIssueRules(rules) {
+    const generic = new Set();
+    (rules || []).forEach((r) => {
+      const parts = issueKeyParts(r.rule_key);
+      if (parts && parts.format === '*') generic.add(`${parts.age}|${parts.issue}`);
+    });
+    return (rules || []).filter((r) => {
+      const parts = issueKeyParts(r.rule_key);
+      if (!parts || parts.format === '*') return true;
+      return !generic.has(`${parts.age}|${parts.issue}`);
+    });
+  }
+
   function formatPersistentRules(rules, opts = {}) {
-    const list = (rules || []).filter((r) => r && r.active !== false && r.rule);
+    const list = collapseDuplicateIssueRules(
+      (rules || []).filter((r) => r && r.active !== false && r.rule && isGeneratorRule(r)),
+    );
     if (!list.length) return '';
     const high = list.filter((r) => (r.level || (r.evidence >= HIGH_EVIDENCE ? 'high' : 'medium')) === 'high')
       .slice(0, opts.maxHigh || MAX_HIGH_RULES);
@@ -532,6 +560,71 @@
       lines.push('[MÉDIA CONFIANÇA]');
       medium.forEach((r) => lines.push(`- ${r.rule}`));
     }
+    return lines.join('\n');
+  }
+
+  function ruleScopeBits(scope) {
+    const bits = [];
+    if (scope?.age && scope.age !== '*') bits.push(scope.age);
+    if (scope?.format && scope.format !== '*') bits.push(scope.format);
+    if (scope?.layer) bits.push(LAYER_LABELS[scope.layer] || scope.layer);
+    return bits;
+  }
+
+  function summarizeRulesByCategory(rules) {
+    const buckets = new Map();
+    (rules || []).filter((r) => r && r.active !== false && r.rule && r.type !== 'quality').forEach((r) => {
+      const cat = String(r.scope?.category || '').trim();
+      let label = cat && cat !== '*' ? cat : ALL_CATEGORIES_LABEL;
+      if (r.type === 'layer') label = MOTOR_CALIBRATION_LABEL;
+      if (!buckets.has(label)) buckets.set(label, []);
+      buckets.get(label).push({
+        rule: r.rule,
+        type: r.type || '',
+        level: r.level || (Number(r.evidence) >= HIGH_EVIDENCE ? 'high' : 'medium'),
+        confidence: Number(r.confidence) || 0,
+        evidence: Number(r.evidence) || 0,
+        scope: r.scope || {},
+        scopeBits: ruleScopeBits(r.scope),
+      });
+    });
+    const groups = [];
+    buckets.forEach((list, label) => {
+      list.sort((a, b) => {
+        if (a.level !== b.level) return a.level === 'high' ? -1 : 1;
+        return b.evidence - a.evidence || b.confidence - a.confidence;
+      });
+      const key = label === MOTOR_CALIBRATION_LABEL
+        ? 'motor'
+        : (label === ALL_CATEGORIES_LABEL ? '*' : label);
+      groups.push({ key, label, count: list.length, rules: list });
+    });
+    groups.sort((a, b) => {
+      if (a.key === 'motor') return 1;
+      if (b.key === 'motor') return -1;
+      if (a.key === '*') return -1;
+      if (b.key === '*') return 1;
+      return a.label.localeCompare(b.label, 'pt');
+    });
+    return {
+      total: groups.reduce((sum, g) => sum + g.count, 0),
+      groups,
+    };
+  }
+
+  function formatRulesSummaryText(summary) {
+    const data = summary && summary.groups ? summary : summarizeRulesByCategory(summary);
+    if (!data.total) return 'Sem regras persistentes.';
+    const lines = [`Regras aprendidas (${data.total})`];
+    data.groups.forEach((group) => {
+      lines.push('');
+      lines.push(`${group.label} (${group.count})`);
+      group.rules.forEach((r) => {
+        const conf = r.level === 'high' ? 'alta' : 'média';
+        const bits = r.scopeBits?.length ? ` [${r.scopeBits.join(' · ')}]` : '';
+        lines.push(`- [${conf} · ${r.evidence} evid.]${bits} ${r.rule}`);
+      });
+    });
     return lines.join('\n');
   }
 
@@ -572,6 +665,11 @@
     deriveRules,
     formatSessionHints,
     formatPersistentRules,
+    summarizeRulesByCategory,
+    formatRulesSummaryText,
+    ALL_CATEGORIES_LABEL,
+    MOTOR_CALIBRATION_LABEL,
+    GENERATOR_RULE_TYPES,
     setCachedRules,
     getCachedRules,
     getPersistentPromptBlock,

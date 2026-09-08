@@ -2236,7 +2236,49 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   });
   assert('241. prompt inclui regras persistentes', /REGRAS APRENDIDAS/.test(learnedPrompt));
   assert('242. prompt persistente não copia a pergunta', !learnedPrompt.includes('Aljubarrota'));
+  const grouped = Learning.summarizeRulesByCategory(rules);
+  assert('243. resumo tem grupo História', grouped.groups.some((g) => g.key === 'História' && g.rules.some((r) => /Geografia/.test(r.rule))));
+  assert('244. resumo tem regras gerais', grouped.groups.some((g) => g.key === '*' && g.count > 0));
+  const summaryText = Learning.formatRulesSummaryText(grouped);
+  assert('245. texto do resumo por categoria', /História/.test(summaryText) && /Regras aprendidas/.test(summaryText));
+  assert('246. não gera regra genérica de qualidade', !rules.some((r) => r.type === 'quality' || /perguntas fracas/.test(r.rule)));
+  assert('247. prompt não inclui calibração do motor', !/sobrevaloriza|subvaloriza/i.test(learnedPrompt));
+  assert('248. problemas gerais não duplicam por formato', rules.filter((r) => /too-hard/.test(r.rule_key) || /demasiado especializadas/.test(r.rule)).length <= 1);
+  assert('249. distractores MC ficam no formato', rules.some((r) => r.rule_key.includes('ESCOLHA_MULTIPLA') && /distractor/i.test(r.rule)));
+  const motorGroup = grouped.groups.find((g) => g.key === 'motor');
+  assert('250. calibração do motor à parte', !!(motorGroup && motorGroup.rules.some((r) => /sobrevaloriza/i.test(r.rule))));
   Learning.setCachedRules([]);
+}
+
+{
+  const bankSandbox = { globalThis: {}, window: {}, console };
+  bankSandbox.window = bankSandbox.globalThis;
+  vm.createContext(bankSandbox);
+  vm.runInContext(fs.readFileSync(path.join(publicDir, 'question-bank.js'), 'utf8'), bankSandbox);
+  const QB = bankSandbox.globalThis.QuestionBank;
+  assert('251. QuestionBank.pickSparseCandidate', typeof QB?.pickSparseCandidate === 'function');
+  const sparseCells = [
+    { categoryN: 1, ageBand: '6-9', count: 0 },
+    { categoryN: 1, ageBand: '10-15', count: 40 },
+    { categoryN: 1, ageBand: '15+', count: 30 },
+    { categoryN: 2, ageBand: '6-9', count: 1 },
+    { categoryN: 2, ageBand: '10-15', count: 20 },
+    { categoryN: 2, ageBand: '15+', count: 18 },
+  ];
+  const greedy = QB.pickSparseCandidate(sparseCells, { random: () => 0 });
+  assert('252. sem balanceAges escolhe a célula mais vazia (6-9)', greedy?.ageBand === '6-9' && greedy?.categoryN === 1);
+  const ages = new Set();
+  for (let i = 0; i < 90; i += 1) {
+    const pick = QB.pickSparseCandidate(sparseCells, { balanceAges: true });
+    if (pick?.ageBand) ages.add(pick.ageBand);
+  }
+  assert('253. faixa aleatória não fica presa em 6-9', ages.has('6-9') && ages.has('10-15') && ages.has('15+'));
+  const after69 = QB.pickSparseCandidate(sparseCells, {
+    balanceAges: true,
+    recentAgeBands: ['6-9'],
+    random: () => 0,
+  });
+  assert('254. evita repetir a última faixa', after69?.ageBand !== '6-9');
 }
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

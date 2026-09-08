@@ -299,6 +299,11 @@
     .log-item .meta { color: var(--muted); font-size: 0.76rem; margin-top: 2px; }
     .feedback-entry { padding: 10px; margin-bottom: 6px; border-radius: 8px; background: var(--input); font-size: 0.84rem; }
     .feedback-entry .fb-meta { color: var(--muted); font-size: 0.76rem; }
+    .rules-group { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: var(--input); }
+    .rules-group h3 { margin: 0 0 6px; font-size: 0.88rem; }
+    .rules-group ul { margin: 0; padding-left: 1.1rem; }
+    .rules-group li { margin: 0 0 4px; font-size: 0.84rem; }
+    .rules-meta { color: var(--muted); font-size: 0.75rem; }
     code { background: var(--input); padding: 1px 4px; border-radius: 3px; font-size: 0.86em; }
     .q-preview {
       font-size: 1.22rem;
@@ -424,6 +429,7 @@
       <span>✅ <strong id="stat-ok">0</strong></span>
       <span>❌ <strong id="stat-fail">0</strong></span>
       <span>💬 <strong id="stat-fb">0</strong> feedbacks</span>
+      <span>📘 <strong id="stat-rules">0</strong> regras</span>
       <span>🤖 <strong id="stat-ai-label" title="Último fornecedor/modelo usado">—</strong></span>
     </div>
 
@@ -466,7 +472,7 @@
 
       <div class="row">
         <button type="button" class="primary" id="btn-generate">▶ Gerar pergunta</button>
-        <button type="button" class="secondary" id="btn-stop" disabled>Parar</button>
+        <button type="button" class="secondary" id="btn-stop" title="Para a geração, cancela o pedido à IA e liberta o bloqueio de avaliação">Parar</button>
       </div>
       <div id="gen-status" class="result idle">Gera uma pergunta, avalia-a (veredito + nota 1–5) e só depois pede a seguinte.</div>
     </div>
@@ -566,6 +572,16 @@
           <button type="button" class="primary" id="btn-next-after-fb">Guardar e gerar seguinte →</button>
         </div>
         <p class="hint" id="eval-saved-note" hidden>Avaliação guardada — padrões da sessão e regras persistentes entram no próximo prompt.</p>
+      </div>
+    </div>
+
+    <div class="card" id="rules-card">
+      <h2>Regras aprendidas por categoria</h2>
+      <p class="hint">Só entram no gerador regras concretas (problemas, dificuldade, categoria, formato). «O motor subvaloriza…» fica em calibração e não vai para o prompt. Frases genéricas do tipo «perguntas fracas» deixam de ser criadas.</p>
+      <div id="rules-summary"><p class="hint">A carregar…</p></div>
+      <div class="row" style="margin-top:10px;">
+        <button type="button" class="secondary" id="btn-refresh-rules">Actualizar</button>
+        <button type="button" class="secondary" id="btn-copy-rules">Copiar resumo</button>
       </div>
     </div>
 
@@ -733,11 +749,12 @@
     let lastResolved = null;
     let lastAiUsage = null;
     let generating = false;
+    let generateAbort = null;
     let applyingEdits = false;
 
     const session = {
       usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedFormats: [],
-      usedArchetypes: [], usedDifficulties: [], usedSubtopics: [], recentMcPositions: [], log: [],
+      usedArchetypes: [], usedDifficulties: [], usedSubtopics: [], usedAges: [], recentMcPositions: [], log: [],
       stats: { total: 0, ok: 0, fail: 0 },
       pendingReview: false,
       testSessionId: `ts-${Date.now()}`,
@@ -791,6 +808,24 @@
       </table>`;
     }
 
+    function isAbortError(err) {
+      return err?.name === 'AbortError' || /aborted|abortado/i.test(String(err?.message || ''));
+    }
+
+    function stopEverything() {
+      stopBatch = true;
+      try { generateAbort?.abort(); } catch { /* ignore */ }
+      session.pendingReview = false;
+      updateGenerateLock();
+      const status = $('gen-status');
+      if (status) {
+        status.className = 'result idle';
+        status.textContent = generating
+          ? 'A parar…'
+          : 'Parado. Podes gerar outra pergunta ou continuar a avaliar a actual.';
+      }
+    }
+
     function updateGenerateLock() {
       const gen = $('btn-generate');
       if (!gen) return;
@@ -798,10 +833,13 @@
       gen.disabled = locked;
       gen.textContent = session.log.length ? '▶ Gerar seguinte' : '▶ Gerar pergunta';
       gen.title = session.pendingReview
-        ? 'Avalia primeiro esta pergunta (veredito do motor + nota 1–5).'
+        ? 'Avalia primeiro esta pergunta (veredito do motor + nota 1–5), ou carrega em Parar para libertar.'
         : '';
       const stop = $('btn-stop');
-      if (stop) stop.disabled = !generating;
+      if (stop) {
+        stop.disabled = false;
+        stop.title = 'Para a geração, cancela o pedido à IA e liberta o bloqueio de avaliação';
+      }
       const saved = $('eval-saved-note');
       if (saved) saved.hidden = session.pendingReview || !session.log.length;
     }
@@ -947,7 +985,7 @@
       return `${s}. Verdadeiro ou Falso?`;
     }
 
-    /** Resolve aleatórios; prioriza categoria/faixa com menos perguntas no Supabase */
+    /** Resolve aleatórios: faixa sorteada (não fica presa em 6-9); categoria favorece células vazias nessa faixa. */
     async function resolveConfig() {
       const catVal = $('cat').value;
       const ageVal = $('age').value;
@@ -965,6 +1003,8 @@
           ? await window.QuestionBank.pickSparseTarget(CATEGORIES, {
             fixedCategoryN: catRandom ? null : Number(catVal),
             fixedAgeBand: ageRandom ? null : ageVal,
+            balanceAges: ageRandom,
+            recentAgeBands: ageRandom ? session.usedAges : [],
           })
           : null;
         if (sparse) {
@@ -972,10 +1012,16 @@
           ageBandKey = sparse.ageBand;
           sparseNote = ` · banco: ${sparse.count} nesta célula`;
         } else {
-          ageBandKey = ageRandom ? pickRandom(AGES) : ageVal;
+          const lastAge = session.usedAges[session.usedAges.length - 1];
+          const agePool = ageRandom && lastAge ? AGES.filter((a) => a !== lastAge) : AGES;
+          ageBandKey = ageRandom ? pickRandom(agePool.length ? agePool : AGES) : ageVal;
           cat = catRandom
             ? pickRandom(CATEGORIES)
             : (CATEGORIES.find((c) => c.n === Number(catVal)) || CATEGORIES[0]);
+        }
+        if (ageRandom && ageBandKey) {
+          session.usedAges.push(ageBandKey);
+          while (session.usedAges.length > 8) session.usedAges.shift();
         }
       } else {
         ageBandKey = ageVal;
@@ -1277,6 +1323,8 @@
       $('stat-ok').textContent = session.stats.ok;
       $('stat-fail').textContent = session.stats.fail;
       $('stat-fb').textContent = loadFeedback().length;
+      const rulesEl = $('stat-rules');
+      if (rulesEl) rulesEl.textContent = String(Learning?.getCachedRules?.()?.length || 0);
       $('log-count').textContent = session.log.length;
       $('fb-count').textContent = loadFeedback().length;
       renderPonderacao();
@@ -2034,7 +2082,10 @@
           status.textContent += bankSave.reason === 'exists' ? ' · Já no banco.' : ' · Guardada no banco após avaliação.';
         }
       }
-      if (generateNext) await runGenerate();
+      if (generateNext) {
+        if (stopBatch) return true;
+        await runGenerate();
+      }
       return true;
     }
 
@@ -2060,7 +2111,9 @@
     }
 
     async function generateOne() {
+      if (stopBatch) return null;
       const resolved = await resolveConfig();
+      if (stopBatch) return null;
       const { cat, ageBandKey, answerMode, difficulty } = resolved;
       resolved.requestedDifficulty = difficulty;
       const archetypeId = QE.chooseArchetype
@@ -2100,7 +2153,7 @@
           : `{"q":"...","a":"..."${knowledgeHint}}`);
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        if (stopBatch) break;
+        if (stopBatch) return null;
         if (attempt > 1 && QE.shouldRotateSubtopicForRetry(lastIssueDetails, attempt)) {
           subtopic = QE.chooseSubtopic(cat.n, [...session.usedSubtopics, subtopic]);
           resolved.subtopic = subtopic;
@@ -2131,14 +2184,27 @@
           mcInstruction, jsonFormat, retryHint,
         }).slice(0, 11000);
 
-        const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: window.ReinoAdminAuth?.headers({ 'Content-Type': 'application/json' })
-            || { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], max_tokens: isMC ? 340 : 220 }),
-        });
-        if (!response.ok) throw new Error(`API ${response.status}`);
-        const data = await response.json();
+        generateAbort = new AbortController();
+        let response;
+        try {
+          response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: window.ReinoAdminAuth?.headers({ 'Content-Type': 'application/json' })
+              || { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], max_tokens: isMC ? 340 : 220 }),
+            signal: generateAbort.signal,
+          });
+        } catch (err) {
+          if (isAbortError(err) || stopBatch) return null;
+          throw err;
+        }
+        if (stopBatch) return null;
+        const data = await response.json().catch(() => ({}));
+        if (stopBatch) return null;
+        if (!response.ok) {
+          const msg = [data.error, data.detail].filter(Boolean).join(' — ') || `API ${response.status}`;
+          throw new Error(msg);
+        }
         const aiUsage = resolveAiUsage(data);
         lastAttemptUsage = aiUsage;
         rememberAiUsage(aiUsage);
@@ -2176,6 +2242,7 @@
         lastResult = result;
 
         if (result.ok) {
+          if (stopBatch) return null;
           $('gen-status').className = 'result ok';
           $('gen-status').textContent = `Aceite na tentativa ${attempt}.${aiUsageSuffix(aiUsage)}`;
           recordTestTelemetry({
@@ -2217,6 +2284,7 @@
         });
       }
 
+      if (stopBatch) return null;
       $('gen-status').className = 'result err';
       $('gen-status').textContent = `Rejeitada após ${maxAttempts} tentativas.${aiUsageSuffix(lastAttemptUsage)} · Avalia agora para o motor aprender.`;
       if (lastParsed && lastResult) {
@@ -2227,6 +2295,7 @@
     }
 
     async function runGenerate() {
+      if (stopBatch && !session.pendingReview && !generating) stopBatch = false;
       if (session.pendingReview) {
         $('result-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         const gate = $('eval-gate');
@@ -2245,11 +2314,27 @@
       try {
         await generateOne();
       } catch (err) {
+        if (isAbortError(err) || stopBatch) {
+          const status = $('gen-status');
+          if (status) {
+            status.className = 'result idle';
+            status.textContent = 'Parado. Podes gerar outra pergunta ou continuar a avaliar a actual.';
+          }
+          return;
+        }
         $('gen-status').className = 'result err';
         $('gen-status').textContent = `Erro: ${err.message}`;
         session.pendingReview = false;
       } finally {
         generating = false;
+        generateAbort = null;
+        if (stopBatch) {
+          const status = $('gen-status');
+          if (status && /A parar/.test(status.textContent || '')) {
+            status.className = 'result idle';
+            status.textContent = 'Parado. Podes gerar outra pergunta ou continuar a avaliar a actual.';
+          }
+        }
         updateGenerateLock();
       }
     }
@@ -2277,18 +2362,57 @@
         const data = await response.json().catch(() => ({}));
         if (!response.ok) return { ok: false, error: data.error || `HTTP ${response.status}` };
         if (data.rules) Learning?.setCachedRules?.(data.rules);
+        renderRulesSummary();
         return { ok: true, rules: data.rules || [] };
       } catch (err) {
         return { ok: false, error: err.message };
       }
     }
 
-    async function loadPersistentRules() {
+    async function loadPersistentRules({ rebuild } = {}) {
       try {
+        if (rebuild) {
+          const response = await fetch('/api/test-eval', {
+            method: 'POST',
+            headers: window.ReinoAdminAuth?.headers({ 'Content-Type': 'application/json' })
+              || { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rebuild: true }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (response.ok && Array.isArray(data.rules)) {
+            Learning?.setCachedRules?.(data.rules);
+            renderRulesSummary();
+            return;
+          }
+        }
         const response = await fetch('/api/test-eval?t=' + Date.now(), { cache: 'no-store' });
         const data = await response.json().catch(() => ({}));
         if (data.rules) Learning?.setCachedRules?.(data.rules);
       } catch { /* ignore */ }
+      renderRulesSummary();
+    }
+
+    function renderRulesSummary() {
+      const el = $('rules-summary');
+      if (!el) return;
+      const rules = Learning?.getCachedRules?.() || [];
+      const summary = Learning?.summarizeRulesByCategory
+        ? Learning.summarizeRulesByCategory(rules)
+        : { total: rules.length, groups: [] };
+      if ($('stat-rules')) $('stat-rules').textContent = String(summary.total || 0);
+      if (!summary.total) {
+        el.innerHTML = '<p class="hint">Ainda não há regras persistentes. Precisas de correr o SQL no Supabase e de ~3 avaliações com o mesmo padrão (idade, categoria ou problema).</p>';
+        return;
+      }
+      el.innerHTML = summary.groups.map((group) => `
+        <div class="rules-group">
+          <h3>${escapeHtml(group.label)} <span class="rules-meta">· ${group.count}</span></h3>
+          <ul>${group.rules.map((r) => {
+            const conf = r.level === 'high' ? 'alta' : 'média';
+            const bits = (r.scopeBits || []).join(' · ');
+            return `<li>${escapeHtml(r.rule)} <span class="rules-meta">${escapeHtml(conf)} · ${r.evidence} evid.${bits ? ` · ${escapeHtml(bits)}` : ''}</span></li>`;
+          }).join('')}</ul>
+        </div>`).join('');
     }
 
     function feedbackQuestion(f) {
@@ -2390,7 +2514,7 @@
     $('age').addEventListener('change', onConfigChange);
     $('answerMode').addEventListener('change', onConfigChange);
     $('btn-generate').addEventListener('click', () => runGenerate());
-    $('btn-stop').addEventListener('click', () => { stopBatch = true; });
+    $('btn-stop').addEventListener('click', () => { stopEverything(); });
     $('btn-validate-manual').addEventListener('click', async () => {
       if (lastResolved || currentEntry) {
         applyEditsAndRevalidate();
@@ -2499,7 +2623,7 @@
     $('btn-clear-session').addEventListener('click', () => {
       Object.assign(session, {
         usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedFormats: [],
-        usedArchetypes: [], usedDifficulties: [], usedSubtopics: [], recentMcPositions: [], log: [],
+        usedArchetypes: [], usedDifficulties: [], usedSubtopics: [], usedAges: [], recentMcPositions: [], log: [],
         stats: { total: 0, ok: 0, fail: 0 },
         pendingReview: false,
       });
@@ -2528,6 +2652,15 @@
     });
     $('btn-clear-feedback').addEventListener('click', () => {
       if (confirm('Apagar feedbacks?')) { localStorage.removeItem(FEEDBACK_KEY); renderFeedbackList(); updateStats(); }
+    });
+    $('btn-refresh-rules')?.addEventListener('click', () => loadPersistentRules({ rebuild: true }));
+    $('btn-copy-rules')?.addEventListener('click', () => {
+      const rules = Learning?.getCachedRules?.() || [];
+      const text = Learning?.formatRulesSummaryText
+        ? Learning.formatRulesSummaryText(rules)
+        : 'Sem regras persistentes.';
+      navigator.clipboard.writeText(text);
+      alert(text === 'Sem regras persistentes.' ? 'Ainda não há regras.' : 'Resumo das regras copiado.');
     });
 
     populateCategorySelect();

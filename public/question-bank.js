@@ -419,6 +419,40 @@
 
   const VALID_AGE_BANDS_LIST = ['6-9', '10-15', '15+'];
 
+  /**
+   * Escolhe uma célula categoria×faixa.
+   * Por omissão: a mais vazia (empates aleatórios) — correcto para reabastecer o banco.
+   * balanceAges: a faixa é sorteada (evita repetir a última); a categoria continua a ser a mais vazia nessa faixa.
+   */
+  function pickSparseCandidate(candidates, opts = {}) {
+    const list = Array.isArray(candidates) ? candidates.filter(Boolean) : [];
+    if (!list.length) return null;
+    const rng = typeof opts.random === 'function' ? opts.random : Math.random;
+    const pickTied = (items) => items[Math.max(0, Math.min(items.length - 1, Math.floor(rng() * items.length)))] || items[0];
+    const countOf = (item) => Number(item.count) || 0;
+
+    if (opts.balanceAges) {
+      const ages = [];
+      const seen = new Set();
+      list.forEach((item) => {
+        const age = String(item.ageBand || '');
+        if (!age || seen.has(age)) return;
+        seen.add(age);
+        ages.push(age);
+      });
+      const recent = Array.isArray(opts.recentAgeBands) ? opts.recentAgeBands : [];
+      const last = recent[recent.length - 1];
+      const pool = last && ages.length > 1 ? ages.filter((age) => age !== last) : ages;
+      const age = pool[Math.max(0, Math.min(pool.length - 1, Math.floor(rng() * pool.length)))] || ages[0];
+      const inAge = list.filter((item) => item.ageBand === age);
+      const min = Math.min(...inAge.map(countOf));
+      return pickTied(inAge.filter((item) => countOf(item) === min));
+    }
+
+    const min = Math.min(...list.map(countOf));
+    return pickTied(list.filter((item) => countOf(item) === min));
+  }
+
   async function getCoverage() {
     const c = await ensureClient();
     if (!c) return [];
@@ -430,7 +464,13 @@
     return Array.isArray(data) ? data : [];
   }
 
-  async function pickSparseTarget(categories, { fixedCategoryN = null, fixedAgeBand = null } = {}) {
+  async function pickSparseTarget(categories, {
+    fixedCategoryN = null,
+    fixedAgeBand = null,
+    balanceAges = false,
+    recentAgeBands = [],
+    random,
+  } = {}) {
     const cats = Array.isArray(categories) ? categories : [];
     if (!cats.length) return null;
     const coverage = await getCoverage();
@@ -455,10 +495,7 @@
         });
       }
     }
-    if (!candidates.length) return null;
-    const min = Math.min(...candidates.map((item) => item.count));
-    const tied = candidates.filter((item) => item.count === min);
-    return tied[Math.floor(Math.random() * tied.length)];
+    return pickSparseCandidate(candidates, { balanceAges, recentAgeBands, random });
   }
 
   async function countPlayable(categoryN, ageBand) {
@@ -569,6 +606,7 @@
     questionHash,
     hasValidMcOptions,
     getCoverage,
+    pickSparseCandidate,
     pickSparseTarget,
     collectLocalStorageQuestions,
     importFromLocalStorage,

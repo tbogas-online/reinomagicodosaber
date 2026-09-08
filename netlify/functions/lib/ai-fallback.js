@@ -145,8 +145,10 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = ATTEMPT_TIMEOUT_M
       e.isTimeout = true;
       throw e;
     }
-    const e = new Error(err?.message || 'Erro de rede.');
+    const causeCode = err?.cause?.code || err?.cause?.message || '';
+    const e = new Error([err?.message, causeCode].filter(Boolean).join(': ') || 'Erro de rede.');
     e.isNetwork = true;
+    e.cause = err?.cause;
     throw e;
   } finally {
     clearTimeout(timer);
