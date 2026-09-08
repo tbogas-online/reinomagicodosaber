@@ -14,6 +14,8 @@
     MAX_RECENT_QUESTIONS: 30,
     MAX_RECENT_KNOWLEDGE_KEYS: 40,
     MAX_RECENT_FORMATS: 40,
+    MAX_RECENT_ARCHETYPES: 40,
+    ARCHETYPE_MAX_CONSECUTIVE: 2,
     MAX_RETRIES: 5, // usado por test-questions.html (retry ao gerar); não lido dentro deste módulo
     QUESTION_JACCARD_THRESHOLD: 0.55,
     KNOWLEDGE_JACCARD_THRESHOLD: 0.42,
@@ -240,105 +242,126 @@
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO","ONDE_FICA"],
       rules: "Cultura geral variada. Equilíbrio entre Portugal e mundo — não assumes cultura dos EUA como padrão.",
       subtopics: ["facto geral","comparação","sequência","cultura portuguesa","mundo"],
+      archetypes: ["IDENTIFICACAO","COMPARACAO","SEQUENCIA","CONTEXTO","CURIOSIDADE_FACTUAL"],
     },
     2: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","ONDE_FICA","COMPLETA","QUANDO"],
       rules: "Geografia: países, capitais, rios, montanhas, continentes, monumentos. Sem imagens, mapas ou bandeiras visíveis.",
       subtopics: ["localização","capital","rio","montanha","clima","comparação geográfica"],
+      archetypes: ["LOCALIZACAO","SUPERLATIVO","COMPARACAO","RELACAO","CURIOSIDADE_FACTUAL"],
     },
     3: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","COMPLETA","QUANDO","CAUSA_CONSEQUENCIA"],
       rules: "História: Portugal e mundo. Datas e personagens com precisão. Evita controvérsias sem data de referência.",
       subtopics: ["personagem","data","acontecimento","causa","consequência","sequência temporal"],
+      archetypes: ["TEMPORAL","CAUSA_EFEITO","RELACAO","CONTEXTO","SEQUENCIA","COMPARACAO","IDENTIFICACAO","CURIOSIDADE_FACTUAL"],
     },
     4: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","COMPLETA","CAUSA_CONSEQUENCIA","SITUACAO_PRATICA"],
       rules: "Ciência: física, química, biologia. Qualifica o contexto (ex.: \"animal terrestre mais rápido\").",
       subtopics: ["facto científico","causa","aplicação","experiência","previsão","situação prática"],
+      archetypes: ["IDENTIFICACAO","FUNCAO","CAUSA_EFEITO","PREVISAO","APLICACAO","COMPARACAO","CURIOSIDADE_FACTUAL"],
     },
     5: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","COMPLETA","CAUSA_CONSEQUENCIA","SITUACAO_PRATICA"],
       rules: "Natureza: animais, plantas, ecossistemas. Respostas objetivas e verificáveis.",
       subtopics: ["animal","planta","ecossistema","comportamento","adaptação"],
+      archetypes: ["IDENTIFICACAO","FUNCAO","COMPARACAO","SUPERLATIVO","CAUSA_EFEITO","CURIOSIDADE_FACTUAL"],
     },
     6: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","COMPLETA","CAUSA_CONSEQUENCIA"],
       rules: "Espaço: planetas, estrelas, missões. Sem imagens nem mapas celestes.",
       subtopics: ["planeta","estrela","missão espacial","fenómeno celeste","astronauta"],
+      archetypes: ["IDENTIFICACAO","COMPARACAO","SUPERLATIVO","TEMPORAL","CURIOSIDADE_FACTUAL"],
     },
     7: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","COMPLETA","CAUSA_CONSEQUENCIA","SITUACAO_PRATICA"],
       rules: "Matemática e Lógica: raciocínio e aplicação prática. Calcula internamente a resposta numérica antes de devolver.",
       subtopics: ["contagem","sequência","padrão","situação prática","problema"],
       weightBoost: {"SITUACAO_PRATICA":2,"CAUSA_CONSEQUENCIA":2},
+      archetypes: ["ESTIMATIVA","SEQUENCIA","APLICACAO","COMPARACAO","IDENTIFICACAO"],
     },
     8: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO"],
       rules: "Literatura: autores, obras, personagens. Foco literário, não biografia geográfica.",
       subtopics: ["autor","obra","personagem literário","género","expressão idiomática"],
+      archetypes: ["RELACAO","IDENTIFICACAO","CONTEXTO","TEMPORAL","CURIOSIDADE_FACTUAL"],
     },
     9: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","COMPLETA","SITUACAO_PRATICA"],
       rules: "Português: vocabulário, gramática, ortografia, provérbios, sinónimos, antónimos, expressões portuguesas. Revisa concordância e regência (ex.: «na estante», não «no estante»).",
       subtopics: ["vocabulário","gramática","ortografia","sinónimo","provérbio"],
+      archetypes: ["DEFINICAO","IDENTIFICACAO","COMPARACAO","APLICACAO","REGRA"],
     },
     10: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO"],
       rules: "Arte: artistas, obras, estilos, técnicas. SEM imagens — nunca \"que quadro é este?\".",
       subtopics: ["artista","obra","estilo","técnica","movimento artístico"],
+      archetypes: ["RELACAO","IDENTIFICACAO","CONTEXTO","TEMPORAL","COMPARACAO","CURIOSIDADE_FACTUAL"],
     },
     11: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO"],
       rules: "Cinema e Séries: realizadores, atores, filmes, personagens. Sem imagens ou clips.",
       subtopics: ["filme","série","realizador","ator","personagem"],
+      archetypes: ["RELACAO","IDENTIFICACAO","TEMPORAL","SEQUENCIA","CURIOSIDADE_FACTUAL"],
     },
     12: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO"],
       rules: "Música: VARIA o foco — bandas/grupos, canções (título), álbuns, artistas, compositores, instrumentos, géneros, festivais (Eurovisão, Rock in Rio). Evita repetir sempre \"que instrumento é\". Inclui artistas portugueses quando adequado. SEM áudio — nunca \"que música é esta?\".",
       subtopics: ["banda","canção","álbum","artista","instrumento","género","festival"],
+      archetypes: ["RELACAO","IDENTIFICACAO","TEMPORAL","CURIOSIDADE_FACTUAL"],
     },
     13: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","QUANDO"],
       rules: "Moda: peças, estilos, designers, tendências, tradições vestuárias.",
       subtopics: ["peça de roupa","estilo","designer","tendência","tradição"],
+      archetypes: ["IDENTIFICACAO","RELACAO","TEMPORAL","CURIOSIDADE_FACTUAL"],
     },
     14: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","COMPLETA","ONDE_FICA","SITUACAO_PRATICA"],
       rules: "Gastronomia: ingredientes, pratos, tradições culinárias — privilegia gastronomia portuguesa. Confirma origens geográficas (ex.: pastel de nata → Belém/Lisboa, francesinha → Porto).",
       subtopics: ["ingrediente","prato","tradição culinária","origem geográfica"],
       weightBoost: {"SITUACAO_PRATICA":1.5},
+      archetypes: ["IDENTIFICACAO","LOCALIZACAO","RELACAO","APLICACAO","CURIOSIDADE_FACTUAL"],
     },
     15: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","COMPLETA","QUANDO"],
       rules: "Desporto: atletas, modalidades, regras, recordes com data ou contexto. Sem imagens. Natação em PT-PT: estilo mariposa (nunca \"estilo borboleta\"), costas, peito, crawl/estilo livre. Futebol em PT-PT: guarda-redes (nunca \"goleiro\"), defesa (nunca \"zagueiro\"), avançado (nunca \"atacante\"), remate (nunca \"chute\"), canto (nunca \"escanteio\"), relva (nunca \"gramado\"), equipa (nunca \"time\"), adeptos (nunca \"torcida\"), treinador (nunca \"técnico\"), golo (nunca \"gol\").",
       subtopics: ["modalidade","atleta","regra","recorde com data","equipa"],
+      archetypes: ["REGRA","SUPERLATIVO","RELACAO","TEMPORAL","COMPARACAO","CURIOSIDADE_FACTUAL"],
     },
     16: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO"],
       rules: "Jogos: videojogos, tabuleiro, cartas, clássicos portugueses (Sueca, Damas, Dominó, etc.).",
       subtopics: ["videojogo","jogo de tabuleiro","personagem de jogo","consola"],
+      archetypes: ["IDENTIFICACAO","RELACAO","REGRA","CURIOSIDADE_FACTUAL"],
     },
     17: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO","CAUSA_CONSEQUENCIA","SITUACAO_PRATICA"],
       rules: "Tecnologia: ABRANGENTE — invenções, energia, comunicações, medicina aplicada, robótica, electrodomésticos, materiais e o digital. Computadores/software são SÓ UM dos temas (no máximo ~1 em 4 perguntas).\nVARIA: electricidade e energias (solar, eólica, hidroeléctrica, nuclear), telefone/rádio/TV/satélite, fotografia, lâmpada, frigorífico, impressão 3D, raio-X, GPS, baterias, robôs, IA, internet.\nNÃO repetir sempre PC, RAM, HTML, Windows, teclado, rato, SSD ou empresas de software.\nEvita sobrepor Transportes (carros/aviões) e Espaço (foguetões) — isso são outras categorias.\nSITUACAO_PRATICA é bem-vinda (ex.: \"para que serve um fusível?\").",
       subtopics: ["invenção","energia","comunicações","medicina aplicada","robótica","digital"],
       weightBoost: {"SITUACAO_PRATICA":1.8},
+      archetypes: ["FUNCAO","APLICACAO","TEMPORAL","COMPARACAO","PREVISAO","CURIOSIDADE_FACTUAL"],
     },
     18: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","O_QUE_E","ONDE_FICA","QUANDO"],
       rules: "Culturas do Mundo: tradições, festividades, línguas. EVITA generalizações sobre povos. Prefere factos específicos.",
       subtopics: ["tradição","festividade","língua","costume cultural"],
+      archetypes: ["IDENTIFICACAO","CONTEXTO","LOCALIZACAO","CURIOSIDADE_FACTUAL"],
     },
     19: {
       formats: ["RESPOSTA_DIRETA","ESCOLHA_MULTIPLA","VERDADEIRO_FALSO","QUEM_E","O_QUE_E","COMPLETA","QUANDO","CAUSA_CONSEQUENCIA","SITUACAO_PRATICA"],
       rules: "Transportes: veículos, energia, história, regras de circulação, situações práticas.",
       subtopics: ["veículo","infraestrutura","regra de circulação","história dos transportes"],
+      archetypes: ["FUNCAO","REGRA","APLICACAO","TEMPORAL","CURIOSIDADE_FACTUAL"],
     },
     20: {
       formats: ["ADIVINHA","CURIOSIDADE"],
       rules: "Categoria ESPECIAL — experiência diferente do resto do jogo. ADIVINHA: adivinhas tradicionais portuguesas, tom lúdico. CURIOSIDADE: factos surpreendentes (\"Não sabia disso!\"). NÃO uses perguntas normais de cultura geral aqui.",
       subtopics: ["adivinha tradicional","curiosidade surpreendente"],
       formatMix: {"ADIVINHA":0.7,"CURIOSIDADE":0.3},
+      archetypes: ["PISTAS","CURIOSIDADE_FACTUAL"],
+      archetypeMix: {"PISTAS":0.7,"CURIOSIDADE_FACTUAL":0.3},
     },
   };
 
@@ -352,6 +375,8 @@
       };
       if (def.weightBoost) entry.weightBoost = Object.freeze({ ...def.weightBoost });
       if (def.formatMix) entry.formatMix = Object.freeze({ ...def.formatMix });
+      entry.archetypes = Object.freeze((def.archetypes || ['IDENTIFICACAO']).slice());
+      if (def.archetypeMix) entry.archetypeMix = Object.freeze({ ...def.archetypeMix });
       registry[Number(n)] = Object.freeze(entry);
     }
     return Object.freeze(registry);

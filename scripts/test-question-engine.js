@@ -2072,5 +2072,59 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('219. bad_options gelo preview válido', hockeyBad?.correctionPreview?.ok === true, hockeyBad?.correctionPreview?.issues?.join(', '));
 }
 
+// 220–226. Question Archetypes
+{
+  assert('220. catálogo de archetypes nas 20 categorias',
+    Object.keys(QE.CATEGORY_ARCHETYPES).length === 20
+    && Object.values(QE.CATEGORY_ARCHETYPES).every((ids) => Array.isArray(ids) && ids.length > 0));
+  assert('220b. PISTAS só ADIVINHA', QE.chooseFormat(20, '10-15', 'mc', [], { archetypeId: 'PISTAS' }) === QE.FORMAT_IDS.ADIVINHA);
+  assert('220c. CURIOSIDADE_FACTUAL cat.20 → CURIOSIDADE',
+    QE.chooseFormat(20, '10-15', 'mc', [], { archetypeId: 'CURIOSIDADE_FACTUAL' }) === QE.FORMAT_IDS.CURIOSIDADE);
+
+  const recentArch = ['TEMPORAL', 'TEMPORAL'];
+  let temporalNext = 0;
+  for (let i = 0; i < 40; i += 1) {
+    if (QE.chooseArchetype(3, '10-15', 'mc', recentArch) === 'TEMPORAL') temporalNext += 1;
+  }
+  assert('221. anti-repetição de archetype', temporalNext < 12, `TEMPORAL ${temporalNext}/40`);
+
+  let previsaoCount = 0;
+  for (let i = 0; i < 80; i += 1) {
+    if (QE.chooseArchetype(4, '6-9', 'mc', []) === 'PREVISAO') previsaoCount += 1;
+  }
+  assert('222. PREVISAO excluído aos 6–9', previsaoCount === 0, `PREVISAO ${previsaoCount}/80`);
+
+  const plan = QE.planQuestion(2, '10-15', 'mc', {});
+  const geoArch = QE.CATEGORY_ARCHETYPES[2] || QE.CATEGORY_ARCHETYPES['2'];
+  const allowedFmt = QE.getAllowedFormats(2, '10-15', 'mc', { archetypeId: plan.archetypeId });
+  assert('223. planQuestion geografia', geoArch.includes(plan.archetypeId) && allowedFmt.includes(plan.formatId) && !!plan.cognitiveLevel);
+
+  const archPrompt = QE.buildPrompt({
+    category: QE.CATEGORIES[3],
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: 'ESCOLHA_MULTIPLA',
+    archetypeId: 'CAUSA_EFEITO',
+    ptPtRules: '',
+    isMC: true,
+    isTrueFalse: false,
+    jsonFormat: '{"q":"","a":""}',
+    normalizeFn: (s) => String(s || '').trim().toLowerCase(),
+  });
+  assert('224. buildPrompt inclui archetype', /CAUSA_EFEITO/.test(archPrompt) && /ARCHETYPE OBRIGATÓRIO/.test(archPrompt));
+
+  QE.clearGenerationTelemetry();
+  QE.recordGenerationTelemetry({
+    outcome: 'accepted',
+    category: 3,
+    formatId: 'ESCOLHA_MULTIPLA',
+    archetypeId: 'COMPARACAO',
+    cognitiveLevel: 'L4_ANALISAR',
+  });
+  const archSummary = QE.getGenerationTelemetrySummary();
+  assert('225. telemetria byArchetype', archSummary.byArchetype?.COMPARACAO?.total === 1);
+  assert('226. telemetria byCognitiveLevel', archSummary.byCognitiveLevel?.L4_ANALISAR?.total === 1);
+}
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

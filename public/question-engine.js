@@ -21,12 +21,13 @@
   const PersistentHistory = global.QuestionEnginePersistentHistory;
   const ReportedContent = global.QuestionEngineReportedContent;
   const PromptBuilder = global.QuestionEnginePromptBuilder;
+  const Archetypes = global.QuestionEngineArchetypes;
   const McAssembly = global.QuestionEngineMcAssembly;
   const QuestionScoring = global.QuestionEngineQuestionScoring;
 
   if (!Issues || !KnowledgeKey || !KnowledgeKeyCompute || !Retry || !Telemetry || !KnownFacts
     || !FactualVerify || !AdivinhaVerify || !AdivinhaDistractors || !ContentSafety || !DifficultyEstimate || !Config || !FormatValidators
-    || !AgeValidators || !PersistentHistory || !ReportedContent || !PromptBuilder || !McAssembly || !QuestionScoring) {
+    || !AgeValidators || !PersistentHistory || !ReportedContent || !PromptBuilder || !Archetypes || !McAssembly || !QuestionScoring) {
     throw new Error('QuestionEngine: carrega todos os módulos question-engine/*.js antes de question-engine.js');
   }
 
@@ -60,6 +61,8 @@
     chooseSubtopic,
     getAllowedFormats,
     chooseFormat,
+    chooseArchetype,
+    planQuestion,
     buildPrompt,
     buildPromptFromFact,
     getRepositoryExpectedAnswer,
@@ -118,6 +121,14 @@
     CATEGORY_WEIGHT_BOOST: Object.freeze(Object.fromEntries(
       Object.entries(CATEGORIES).filter(([, def]) => def.weightBoost).map(([n, def]) => [n, def.weightBoost]),
     )),
+    CATEGORY_ARCHETYPES: Object.freeze(Object.fromEntries(
+      Object.entries(CATEGORIES).map(([n, def]) => [n, def.archetypes || []]),
+    )),
+    ARCHETYPE_IDS: Object.freeze({ ...Archetypes.ARCHETYPE_IDS }),
+    ARCHETYPE_LABELS: Object.freeze({ ...Archetypes.ARCHETYPE_LABELS }),
+    COGNITIVE_LEVEL_LABELS: Object.freeze({ ...Archetypes.COGNITIVE_LEVEL_LABELS }),
+    getArchetype: Archetypes.getArchetype,
+    buildArchetypeRules: Archetypes.buildArchetypeRules,
     DIFFICULTY_RANGE: Object.freeze({ ...DIFFICULTY_RANGE }),
     DIFFICULTY_LABELS: Object.freeze({ ...DIFFICULTY_LABELS }),
     TRUE_FALSE_CHANCE,
@@ -127,6 +138,8 @@
     filterFormatsForContext,
     defaultFormatForAnswerMode,
     chooseFormat,
+    chooseArchetype,
+    planQuestion,
     chooseDifficulty,
     chooseSubtopic,
     buildPrompt,

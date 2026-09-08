@@ -51,6 +51,8 @@
       outcome: String(e.outcome || 'unknown'),
       category: e.category != null ? Number(e.category) : null,
       formatId: e.formatId ? String(e.formatId) : '',
+      archetypeId: e.archetypeId ? String(e.archetypeId) : '',
+      cognitiveLevel: e.cognitiveLevel ? String(e.cognitiveLevel) : '',
       ageBandKey: e.ageBandKey ? String(e.ageBandKey) : '',
       difficulty: e.difficulty != null ? Number(e.difficulty) : null,
       attempt: e.attempt != null ? Number(e.attempt) : null,
@@ -194,6 +196,8 @@
       byIssueDetail: {},
       byCategory: {},
       byFormat: {},
+      byArchetype: {},
+      byCognitiveLevel: {},
       byGameMode: {},
       bySource: {},
       byProvider: {},
@@ -229,6 +233,18 @@
         if (!summary.byFormat[ev.formatId]) summary.byFormat[ev.formatId] = { total: 0, rejected: 0 };
         summary.byFormat[ev.formatId].total += 1;
         if (ev.outcome === 'rejected') summary.byFormat[ev.formatId].rejected += 1;
+      }
+      if (ev.archetypeId) {
+        if (!summary.byArchetype[ev.archetypeId]) summary.byArchetype[ev.archetypeId] = { total: 0, rejected: 0 };
+        summary.byArchetype[ev.archetypeId].total += 1;
+        if (ev.outcome === 'rejected') summary.byArchetype[ev.archetypeId].rejected += 1;
+      }
+      if (ev.cognitiveLevel) {
+        if (!summary.byCognitiveLevel[ev.cognitiveLevel]) {
+          summary.byCognitiveLevel[ev.cognitiveLevel] = { total: 0, rejected: 0 };
+        }
+        summary.byCognitiveLevel[ev.cognitiveLevel].total += 1;
+        if (ev.outcome === 'rejected') summary.byCognitiveLevel[ev.cognitiveLevel].rejected += 1;
       }
       const mode = ev.gameMode || 'local';
       if (!summary.byGameMode[mode]) summary.byGameMode[mode] = { total: 0, rejected: 0 };

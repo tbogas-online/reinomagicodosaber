@@ -1,5 +1,6 @@
 {
   "current": [
+    "Motor de perguntas: Question Archetypes por categoria (intenção cognitiva distinta do formato); o selector evita repetição e restringe o formato aos compatíveis; o prompt recebe o tipo escolhido; telemetria passa a contar por archetype e nível cognitivo.",
     "Reabastecimento do banco: crédito 💾 +N ao servir pergunta do banco ou IA (cat. 1–19); até 4 rondas × 5 tentativas até guardar 1 pergunta; near-miss de dificuldade (±1, score alto) aceite.",
     "Painel admin — Telemetria: botão «Descartar tudo» nas causas pendentes; legendas clicáveis para ocultar/mostrar séries nos gráficos; eixos ajustados aos dados; toggles de limites TPD/tokens por fornecedor.",
     "Painel admin — Fila de revisão: descartar todas por código ou todas as pendentes; sincronização com telemetria.",

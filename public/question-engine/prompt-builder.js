@@ -12,6 +12,7 @@
     TRUE_FALSE_CHANCE,
     TRUE_FALSE_MIN_GAP,
     FORMAT_MAX_CONSECUTIVE,
+    ENGINE_CONFIG,
     FORMAT_IDS,
     FORMAT_LABELS,
     DIFFICULTY_RANGE,
@@ -22,6 +23,11 @@
     defaultFormatForAnswerMode,
     filterKnowledgeAnswers,
   } = Config;
+  const Archetypes = global.QuestionEngineArchetypes;
+  if (!Archetypes) {
+    throw new Error('prompt-builder: carrega question-archetypes.js antes deste módulo');
+  }
+  const ARCHETYPE_MAX_CONSECUTIVE = ENGINE_CONFIG.ARCHETYPE_MAX_CONSECUTIVE || FORMAT_MAX_CONSECUTIVE;
 
   const MUSIC_FOCUS_AREAS = [
     'uma BANDA ou GRUPO musical (nacional ou internacional)',
@@ -146,9 +152,15 @@ ${ageRulesText}`;
     const parts = [];
     const {
       usedQuestions, usedFormats, usedAnswers, persistentQuestions, persistentAnswers,
-      usedKnowledgeKeys, persistentKnowledgeKeys, normalizeFn,
+      usedKnowledgeKeys, persistentKnowledgeKeys, usedArchetypes, normalizeFn,
     } = ctx;
 
+    if (usedArchetypes?.length) {
+      const lastArch = usedArchetypes[usedArchetypes.length - 1];
+      const consecArch = countConsecutiveFormat(usedArchetypes, lastArch);
+      const archLabel = Archetypes.ARCHETYPE_LABELS[lastArch] || lastArch;
+      parts.push(`Último tipo de pergunta (archetype): ${archLabel}${consecArch >= ARCHETYPE_MAX_CONSECUTIVE ? ' (já repetido — escolhe outro tipo)' : ''}. Alterna a INTENÇÃO da pergunta, não só o formato.`);
+    }
     if (usedFormats?.length) {
       const last = usedFormats[usedFormats.length - 1];
       const consec = countConsecutiveFormat(usedFormats, last);
@@ -210,8 +222,13 @@ ${ageRulesText}`;
     return pickFrom[Math.floor(Math.random() * pickFrom.length)];
   }
 
-  function getAllowedFormats(categoryNumber, ageBandKey, answerMode) {
-    const primary = filterFormatsForContext(getCategoryDef(categoryNumber).formats.slice(), ageBandKey, answerMode);
+  function getAllowedFormats(categoryNumber, ageBandKey, answerMode, opts = {}) {
+    let primary = filterFormatsForContext(getCategoryDef(categoryNumber).formats.slice(), ageBandKey, answerMode);
+    const archetypeId = opts.archetypeId || opts.archetype;
+    if (archetypeId) {
+      const filtered = Archetypes.filterFormatsForArchetype(primary, archetypeId);
+      if (filtered.length) primary = filtered;
+    }
     if (primary.length) return primary;
     return filterFormatsForContext(getCategoryDef(1).formats.slice(), ageBandKey, answerMode);
   }
@@ -226,8 +243,50 @@ ${ageRulesText}`;
     return items[items.length - 1];
   }
 
-  function chooseFormat(categoryNumber, ageBandKey, answerMode, recentFormats) {
-    const allowed = getAllowedFormats(categoryNumber, ageBandKey, answerMode);
+  function pickFromRecentPool(allowed, recent, maxConsecutive) {
+    let pool = allowed.filter((id) => countConsecutiveFormat(recent, id) < maxConsecutive);
+    if (!pool.length) {
+      pool = allowed.filter((id) => countConsecutiveFormat(recent, id) < maxConsecutive + 1);
+    }
+    if (!pool.length) pool = allowed.slice();
+
+    const last = recent[recent.length - 1];
+    if (last) {
+      const withoutLast = pool.filter((id) => id !== last);
+      if (withoutLast.length) pool = withoutLast;
+    }
+    if (pool.length > 1 && recent.length >= 2) {
+      const prev2 = new Set(recent.slice(-2));
+      const withoutPrev2 = pool.filter((id) => !prev2.has(id));
+      if (withoutPrev2.length) pool = withoutPrev2;
+    }
+    return pool;
+  }
+
+  function chooseArchetype(categoryNumber, ageBandKey, answerMode, recentArchetypes) {
+    const allowed = Archetypes.getAllowedArchetypes(categoryNumber, ageBandKey, answerMode);
+    if (!allowed.length) return Archetypes.ARCHETYPE_IDS.IDENTIFICACAO;
+
+    const recent = recentArchetypes || [];
+    const mix = getCategoryDef(categoryNumber).archetypeMix;
+    let pool = pickFromRecentPool(allowed, recent, ARCHETYPE_MAX_CONSECUTIVE);
+
+    if (mix) {
+      const mixPool = pool.filter((id) => (mix[id] || 0) > 0);
+      const pickFrom = mixPool.length ? mixPool : pool;
+      const weights = pickFrom.map((id) => mix[id] || 0);
+      return weightedPick(pickFrom, weights);
+    }
+
+    const weights = pool.map((id) => {
+      const recentCount = recent.filter((r) => r === id).length;
+      return 1 / (1 + recentCount * 0.4);
+    });
+    return weightedPick(pool, weights);
+  }
+
+  function chooseFormat(categoryNumber, ageBandKey, answerMode, recentFormats, opts = {}) {
+    const allowed = getAllowedFormats(categoryNumber, ageBandKey, answerMode, opts);
     if (!allowed.length) return defaultFormatForAnswerMode(answerMode);
 
     const formatMix = getCategoryDef(categoryNumber).formatMix;
@@ -274,39 +333,64 @@ ${ageRulesText}`;
     return weightedPick(pool, weights);
   }
 
+  function planQuestion(categoryNumber, ageBandKey, answerMode, ctx = {}) {
+    const difficulty = ctx.difficulty || chooseDifficulty(ageBandKey, ctx.recentDifficulties);
+    const subtopic = ctx.subtopic || chooseSubtopic(categoryNumber, ctx.recentSubtopics);
+    const archetypeId = ctx.archetypeId
+      || chooseArchetype(categoryNumber, ageBandKey, answerMode, ctx.recentArchetypes);
+    const formatId = ctx.formatId
+      || chooseFormat(categoryNumber, ageBandKey, answerMode, ctx.recentFormats, { archetypeId });
+    const arch = Archetypes.getArchetype(archetypeId);
+    return {
+      difficulty,
+      subtopic,
+      archetypeId,
+      formatId,
+      cognitiveLevel: arch?.cognitiveLevel || '',
+    };
+  }
+
   function buildPrompt(ctx) {
     const {
       category, ageBandKey, ageBandPromptText, formatId, ptPtRules, isMC, isTrueFalse,
       usedQuestions, usedFormats, usedAnswers, persistentQuestions, persistentAnswers,
-      usedKnowledgeKeys, persistentKnowledgeKeys,
+      usedKnowledgeKeys, persistentKnowledgeKeys, usedArchetypes,
       ageDifficultyExtra, openModeExtra, mcInstruction, jsonFormat,
-      difficulty, subtopic, retryHint,
+      difficulty, subtopic, retryHint, archetypeId,
     } = ctx;
 
     const formatLabel = FORMAT_LABELS[formatId] || formatId;
     const diff = difficulty || chooseDifficulty(ageBandKey, ctx.recentDifficulties);
     const diffLabel = DIFFICULTY_LABELS[diff] || 'médio';
     const sub = subtopic || chooseSubtopic(category?.n || 1, ctx.recentSubtopics);
+    const archId = archetypeId || null;
+    const arch = archId ? Archetypes.getArchetype(archId) : null;
     const retryBlock = (retryHint || ctx.formatRetryHint)
       ? `\n${retryHint || ctx.formatRetryHint}\n`
       : '';
-    const musicFocusBlock = ctx.category?.n === 12
+    const archetypeBlock = arch
+      ? `\n${Archetypes.buildArchetypeRules(arch.id)}\n`
+      : '';
+    const musicFocusBlock = (!archId && ctx.category?.n === 12)
       ? `\nFOCO DESTA RODADA (Música): ${pickMusicFocus()}. Alterna entre bandas, canções, álbuns, artistas, instrumentos e géneros — não repitas sempre o mesmo tipo.\n`
       : '';
-    const techFocusBlock = ctx.category?.n === 17
+    const techFocusBlock = (!archId && ctx.category?.n === 17)
       ? `\nFOCO DESTA RODADA (Tecnologia): ${pickTechFocus()}. NÃO faças a pergunta sobre computadores, programação, RAM, HTML ou sistemas operativos a menos que o foco desta ronda seja o digital.\n`
       : '';
     const lim = getAgeLimits(ageBandKey);
     const diffExtra = (lim.promptDiffExtraHard && diff >= 4)
       ? lim.promptDiffExtraHard
       : (lim.promptDiffExtraEasy && diff <= 2 ? lim.promptDiffExtraEasy : '');
+    const cogLabel = arch
+      ? (Archetypes.COGNITIVE_LEVEL_LABELS[arch.cognitiveLevel] || arch.cognitiveLevel)
+      : '';
 
     return `Cria UMA pergunta de trivia EXCLUSIVAMENTE sobre a categoria "${category.name}" (${category.desc}), para ${ageBandPromptText}.
 
 FORMATO OBRIGATÓRIO DESTA RODADA: ${formatLabel} (${formatId}) — não uses outro tipo de pergunta.
 SUBTÓPICO DESTA RODADA: ${sub} — a pergunta deve reflectir este subtipo dentro da categoria.
-DIFICULDADE: ${diff}/5 (${diffLabel}) — adequada à faixa etária.
-${retryBlock}${musicFocusBlock}${techFocusBlock}${diffExtra}
+${arch ? `TIPO DE PERGUNTA (ARCHETYPE): ${arch.label} (${arch.id}) — testa ${cogLabel.toLowerCase()}, não outra intenção.\n` : ''}DIFICULDADE: ${diff}/5 (${diffLabel}) — adequada à faixa etária.
+${retryBlock}${archetypeBlock}${musicFocusBlock}${techFocusBlock}${diffExtra}
 ${buildGlobalRules()}
 
 REGRAS DA CATEGORIA:
@@ -322,7 +406,7 @@ ${ptPtRules}
 
 ${buildHistoryRules({
   usedQuestions, usedFormats, usedAnswers, persistentQuestions, persistentAnswers,
-  usedKnowledgeKeys, persistentKnowledgeKeys, normalizeFn: ctx.normalizeFn,
+  usedKnowledgeKeys, persistentKnowledgeKeys, usedArchetypes, normalizeFn: ctx.normalizeFn,
 })}
 
 ${openModeExtra || ''}
@@ -450,6 +534,8 @@ Só json válido, sem markdown: ${jsonFormat}`;
     chooseSubtopic,
     getAllowedFormats,
     chooseFormat,
+    chooseArchetype,
+    planQuestion,
     buildPrompt,
     buildPromptFromFact,
     getRepositoryExpectedAnswer,
