@@ -2,6 +2,7 @@
 
 const { getSupabaseAdmin } = require('./rooms-store');
 const supa = require('../../../scripts/lib/knowledge-import-supabase');
+const { listImportSources, importCuriosidadesBatches } = require('../../../scripts/lib/curiosidades-batch-import');
 
 function requireAdmin() {
   const cfg = getSupabaseAdmin();
@@ -14,7 +15,11 @@ function requireAdmin() {
 }
 
 async function getImportDashboard() {
-  return supa.getDashboard(requireAdmin());
+  const dashboard = await supa.getDashboard(requireAdmin());
+  return {
+    ...(dashboard && typeof dashboard === 'object' ? dashboard : {}),
+    importSources: listImportSources(),
+  };
 }
 
 async function runDailyImport(_event, options = {}) {
@@ -41,9 +46,20 @@ async function syncImportQueueFromSeed() {
   return supa.syncSeedQueue(requireAdmin());
 }
 
+async function importSource(_event, { source, batch, dryRun } = {}) {
+  const kind = String(source || 'curiosidades-batch').trim();
+  if (kind !== 'curiosidades-batch') {
+    const err = new Error('Fonte de importação desconhecida. Por agora só «curiosidades-batch».');
+    err.code = 'INVALID_SOURCE';
+    throw err;
+  }
+  return importCuriosidadesBatches(requireAdmin(), { batch, dryRun });
+}
+
 module.exports = {
   getImportDashboard,
   runDailyImport,
   resetImportOverrides,
   syncImportQueueFromSeed,
+  importSource,
 };

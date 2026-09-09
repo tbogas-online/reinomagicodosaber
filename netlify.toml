@@ -52,6 +52,7 @@
 
 [functions."knowledge-import-admin"]
   node_bundler = "esbuild"
+  timeout = 26
   included_files = ["./data/knowledge-import-queue.json"]
 
 [functions."quarantine-admin"]

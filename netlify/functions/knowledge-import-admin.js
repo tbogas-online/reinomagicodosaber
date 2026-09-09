@@ -1,8 +1,8 @@
 // GET /api/knowledge-import-admin — estado da fila e repositório
-// POST — { action: 'run' | 'dry-run' | 'sync-seed' | 'reset-overrides' | 'search' | 'disable' }
+// POST — { action: 'run' | 'dry-run' | 'import-source' | 'sync-seed' | 'reset-overrides' | 'search' | 'disable' }
 
 const { json, validateAdminAuth } = require('./lib/report-utils');
-const { getImportDashboard, runDailyImport, resetImportOverrides, syncImportQueueFromSeed } = require('./lib/knowledge-import-store');
+const { getImportDashboard, runDailyImport, resetImportOverrides, syncImportQueueFromSeed, importSource } = require('./lib/knowledge-import-store');
 const {
   searchKnowledgeRecords,
   disableKnowledgeRecords,
@@ -67,6 +67,29 @@ exports.handler = async (event) => {
             return json(400, { error: err.message });
           }
           return json(500, { error: err.message || 'Falha na importação.' });
+        }
+      }
+
+      if (body.action === 'import-source') {
+        if (!getSupabaseAdmin()) {
+          return json(503, {
+            error: 'Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).',
+          });
+        }
+        try {
+          const result = await importSource(event, {
+            source: body.source || 'curiosidades-batch',
+            batch: body.batch || 'all',
+            dryRun: !!body.dryRun,
+          });
+          return json(200, result);
+        } catch (err) {
+          console.error('[knowledge-import-admin] import-source failed:', err);
+          if (err.code === 'NOT_CONFIGURED') return json(503, { error: err.message });
+          if (err.code === 'INVALID_BATCH' || err.code === 'INVALID_SOURCE' || err.code === 'INVALID_RECORD') {
+            return json(400, { error: err.message, details: err.details || null });
+          }
+          return json(500, { error: err.message || 'Falha na importação da fonte.' });
         }
       }
 
@@ -169,7 +192,7 @@ exports.handler = async (event) => {
         }
       }
 
-      return json(400, { error: 'Acção desconhecida. Usa action: "run", "dry-run", "sync-seed", "reset-overrides", "search", "disable", "dedupe-audit" ou "dedupe-apply".' });
+      return json(400, { error: 'Acção desconhecida. Usa action: "run", "dry-run", "import-source", "sync-seed", "reset-overrides", "search", "disable", "dedupe-audit" ou "dedupe-apply".' });
     }
 
     return json(405, { error: 'Método não permitido.' });

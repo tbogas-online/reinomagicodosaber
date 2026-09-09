@@ -3493,6 +3493,27 @@
           <div id="knowledgeQuarantineTopics" class="bank-gaps-list" style="margin-top:12px;"></div>
         </div>
 
+        <div class="card" id="knowledgeSourceImportSection">
+          <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
+            <div>
+              <h2 class="charts-title" style="margin:0;">Importar fontes</h2>
+              <p class="chart-filter-note" style="margin:6px 0 0">Carrega factos verificados para o repositório a partir do admin. Os lotes A/B/C são curadoria manual no Git (<code>source=manual</code>). Wikidata, RTP e Ciência Viva ainda não têm importador.</p>
+            </div>
+          </div>
+          <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; align-items:center;">
+            <label for="knowledgeSourceSelect" class="sub" style="margin:0;">Fonte</label>
+            <select id="knowledgeSourceSelect" aria-label="Fonte a importar" style="min-width:280px; flex:1;">
+              <option value="all">Curiosidades — lotes A+B+C (148, curadoria manual)</option>
+              <option value="a">Curiosidades — lote A (50)</option>
+              <option value="b">Curiosidades — lote B (50)</option>
+              <option value="c">Curiosidades — lote C (48)</option>
+            </select>
+            <button type="button" class="secondary" id="knowledgeSourceDryRunBtn" title="Conta novos vs já existentes, sem gravar">🧪 Simular</button>
+            <button type="button" class="primary" id="knowledgeSourceImportBtn" title="Importar factos novos deste lote">📥 Importar</button>
+          </div>
+          <p class="status" id="knowledgeSourceImportStatus"></p>
+        </div>
+
         <div class="card" id="knowledgeImportSection">
           <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
             <div>
@@ -14247,6 +14268,9 @@
     }
 
     function formatKnowledgeImportResult(data) {
+      if (data?.action === 'import-source') {
+        return data.message || `Lote ${data.batch || ''}: ${data.imported || 0} importado(s), ${data.skipped || 0} já existia(m).`;
+      }
       if (data?.dryRun && data?.plan?.length) {
         return `Simulação: ${data.plan.map((p) => `${p.band} → ${p.knowledgeId}`).join(' · ')}`;
       }
@@ -14256,6 +14280,56 @@
         return `Importados ${data.plan.length} registo(s): ${ids}`;
       }
       return data?.message || 'Operação concluída.';
+    }
+
+    function renderKnowledgeImportSources(data) {
+      const sel = document.getElementById('knowledgeSourceSelect');
+      if (!sel) return;
+      const sources = data?.importSources;
+      if (!Array.isArray(sources) || !sources.length) return;
+      const keep = sel.value;
+      sel.innerHTML = sources.map((src) =>
+        `<option value="${esc(src.id)}">${esc(src.label)}</option>`,
+      ).join('');
+      if ([...sel.options].some((opt) => opt.value === keep)) sel.value = keep;
+    }
+
+    async function runKnowledgeSourceImport({ dryRun = false } = {}) {
+      const statusEl = document.getElementById('knowledgeSourceImportStatus');
+      const batch = document.getElementById('knowledgeSourceSelect')?.value || 'all';
+      const dryBtn = document.getElementById('knowledgeSourceDryRunBtn');
+      const importBtn = document.getElementById('knowledgeSourceImportBtn');
+      if (statusEl) {
+        statusEl.textContent = dryRun ? 'A simular lote…' : 'A importar lote…';
+        statusEl.className = 'status';
+      }
+      if (dryBtn) dryBtn.disabled = true;
+      if (importBtn) importBtn.disabled = true;
+      try {
+        const data = await api('/api/knowledge-import-admin', {
+          method: 'POST',
+          body: JSON.stringify({
+            action: 'import-source',
+            source: 'curiosidades-batch',
+            batch,
+            dryRun,
+          }),
+        });
+        if (statusEl) {
+          statusEl.textContent = formatKnowledgeImportResult(data);
+          statusEl.className = data?.ok ? 'status ok' : 'status';
+        }
+        if (!dryRun) await loadKnowledgeDashboard({ quiet: true });
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro na importação da fonte.';
+          statusEl.className = 'status err';
+        }
+        if (String(err.message || '').includes('incorretos')) logout();
+      } finally {
+        if (dryBtn) dryBtn.disabled = false;
+        if (importBtn) importBtn.disabled = false;
+      }
     }
 
     async function loadKnowledgeDashboard(options = {}) {
@@ -14281,6 +14355,7 @@
         renderKnowledgeBySource(data);
         renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
+        renderKnowledgeImportSources(data);
         const updatedEl = document.getElementById('knowledgeLastUpdated');
         if (updatedEl) updatedEl.textContent = `Actualizado às ${formatPortugalDateTime(new Date())}`;
         if (!quiet && statusEl) statusEl.textContent = '';
@@ -15274,6 +15349,16 @@
     document.getElementById('knowledgeImportBtn')?.addEventListener('click', () => runKnowledgeImport());
     document.getElementById('knowledgeForceImportBtn')?.addEventListener('click', () => runKnowledgeImport({ force: true }));
     document.getElementById('knowledgeResetBtn')?.addEventListener('click', () => resetKnowledgeOverrides());
+    document.getElementById('knowledgeSourceDryRunBtn')?.addEventListener('click', () => runKnowledgeSourceImport({ dryRun: true }));
+    document.getElementById('knowledgeSourceImportBtn')?.addEventListener('click', async () => {
+      const label = document.getElementById('knowledgeSourceSelect')?.selectedOptions?.[0]?.textContent || 'este lote';
+      const ok = await confirmAction(
+        `Importar ${label} para o repositório? Só entram factos novos (duplicados são ignorados).`,
+        { okLabel: 'Importar' },
+      );
+      if (!ok) return;
+      await runKnowledgeSourceImport({ dryRun: false });
+    });
     document.getElementById('knowledgeDedupeAuditBtn')?.addEventListener('click', () => auditKnowledgeDuplicates());
     document.getElementById('knowledgeDedupeApplyBtn')?.addEventListener('click', () => applyKnowledgeDedupe());
     document.getElementById('knowledgeSearchBtn')?.addEventListener('click', () => searchKnowledgeRecords());

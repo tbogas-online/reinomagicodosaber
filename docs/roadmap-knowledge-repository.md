@@ -261,6 +261,7 @@ Cada pergunta gerada (depois da IA + validação):
 - [x] Seed de amostra (`seed-knowledge-cat20-sample.sql`, fila `knowledge-import-queue.json`)
 - [x] Lote A: 50 curiosidades (`--batch-50`) + lote B (`--batch-50-b`) + lote C (`--batch-50-c`, 48) com filtro anti-duplicado no import
 - [x] Meta: **≥ 150 curiosidades** MVP *(importar lote C após dedupe)*
+- [x] Admin: importar lotes A/B/C a partir do painel Repositório (`action: import-source`)
 
 ### KR-2.2 Alternância 50/50
 
