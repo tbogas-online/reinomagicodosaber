@@ -12,28 +12,22 @@ const {
   isUsableLabel,
   fetchSparql,
 } = require('./wikidata-sparql');
+const {
+  JUNK_QIDS,
+  getCategoryFilter,
+  classAllowedForCategory,
+  itemFitsCategory,
+} = require('./wikidata-category-match');
 
 const SOURCE = 'Wikidata';
 const LICENSE = 'CC0';
 const MAX_WORDS = 4;
-const SEARCH_LIMIT = 5;
-const MAX_RECORDS = 24;
+const SEARCH_LIMIT = 10;
+const MAX_RECORDS = 10;
+const PREVIEW_LIMIT = 10;
 
-const SKIP_CLASS_QIDS = new Set([
-  'Q5',
-  'Q16521',
-  'Q13406463',
-  'Q4167836',
-  'Q4167410',
-  'Q11266439',
-  'Q17442446',
-  'Q35120',
-  'Q488383',
-  'Q223557',
-  'Q386724',
-]);
-
-const SKIP_CLASS_LABEL = /t[aá]xon|wikimedia|desambigua|artigo|categoria|página|entidade|humano|ser humano/i;
+const SKIP_CLASS_QIDS = JUNK_QIDS;
+const SKIP_CLASS_LABEL = /t[aá]xon|wikimedia|desambigua|artigo|categoria|página|entidade|humano|ser humano|type of |given name|family name|surname|nome pr[oó]prio|apelido|publica[cç][aã]o peri[oó]dica|crit[eé]rio/i;
 
 const CLASS_PHRASE = {
   país: 'um país',
@@ -43,6 +37,9 @@ const CLASS_PHRASE = {
   montanha: 'uma montanha',
   oceano: 'um oceano',
   ilha: 'uma ilha',
+  continente: 'um continente',
+  lago: 'um lago',
+  deserto: 'um deserto',
   planeta: 'um planeta',
   estrela: 'uma estrela',
   mamífero: 'um mamífero',
@@ -54,6 +51,7 @@ const CLASS_PHRASE = {
   instrumento: 'um instrumento',
   desporto: 'um desporto',
   jogo: 'um jogo',
+  cefalópode: 'um cefalópode',
 };
 
 function sanitizeWord(raw) {
@@ -63,18 +61,71 @@ function sanitizeWord(raw) {
   return text;
 }
 
+function splitWordTokens(raw) {
+  return String(raw || '')
+    .split(/[,;]+/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
+
 function sanitizeWords(words) {
   const seen = new Set();
   const out = [];
-  for (const raw of Array.isArray(words) ? words : []) {
-    const word = sanitizeWord(raw);
-    const key = word.toLowerCase();
-    if (!word || seen.has(key)) continue;
-    seen.add(key);
-    out.push(word);
-    if (out.length >= MAX_WORDS) break;
+  const list = Array.isArray(words) ? words : [words];
+  for (const raw of list) {
+    for (const token of splitWordTokens(raw)) {
+      const word = sanitizeWord(token);
+      const key = word.toLowerCase();
+      if (!word || seen.has(key)) continue;
+      seen.add(key);
+      out.push(word);
+      if (out.length >= MAX_WORDS) return out;
+    }
   }
   return out;
+}
+
+function normalizeKnowledgeIds(ids) {
+  return [...new Set((ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+}
+
+function applyKnowledgeIdFilter(records, knowledgeIds) {
+  const wanted = normalizeKnowledgeIds(knowledgeIds);
+  if (!wanted.length) {
+    return { records: records || [], rejected: 0 };
+  }
+  const set = new Set(wanted);
+  const kept = (records || []).filter((row) => set.has(row.knowledge_id));
+  return {
+    records: kept,
+    rejected: (records || []).length - kept.length,
+  };
+}
+
+function candidateFromRecord(row, status, extra = {}) {
+  return {
+    knowledgeId: row?.knowledge_id,
+    fact: row?.fact,
+    answer: row?.answer,
+    sourceUrl: row?.source_url,
+    sourceId: row?.source_id,
+    status,
+    selectable: status === 'new',
+    ...extra,
+  };
+}
+
+function buildImportCandidates(accepted, skipped, limit = PREVIEW_LIMIT) {
+  const rows = [];
+  for (const row of accepted || []) {
+    if (rows.length >= limit) break;
+    rows.push(candidateFromRecord(row, 'new'));
+  }
+  for (const item of skipped || []) {
+    if (rows.length >= limit) break;
+    rows.push(candidateFromRecord(item.record, 'duplicate', { reason: item.reason }));
+  }
+  return rows;
 }
 
 function escapeSparqlString(value) {
@@ -86,7 +137,7 @@ function escapeSparqlString(value) {
 function buildKeywordSearchQuery(word) {
   const search = escapeSparqlString(sanitizeWord(word));
   if (!search) return '';
-  return `SELECT ?item ?itemLabel ?class ?classLabel ?country ?countryLabel ?capital ?capitalLabel ?place ?placeLabel ?occupation ?occupationLabel WHERE {
+  return `SELECT ?item ?itemLabel ?class ?classLabel ?country ?countryLabel ?capital ?capitalLabel ?place ?placeLabel ?occupation ?occupationLabel ?sport ?sportLabel WHERE {
   SERVICE wikibase:mwapi {
     bd:serviceParam wikibase:api "EntitySearch" .
     bd:serviceParam wikibase:endpoint "www.wikidata.org" .
@@ -100,9 +151,10 @@ function buildKeywordSearchQuery(word) {
   OPTIONAL { ?item wdt:P36 ?capital. }
   OPTIONAL { ?item wdt:P131 ?place. }
   OPTIONAL { ?item wdt:P106 ?occupation. }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
+  OPTIONAL { ?item wdt:P641 ?sport. }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "pt". }
 }
-LIMIT 12`;
+LIMIT 24`;
 }
 
 function pushUnique(list, qid, label) {
@@ -127,6 +179,7 @@ function groupKeywordBindings(bindings) {
         capitals: [],
         places: [],
         occupations: [],
+        sports: [],
       };
       map.set(qid, row);
     }
@@ -135,6 +188,7 @@ function groupKeywordBindings(bindings) {
     pushUnique(row.capitals, qidFromUri(bindValue(binding, 'capital')), bindValue(binding, 'capitalLabel'));
     pushUnique(row.places, qidFromUri(bindValue(binding, 'place')), bindValue(binding, 'placeLabel'));
     pushUnique(row.occupations, qidFromUri(bindValue(binding, 'occupation')), bindValue(binding, 'occupationLabel'));
+    pushUnique(row.sports, qidFromUri(bindValue(binding, 'sport')), bindValue(binding, 'sportLabel'));
   }
   return [...map.values()];
 }
@@ -151,39 +205,71 @@ function classPhrase(label) {
   return CLASS_PHRASE[key] || label;
 }
 
-function pickFact(item) {
+function sameLabel(a, b) {
+  return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
+}
+
+function pickFact(item, { categoryN } = {}) {
+  const n = Number(categoryN) || 0;
+  if (n && !itemFitsCategory(item, n)) return null;
+
   const label = item.label;
   const capital = item.capitals[0];
   const country = item.countries[0];
   const place = item.places[0];
   const occupation = item.occupations[0];
-  const cls = item.classes.find(usableClass);
+  const sport = item.sports?.[0];
+  const cls = n
+    ? item.classes.find((entry) => classAllowedForCategory(entry, n))
+    : item.classes.find(usableClass);
+  const filter = getCategoryFilter(n);
+  const order = filter?.factOrder || ['capital', 'country', 'place', 'occupation', 'class'];
+  const allowPeople = !!filter?.people;
 
-  if (capital) {
-    return {
+  const builders = {
+    capital: () => (capital && !sameLabel(capital.label, label) ? {
       fact: `A capital de ${label} é ${capital.label}.`,
       answer: capital.label,
       suffix: 'p36',
       subtopic: 'capital',
-    };
-  }
-  if (country) {
-    return {
+    } : null),
+    country: () => (country ? {
       fact: `${label} fica em ${country.label}.`,
       answer: country.label,
       suffix: 'p17',
       subtopic: 'localização',
-    };
-  }
-  if (place) {
-    return {
+    } : null),
+    place: () => (place ? {
       fact: `${label} fica em ${place.label}.`,
       answer: place.label,
       suffix: 'p131',
       subtopic: 'localização',
-    };
+    } : null),
+    occupation: () => (allowPeople && occupation ? {
+      fact: `${label} é ${occupation.label}.`,
+      answer: occupation.label,
+      suffix: 'p106',
+      subtopic: 'personagem',
+    } : null),
+    sport: () => (n === 15 && sport ? {
+      fact: `${label} é de ${sport.label}.`,
+      answer: sport.label,
+      suffix: 'p641',
+      subtopic: 'desporto',
+    } : null),
+    class: () => (cls && !sameLabel(cls.label, label) ? {
+      fact: `${label} é ${classPhrase(cls.label)}.`,
+      answer: cls.label,
+      suffix: 'p31',
+      subtopic: 'identificação',
+    } : null),
+  };
+
+  for (const key of order) {
+    const picked = builders[key]?.();
+    if (picked) return picked;
   }
-  if (occupation) {
+  if (!filter && occupation) {
     return {
       fact: `${label} é ${occupation.label}.`,
       answer: occupation.label,
@@ -191,15 +277,7 @@ function pickFact(item) {
       subtopic: 'personagem',
     };
   }
-  if (cls && cls.label.toLowerCase() !== label.toLowerCase()) {
-    return {
-      fact: `${label} é ${classPhrase(cls.label)}.`,
-      answer: cls.label,
-      suffix: 'p31',
-      subtopic: 'identificação',
-    };
-  }
-  return null;
+  return builders.class();
 }
 
 function topicForCategory(categoryN) {
@@ -249,7 +327,7 @@ function toKeywordRecord(categoryN, item, picked, word) {
 function transformKeywordItems(items, { categoryN, word } = {}) {
   const records = [];
   for (const item of items || []) {
-    const picked = pickFact(item);
+    const picked = pickFact(item, { categoryN });
     if (!picked) continue;
     records.push(toKeywordRecord(categoryN, item, picked, word));
   }
@@ -300,8 +378,14 @@ async function collectKeywordRecords({ categoryN, words, fetchFn, timeoutMs } = 
 module.exports = {
   SOURCE,
   MAX_WORDS,
+  MAX_RECORDS,
+  PREVIEW_LIMIT,
   sanitizeWord,
   sanitizeWords,
+  splitWordTokens,
+  normalizeKnowledgeIds,
+  applyKnowledgeIdFilter,
+  buildImportCandidates,
   buildKeywordSearchQuery,
   groupKeywordBindings,
   pickFact,

@@ -85,6 +85,7 @@ exports.handler = async (event) => {
             categoryN: body.categoryN,
             words: body.words,
             preset: body.preset,
+            knowledgeIds: body.knowledgeIds,
           });
           return json(200, result);
         } catch (err) {
@@ -92,7 +93,7 @@ exports.handler = async (event) => {
           if (err.code === 'NOT_CONFIGURED') return json(503, { error: err.message });
           if (err.code === 'WIKIDATA_FETCH') return json(503, { error: err.message });
           if (err.code === 'INVALID_BATCH' || err.code === 'INVALID_SOURCE' || err.code === 'INVALID_RECORD'
-            || err.code === 'INVALID_WORDS' || err.code === 'INVALID_CATEGORY') {
+            || err.code === 'INVALID_WORDS' || err.code === 'INVALID_CATEGORY' || err.code === 'INVALID_SELECTION') {
             return json(400, { error: err.message, details: err.details || null });
           }
           return json(500, { error: err.message || 'Falha na importação da fonte.' });

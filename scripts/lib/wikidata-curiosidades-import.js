@@ -5,7 +5,13 @@ const { filterNewRecords } = require('./knowledge-dedupe');
 const { fetchExistingCuriosidades, fetchExistingKnowledge } = require('./curiosidades-batch-import');
 const { collectWikidataRecords, listWikidataImportSources } = require('./wikidata-curiosidades');
 const { collectGeografiaRecords } = require('./wikidata-geografia');
-const { collectKeywordRecords, sanitizeWords } = require('./wikidata-keyword-search');
+const {
+  collectKeywordRecords,
+  sanitizeWords,
+  applyKnowledgeIdFilter,
+  buildImportCandidates,
+  normalizeKnowledgeIds,
+} = require('./wikidata-keyword-search');
 const { buildCuriosityBankItems } = require('./curiosidade-question-from-fact');
 const { importQuestionBatch } = require('../../netlify/functions/lib/bank-from-knowledge');
 const { enrichRecordsWithRest } = require('./wikidata-rest');
@@ -51,6 +57,7 @@ async function persistWikidataRecords(cfg, raw, {
   materializeQuestions = true,
   enrichWithRest = false,
   labels = 'Wikidata',
+  knowledgeIds,
 } = {}) {
   const records = (raw || []).map((row) => normalizeRecord(row));
   const invalid = records
@@ -69,9 +76,27 @@ async function persistWikidataRecords(cfg, raw, {
     : (categoryN === 20
       ? await fetchExistingCuriosidades(cfg)
       : await fetchExistingKnowledge(cfg, { categoryN }));
-  const { accepted, skipped } = filterNewRecords(records, existing);
+  const filtered = filterNewRecords(records, existing);
+  let accepted = filtered.accepted;
+  const skipped = filtered.skipped;
+  const candidates = buildImportCandidates(accepted, skipped);
+  const selectedIds = Array.isArray(knowledgeIds) ? normalizeKnowledgeIds(knowledgeIds) : null;
+
+  if (!dryRun && selectedIds) {
+    if (!selectedIds.length) {
+      const err = new Error('Selecciona pelo menos um facto da lista para importar.');
+      err.code = 'INVALID_SELECTION';
+      throw err;
+    }
+    const picked = applyKnowledgeIdFilter(accepted, selectedIds);
+    accepted = picked.records;
+  }
+
   const curiosityRecords = accepted.filter((row) => Number(row.category_n) === 20);
   const plannedQuestions = buildCuriosityBankItems(curiosityRecords, { source: 'wikidata-template' });
+  const rejectedByUser = selectedIds
+    ? Math.max(0, filtered.accepted.length - accepted.length)
+    : 0;
 
   const summary = {
     ok: true,
@@ -81,21 +106,18 @@ async function persistWikidataRecords(cfg, raw, {
     labels,
     dryRun: !!dryRun,
     total: records.length,
-    newCount: accepted.length,
+    newCount: filtered.accepted.length,
     skipped: skipped.length,
+    rejected: rejectedByUser,
     imported: 0,
     questionsPrepared: plannedQuestions.items.length,
     questionsSkipped: plannedQuestions.skipped.length,
     questionsInserted: 0,
     materializeQuestions: !!materializeQuestions,
-    preview: accepted.slice(0, 8).map((row) => ({
-      knowledgeId: row.knowledge_id,
-      fact: row.fact,
-      sourceId: row.source_id,
-      sourceUrl: row.source_url,
-    })),
+    candidates,
+    preview: candidates.filter((row) => row.status === 'new'),
     questionPreview: questionPreview(plannedQuestions.items),
-    skippedPreview: skipped.slice(0, 8).map((item) => ({
+    skippedPreview: skipped.slice(0, 10).map((item) => ({
       knowledgeId: item.record?.knowledge_id,
       reason: item.reason,
       of: item.of,
@@ -103,21 +125,20 @@ async function persistWikidataRecords(cfg, raw, {
   };
 
   if (!records.length) {
-    summary.message = 'Wikidata não devolveu factos utilizáveis (rótulos PT). Tenta outras palavras.';
+    summary.message = 'Wikidata não devolveu factos desta categoria (rótulos PT). Tenta outras palavras ou outra categoria.';
     return summary;
   }
 
   if (dryRun) {
-    if (materializeQuestions) {
-      summary.message = `Simulação (Wikidata): ${accepted.length} facto(s) novo(s), ${skipped.length} já no repositório, ${plannedQuestions.items.length} pergunta(s) de template.`;
-    } else {
-      summary.message = `Simulação (Wikidata): ${accepted.length} facto(s) novo(s), ${skipped.length} já no repositório. As perguntas geram-se no jogo (template/IA).`;
-    }
+    const selectable = candidates.filter((row) => row.selectable).length;
+    summary.message = `Lista Wikidata (até 10): ${selectable} novo(s) para validar, ${skipped.length} já no repositório. Marca os que queres adicionar; os outros são rejeitados.`;
     return summary;
   }
 
   if (!accepted.length) {
-    summary.message = 'Nada a importar (Wikidata) — todos os factos obtidos já estão no repositório.';
+    summary.message = selectedIds
+      ? 'Nenhum dos factos seleccionados pode ser importado (já existem ou a pesquisa mudou).'
+      : 'Nada a importar (Wikidata) — todos os factos obtidos já estão no repositório.';
     return summary;
   }
 
@@ -132,7 +153,7 @@ async function persistWikidataRecords(cfg, raw, {
   summary.result = result;
 
   if (!materializeQuestions || !curiosityRecords.length) {
-    summary.message = `Importados ${accepted.length} facto(s) Wikidata (${skipped.length} ignorado(s) por duplicado). No jogo, o template ou a IA formula a pergunta e grava no banco.`;
+    summary.message = `Importados ${accepted.length} facto(s) Wikidata (${skipped.length} duplicado(s)${rejectedByUser ? `, ${rejectedByUser} rejeitado(s)` : ''}). No jogo, o template ou a IA formula a pergunta e grava no banco.`;
     return summary;
   }
 
@@ -142,7 +163,7 @@ async function persistWikidataRecords(cfg, raw, {
     summary.questionsExists = questions.exists;
     summary.questionsBankSkipped = questions.batchSkipped;
     summary.questionResult = questions;
-    summary.message = `Importados ${accepted.length} facto(s) Wikidata e ${questions.inserted} pergunta(s) no banco (${skipped.length} facto(s) duplicado(s)).`;
+    summary.message = `Importados ${accepted.length} facto(s) Wikidata e ${questions.inserted} pergunta(s) no banco (${skipped.length} duplicado(s)${rejectedByUser ? `, ${rejectedByUser} rejeitado(s)` : ''}).`;
   } catch (err) {
     summary.questionError = err.message || String(err);
     summary.message = `Importados ${accepted.length} facto(s) Wikidata, mas a materialização no banco falhou: ${summary.questionError}`;
@@ -156,6 +177,7 @@ async function importWikidataCuriosidades(cfg, {
   existingRecords,
   materializeQuestions = true,
   enrichWithRest = false,
+  knowledgeIds,
 } = {}) {
   if (!cfg?.url || !cfg?.key) {
     const err = new Error('Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).');
@@ -179,6 +201,7 @@ async function importWikidataCuriosidades(cfg, {
     materializeQuestions,
     enrichWithRest,
     labels: 'Wikidata UNESCO PT',
+    knowledgeIds,
   });
 }
 
@@ -188,6 +211,7 @@ async function importWikidataFromOptions(cfg, {
   categoryN,
   words,
   preset,
+  knowledgeIds,
   materializeQuestions = false,
   enrichWithRest = false,
 } = {}) {
@@ -230,6 +254,7 @@ async function importWikidataFromOptions(cfg, {
     materializeQuestions,
     enrichWithRest,
     labels,
+    knowledgeIds,
   });
 }
 

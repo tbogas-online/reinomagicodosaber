@@ -53,7 +53,7 @@ async function syncImportQueueFromSeed() {
   return supa.syncSeedQueue(requireAdmin());
 }
 
-async function importSource(_event, { source, batch, dryRun, categoryN, words, preset } = {}) {
+async function importSource(_event, { source, batch, dryRun, categoryN, words, preset, knowledgeIds } = {}) {
   const kind = String(source || 'curiosidades-batch').trim();
   if (kind === 'wikidata') {
     const hasDynamic = String(preset || '').trim() || (Array.isArray(words) && words.length) || categoryN;
@@ -63,10 +63,11 @@ async function importSource(_event, { source, batch, dryRun, categoryN, words, p
         categoryN,
         words,
         preset,
+        knowledgeIds,
         materializeQuestions: false,
       });
     }
-    return importWikidataCuriosidades(requireAdmin(), { dryRun, materializeQuestions: false });
+    return importWikidataCuriosidades(requireAdmin(), { dryRun, materializeQuestions: false, knowledgeIds });
   }
   if (kind !== 'curiosidades-batch') {
     const err = new Error('Fonte de importação desconhecida. Usa «curiosidades-batch» ou «wikidata».');
