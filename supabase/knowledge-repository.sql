@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS public.knowledge_records (
   verified_at       DATE,
   verified_by       TEXT,
   is_active         BOOLEAN NOT NULL DEFAULT true,
+  disabled_reason   TEXT,
   superseded_by     TEXT,
   usage_count       INT NOT NULL DEFAULT 0,
   metadata          JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -281,24 +282,36 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------------
--- RPC: desactivar registo (ex.: após reporte)
+-- RPC: desactivar registo (ex.: após reporte) com justificação
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.disable_knowledge_record(p_knowledge_id TEXT)
+DROP FUNCTION IF EXISTS public.disable_knowledge_record(TEXT);
+
+CREATE OR REPLACE FUNCTION public.disable_knowledge_record(
+  p_knowledge_id TEXT,
+  p_reason TEXT DEFAULT NULL
+)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_reason TEXT;
 BEGIN
   IF p_knowledge_id IS NULL OR p_knowledge_id = '' THEN
     RETURN jsonb_build_object('ok', false);
   END IF;
 
-  UPDATE public.knowledge_records
-  SET is_active = false, updated_at = now()
-  WHERE knowledge_id = p_knowledge_id AND is_active = true;
+  v_reason := NULLIF(left(trim(COALESCE(p_reason, '')), 400), '');
 
-  RETURN jsonb_build_object('ok', FOUND);
+  UPDATE public.knowledge_records
+  SET
+    is_active = false,
+    disabled_reason = COALESCE(v_reason, disabled_reason),
+    updated_at = now()
+  WHERE knowledge_id = p_knowledge_id;
+
+  RETURN jsonb_build_object('ok', FOUND, 'reason', v_reason);
 END;
 $$;
 
@@ -569,8 +582,8 @@ GRANT EXECUTE ON FUNCTION public.pick_knowledge_record(INT, TEXT, TEXT, TEXT, TE
 REVOKE ALL ON FUNCTION public.import_knowledge_batch(JSONB) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.import_knowledge_batch(JSONB) TO service_role;
 
-REVOKE ALL ON FUNCTION public.disable_knowledge_record(TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.disable_knowledge_record(TEXT) TO service_role;
+REVOKE ALL ON FUNCTION public.disable_knowledge_record(TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.disable_knowledge_record(TEXT, TEXT) TO service_role;
 
 REVOKE ALL ON FUNCTION public.delete_knowledge_records(TEXT[]) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.delete_knowledge_records(TEXT[]) TO service_role;

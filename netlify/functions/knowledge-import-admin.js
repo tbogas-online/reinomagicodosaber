@@ -184,7 +184,7 @@ exports.handler = async (event) => {
           return json(400, { error: 'Indica pelo menos um knowledge_id.' });
         }
         try {
-          const result = await disableKnowledgeRecords(knowledgeIds);
+          const result = await disableKnowledgeRecords(knowledgeIds, { reason: body.reason });
           return json(200, { ok: true, ...result });
         } catch (err) {
           console.error('[knowledge-import-admin] disable failed:', err);

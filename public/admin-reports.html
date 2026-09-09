@@ -901,6 +901,24 @@
       box-shadow: 0 18px 48px rgba(0, 0, 0, 0.45);
     }
     .confirm-box p { margin: 0 0 18px; line-height: 1.5; }
+    .confirm-prompt-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin: 0 0 16px;
+    }
+    .confirm-prompt-wrap label { font-size: 0.85rem; color: var(--muted, #9ca3af); }
+    .confirm-prompt-wrap textarea {
+      width: 100%;
+      min-height: 64px;
+      resize: vertical;
+      font: inherit;
+      padding: 8px 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--bg, transparent);
+      color: inherit;
+    }
     .confirm-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
     .pager { display: flex; gap: 8px; align-items: center; margin-top: 12px; }
     .hidden { display: none !important; }
@@ -3626,7 +3644,7 @@
               <option value="a" data-kind="curiosidades-batch">Curiosidades — lote A (50)</option>
               <option value="b" data-kind="curiosidades-batch">Curiosidades — lote B (50)</option>
               <option value="c" data-kind="curiosidades-batch">Curiosidades — lote C (48)</option>
-              <option value="wikidata" data-kind="wikidata">Wikidata — património UNESCO PT e factos estruturados</option>
+              <option value="wikidata" data-kind="wikidata">Wikidata — património UNESCO e cultural imaterial PT</option>
             </select>
             <button type="button" class="secondary" id="knowledgeSourceDryRunBtn" title="Conta novos vs já existentes, sem gravar">🧪 Simular</button>
             <button type="button" class="primary" id="knowledgeSourceImportBtn" title="Importar factos novos deste lote">📥 Importar</button>
@@ -3679,7 +3697,7 @@
 
         <div class="card" id="knowledgeBrowseSection">
           <h2 class="charts-title" style="margin:0 0 8px;">Explorar repositório</h2>
-          <p class="sub" style="margin-top:0;">Pesquisa factos no Supabase por texto, fonte ou <strong>data/hora de importação</strong> (Portugal). Desactivar esconde o facto; <strong>apagar</strong> remove-o (e as perguntas do banco ligadas) para poderes importar de novo.</p>
+          <p class="sub" style="margin-top:0;">Pesquisa factos no Supabase por texto, fonte ou <strong>data/hora de importação</strong> (Portugal). Desactivar esconde o facto e pede uma <strong>justificação</strong>; <strong>apagar</strong> remove-o (e as perguntas do banco ligadas) para poderes importar de novo.</p>
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
             <input type="search" id="knowledgeSearchQuery" placeholder="Texto, resposta ou knowledge_id…" style="min-width:200px; flex:1;">
             <select id="knowledgeSearchCategory" aria-label="Filtrar categoria">
@@ -3721,11 +3739,12 @@
                   <th>Fonte</th>
                   <th>Timestamp</th>
                   <th>Estado</th>
+                  <th>Justificação</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody id="knowledgeSearchBody">
-                <tr><td colspan="9" class="sub">Pesquisa, lista por categoria ou por data/hora de importação.</td></tr>
+                <tr><td colspan="10" class="sub">Pesquisa, lista por categoria ou por data/hora de importação.</td></tr>
               </tbody>
             </table>
           </div>
@@ -4047,6 +4066,10 @@
   <div id="confirmOverlay" class="confirm-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="confirmMessage">
     <div class="confirm-box">
       <p id="confirmMessage"></p>
+      <div id="confirmPromptWrap" class="confirm-prompt-wrap hidden">
+        <label for="confirmPrompt">Justificação</label>
+        <textarea id="confirmPrompt" rows="3" maxlength="400"></textarea>
+      </div>
       <div class="confirm-actions">
         <button type="button" class="secondary" id="confirmCancel">Cancelar</button>
         <button type="button" class="danger" id="confirmOk">Confirmar</button>
@@ -5522,36 +5545,71 @@
     }
 
     function confirmAction(message, options = {}) {
-      const { okLabel = 'Confirmar', danger = false } = options;
+      const { okLabel = 'Confirmar', danger = false, prompt = false } = options;
       const overlay = document.getElementById('confirmOverlay');
       const msgEl = document.getElementById('confirmMessage');
       const okBtn = document.getElementById('confirmOk');
       const cancelBtn = document.getElementById('confirmCancel');
+      const promptWrap = document.getElementById('confirmPromptWrap');
+      const promptEl = document.getElementById('confirmPrompt');
       if (!overlay || !msgEl || !okBtn || !cancelBtn) {
+        if (prompt) {
+          const value = window.prompt(message, options.promptValue || '');
+          if (value == null) return Promise.resolve({ ok: false, value: '' });
+          const trimmed = String(value).trim();
+          if (options.promptRequired && !trimmed) return Promise.resolve({ ok: false, value: '' });
+          return Promise.resolve({ ok: true, value: trimmed });
+        }
         return Promise.resolve(window.confirm(message));
       }
       return new Promise((resolve) => {
         msgEl.textContent = message;
         okBtn.textContent = okLabel;
         okBtn.className = danger ? 'danger' : '';
+        if (promptWrap && promptEl) {
+          if (prompt) {
+            promptWrap.classList.remove('hidden');
+            const labelEl = promptWrap.querySelector('label');
+            if (labelEl) labelEl.textContent = options.promptLabel || 'Justificação';
+            promptEl.value = options.promptValue || '';
+            promptEl.placeholder = options.promptPlaceholder || '';
+            promptEl.required = !!options.promptRequired;
+          } else {
+            promptWrap.classList.add('hidden');
+            promptEl.value = '';
+          }
+        }
         overlay.classList.remove('hidden');
         const finish = (result) => {
           overlay.classList.add('hidden');
+          if (promptWrap) promptWrap.classList.add('hidden');
           okBtn.removeEventListener('click', onOk);
           cancelBtn.removeEventListener('click', onCancel);
           overlay.removeEventListener('click', onBackdrop);
           document.removeEventListener('keydown', onKey);
           resolve(result);
         };
-        const onOk = () => finish(true);
-        const onCancel = () => finish(false);
-        const onBackdrop = (e) => { if (e.target === overlay) finish(false); };
-        const onKey = (e) => { if (e.key === 'Escape') finish(false); };
+        const onOk = () => {
+          if (prompt) {
+            const value = String(promptEl?.value || '').trim();
+            if (options.promptRequired && !value) {
+              promptEl?.focus();
+              return;
+            }
+            finish({ ok: true, value });
+            return;
+          }
+          finish(true);
+        };
+        const onCancel = () => finish(prompt ? { ok: false, value: '' } : false);
+        const onBackdrop = (e) => { if (e.target === overlay) finish(prompt ? { ok: false, value: '' } : false); };
+        const onKey = (e) => { if (e.key === 'Escape') finish(prompt ? { ok: false, value: '' } : false); };
         okBtn.addEventListener('click', onOk);
         cancelBtn.addEventListener('click', onCancel);
         overlay.addEventListener('click', onBackdrop);
         document.addEventListener('keydown', onKey);
-        cancelBtn.focus();
+        if (prompt && promptEl) promptEl.focus();
+        else cancelBtn.focus();
       });
     }
 
@@ -14310,7 +14368,7 @@
       const body = document.getElementById('knowledgeSearchBody');
       if (!body) return;
       if (!lastKnowledgeSearchRows.length) {
-        body.innerHTML = '<tr><td colspan="9" class="sub">Nenhum facto encontrado.</td></tr>';
+        body.innerHTML = '<tr><td colspan="10" class="sub">Nenhum facto encontrado.</td></tr>';
         updateKnowledgeBrowseUi();
         return;
       }
@@ -14320,6 +14378,12 @@
         const checked = selectedKnowledgeIds.has(kid) ? 'checked' : '';
         const active = row.is_active !== false;
         const ts = formatKnowledgeTimestamp(row.created_at);
+        const reason = String(row.disabled_reason || '').trim();
+        const reasonCell = active
+          ? '—'
+          : (reason
+            ? `<span title="${esc(reason)}">${esc(reason.length > 80 ? `${reason.slice(0, 80)}…` : reason)}</span>`
+            : '<span class="sub">Sem justificação</span>');
         return `<tr data-kid="${esc(kid)}">
           <td><input type="checkbox" class="knowledge-row-check" data-kid="${esc(kid)}" ${checked} aria-label="Seleccionar facto"></td>
           <td><code>${esc(kid || '—')}</code></td>
@@ -14329,6 +14393,7 @@
           <td>${esc(row.source || '—')}</td>
           <td class="knowledge-timestamp" title="${esc(ts.title)}">${esc(ts.date)}${ts.time ? `<span class="ts-time">${esc(ts.time)}</span>` : ''}</td>
           <td>${active ? '<span class="pill">activo</span>' : '<span class="pill">inactivo</span>'}</td>
+          <td>${reasonCell}</td>
           <td class="actions-cell">
             ${active ? `<button type="button" class="secondary knowledge-release-quarantine" data-kid="${esc(kid)}" title="Libertar da quarentena anti-reuso">Libertar</button>
             <button type="button" class="danger knowledge-disable-one" data-kid="${esc(kid)}">Desactivar</button>` : ''}
@@ -14419,10 +14484,31 @@
       await searchKnowledgeRecords({ requireQuery: false, requireDate: true });
     }
 
+    async function askDisableKnowledgeReason({ count = 1, preset = '' } = {}) {
+      const label = count === 1 ? 'este facto' : `${count} factos`;
+      const result = await confirmAction(
+        `Desactivar ${label} no repositório? Deixa de ser usado no jogo. Indica o motivo.`,
+        {
+          okLabel: 'Desactivar',
+          danger: true,
+          prompt: true,
+          promptRequired: true,
+          promptLabel: 'Justificação',
+          promptPlaceholder: 'Ex.: não é um facto; duplicado; inadequado para crianças…',
+          promptValue: preset,
+        },
+      );
+      if (!result || result.ok === false) return null;
+      const value = String(result.value || '').trim();
+      return value || null;
+    }
+
     async function disableKnowledgeRecords(knowledgeIds, options = {}) {
       const unique = [...new Set((knowledgeIds || []).map((id) => String(id || '').trim()).filter(Boolean))];
       if (!unique.length) return null;
       const statusEl = options.statusEl || document.getElementById('knowledgeSearchStatus');
+      const reason = String(options.reason || '').trim();
+      if (!reason) return null;
 
       knowledgeDisableLoading = true;
       updateKnowledgeBrowseUi();
@@ -14434,11 +14520,11 @@
       try {
         const data = await api('/api/knowledge-import-admin', {
           method: 'POST',
-          body: JSON.stringify({ action: 'disable', knowledgeIds: unique }),
+          body: JSON.stringify({ action: 'disable', knowledgeIds: unique, reason }),
         });
         unique.forEach((id) => selectedKnowledgeIds.delete(id));
         lastKnowledgeSearchRows = lastKnowledgeSearchRows.map((row) => (
-          unique.includes(row.knowledge_id) ? { ...row, is_active: false } : row
+          unique.includes(row.knowledge_id) ? { ...row, is_active: false, disabled_reason: reason } : row
         ));
         renderKnowledgeSearchResults(lastKnowledgeSearchRows);
         await loadKnowledgeDashboard({ quiet: true });
@@ -14503,7 +14589,7 @@
 
     function exportKnowledgeCsv() {
       if (!lastKnowledgeSearchRows.length) return;
-      const headers = ['knowledge_id', 'category_n', 'topic', 'subtopic', 'fact', 'answer', 'source', 'source_id', 'confidence', 'is_active', 'age_bands', 'allowed_formats', 'created_at'];
+      const headers = ['knowledge_id', 'category_n', 'topic', 'subtopic', 'fact', 'answer', 'source', 'source_id', 'confidence', 'is_active', 'disabled_reason', 'age_bands', 'allowed_formats', 'created_at'];
       const lines = [headers.join(',')];
       for (const row of lastKnowledgeSearchRows) {
         const cells = headers.map((key) => {
@@ -15905,10 +15991,10 @@
       if (!ids.length) return;
       const ok = await confirmAction(
         `Desactivar ${ids.length} facto(s) no repositório? Deixam de ser usados no jogo.`,
-        { okLabel: 'Desactivar', danger: true },
+        { okLabel: 'Desactivar', danger: true, prompt: true, promptRequired: true, promptLabel: 'Justificação', promptPlaceholder: 'Ex.: não é um facto; duplicado; inadequado para crianças…' },
       );
-      if (!ok) return;
-      await disableKnowledgeRecords(ids);
+      if (!ok || ok.ok === false) return;
+      await disableKnowledgeRecords(ids, { reason: ok.value });
     });
     document.getElementById('knowledgeDeleteSelectedBtn')?.addEventListener('click', async () => {
       const ids = [...selectedKnowledgeIds];
@@ -15965,10 +16051,10 @@
       if (!kid) return;
       const ok = await confirmAction(
         `Desactivar o facto ${kid}? Deixa de ser usado no jogo.`,
-        { okLabel: 'Desactivar', danger: true },
+        { okLabel: 'Desactivar', danger: true, prompt: true, promptRequired: true, promptLabel: 'Justificação', promptPlaceholder: 'Ex.: não é um facto; duplicado; inadequado para crianças…' },
       );
-      if (!ok) return;
-      await disableKnowledgeRecords([kid]);
+      if (!ok || ok.ok === false) return;
+      await disableKnowledgeRecords([kid], { reason: ok.value });
     });
     document.querySelector('.bank-matrix thead')?.addEventListener('click', (e) => {
       const th = e.target.closest('th[data-bank-sort]');
@@ -16489,8 +16575,11 @@
         if (!report || !confirm('Marcar como resolvido?')) return;
         const kid = String(report.knowledgeId || '').trim();
         await changeReportStatus([reportId], 'resolved');
-        if (kid && confirm(`Desactivar o facto ${kid} no repositório?`)) {
-          await disableKnowledgeRecords([kid], { statusEl: listStatus });
+        if (kid) {
+          const reason = await askDisableKnowledgeReason({
+            preset: `Desactivado a partir do reporte ${reportId}`,
+          });
+          if (reason) await disableKnowledgeRecords([kid], { statusEl: listStatus, reason });
         }
         return;
       }
@@ -16584,10 +16673,18 @@
         if (!kid) return;
         const ok = await confirmAction(
           `Desactivar o facto ${kid} no repositório? Deixa de ser usado no jogo.`,
-          { okLabel: 'Desactivar', danger: true },
+          {
+            okLabel: 'Desactivar',
+            danger: true,
+            prompt: true,
+            promptRequired: true,
+            promptLabel: 'Justificação',
+            promptPlaceholder: 'Ex.: não é um facto; pergunta reportada…',
+            promptValue: report?.reportId ? `Desactivado a partir do reporte ${report.reportId}` : '',
+          },
         );
-        if (!ok) return;
-        const data = await disableKnowledgeRecords([kid], { statusEl: listStatus });
+        if (!ok || ok.ok === false) return;
+        const data = await disableKnowledgeRecords([kid], { statusEl: listStatus, reason: ok.value });
         if (data && (data.disabled || 0) > 0 && report?.reportId) {
           await resolveOpenReportAfterAction(report.reportId, {
             action: 'disable_knowledge',

@@ -3,6 +3,9 @@
 /**
  * Catálogo SPARQL por categoria do jogo.
  * Cada query obtém um conjunto de Q-ids; o detalhe confirma-se depois via REST v1.
+ *
+ * Não usar P2109: é «nominal power output» (MW/kW de barragens, reactores, turbinas),
+ * não número de corações. A Wikidata não tem propriedade de «nº de corações».
  */
 
 const CATEGORY_QUERIES = {
@@ -32,19 +35,6 @@ LIMIT 40`,
   SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
 }
 LIMIT 20`,
-    },
-    {
-      id: 'hearts',
-      categoryN: 20,
-      api: 'sparql',
-      label: 'Animais com 2 ou mais corações',
-      rest: { fields: ['labels', 'descriptions', 'statements'], confirmProperties: ['P2109'] },
-      sparql: `SELECT ?item ?itemLabel ?hearts WHERE {
-  ?item wdt:P2109 ?hearts.
-  FILTER(?hearts >= 2 && ?hearts <= 12)
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
-}
-LIMIT 25`,
     },
   ],
   2: [

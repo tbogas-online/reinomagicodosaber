@@ -114,6 +114,22 @@ function buildJaccardClusters(records, textField = 'fact') {
   return clusters;
 }
 
+const DEDUPE_REASON_LABELS = {
+  exact_fact: 'mesmo texto',
+  similar_fact: 'texto parecido',
+  exact_answer: 'mesma resposta',
+  similar_answer: 'resposta parecida',
+  exact_answer_fact: 'mesma resposta e mesmo texto',
+  similar_answer_fact: 'mesma resposta e texto parecido',
+};
+
+function formatDisabledReason(entry) {
+  const code = String(entry?.reason || '').trim();
+  const why = DEDUPE_REASON_LABELS[code] || code || 'duplicado';
+  const keeper = String(entry?.keeper || '').trim();
+  return keeper ? `Duplicado (${why}) — mantido ${keeper}` : `Duplicado (${why})`;
+}
+
 function planFromGroups(groups, reason) {
   const toDisable = [];
   for (const items of groups) {
@@ -203,5 +219,7 @@ function buildDedupePlan(records, { adivinhas = false, curiosidades = true } = {
 
 module.exports = {
   JACCARD_THRESHOLD,
+  DEDUPE_REASON_LABELS,
+  formatDisabledReason,
   buildDedupePlan,
 };

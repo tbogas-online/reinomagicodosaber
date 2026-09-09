@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
-const { buildDedupePlan, filterNewRecords, jaccard } = require('./lib/knowledge-dedupe');
+const { buildDedupePlan, filterNewRecords, formatDisabledReason, jaccard } = require('./lib/knowledge-dedupe');
 
 let passed = 0;
 let failed = 0;
@@ -29,6 +29,14 @@ const curiosidades = [
 const curPlan = buildDedupePlan(curiosidades, { curiosidades: true, adivinhas: false });
 assert('curiosidade exact_fact desactiva daily', curPlan.toDisable.some((e) => e.knowledge_id === 'knw-cat20-cur-daily-001'));
 assert('curiosidade mantém b50', !curPlan.toDisable.some((e) => e.knowledge_id === 'knw-cat20-cur-b50-001'));
+{
+  const daily = curPlan.toDisable.find((e) => e.knowledge_id === 'knw-cat20-cur-daily-001');
+  assert(
+    'justificação de duplicado inclui keeper',
+    formatDisabledReason(daily) === 'Duplicado (mesmo texto) — mantido knw-cat20-cur-b50-001',
+    formatDisabledReason(daily),
+  );
+}
 
 const adivinhas = [
   { knowledge_id: 'knw-cat20-mm-001', topic: 'adivinha tradicional', fact: 'Tenho dentes mas não mordo.', answer: 'Pente', source: 'MemóriaMedia', is_active: true, priority_pt: 98 },

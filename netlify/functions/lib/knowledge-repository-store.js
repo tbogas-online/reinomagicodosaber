@@ -1,5 +1,5 @@
 const { getSupabaseAdmin } = require('./rooms-store');
-const { buildDedupePlan } = require('./knowledge-dedupe');
+const { buildDedupePlan, formatDisabledReason } = require('./knowledge-dedupe');
 const { lisbonCreatedFromIso, lisbonCreatedToExclusiveIso } = require('../../../scripts/lib/lisbon-time');
 
 const KNOWLEDGE_SELECT = [
@@ -13,6 +13,7 @@ const KNOWLEDGE_SELECT = [
   'source_id',
   'confidence',
   'is_active',
+  'disabled_reason',
   'age_bands',
   'allowed_formats',
   'usage_count',
@@ -158,26 +159,35 @@ async function searchKnowledgeRecords(options = {}) {
   };
 }
 
-async function disableKnowledgeRecord(knowledgeId) {
+function clipDisabledReason(reason) {
+  return String(reason || '').trim().slice(0, 400);
+}
+
+async function disableKnowledgeRecord(knowledgeId, reason) {
   const kid = String(knowledgeId || '').trim();
   if (!kid) return { ok: false, disabled: 0 };
 
-  const data = await supabaseRpc('disable_knowledge_record', { p_knowledge_id: kid });
+  const data = await supabaseRpc('disable_knowledge_record', {
+    p_knowledge_id: kid,
+    p_reason: clipDisabledReason(reason) || null,
+  });
   return {
     ok: !!data?.ok,
     disabled: data?.ok ? 1 : 0,
     knowledgeId: kid,
+    reason: clipDisabledReason(reason),
   };
 }
 
-async function disableKnowledgeRecords(knowledgeIds) {
+async function disableKnowledgeRecords(knowledgeIds, { reason } = {}) {
   const unique = [...new Set((knowledgeIds || []).map((id) => String(id || '').trim()).filter(Boolean))];
   let disabled = 0;
   const failed = [];
+  const clipped = clipDisabledReason(reason);
 
   for (const knowledgeId of unique) {
     try {
-      const result = await disableKnowledgeRecord(knowledgeId);
+      const result = await disableKnowledgeRecord(knowledgeId, clipped);
       if (result.ok) disabled += 1;
       else failed.push(knowledgeId);
     } catch {
@@ -185,7 +195,7 @@ async function disableKnowledgeRecords(knowledgeIds) {
     }
   }
 
-  return { ok: true, disabled, failed, knowledgeIds: unique };
+  return { ok: true, disabled, failed, knowledgeIds: unique, reason: clipped };
 }
 
 async function deleteKnowledgeRecords(knowledgeIds) {
@@ -262,15 +272,26 @@ async function applyKnowledgeDedupe(options = {}) {
     };
   }
 
-  const result = await disableKnowledgeRecords(ids);
+  let disabled = 0;
+  const failed = [];
+  for (const entry of audit.toDisable) {
+    try {
+      const result = await disableKnowledgeRecord(entry.knowledge_id, formatDisabledReason(entry));
+      if (result.ok) disabled += 1;
+      else failed.push(entry.knowledge_id);
+    } catch {
+      failed.push(entry.knowledge_id);
+    }
+  }
+
   return {
     ok: true,
     applied: true,
-    message: `Desactivados ${result.disabled} duplicado(s).`,
+    message: `Desactivados ${disabled} duplicado(s).`,
     analyzed: audit.analyzed,
     stats: audit.stats,
-    disabled: result.disabled,
-    failed: result.failed,
+    disabled,
+    failed,
     toDisable: audit.toDisable,
   };
 }

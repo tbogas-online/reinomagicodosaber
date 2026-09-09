@@ -111,28 +111,6 @@ function transformIchBindings(bindings) {
   return records;
 }
 
-function transformHeartsBindings(bindings) {
-  const records = [];
-  for (const binding of bindings || []) {
-    const qid = qidFromUri(bindValue(binding, 'item'));
-    const label = bindValue(binding, 'itemLabel');
-    const hearts = Number(bindValue(binding, 'hearts'));
-    if (!qid || !isUsableLabel(label) || !Number.isFinite(hearts) || hearts < 2) continue;
-    const noun = hearts === 1 ? 'coração' : 'corações';
-    records.push(toRecord({
-      qid,
-      fact: `${label} tem ${hearts} ${noun}.`,
-      isTrue: true,
-      subtopic: 'animais',
-      tags: ['wikidata', 'animais', 'ciência'],
-      priorityPt: 66,
-      confidence: 0.92,
-      suffix: 'hearts-t',
-    }));
-  }
-  return records;
-}
-
 function dedupeByKnowledgeId(records) {
   const seen = new Set();
   const out = [];
@@ -145,15 +123,13 @@ function dedupeByKnowledgeId(records) {
 }
 
 async function collectWikidataRecords({ fetchFn, timeoutMs } = {}) {
-  const [unesco, ich, hearts] = await Promise.all([
+  const [unesco, ich] = await Promise.all([
     fetchSparql(QUERIES.unescoPt, { fetchFn, timeoutMs }),
     fetchSparql(QUERIES.ichPt, { fetchFn, timeoutMs }),
-    fetchSparql(QUERIES.hearts, { fetchFn, timeoutMs }),
   ]);
   return dedupeByKnowledgeId([
     ...transformHeritageBindings(unesco),
     ...transformIchBindings(ich),
-    ...transformHeartsBindings(hearts),
   ]);
 }
 
@@ -163,7 +139,7 @@ function listWikidataImportSources() {
       id: 'wikidata',
       kind: 'wikidata',
       batch: 'pt',
-      label: 'Wikidata — património UNESCO PT e factos estruturados',
+      label: 'Wikidata — património UNESCO e cultural imaterial PT',
       source: SOURCE,
     },
   ];
@@ -178,7 +154,6 @@ module.exports = {
   toRecord,
   transformHeritageBindings,
   transformIchBindings,
-  transformHeartsBindings,
   parseSparqlBindings,
   fetchSparql,
   collectWikidataRecords,

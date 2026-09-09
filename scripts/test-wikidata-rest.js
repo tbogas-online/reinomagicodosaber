@@ -60,7 +60,8 @@ assert(
 const attached = attachRestMetadata({ knowledge_id: 'x', fact: 'y', metadata: { qid: 'Q45' } }, restItem);
 assert('metadata REST no facto', attached.metadata.restLabel === 'Portugal' && attached.metadata.restDescription.includes('Europa'));
 
-assert('cat. 20 tem 3 queries SPARQL', getCategoryQueries(20).length === 3 && getCategoryQueries(20).every((q) => q.api === 'sparql'));
+assert('cat. 20 tem 2 queries SPARQL', getCategoryQueries(20).length === 2 && getCategoryQueries(20).every((q) => q.api === 'sparql'));
+assert('cat. 20 não usa P2109', getCategoryQueries(20).every((q) => !String(q.sparql || '').includes('P2109')));
 assert('cat. 2 tem capitais', getQueryById('countryCapitals')?.categoryN === 2);
 assert('catálogo inclui UNESCO e capitais', listWikidataQueryCatalog().some((q) => q.id === 'unescoPt') && listWikidataQueryCatalog().some((q) => q.id === 'countryCapitals'));
 assert('cat. sem queries = vazio', getCategoryQueries(99).length === 0);

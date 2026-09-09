@@ -8,7 +8,6 @@ const {
   isUsableLabel,
   transformHeritageBindings,
   transformIchBindings,
-  transformHeartsBindings,
   collectWikidataRecords,
 } = require('./lib/wikidata-curiosidades');
 const { importWikidataCuriosidades } = require('./lib/wikidata-curiosidades-import');
@@ -50,11 +49,6 @@ function mockSparqlFetch(url) {
     ];
   } else if (query.includes('P3259')) {
     bindings = [binding('Q184266', 'Fado')];
-  } else if (query.includes('P2109')) {
-    bindings = [
-      { ...binding('Q37140', 'polvo'), hearts: { value: '3' } },
-      { ...binding('Q3', 'x'), hearts: { value: '1' } },
-    ];
   }
   return Promise.resolve({
     ok: true,
@@ -84,11 +78,6 @@ const ich = transformIchBindings([binding('Q184266', 'Fado')]);
 assert('ICH um facto verdadeiro', ich.length === 1 && ich[0].is_true === true && /Imaterial/.test(ich[0].fact));
 assert('ICH válido', validateRecord(ich[0]).length === 0, validateRecord(ich[0]).join(','));
 
-const hearts = transformHeartsBindings([{ ...binding('Q37140', 'polvo'), hearts: { value: '3' } }]);
-assert('corações 3', hearts[0]?.fact === 'polvo tem 3 corações.');
-assert('corações válido', validateRecord(hearts[0]).length === 0, validateRecord(hearts[0]).join(','));
-assert('corações inclui 6-9', Array.isArray(hearts[0].age_bands) && hearts[0].age_bands.includes('6-9'));
-
 {
   const vf = buildCuriosityQuestion(unesco[0], 'VERDADEIRO_FALSO');
   const issues = validateCuriosityQuestion(unesco[0], vf);
@@ -112,8 +101,8 @@ assert('corações inclui 6-9', Array.isArray(hearts[0].age_bands) && hearts[0].
 }
 
 collectWikidataRecords({ fetchFn: mockSparqlFetch }).then(async (records) => {
-  assert('SPARQL mock obtém 4 factos', records.length === 4, `len=${records.length}`);
-  assert('ids únicos', new Set(records.map((r) => r.knowledge_id)).size === 4);
+  assert('SPARQL mock obtém 3 factos', records.length === 3, `len=${records.length}`);
+  assert('ids únicos', new Set(records.map((r) => r.knowledge_id)).size === 3);
   assert(
     'source+source_id únicos no lote',
     new Set(records.map((r) => `${r.source}|${r.source_id}`)).size === records.length,
@@ -121,7 +110,7 @@ collectWikidataRecords({ fetchFn: mockSparqlFetch }).then(async (records) => {
   assert('todos válidos', records.every((r) => validateRecord(r).length === 0));
 
   const bank = buildCuriosityBankItems(records);
-  assert('perguntas por faixa etária', bank.items.length === 9, `len=${bank.items.length}`);
+  assert('perguntas por faixa etária', bank.items.length === 6, `len=${bank.items.length}`);
   assert('nenhuma pergunta inválida', bank.skipped.length === 0, JSON.stringify(bank.skipped));
   assert('todas com knowledge_id', bank.items.every((row) => row.knowledge_id && row.format === 'VERDADEIRO_FALSO'));
 
@@ -130,8 +119,8 @@ collectWikidataRecords({ fetchFn: mockSparqlFetch }).then(async (records) => {
     { dryRun: true, fetchFn: mockSparqlFetch, existingRecords: [] },
   );
   assert('dry-run ok', dry.ok === true && dry.dryRun === true);
-  assert('dry-run 4 novos', dry.newCount === 4 && dry.imported === 0);
-  assert('dry-run prepara perguntas', dry.questionsPrepared === 9);
+  assert('dry-run 3 novos', dry.newCount === 3 && dry.imported === 0);
+  assert('dry-run prepara perguntas', dry.questionsPrepared === 6);
   assert('endpoint SPARQL', SPARQL_ENDPOINT === 'https://query.wikidata.org/sparql');
 
   const dup = await importWikidataCuriosidades(
@@ -142,13 +131,13 @@ collectWikidataRecords({ fetchFn: mockSparqlFetch }).then(async (records) => {
       existingRecords: [{
         knowledge_id: 'knw-cat20-cur-b50-999',
         topic: 'curiosidade surpreendente',
-        fact: 'polvo tem 3 corações.',
+        fact: 'Mosteiro dos Jerónimos faz parte do Património Mundial da UNESCO.',
         answer: 'Verdadeiro',
         is_active: true,
       }],
     },
   );
-  assert('dedupe polvo já no lote manual', dup.skipped >= 1 && dup.newCount === 3, `new=${dup.newCount} skipped=${dup.skipped}`);
+  assert('dedupe UNESCO já no lote manual', dup.skipped >= 1 && dup.newCount === 2, `new=${dup.newCount} skipped=${dup.skipped}`);
 
   console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
   process.exit(failed > 0 ? 1 : 0);

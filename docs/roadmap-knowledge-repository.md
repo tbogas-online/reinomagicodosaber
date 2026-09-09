@@ -275,7 +275,7 @@ Cada pergunta gerada (depois da IA + validação):
 - [x] Lote A: 50 curiosidades (`--batch-50`) + lote B (`--batch-50-b`) + lote C (`--batch-50-c`, 48) com filtro anti-duplicado no import
 - [x] Meta: **≥ 150 curiosidades** MVP *(importar lote C após dedupe)*
 - [x] Admin: importar lotes A/B/C a partir do painel Repositório (`action: import-source`)
-- [x] Wikidata SPARQL (UNESCO PT, património imaterial PT, animais com ≥2 corações) → factos validados no repositório; template V/F + `question_bank` no CLI (`import:wikidata`); no jogo, template/IA formula e grava no banco
+- [x] Wikidata SPARQL (UNESCO PT, património imaterial PT) → factos validados no repositório; template V/F + `question_bank` no CLI (`import:wikidata`); no jogo, template/IA formula e grava no banco. Não usar P2109 (potência nominal) como «nº de corações».
 
 ### KR-2.2 Alternância 50/50
 
