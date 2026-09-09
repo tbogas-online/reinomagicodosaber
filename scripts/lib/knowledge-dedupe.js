@@ -249,6 +249,14 @@ function isDuplicateOfExisting(record, existingRecords, { topic } = {}) {
     }
   }
 
+  const fact = normalizeText(rec.fact);
+  if (fact) {
+    for (const row of peers) {
+      if (normalizeText(row.fact) === fact) {
+        return { duplicate: true, reason: 'exact_fact', of: row.knowledge_id };
+      }
+    }
+  }
   return { duplicate: false };
 }
 

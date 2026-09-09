@@ -122,15 +122,19 @@ function dedupeByKnowledgeId(records) {
   return out;
 }
 
-async function collectWikidataRecords({ fetchFn, timeoutMs } = {}) {
-  const [unesco, ich] = await Promise.all([
-    fetchSparql(QUERIES.unescoPt, { fetchFn, timeoutMs }),
-    fetchSparql(QUERIES.ichPt, { fetchFn, timeoutMs }),
-  ]);
-  return dedupeByKnowledgeId([
-    ...transformHeritageBindings(unesco),
-    ...transformIchBindings(ich),
-  ]);
+async function collectWikidataRecords({ fetchFn, timeoutMs, queryIds } = {}) {
+  const ids = Array.isArray(queryIds) && queryIds.length ? queryIds : ['unescoPt', 'ichPt'];
+  const tasks = ids.map((id) => {
+    if (id === 'unescoPt' && QUERIES.unescoPt) {
+      return fetchSparql(QUERIES.unescoPt, { fetchFn, timeoutMs }).then((rows) => transformHeritageBindings(rows));
+    }
+    if (id === 'ichPt' && QUERIES.ichPt) {
+      return fetchSparql(QUERIES.ichPt, { fetchFn, timeoutMs }).then((rows) => transformIchBindings(rows));
+    }
+    return Promise.resolve([]);
+  });
+  const parts = await Promise.all(tasks);
+  return dedupeByKnowledgeId(parts.flat());
 }
 
 function listWikidataImportSources() {
@@ -139,7 +143,7 @@ function listWikidataImportSources() {
       id: 'wikidata',
       kind: 'wikidata',
       batch: 'pt',
-      label: 'Wikidata — património UNESCO e cultural imaterial PT',
+      label: 'Wikidata — categoria e palavras',
       source: SOURCE,
     },
   ];

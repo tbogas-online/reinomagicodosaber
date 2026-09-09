@@ -101,5 +101,11 @@ const unescoVf = filterNewRecords([
 ], []);
 assert('UNESCO V e F do mesmo Q-id são factos distintos', unescoVf.accepted.length === 2);
 
+const geoDup = filterNewRecords(
+  [{ knowledge_id: 'b', topic: 'geografia', fact: 'A capital de Portugal é Lisboa.', answer: 'Lisboa', source: 'Wikidata', is_active: true }],
+  [{ knowledge_id: 'a', topic: 'geografia', fact: 'A capital de Portugal é Lisboa.', answer: 'Lisboa', source: 'Wikidata', is_active: true }],
+);
+assert('geografia exact_fact desduplica', geoDup.accepted.length === 0 && geoDup.skipped.length === 1);
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

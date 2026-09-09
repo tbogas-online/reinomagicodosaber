@@ -2,8 +2,10 @@
 
 const { normalizeRecord, validateRecord, importBatch } = require('./knowledge-import-core');
 const { filterNewRecords } = require('./knowledge-dedupe');
-const { fetchExistingCuriosidades } = require('./curiosidades-batch-import');
+const { fetchExistingCuriosidades, fetchExistingKnowledge } = require('./curiosidades-batch-import');
 const { collectWikidataRecords, listWikidataImportSources } = require('./wikidata-curiosidades');
+const { collectGeografiaRecords } = require('./wikidata-geografia');
+const { collectKeywordRecords, sanitizeWords } = require('./wikidata-keyword-search');
 const { buildCuriosityBankItems } = require('./curiosidade-question-from-fact');
 const { importQuestionBatch } = require('../../netlify/functions/lib/bank-from-knowledge');
 const { enrichRecordsWithRest } = require('./wikidata-rest');
@@ -42,29 +44,15 @@ async function materializeCuriosityQuestions(cfg, records) {
   };
 }
 
-async function importWikidataCuriosidades(cfg, {
+async function persistWikidataRecords(cfg, raw, {
   dryRun = false,
   fetchFn,
   existingRecords,
   materializeQuestions = true,
   enrichWithRest = false,
+  labels = 'Wikidata',
 } = {}) {
-  if (!cfg?.url || !cfg?.key) {
-    const err = new Error('Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).');
-    err.code = 'NOT_CONFIGURED';
-    throw err;
-  }
-
-  let raw;
-  try {
-    raw = await collectWikidataRecords({ fetchFn });
-  } catch (err) {
-    const wrapped = new Error(`Wikidata indisponível: ${err.message || err}`);
-    wrapped.code = 'WIKIDATA_FETCH';
-    throw wrapped;
-  }
-
-  const records = raw.map((row) => normalizeRecord(row));
+  const records = (raw || []).map((row) => normalizeRecord(row));
   const invalid = records
     .map((record) => ({ knowledgeId: record.knowledge_id, missing: validateRecord(record) }))
     .filter((row) => row.missing.length);
@@ -75,18 +63,22 @@ async function importWikidataCuriosidades(cfg, {
     throw err;
   }
 
+  const categoryN = records[0]?.category_n || 20;
   const existing = existingRecords !== undefined
     ? existingRecords
-    : await fetchExistingCuriosidades(cfg);
+    : (categoryN === 20
+      ? await fetchExistingCuriosidades(cfg)
+      : await fetchExistingKnowledge(cfg, { categoryN }));
   const { accepted, skipped } = filterNewRecords(records, existing);
-  const plannedQuestions = buildCuriosityBankItems(accepted, { source: 'wikidata-template' });
+  const curiosityRecords = accepted.filter((row) => Number(row.category_n) === 20);
+  const plannedQuestions = buildCuriosityBankItems(curiosityRecords, { source: 'wikidata-template' });
 
   const summary = {
     ok: true,
     action: 'import-source',
     source: 'wikidata',
     batch: 'pt',
-    labels: 'Wikidata',
+    labels,
     dryRun: !!dryRun,
     total: records.length,
     newCount: accepted.length,
@@ -111,7 +103,7 @@ async function importWikidataCuriosidades(cfg, {
   };
 
   if (!records.length) {
-    summary.message = 'Wikidata não devolveu factos utilizáveis (rótulos PT). Tenta mais tarde.';
+    summary.message = 'Wikidata não devolveu factos utilizáveis (rótulos PT). Tenta outras palavras.';
     return summary;
   }
 
@@ -119,7 +111,7 @@ async function importWikidataCuriosidades(cfg, {
     if (materializeQuestions) {
       summary.message = `Simulação (Wikidata): ${accepted.length} facto(s) novo(s), ${skipped.length} já no repositório, ${plannedQuestions.items.length} pergunta(s) de template.`;
     } else {
-      summary.message = `Simulação (Wikidata): ${accepted.length} facto(s) novo(s), ${skipped.length} já no repositório. As perguntas V/F geram-se no jogo (template/IA) ou com npm run import:wikidata.`;
+      summary.message = `Simulação (Wikidata): ${accepted.length} facto(s) novo(s), ${skipped.length} já no repositório. As perguntas geram-se no jogo (template/IA).`;
     }
     return summary;
   }
@@ -139,13 +131,13 @@ async function importWikidataCuriosidades(cfg, {
   summary.imported = toImport.length;
   summary.result = result;
 
-  if (!materializeQuestions) {
+  if (!materializeQuestions || !curiosityRecords.length) {
     summary.message = `Importados ${accepted.length} facto(s) Wikidata (${skipped.length} ignorado(s) por duplicado). No jogo, o template ou a IA formula a pergunta e grava no banco.`;
     return summary;
   }
 
   try {
-    const questions = await materializeCuriosityQuestions(cfg, toImport);
+    const questions = await materializeCuriosityQuestions(cfg, curiosityRecords);
     summary.questionsInserted = questions.inserted;
     summary.questionsExists = questions.exists;
     summary.questionsBankSkipped = questions.batchSkipped;
@@ -158,8 +150,92 @@ async function importWikidataCuriosidades(cfg, {
   return summary;
 }
 
+async function importWikidataCuriosidades(cfg, {
+  dryRun = false,
+  fetchFn,
+  existingRecords,
+  materializeQuestions = true,
+  enrichWithRest = false,
+} = {}) {
+  if (!cfg?.url || !cfg?.key) {
+    const err = new Error('Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).');
+    err.code = 'NOT_CONFIGURED';
+    throw err;
+  }
+
+  let raw;
+  try {
+    raw = await collectWikidataRecords({ fetchFn });
+  } catch (err) {
+    const wrapped = new Error(`Wikidata indisponível: ${err.message || err}`);
+    wrapped.code = 'WIKIDATA_FETCH';
+    throw wrapped;
+  }
+
+  return persistWikidataRecords(cfg, raw, {
+    dryRun,
+    fetchFn,
+    existingRecords,
+    materializeQuestions,
+    enrichWithRest,
+    labels: 'Wikidata UNESCO PT',
+  });
+}
+
+async function importWikidataFromOptions(cfg, {
+  dryRun = false,
+  fetchFn,
+  categoryN,
+  words,
+  preset,
+  materializeQuestions = false,
+  enrichWithRest = false,
+} = {}) {
+  if (!cfg?.url || !cfg?.key) {
+    const err = new Error('Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).');
+    err.code = 'NOT_CONFIGURED';
+    throw err;
+  }
+
+  const presetId = String(preset || '').trim();
+  const cleanWords = sanitizeWords(words);
+  let raw;
+  let labels = 'Wikidata';
+
+  try {
+    if (presetId === 'countryCapitals') {
+      labels = 'Wikidata — capitais';
+      raw = await collectGeografiaRecords({ fetchFn });
+    } else if (presetId === 'unescoPt' || presetId === 'ichPt') {
+      labels = presetId === 'ichPt' ? 'Wikidata — património imaterial PT' : 'Wikidata — UNESCO PT';
+      raw = await collectWikidataRecords({ fetchFn, queryIds: [presetId] });
+    } else if (presetId === 'unesco') {
+      labels = 'Wikidata — UNESCO e imaterial PT';
+      raw = await collectWikidataRecords({ fetchFn });
+    } else {
+      const n = Number(categoryN) || 20;
+      labels = `Wikidata — cat. ${n} (${cleanWords.join(', ')})`;
+      raw = await collectKeywordRecords({ categoryN: n, words: cleanWords, fetchFn });
+    }
+  } catch (err) {
+    if (err.code === 'INVALID_WORDS' || err.code === 'INVALID_CATEGORY') throw err;
+    const wrapped = new Error(`Wikidata indisponível: ${err.message || err}`);
+    wrapped.code = 'WIKIDATA_FETCH';
+    throw wrapped;
+  }
+
+  return persistWikidataRecords(cfg, raw, {
+    dryRun,
+    fetchFn,
+    materializeQuestions,
+    enrichWithRest,
+    labels,
+  });
+}
+
 module.exports = {
   importWikidataCuriosidades,
+  importWikidataFromOptions,
   listWikidataImportSources,
   materializeCuriosityQuestions,
 };

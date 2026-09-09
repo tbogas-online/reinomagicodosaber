@@ -58,13 +58,20 @@ function buildRecords(batch) {
   return records;
 }
 
-async function fetchExistingCuriosidades(cfg) {
+async function fetchExistingKnowledge(cfg, { categoryN, topic } = {}) {
   const pageSize = 1000;
   let offset = 0;
   const all = [];
+  const cat = Number(categoryN);
   while (true) {
+    const params = new URLSearchParams();
+    params.set('select', 'knowledge_id,topic,fact,answer,source,source_id,is_active');
+    params.set('is_active', 'eq.true');
+    params.set('order', 'knowledge_id.asc');
+    if (cat >= 1 && cat <= 20) params.set('category_n', `eq.${cat}`);
+    if (topic) params.set('topic', `eq.${topic}`);
     const response = await fetch(
-      `${cfg.url.replace(/\/$/, '')}/rest/v1/knowledge_records?select=knowledge_id,topic,fact,answer,is_active&category_n=eq.20&topic=eq.curiosidade+surpreendente&is_active=eq.true`,
+      `${cfg.url.replace(/\/$/, '')}/rest/v1/knowledge_records?${params.toString()}`,
       {
         headers: {
           apikey: cfg.key,
@@ -80,6 +87,10 @@ async function fetchExistingCuriosidades(cfg) {
     offset += pageSize;
   }
   return all;
+}
+
+async function fetchExistingCuriosidades(cfg) {
+  return fetchExistingKnowledge(cfg, { categoryN: 20, topic: 'curiosidade surpreendente' });
 }
 
 async function importCuriosidadesBatches(cfg, { batch = 'all', dryRun = false } = {}) {
@@ -146,6 +157,7 @@ module.exports = {
   resolveBatchIds,
   listImportSources,
   buildRecords,
+  fetchExistingKnowledge,
   fetchExistingCuriosidades,
   importCuriosidadesBatches,
 };

@@ -82,13 +82,17 @@ exports.handler = async (event) => {
             source: body.source || 'curiosidades-batch',
             batch: body.batch || 'all',
             dryRun: !!body.dryRun,
+            categoryN: body.categoryN,
+            words: body.words,
+            preset: body.preset,
           });
           return json(200, result);
         } catch (err) {
           console.error('[knowledge-import-admin] import-source failed:', err);
           if (err.code === 'NOT_CONFIGURED') return json(503, { error: err.message });
           if (err.code === 'WIKIDATA_FETCH') return json(503, { error: err.message });
-          if (err.code === 'INVALID_BATCH' || err.code === 'INVALID_SOURCE' || err.code === 'INVALID_RECORD') {
+          if (err.code === 'INVALID_BATCH' || err.code === 'INVALID_SOURCE' || err.code === 'INVALID_RECORD'
+            || err.code === 'INVALID_WORDS' || err.code === 'INVALID_CATEGORY') {
             return json(400, { error: err.message, details: err.details || null });
           }
           return json(500, { error: err.message || 'Falha na importação da fonte.' });
