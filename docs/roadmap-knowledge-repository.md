@@ -270,12 +270,13 @@ Cada pergunta gerada (depois da IA + validação):
 ### KR-2.3 Validação reforçada
 
 - [x] `validateQuestion` + `repositoryRecord` — resposta tem de coincidir com `isTrue` / `answer`
-- [ ] Opcional: factual-verify só como **último recurso** para curiosidades Wikidata
+- [x] Opcional: Wikidata só como **último recurso** para curiosidades com fonte Wikidata (`wikidata-verify.js`; falha de rede não bloqueia)
 
 ### KR-2.4 Jogo (só curiosidades)
 
-- [x] Em `category.n === 20` + formato `CURIOSIDADE`: **só** `pickRecord` do repositório
-- [x] Fallback: banco local — **não** LLM livre
+- [x] Em `category.n === 20` + formato `CURIOSIDADE`: `pickRecord` do repositório (IA formula se online; template se offline)
+- [x] Fallback: banco de curiosidades; **LLM livre só no limite** (sem stock de repo/banco)
+- [x] Adivinhas (mesmo cat. 20): **banco primeiro**; repositório só se o banco estiver vazio; **nunca** LLM livre
 
 ---
 
@@ -285,7 +286,7 @@ Cada pergunta gerada (depois da IA + validação):
 
 ```
 1. pickRecord(category, ageBand, format, history)
-2. if (!record) → fallback banco / mensagem «sem stock» (NÃO LLM livre em cat. 20)
+2. if (!record) → fallback banco; curiosidades: LLM livre só no limite; adivinhas: sem stock (nunca LLM livre)
 3. prompt = buildPromptFromFact(record, …)
 4. parsed = await callAI(prompt)
 5. assertAnswerMatchesRecord(parsed, record)
@@ -392,7 +393,5 @@ Para cada categoria **1–19**, repetir mini-roadmap:
 
 ## Próximo passo imediato
 
-1. **KR-2.3** — verificação factual opcional (Wikidata) para curiosidades
-2. **KR-7+** — expandir para Geografia (cat. 2) ou outra categoria com fontes definidas
-3. Validar em produção após deploy: painel Repositório → **Cat. 20 sem IA (≥95%)**
+1. **KR-7+** — expandir para Geografia (cat. 2) ou outra categoria com fontes definidas
 

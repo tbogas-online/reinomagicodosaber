@@ -11,6 +11,7 @@
   const Telemetry = global.QuestionEngineTelemetry;
   const KnownFacts = global.QuestionEngineKnownFacts;
   const FactualVerify = global.QuestionEngineFactualVerify;
+  const WikidataVerify = global.QuestionEngineWikidataVerify;
   const AdivinhaVerify = global.QuestionEngineAdivinhaVerify;
   const ContentSafety = global.QuestionEngineContentSafety;
   const AdivinhaDistractors = global.QuestionEngineAdivinhaDistractors;
@@ -26,7 +27,7 @@
   const QuestionScoring = global.QuestionEngineQuestionScoring;
 
   if (!Issues || !KnowledgeKey || !KnowledgeKeyCompute || !Retry || !Telemetry || !KnownFacts
-    || !FactualVerify || !AdivinhaVerify || !AdivinhaDistractors || !ContentSafety || !DifficultyEstimate || !Config || !FormatValidators
+    || !FactualVerify || !WikidataVerify || !AdivinhaVerify || !AdivinhaDistractors || !ContentSafety || !DifficultyEstimate || !Config || !FormatValidators
     || !AgeValidators || !PersistentHistory || !ReportedContent || !PromptBuilder || !Archetypes || !McAssembly || !QuestionScoring) {
     throw new Error('QuestionEngine: carrega todos os módulos question-engine/*.js antes de question-engine.js');
   }
@@ -164,6 +165,10 @@
     shouldRequestFactualVerify: FactualVerify.shouldRequestFactualVerify,
     buildFactualVerifyPrompt: FactualVerify.buildFactualVerifyPrompt,
     parseFactualVerifyResponse: FactualVerify.parseFactualVerifyResponse,
+    shouldRequestWikidataVerify: WikidataVerify.shouldRequestWikidataVerify,
+    isWikidataSource: WikidataVerify.isWikidataSource,
+    evaluateWikidataSupport: WikidataVerify.evaluateWikidataSupport,
+    verifyCuriosityAgainstWikidata: WikidataVerify.verifyCuriosityAgainstWikidata,
     shouldRequestAdivinhaVerify: AdivinhaVerify.shouldRequestAdivinhaVerify,
     buildAdivinhaVerifyPrompt: AdivinhaVerify.buildAdivinhaVerifyPrompt,
     parseAdivinhaVerifyResponse: AdivinhaVerify.parseAdivinhaVerifyResponse,

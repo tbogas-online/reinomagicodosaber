@@ -13,6 +13,7 @@
     'question-engine/telemetry.js',
     'question-engine/known-facts.js',
     'question-engine/factual-verify.js',
+    'question-engine/wikidata-verify.js',
     'question-engine/adivinha-verify.js',
     'question-engine/adivinha-answer-pool.js',
     'question-engine/content-safety-data.js',

@@ -41,6 +41,7 @@
     ANSWER_AMBIGUOUS: 'Evita respostas ambíguas. Gera uma pergunta com apenas uma resposta inequívoca.',
     ANSWER_LEAKED: 'A resposta não pode aparecer nem ser deduzível directamente da pergunta.',
     FACT_AI_REJECT: 'Confirma o facto antes de responder — evita inventar ou confundir conceitos.',
+    WIKIDATA_CONTRADICTION: 'O facto Wikidata não confirma esta resposta — escolhe outro knowledgeId.',
     CATEGORY_MISMATCH: 'Mantém a pergunta estritamente dentro da categoria indicada.',
     MULTIPLE_ANSWERS: 'Evita respostas ambíguas. Gera uma pergunta com apenas uma resposta inequívoca.',
     ADIVINHA_ANIMAL_PHRASING: 'Em adivinhas de animais usa "Que animal…" em vez de "Quem é o animal".',

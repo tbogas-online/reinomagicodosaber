@@ -2281,5 +2281,43 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('254. evita repetir a última faixa', after69?.ageBand !== '6-9');
 }
 
-console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
-process.exit(failed > 0 ? 1 : 0);
+(async () => {
+  assert('255. Wikidata skip adivinha', !QE.shouldRequestWikidataVerify(
+    { source: 'Wikidata', sourceId: 'Q45', answer: 'Lisboa' },
+    { categoryNumber: 20, formatId: 'ADIVINHA' },
+  ));
+  assert('256. Wikidata pede curiosidade com Q-id', QE.shouldRequestWikidataVerify(
+    { source: 'Wikidata', sourceId: 'Q45', answer: 'Lisboa', category: 20 },
+    { categoryNumber: 20, formatId: 'CURIOSIDADE' },
+  ));
+  const lisbon = {
+    id: 'Q597',
+    labels: { pt: { value: 'Lisboa' }, en: { value: 'Lisbon' } },
+    aliases: { pt: [{ value: 'Lisboa cidade' }] },
+    descriptions: { pt: { value: 'capital de Portugal' } },
+  };
+  const madrid = {
+    id: 'Q2807',
+    labels: { pt: { value: 'Madrid' }, en: { value: 'Madrid' } },
+    descriptions: { es: { value: 'capital de España' } },
+  };
+  const ok = QE.evaluateWikidataSupport({ answer: 'Lisboa' }, lisbon);
+  const bad = QE.evaluateWikidataSupport({ answer: 'Lisboa' }, madrid);
+  assert('257. Wikidata confirma Lisboa', ok.ok === true && ok.matched === true);
+  assert('258. Wikidata rejeita Lisboa vs Madrid', bad.ok === false && /Lisboa/.test(bad.issues?.[0] || ''));
+
+  const skippedNet = await QE.verifyCuriosityAgainstWikidata(
+    { source: 'Wikidata', sourceId: 'Q45', answer: 'Lisboa', category: 20 },
+    {
+      categoryNumber: 20,
+      formatId: 'CURIOSIDADE',
+      fetch: async () => { throw new Error('offline'); },
+    },
+  );
+  assert('259. Wikidata rede falhou não bloqueia', skippedNet.ok === true && skippedNet.skipped === true);
+  console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
+  process.exit(failed > 0 ? 1 : 0);
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});
