@@ -1,0 +1,17 @@
+{
+  "name": "Reino Mágico do Saber",
+  "install": "npm ci && npx --yes netlify-cli --version",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev",
+      "description": "Netlify dev server (static site + Functions) at http://localhost:8888. AI generation needs a provider key; without one the game serves questions from its local bank."
+    }
+  ],
+  "ports": [
+    {
+      "name": "dev server",
+      "port": 8888
+    }
+  ]
+}
