@@ -152,7 +152,7 @@ function buildKeywordSearchQuery(word) {
   OPTIONAL { ?item wdt:P131 ?place. }
   OPTIONAL { ?item wdt:P106 ?occupation. }
   OPTIONAL { ?item wdt:P641 ?sport. }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "pt". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
 }
 LIMIT 24`;
 }
@@ -277,7 +277,19 @@ function pickFact(item, { categoryN } = {}) {
       subtopic: 'personagem',
     };
   }
-  return builders.class();
+  const classFact = builders.class();
+  if (classFact) return classFact;
+  if ((n === 5 || n === 20)
+    && (item.classes || []).some((entry) => entry.qid === 'Q16521')
+    && !sameLabel(label, 'táxon')) {
+    return {
+      fact: `${label} é uma espécie.`,
+      answer: 'espécie',
+      suffix: 'p31',
+      subtopic: 'identificação',
+    };
+  }
+  return null;
 }
 
 function topicForCategory(categoryN) {

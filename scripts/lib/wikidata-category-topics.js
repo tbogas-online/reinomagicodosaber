@@ -8,84 +8,84 @@
 const CATEGORY_TOPICS = {
   1: {
     topic: 'conhecimentos gerais',
-    suggestions: ['Portugal', 'Europa', 'ONU', 'Nobel', 'olimpíadas', 'cruz vermelha'],
+    suggestions: ['Portugal', 'Europa', 'ONU', 'Nobel', 'olimpíadas'],
   },
   2: {
     topic: 'geografia',
-    suggestions: ['Portugal', 'Lisboa', 'Tejo', 'Alpes', 'Amazonas', 'Sahara', 'Antárctida', 'Reno'],
+    suggestions: ['Portugal', 'Lisboa', 'Tejo', 'Alpes', 'Amazonas', 'Sahara', 'Antárctida'],
     presets: [{ id: 'countryCapitals', label: 'Capitais de países' }],
   },
   3: {
     topic: 'história',
-    suggestions: ['Viriato', 'D. Afonso Henriques', 'Descobrimentos', 'revolução de 25 de Abril', 'Roma antiga', 'Egipto'],
+    suggestions: ['Viriato', 'Roma', 'Egipto', 'Napoleão', 'Descobrimentos'],
   },
   4: {
     topic: 'ciência',
-    suggestions: ['gravidade', 'átomo', 'DNA', 'vacina', 'fotossíntese', 'Newton', 'Curie'],
+    suggestions: ['Newton', 'Curie', 'átomo', 'vacina', 'oxigénio'],
   },
   5: {
     topic: 'natureza',
-    suggestions: ['lince-ibérico', 'sobreiro', 'polvo', 'abelha', 'golfinho', 'carvalho', 'lobo'],
+    suggestions: ['polvo', 'lobo', 'abelha', 'sobreiro', 'golfinho', 'girafa', 'carvalho'],
   },
   6: {
     topic: 'espaço',
-    suggestions: ['Marte', 'Lua', 'Saturno', 'Via Láctea', 'cometa', 'ISS', 'Júpiter'],
+    suggestions: ['Marte', 'Lua', 'Saturno', 'Júpiter', 'cometa'],
   },
   7: {
     topic: 'matemática',
-    suggestions: ['zero', 'pi', 'Pitágoras', 'Fibonacci', 'primo', 'triângulo'],
+    suggestions: ['Pitágoras', 'pi', 'triângulo', 'zero', 'Fibonacci'],
   },
   8: {
     topic: 'literatura',
-    suggestions: ['Camões', 'Pessoa', 'Os Lusíadas', 'Shakespeare', 'Saramago', 'Eça de Queirós'],
+    suggestions: ['Camões', 'Pessoa', 'Shakespeare', 'Saramago'],
   },
   9: {
     topic: 'português',
-    suggestions: ['Camões', 'Pessoa', 'acordo ortográfico', 'provérbio', 'alfabeto'],
+    suggestions: ['Camões', 'Pessoa', 'alfabeto', 'provérbio'],
   },
   10: {
     topic: 'arte',
-    suggestions: ['Picasso', 'Van Gogh', 'Mona Lisa', 'Azulejo', 'Nuno Gonçalves', 'Amadeo'],
+    suggestions: ['Picasso', 'Van Gogh', 'Mona Lisa', 'azulejo'],
   },
   11: {
     topic: 'cinema',
-    suggestions: ['Manoel de Oliveira', 'Oscar', 'Cinema português', 'animação', 'documentário'],
+    suggestions: ['Oscar', 'animação', 'documentário', 'filme'],
   },
   12: {
     topic: 'música',
-    suggestions: ['fado', 'Amália', 'guitarra portuguesa', 'Mozart', 'Beatles', 'piano'],
+    suggestions: ['fado', 'Amália', 'Mozart', 'piano', 'Beatles'],
   },
   13: {
     topic: 'moda',
-    suggestions: ['lenço dos namorados', 'barrete', 'seda', 'algodão', 'traje'],
+    suggestions: ['seda', 'algodão', 'barrete', 'traje'],
   },
   14: {
     topic: 'gastronomia',
-    suggestions: ['pastel de nata', 'bacalhau', 'francesinha', 'azeite', 'queijo da Serra', 'vinho do Porto'],
+    suggestions: ['bacalhau', 'azeite', 'francesinha', 'nata'],
   },
   15: {
     topic: 'desporto',
-    suggestions: ['futebol', 'Eusébio', 'Jogos Olímpicos', 'ténis', 'natação', 'Tour de France'],
+    suggestions: ['futebol', 'Eusébio', 'natação', 'ténis', 'olimpíadas'],
   },
   16: {
     topic: 'jogos',
-    suggestions: ['xadrez', 'damas', 'sueca', 'monopoly', 'consola'],
+    suggestions: ['xadrez', 'damas', 'monopoly', 'sueca'],
   },
   17: {
     topic: 'tecnologia',
-    suggestions: ['internet', 'GPS', 'lâmpada', 'telefone', 'energia solar', 'robô'],
+    suggestions: ['internet', 'GPS', 'telefone', 'lâmpada', 'robô'],
   },
   18: {
     topic: 'culturas',
-    suggestions: ['fado', 'festa de São João', 'Carnaval', 'língua gestual', 'kimono', 'sari'],
+    suggestions: ['fado', 'Carnaval', 'kimono', 'sari'],
   },
   19: {
     topic: 'transportes',
-    suggestions: ['comboio', 'metro', 'avião', 'bicicleta', 'TGV', 'navio'],
+    suggestions: ['comboio', 'avião', 'bicicleta', 'navio', 'metro'],
   },
   20: {
     topic: 'curiosidade surpreendente',
-    suggestions: ['polvo', 'girafa', 'colibri', 'baleia-azul', 'fado', 'azulejo'],
+    suggestions: ['polvo', 'girafa', 'colibri', 'azulejo', 'fado'],
     presets: [
       { id: 'unescoPt', label: 'Património UNESCO em Portugal' },
       { id: 'ichPt', label: 'Património imaterial PT' },

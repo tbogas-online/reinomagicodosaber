@@ -415,6 +415,10 @@ function itemFitsCategory(item, categoryN) {
   } else if (filter.people && (item?.occupations || []).length) {
     return true;
   }
+  if ((n === 5 || n === 20)
+    && (item?.classes || []).some((cls) => cls.qid === 'Q16521')) {
+    return true;
+  }
   return (item?.classes || []).some((cls) => classAllowedForCategory(cls, n));
 }
 

@@ -15,6 +15,7 @@ const {
   transformKeywordItems,
   collectKeywordRecords,
 } = require('./lib/wikidata-keyword-search');
+const { itemFitsCategory } = require('./lib/wikidata-category-match');
 
 let passed = 0;
 let failed = 0;
@@ -42,6 +43,10 @@ console.log('Wikidata pesquisa por palavras — testes\n');
 assert('catálogo tem 20 categorias', listCategoryTopics().length === 20);
 assert('cat. 5 sugere polvo', getCategoryTopic(5).suggestions.includes('polvo'));
 assert('cat. 20 tem atalho UNESCO', getCategoryTopic(20).presets.some((p) => p.id === 'unescoPt'));
+for (const topic of listCategoryTopics()) {
+  const clean = sanitizeWords(topic.suggestions);
+  assert(`cat. ${topic.categoryN} tem sugestões utilizáveis`, clean.length >= 3, `${topic.suggestions.join(', ')} → ${clean.join(', ')}`);
+}
 assert('sanitiza palavras', sanitizeWords(['  Tejo ', 'Tejo', '???', 'a']).join() === 'Tejo');
 assert('separa vírgulas e ponto-e-vírgula', sanitizeWords(['portugal, seleção, golo']).join() === 'portugal,seleção,golo');
 assert('limite 4 palavras', sanitizeWords(['um', 'dois', 'três', 'quatro', 'cinco']).length === 4);
@@ -146,6 +151,28 @@ const watercourseType = groupKeywordBindings([
   }),
 ]);
 assert('conceito rio não entra na geografia', transformKeywordItems(watercourseType, { categoryN: 2, word: 'rio' }).length === 0);
+
+const lynx = groupKeywordBindings([
+  binding({
+    item: 'http://www.wikidata.org/entity/Q127960',
+    itemLabel: 'lince-ibérico',
+    class: 'http://www.wikidata.org/entity/Q16521',
+    classLabel: 'táxon',
+    country: 'http://www.wikidata.org/entity/Q45',
+    countryLabel: 'Portugal',
+  }),
+]);
+assert('táxon com país entra na natureza', itemFitsCategory(lynx[0], 5) && pickFact(lynx[0], { categoryN: 5 })?.answer === 'Portugal');
+
+const giraffe = groupKeywordBindings([
+  binding({
+    item: 'http://www.wikidata.org/entity/Q15083',
+    itemLabel: 'girafa',
+    class: 'http://www.wikidata.org/entity/Q16521',
+    classLabel: 'táxon',
+  }),
+]);
+assert('táxon sem país gera espécie', pickFact(giraffe[0], { categoryN: 5 })?.fact === 'girafa é uma espécie.');
 
 function mockSparqlFetch(url) {
   const query = decodeURIComponent(String(url));

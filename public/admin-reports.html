@@ -184,18 +184,25 @@
       margin: 6px 0 10px;
     }
     .knowledge-word-chip {
-      border: 1px solid var(--border);
-      background: transparent;
+      border: 1px solid #64748b;
+      background: #0b1220;
       color: inherit;
       border-radius: 999px;
-      padding: 4px 10px;
+      padding: 6px 12px;
       font: inherit;
       font-size: 0.85rem;
+      font-weight: 600;
       cursor: pointer;
+    }
+    .knowledge-word-chip:hover {
+      border-color: #60a5fa;
+      color: #93c5fd;
+      background: rgba(59, 130, 246, 0.12);
     }
     .knowledge-word-chip.is-on {
       border-color: #f59e0b;
       background: rgba(245, 158, 11, 0.16);
+      color: #fbbf24;
     }
     .knowledge-word-chip.is-preset {
       border-style: dashed;
@@ -3768,10 +3775,10 @@
             <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
               <label for="knowledgeWikidataCategory" class="sub" style="margin:0;">Categoria</label>
               <select id="knowledgeWikidataCategory" aria-label="Categoria Wikidata" style="min-width:220px;"></select>
-              <input type="search" id="knowledgeWikidataWordInput" placeholder="portugal, seleção, golo" maxlength="120" style="min-width:160px; flex:1;">
+              <input type="search" id="knowledgeWikidataWordInput" placeholder="polvo, lobo, abelha" maxlength="120" style="min-width:160px; flex:1;">
               <button type="button" class="secondary" id="knowledgeWikidataAddWordBtn">Adicionar</button>
             </div>
-            <p class="sub" style="margin:0;">Sugestões (máx. 4 palavras). Clica para seleccionar, ou escreve várias separadas por vírgula. Só entram factos da <strong>categoria</strong> escolhida (homónimos de filme, música ou nomes são ignorados).</p>
+            <p class="sub" style="margin:0;">Clica nas <strong>sugestões desta categoria</strong> (máx. 4). Ou escreve as tuas, separadas por vírgula.</p>
             <div id="knowledgeWikidataSuggestions" class="knowledge-word-chips"></div>
             <p class="sub" id="knowledgeWikidataPresetLabel" style="margin:8px 0 0;">Atalhos desta categoria</p>
             <div id="knowledgeWikidataPresets" class="knowledge-word-chips"></div>
@@ -10853,6 +10860,34 @@
       { n: 19, e: '🚗', name: 'Transportes' },
       { n: 20, e: '🤔', name: 'Adivinhas e Curiosidades' },
     ];
+    const WIKIDATA_TOPIC_FALLBACK = {
+      1: { suggestions: ['Portugal', 'Europa', 'ONU', 'Nobel', 'olimpíadas'] },
+      2: { suggestions: ['Portugal', 'Lisboa', 'Tejo', 'Alpes', 'Amazonas', 'Sahara', 'Antárctida'], presets: [{ id: 'countryCapitals', label: 'Capitais de países' }] },
+      3: { suggestions: ['Viriato', 'Roma', 'Egipto', 'Napoleão', 'Descobrimentos'] },
+      4: { suggestions: ['Newton', 'Curie', 'átomo', 'vacina', 'oxigénio'] },
+      5: { suggestions: ['polvo', 'lobo', 'abelha', 'sobreiro', 'golfinho', 'girafa', 'carvalho'] },
+      6: { suggestions: ['Marte', 'Lua', 'Saturno', 'Júpiter', 'cometa'] },
+      7: { suggestions: ['Pitágoras', 'pi', 'triângulo', 'zero', 'Fibonacci'] },
+      8: { suggestions: ['Camões', 'Pessoa', 'Shakespeare', 'Saramago'] },
+      9: { suggestions: ['Camões', 'Pessoa', 'alfabeto', 'provérbio'] },
+      10: { suggestions: ['Picasso', 'Van Gogh', 'Mona Lisa', 'azulejo'] },
+      11: { suggestions: ['Oscar', 'animação', 'documentário', 'filme'] },
+      12: { suggestions: ['fado', 'Amália', 'Mozart', 'piano', 'Beatles'] },
+      13: { suggestions: ['seda', 'algodão', 'barrete', 'traje'] },
+      14: { suggestions: ['bacalhau', 'azeite', 'francesinha', 'nata'] },
+      15: { suggestions: ['futebol', 'Eusébio', 'natação', 'ténis', 'olimpíadas'] },
+      16: { suggestions: ['xadrez', 'damas', 'monopoly', 'sueca'] },
+      17: { suggestions: ['internet', 'GPS', 'telefone', 'lâmpada', 'robô'] },
+      18: { suggestions: ['fado', 'Carnaval', 'kimono', 'sari'] },
+      19: { suggestions: ['comboio', 'avião', 'bicicleta', 'navio', 'metro'] },
+      20: {
+        suggestions: ['polvo', 'girafa', 'colibri', 'azulejo', 'fado'],
+        presets: [
+          { id: 'unescoPt', label: 'Património UNESCO em Portugal' },
+          { id: 'ichPt', label: 'Património imaterial PT' },
+        ],
+      },
+    };
     const BANK_AGE_BANDS = ['6-9', '10-15', '15+'];
     const BANK_DIFFICULTY_LEVELS = [1, 2, 3, 4, 5, 0];
     const BANK_AGE_CHART_LABELS = {
@@ -15054,8 +15089,14 @@
 
     function currentWikidataTopic() {
       const n = currentWikidataCategoryN();
-      return wikidataCategoryTopics.find((row) => Number(row.categoryN) === n)
-        || { categoryN: n, topic: '', suggestions: [], presets: [] };
+      const fromApi = wikidataCategoryTopics.find((row) => Number(row.categoryN) === n);
+      const fallback = WIKIDATA_TOPIC_FALLBACK[n] || { suggestions: [], presets: [] };
+      return {
+        categoryN: n,
+        topic: fromApi?.topic || '',
+        suggestions: (fromApi?.suggestions?.length ? fromApi.suggestions : fallback.suggestions) || [],
+        presets: (fromApi?.presets?.length ? fromApi.presets : fallback.presets) || [],
+      };
     }
 
     function isWikidataSourceSelected() {
@@ -15073,18 +15114,27 @@
       sel.value = [...sel.options].some((opt) => opt.value === keep) ? keep : '20';
     }
 
+    function clearWikidataWordInput() {
+      const input = document.getElementById('knowledgeWikidataWordInput');
+      if (input) input.value = '';
+    }
+
     function renderWikidataWordUi() {
       const topic = currentWikidataTopic();
       const sugEl = document.getElementById('knowledgeWikidataSuggestions');
       const presetEl = document.getElementById('knowledgeWikidataPresets');
       const presetLabel = document.getElementById('knowledgeWikidataPresetLabel');
       const selectedEl = document.getElementById('knowledgeWikidataSelected');
+      const input = document.getElementById('knowledgeWikidataWordInput');
       const presets = topic.presets || [];
+      if (input) {
+        input.placeholder = (topic.suggestions || []).slice(0, 3).join(', ') || 'Adicionar palavra…';
+      }
       if (sugEl) {
         sugEl.innerHTML = (topic.suggestions || []).map((word) => {
-          const on = selectedWikidataWords.has(word) ? ' is-on' : '';
+          const on = [...selectedWikidataWords].some((sel) => sel.toLowerCase() === word.toLowerCase()) ? ' is-on' : '';
           return `<button type="button" class="knowledge-word-chip${on}" data-wikidata-word="${esc(word)}">${esc(word)}</button>`;
-        }).join('');
+        }).join('') || '<span class="sub">Sem sugestões nesta categoria.</span>';
       }
       if (presetEl) {
         presetEl.innerHTML = presets.map((preset) => {
@@ -15098,9 +15148,11 @@
           const preset = presets.find((row) => row.id === selectedWikidataPreset);
           selectedEl.textContent = `Atalho: ${preset?.label || selectedWikidataPreset}`;
         } else if (selectedWikidataWords.size) {
-          selectedEl.textContent = `Palavras: ${[...selectedWikidataWords].join(', ')}`;
+          selectedEl.innerHTML = `Seleccionadas (${selectedWikidataWords.size}/4): ${[...selectedWikidataWords].map((word) =>
+            `<button type="button" class="knowledge-word-chip is-on" data-wikidata-word="${esc(word)}">${esc(word)} ×</button>`,
+          ).join('')}`;
         } else {
-          selectedEl.textContent = 'Selecciona palavras ou um atalho desta categoria.';
+          selectedEl.textContent = 'Clica numa sugestão para a seleccionar (máx. 4).';
         }
       }
     }
@@ -15118,7 +15170,7 @@
       }
     }
 
-    function addWikidataWord(raw) {
+    function addWikidataWord(raw, { evict = true } = {}) {
       const parts = String(raw || '')
         .split(/[,;]+/)
         .map((part) => part.trim().replace(/\s+/g, ' '))
@@ -15130,13 +15182,15 @@
         changed = true;
       }
       for (const word of parts) {
-        if (selectedWikidataWords.has(word)) continue;
+        const existing = [...selectedWikidataWords].find((sel) => sel.toLowerCase() === word.toLowerCase());
+        if (existing) continue;
         if (selectedWikidataWords.size >= 4) {
+          if (!evict) continue;
           const first = selectedWikidataWords.values().next().value;
           selectedWikidataWords.delete(first);
           changed = true;
         }
-        if (selectedWikidataWords.has(word)) continue;
+        if (selectedWikidataWords.size >= 4) continue;
         selectedWikidataWords.add(word);
         changed = true;
       }
@@ -15150,8 +15204,23 @@
     function harvestWikidataInput() {
       const input = document.getElementById('knowledgeWikidataWordInput');
       const raw = input?.value || '';
-      if (raw.trim()) addWikidataWord(raw);
+      if (raw.trim()) addWikidataWord(raw, { evict: false });
       if (input) input.value = '';
+    }
+
+    function toggleWikidataWord(word) {
+      const key = String(word || '').trim();
+      if (!key) return;
+      const existing = [...selectedWikidataWords].find((sel) => sel.toLowerCase() === key.toLowerCase());
+      selectedWikidataPreset = '';
+      clearWikidataWordInput();
+      if (existing) {
+        selectedWikidataWords.delete(existing);
+        renderWikidataWordUi();
+        clearWikidataPreview();
+        return;
+      }
+      addWikidataWord(key);
     }
 
     function wikidataSearchKey() {
@@ -16385,6 +16454,7 @@
     document.getElementById('knowledgeWikidataCategory')?.addEventListener('change', () => {
       selectedWikidataWords.clear();
       selectedWikidataPreset = '';
+      clearWikidataWordInput();
       renderWikidataWordUi();
       clearWikidataPreview();
     });
@@ -16402,12 +16472,12 @@
     document.getElementById('knowledgeWikidataSuggestions')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-wikidata-word]');
       if (!btn) return;
-      const word = btn.dataset.wikidataWord;
-      selectedWikidataPreset = '';
-      if (selectedWikidataWords.has(word)) selectedWikidataWords.delete(word);
-      else addWikidataWord(word);
-      renderWikidataWordUi();
-      clearWikidataPreview();
+      toggleWikidataWord(btn.dataset.wikidataWord);
+    });
+    document.getElementById('knowledgeWikidataSelected')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-wikidata-word]');
+      if (!btn) return;
+      toggleWikidataWord(btn.dataset.wikidataWord);
     });
     document.getElementById('knowledgeWikidataPresets')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-wikidata-preset]');
@@ -16415,6 +16485,7 @@
       const id = btn.dataset.wikidataPreset;
       selectedWikidataWords.clear();
       selectedWikidataPreset = selectedWikidataPreset === id ? '' : id;
+      clearWikidataWordInput();
       renderWikidataWordUi();
       clearWikidataPreview();
     });
