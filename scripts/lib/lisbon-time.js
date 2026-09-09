@@ -75,6 +75,63 @@ function addLisbonDays(dayKey, deltaDays) {
   return toLisbonDayKey(new Date(ms + deltaDays * 86400000));
 }
 
+function lisbonDayStartIso(dayKey) {
+  const ms = hourKeyToUtcMs(`${dayKey}T00`);
+  if (!Number.isFinite(ms)) return null;
+  return new Date(ms).toISOString();
+}
+
+function lisbonDayEndExclusiveIso(dayKey) {
+  const next = addLisbonDays(dayKey, 1);
+  return lisbonDayStartIso(next);
+}
+
+const LISBON_LOCAL_RE = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2})(?::(\d{2})(?::(\d{2}))?)?)?$/;
+
+function parseLisbonLocalParts(value) {
+  const match = String(value || '').trim().match(LISBON_LOCAL_RE);
+  if (!match) return null;
+  return {
+    day: match[1],
+    hour: match[2] != null ? Number(match[2]) : 0,
+    minute: match[3] != null ? Number(match[3]) : 0,
+    second: match[4] != null ? Number(match[4]) : 0,
+    hasTime: match[2] != null,
+    hasMinute: match[3] != null,
+    hasSecond: match[4] != null,
+  };
+}
+
+function lisbonLocalToUtcIso(value) {
+  const parts = parseLisbonLocalParts(value);
+  if (!parts) return null;
+  const hourKey = `${parts.day}T${String(parts.hour).padStart(2, '0')}`;
+  const hourStart = hourKeyToUtcMs(hourKey);
+  if (!Number.isFinite(hourStart)) return null;
+  return new Date(hourStart + parts.minute * 60000 + parts.second * 1000).toISOString();
+}
+
+function lisbonCreatedFromIso(value) {
+  const parts = parseLisbonLocalParts(value);
+  if (!parts) return null;
+  if (!parts.hasTime) return lisbonDayStartIso(parts.day);
+  return lisbonLocalToUtcIso(value);
+}
+
+function lisbonCreatedToExclusiveIso(value) {
+  const parts = parseLisbonLocalParts(value);
+  if (!parts) return null;
+  if (!parts.hasTime) return lisbonDayEndExclusiveIso(parts.day);
+  if (parts.hour === 0 && parts.minute === 0 && parts.second === 0) {
+    return lisbonDayEndExclusiveIso(parts.day);
+  }
+  const startMs = Date.parse(lisbonLocalToUtcIso(value));
+  if (!Number.isFinite(startMs)) return null;
+  if (parts.hasSecond) return new Date(startMs + 1000).toISOString();
+  if (parts.hasMinute) return new Date(startMs + 60000).toISOString();
+  return new Date(startMs + 3600000).toISOString();
+}
+
 function buildHourKeysEndingNow(hours) {
   const keys = [];
   let key = toLisbonHourKey(new Date());
@@ -159,6 +216,12 @@ module.exports = {
   toLisbonDayKey,
   toLisbonHourKey,
   lisbonTodayKey,
+  addLisbonDays,
+  lisbonDayStartIso,
+  lisbonDayEndExclusiveIso,
+  lisbonLocalToUtcIso,
+  lisbonCreatedFromIso,
+  lisbonCreatedToExclusiveIso,
   buildDailySeries,
   buildHourlySeries,
   buildStackedDailySeries,

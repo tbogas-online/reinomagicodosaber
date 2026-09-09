@@ -1,5 +1,6 @@
 const { getSupabaseAdmin } = require('./rooms-store');
 const { buildDedupePlan } = require('./knowledge-dedupe');
+const { lisbonCreatedFromIso, lisbonCreatedToExclusiveIso } = require('../../../scripts/lib/lisbon-time');
 
 const KNOWLEDGE_SELECT = [
   'knowledge_id',
@@ -103,20 +104,28 @@ async function searchKnowledgeRecords(options = {}) {
     topic = '',
     source = '',
     activeFilter = 'all',
+    createdFrom = '',
+    createdTo = '',
     limit = 50,
     offset = 0,
   } = options;
 
+  const pageSize = Math.min(Math.max(Number(limit) || 50, 1), 500);
+  const pageOffset = Math.max(Number(offset) || 0, 0);
   const params = new URLSearchParams();
   params.set('select', KNOWLEDGE_SELECT);
-  params.set('order', 'updated_at.desc');
-  params.set('limit', String(Math.min(Math.max(Number(limit) || 50, 1), 200)));
-  params.set('offset', String(Math.max(Number(offset) || 0, 0)));
+  params.set('order', 'created_at.desc,knowledge_id.desc');
+  params.set('limit', String(pageSize));
+  params.set('offset', String(pageOffset));
 
   const kid = String(knowledgeId || '').trim();
   const q = escapePostgrestFilter(query);
   const topicTrim = escapePostgrestFilter(topic);
   const sourceTrim = escapePostgrestFilter(source);
+  const fromRaw = String(createdFrom || '').trim();
+  const toRaw = String(createdTo || '').trim();
+  const fromIso = lisbonCreatedFromIso(fromRaw);
+  const toExclusiveIso = lisbonCreatedToExclusiveIso(toRaw);
 
   if (kid) {
     params.set('knowledge_id', `eq.${kid}`);
@@ -133,7 +142,12 @@ async function searchKnowledgeRecords(options = {}) {
   if (activeFilter === 'active') params.set('is_active', 'eq.true');
   if (activeFilter === 'inactive') params.set('is_active', 'eq.false');
 
-  if (!kid && !q && !(cat >= 1 && cat <= 20) && !topicTrim && !sourceTrim) {
+  const createdFilters = [];
+  if (fromIso) createdFilters.push(`created_at.gte."${fromIso}"`);
+  if (toExclusiveIso) createdFilters.push(`created_at.lt."${toExclusiveIso}"`);
+  if (createdFilters.length) params.set('and', `(${createdFilters.join(',')})`);
+
+  if (!kid && !q && !(cat >= 1 && cat <= 20) && !topicTrim && !sourceTrim && !fromIso && !toExclusiveIso) {
     return { rows: [], total: 0 };
   }
 
@@ -172,6 +186,22 @@ async function disableKnowledgeRecords(knowledgeIds) {
   }
 
   return { ok: true, disabled, failed, knowledgeIds: unique };
+}
+
+async function deleteKnowledgeRecords(knowledgeIds) {
+  const unique = [...new Set((knowledgeIds || []).map((id) => String(id || '').trim()).filter(Boolean))];
+  if (!unique.length) {
+    return { ok: false, deleted: 0, bankDeleted: 0, reuseDeleted: 0, knowledgeIds: [] };
+  }
+
+  const data = await supabaseRpc('delete_knowledge_records', { p_knowledge_ids: unique });
+  return {
+    ok: data?.ok !== false,
+    deleted: Number(data?.deleted) || 0,
+    bankDeleted: Number(data?.bankDeleted) || 0,
+    reuseDeleted: Number(data?.reuseDeleted) || 0,
+    knowledgeIds: unique,
+  };
 }
 
 const DEDUPE_SELECT = 'knowledge_id,category_n,topic,fact,answer,source,source_id,is_active,priority_pt';
@@ -249,6 +279,7 @@ module.exports = {
   searchKnowledgeRecords,
   disableKnowledgeRecord,
   disableKnowledgeRecords,
+  deleteKnowledgeRecords,
   auditKnowledgeDuplicates,
   applyKnowledgeDedupe,
 };

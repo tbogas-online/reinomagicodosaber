@@ -1,11 +1,12 @@
 // GET /api/knowledge-import-admin — estado da fila e repositório
-// POST — { action: 'run' | 'dry-run' | 'import-source' | 'sync-seed' | 'reset-overrides' | 'search' | 'disable' }
+// POST — { action: 'run' | 'dry-run' | 'import-source' | 'sync-seed' | 'reset-overrides' | 'search' | 'disable' | 'delete' }
 
 const { json, validateAdminAuth } = require('./lib/report-utils');
 const { getImportDashboard, runDailyImport, resetImportOverrides, syncImportQueueFromSeed, importSource } = require('./lib/knowledge-import-store');
 const {
   searchKnowledgeRecords,
   disableKnowledgeRecords,
+  deleteKnowledgeRecords,
   auditKnowledgeDuplicates,
   applyKnowledgeDedupe,
 } = require('./lib/knowledge-repository-store');
@@ -128,6 +129,8 @@ exports.handler = async (event) => {
             topic: body.topic,
             source: body.source,
             activeFilter: body.activeFilter || 'all',
+            createdFrom: body.createdFrom,
+            createdTo: body.createdTo,
             limit: body.limit,
             offset: body.offset,
           });
@@ -193,7 +196,28 @@ exports.handler = async (event) => {
         }
       }
 
-      return json(400, { error: 'Acção desconhecida. Usa action: "run", "dry-run", "import-source", "sync-seed", "reset-overrides", "search", "disable", "dedupe-audit" ou "dedupe-apply".' });
+      if (body.action === 'delete') {
+        if (!getSupabaseAdmin()) {
+          return json(503, { error: 'Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).' });
+        }
+        const knowledgeIds = Array.isArray(body.knowledgeIds) ? body.knowledgeIds : [];
+        if (!knowledgeIds.length) {
+          return json(400, { error: 'Indica pelo menos um knowledge_id.' });
+        }
+        try {
+          const result = await deleteKnowledgeRecords(knowledgeIds);
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[knowledge-import-admin] delete failed:', err);
+          const msg = String(err?.message || '');
+          if (msg.includes('delete_knowledge_records') || msg.includes('PGRST202')) {
+            return json(503, { error: 'Função delete_knowledge_records em falta — executa supabase/knowledge-delete-records.sql no Supabase.' });
+          }
+          return json(503, { error: 'Não foi possível apagar facto(s).' });
+        }
+      }
+
+      return json(400, { error: 'Acção desconhecida. Usa action: "run", "dry-run", "import-source", "sync-seed", "reset-overrides", "search", "disable", "delete", "dedupe-audit" ou "dedupe-apply".' });
     }
 
     return json(405, { error: 'Método não permitido.' });

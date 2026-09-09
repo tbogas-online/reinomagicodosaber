@@ -177,6 +177,46 @@
       margin-bottom: 10px;
       font-size: 13px;
     }
+    .knowledge-source-dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .bank-matrix tbody tr[data-knowledge-source] {
+      cursor: pointer;
+    }
+    .bank-matrix tbody tr[data-knowledge-source]:hover td {
+      background: rgba(245, 158, 11, 0.08);
+    }
+    button.knowledge-day-chip {
+      background: #0b1220;
+      border: 1px solid var(--border);
+      color: var(--text);
+      cursor: pointer;
+    }
+    button.knowledge-day-chip:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+    .knowledge-timestamp {
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+      font-size: 0.82rem;
+      line-height: 1.25;
+      color: var(--muted);
+    }
+    .knowledge-timestamp .ts-time {
+      display: block;
+      color: var(--text);
+      font-weight: 600;
+    }
+    #knowledgeSearchDateFrom,
+    #knowledgeSearchDateTo {
+      min-width: 210px;
+    }
     .knowledge-dedupe-options label {
       display: inline-flex;
       align-items: center;
@@ -3461,6 +3501,85 @@
       <div id="knowledgePanel" class="hidden">
         <div class="card stats" id="knowledgeStatsRow"></div>
 
+        <div class="card" id="knowledgeInventorySection">
+          <h2 class="charts-title" style="margin:0 0 6px;">Inventário do repositório</h2>
+          <p class="chart-filter-note" style="margin:0 0 12px">Factos em <code>knowledge_records</code> no Supabase, por fonte de importação. Clica numa fonte para listar os factos em «Explorar repositório».</p>
+          <div class="charts-grid">
+            <div class="chart-box">
+              <h3>Activos por fonte</h3>
+              <div id="knowledgeSourceDonut" class="chart"></div>
+            </div>
+            <div class="chart-box">
+              <h3>Activos por tópico</h3>
+              <div id="knowledgeTopicChart" class="chart"></div>
+            </div>
+            <div class="chart-box chart-wide">
+              <h3>Importações no tempo</h3>
+              <p class="timeline-note" id="knowledgeImportTimelineNote"></p>
+              <div id="knowledgeImportChart" class="chart"></div>
+              <div id="knowledgeImportDayChips" class="bank-gaps-list" style="margin-top:10px;"></div>
+            </div>
+            <div class="chart-box chart-wide">
+              <h3>Por fonte (base de dados)</h3>
+              <div class="bank-matrix-wrap">
+                <table class="bank-matrix">
+                  <thead>
+                    <tr>
+                      <th>Fonte</th>
+                      <th class="num">Activos</th>
+                      <th class="num">Inactivos</th>
+                      <th class="num">Total</th>
+                      <th class="num">% activos</th>
+                    </tr>
+                  </thead>
+                  <tbody id="knowledgeSourceTableBody"></tbody>
+                  <tfoot id="knowledgeSourceTableFoot"></tfoot>
+                </table>
+              </div>
+            </div>
+            <div class="chart-box chart-wide">
+              <h3>Fonte × tópico</h3>
+              <div class="bank-matrix-wrap">
+                <table class="bank-matrix">
+                  <thead>
+                    <tr>
+                      <th>Fonte</th>
+                      <th>Tópico</th>
+                      <th>Cat.</th>
+                      <th class="num">Activos</th>
+                      <th class="num">Inactivos</th>
+                      <th class="num">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody id="knowledgeSourceTopicBody"></tbody>
+                  <tfoot id="knowledgeSourceTopicFoot"></tfoot>
+                </table>
+              </div>
+            </div>
+            <div class="chart-box">
+              <h3>Banco gerado a partir de factos</h3>
+              <p class="timeline-note" id="knowledgeBankNote">Perguntas em <code>question_bank</code> com <code>knowledge_id</code>.</p>
+              <div id="knowledgeBankChart" class="chart"></div>
+            </div>
+            <div class="chart-box">
+              <h3>Ligação repositório → banco</h3>
+              <div class="bank-matrix-wrap">
+                <table class="bank-matrix">
+                  <thead>
+                    <tr>
+                      <th>Fonte do facto</th>
+                      <th class="num">Factos activos</th>
+                      <th class="num">Perguntas no banco</th>
+                    </tr>
+                  </thead>
+                  <tbody id="knowledgeBankTableBody"></tbody>
+                  <tfoot id="knowledgeBankTableFoot"></tfoot>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div class="card" id="knowledgeQuarantineSection">
           <h2 class="charts-title" style="margin:0 0 6px;">Quarentena repositório (30 dias)</h2>
           <p class="sub" id="knowledgeQuarantineNote" style="margin-top:0;">Factos verificados jogados recentemente — indisponíveis para adivinhas e curiosidades.</p>
@@ -3560,7 +3679,7 @@
 
         <div class="card" id="knowledgeBrowseSection">
           <h2 class="charts-title" style="margin:0 0 8px;">Explorar repositório</h2>
-          <p class="sub" style="margin-top:0;">Pesquisa factos verificados no Supabase, desactiva registos problemáticos ou exporta para curadoria.</p>
+          <p class="sub" style="margin-top:0;">Pesquisa factos no Supabase por texto, fonte ou <strong>data/hora de importação</strong> (Portugal). Desactivar esconde o facto; <strong>apagar</strong> remove-o (e as perguntas do banco ligadas) para poderes importar de novo.</p>
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
             <input type="search" id="knowledgeSearchQuery" placeholder="Texto, resposta ou knowledge_id…" style="min-width:200px; flex:1;">
             <select id="knowledgeSearchCategory" aria-label="Filtrar categoria">
@@ -3568,6 +3687,12 @@
             </select>
             <input type="text" id="knowledgeSearchTopic" placeholder="Tópico…" style="min-width:120px;">
             <input type="text" id="knowledgeSearchSource" placeholder="Fonte…" style="min-width:100px;">
+            <label for="knowledgeSearchDateFrom" class="sub" style="margin:0;" title="Hora de Portugal">De
+              <input type="datetime-local" id="knowledgeSearchDateFrom" step="1" aria-label="Importado desde (data e hora de Portugal)">
+            </label>
+            <label for="knowledgeSearchDateTo" class="sub" style="margin:0;" title="Hora de Portugal. 00:00 = fim desse dia">Até
+              <input type="datetime-local" id="knowledgeSearchDateTo" step="1" aria-label="Importado até (data e hora de Portugal; 00:00 conta o dia inteiro)">
+            </label>
             <select id="knowledgeActiveFilter" aria-label="Estado do registo">
               <option value="all">Todos os estados</option>
               <option value="active" selected>Activos</option>
@@ -3575,10 +3700,12 @@
             </select>
             <button type="button" class="primary" id="knowledgeSearchBtn">Pesquisar</button>
             <button type="button" class="secondary" id="knowledgeListCategoryBtn">Listar categoria</button>
+            <button type="button" class="secondary" id="knowledgeListDateBtn" title="Lista factos importados no intervalo de data e hora">Listar por data/hora</button>
           </div>
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
             <button type="button" class="secondary" id="knowledgeExportBtn" disabled>⬇ Exportar CSV</button>
             <button type="button" class="danger" id="knowledgeDisableSelectedBtn" disabled>Desactivar seleccionados</button>
+            <button type="button" class="danger" id="knowledgeDeleteSelectedBtn" disabled title="Remove o facto da base para permitir nova importação">Apagar seleccionados</button>
           </div>
           <p class="status" id="knowledgeSearchStatus"></p>
           <div id="knowledgeBySource" class="bank-gaps-list" style="margin-bottom:10px;"></div>
@@ -3592,12 +3719,13 @@
                   <th>Resposta</th>
                   <th>Cat.</th>
                   <th>Fonte</th>
+                  <th>Timestamp</th>
                   <th>Estado</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody id="knowledgeSearchBody">
-                <tr><td colspan="8" class="sub">Pesquisa ou lista por categoria para ver factos.</td></tr>
+                <tr><td colspan="9" class="sub">Pesquisa, lista por categoria ou por data/hora de importação.</td></tr>
               </tbody>
             </table>
           </div>
@@ -4726,6 +4854,9 @@
           break;
         case 'reportsTimeline':
           renderTimelineChart();
+          break;
+        case 'knowledgeImport':
+          if (lastKnowledgePayload) renderKnowledgeInventory(lastKnowledgePayload);
           break;
         default:
           break;
@@ -10628,6 +10759,16 @@
       'local-engine-v2': 'Local (v2)',
       local: 'Local',
       bank: 'Banco',
+      repository: 'Repositório',
+      'repository-seed': 'Repositório (seed)',
+      'repo-ai': 'Repo + IA',
+      'repo-direct': 'Repo directo',
+      'bank-replenish': 'Reposição',
+      'pending-review': 'Revisão pendente',
+      'test-page': 'Página de teste',
+      'telemetry-accepted': 'Telemetria (aceite)',
+      corrected: 'Corrigida',
+      manual: 'Manual',
     };
     let bankLoading = false;
     let lastBankStats = null;
@@ -13798,6 +13939,7 @@
     const selectedKnowledgeIds = new Set();
     let knowledgeSearchLoading = false;
     let knowledgeDisableLoading = false;
+    let knowledgeDeleteLoading = false;
 
     function initKnowledgeSearchCategorySelect() {
       const sel = document.getElementById('knowledgeSearchCategory');
@@ -13816,28 +13958,315 @@
         categoryN: document.getElementById('knowledgeSearchCategory')?.value || '',
         topic: document.getElementById('knowledgeSearchTopic')?.value?.trim() || '',
         source: document.getElementById('knowledgeSearchSource')?.value?.trim() || '',
+        createdFrom: document.getElementById('knowledgeSearchDateFrom')?.value || '',
+        createdTo: document.getElementById('knowledgeSearchDateTo')?.value || '',
         activeFilter: document.getElementById('knowledgeActiveFilter')?.value || 'active',
       };
     }
 
     function renderKnowledgeBySource(data) {
       const el = document.getElementById('knowledgeBySource');
-      if (!el) return;
       const sources = data?.repository?.bySource || [];
-      if (!sources.length) {
-        el.innerHTML = '';
+      if (el) {
+        if (!sources.length) {
+          el.innerHTML = '';
+        } else {
+          el.innerHTML = `<div><strong>Por fonte (activos):</strong> ${sources.map((s) =>
+            `<span class="pill" title="${esc(s.source || '')}">${esc(s.source || '—')} <strong>${s.count || s.active || 0}</strong></span>`,
+          ).join(' ')}</div>`;
+        }
+      }
+      renderKnowledgeInventory(data);
+    }
+
+    const KNOWLEDGE_SOURCE_COLORS = {
+      Wikidata: '#0ea5e9',
+      manual: '#f59e0b',
+      'MemóriaMedia': '#a78bfa',
+      'Ditos.pt': '#34d399',
+      'Pumpkin.pt': '#fb923c',
+      'Brinca Comigo': '#f472b6',
+      'Santander Salto': '#f87171',
+      'Quero Bolsa': '#818cf8',
+      sample: '#64748b',
+      '(facto removido)': '#94a3b8',
+    };
+
+    function knowledgeSourceColor(source, index = 0) {
+      return KNOWLEDGE_SOURCE_COLORS[source] || CHART_AGGREGATE_COLORS[index % CHART_AGGREGATE_COLORS.length];
+    }
+
+    function knowledgeSourceDot(source, index = 0) {
+      return `<i class="knowledge-source-dot" style="background:${knowledgeSourceColor(source, index)}"></i>`;
+    }
+
+    function eachIsoDayInclusive(fromIso, toIso) {
+      const days = [];
+      if (!fromIso || !toIso) return days;
+      const start = new Date(`${fromIso}T12:00:00`);
+      const end = new Date(`${toIso}T12:00:00`);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return days;
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const y = d.getFullYear();
+        const m = String(d.getMonth() + 1).padStart(2, '0');
+        const day = String(d.getDate()).padStart(2, '0');
+        days.push(`${y}-${m}-${day}`);
+      }
+      return days;
+    }
+
+    function getKnowledgeInventoryStats(data) {
+      const repo = data?.repository || {};
+      const bySource = (repo.bySource || []).map((s, i) => {
+        const active = Number(s.active ?? s.count) || 0;
+        const inactive = Number(s.inactive) || 0;
+        return {
+          source: s.source || '—',
+          count: Number(s.count ?? s.active) || 0,
+          active,
+          inactive,
+          total: Number(s.total) || (active + inactive),
+          colorIndex: i,
+        };
+      });
+      return {
+        total: Number(repo.total) || 0,
+        active: Number(repo.active) || 0,
+        inactive: Number(repo.inactive) || Math.max(0, Number(repo.total || 0) - Number(repo.active || 0)),
+        bySource,
+        byCategoryTopic: Array.isArray(repo.byCategoryTopic) ? repo.byCategoryTopic : [],
+        bySourceTopic: Array.isArray(repo.bySourceTopic) ? repo.bySourceTopic : [],
+        byDay: Array.isArray(repo.byDay) ? repo.byDay : [],
+        bankLinked: repo.bankLinked && typeof repo.bankLinked === 'object' ? repo.bankLinked : null,
+        bankByKnowledgeSource: Array.isArray(repo.bankByKnowledgeSource) ? repo.bankByKnowledgeSource : [],
+      };
+    }
+
+    function renderKnowledgeInventory(data) {
+      const stats = getKnowledgeInventoryStats(data);
+      const colorFn = (key, i) => knowledgeSourceColor(key, i);
+      const sourceEntries = stats.bySource
+        .filter((s) => s.active > 0)
+        .map((s) => [s.source, s.active]);
+      const donutEl = document.getElementById('knowledgeSourceDonut');
+      if (donutEl) renderDonutChart(donutEl, sourceEntries, (key) => key, { colorFn });
+
+      const topicEntries = stats.byCategoryTopic
+        .map((row) => [row.topic || `Cat. ${row.category_n}`, Number(row.count) || 0])
+        .filter(([, n]) => n > 0)
+        .sort((a, b) => b[1] - a[1]);
+      const topicEl = document.getElementById('knowledgeTopicChart');
+      if (topicEl) renderBarChart(topicEl, topicEntries, (key) => key);
+
+      renderKnowledgeImportTimeline(stats);
+      renderKnowledgeSourceTable(stats);
+      renderKnowledgeSourceTopicTable(stats);
+      renderKnowledgeBankCharts(stats);
+    }
+
+    function renderKnowledgeImportTimeline(stats) {
+      const el = document.getElementById('knowledgeImportChart');
+      const noteEl = document.getElementById('knowledgeImportTimelineNote');
+      if (!el) return;
+      const rows = stats.byDay || [];
+      if (!rows.length) {
+        el.innerHTML = '<div class="chart-empty">Sem datas de importação (created_at) no repositório.</div>';
+        if (noteEl) noteEl.textContent = '';
+        const chipsEl = document.getElementById('knowledgeImportDayChips');
+        if (chipsEl) chipsEl.innerHTML = '';
         return;
       }
-      el.innerHTML = `<div><strong>Por fonte (activos):</strong> ${sources.map((s) =>
-        `<span class="pill" title="${esc(s.source || '')}">${esc(s.source || '—')} <strong>${s.count || 0}</strong></span>`,
-      ).join(' ')}</div>`;
+      const sources = [...new Set(rows.map((r) => r.source || '—'))];
+      const days = [...new Set(rows.map((r) => r.day).filter(Boolean))].sort();
+      const filled = eachIsoDayInclusive(days[0], days[days.length - 1]);
+      const lookup = new Map(rows.map((r) => [`${r.day}\t${r.source}`, Number(r.count) || 0]));
+      const series = filled.map((day) => {
+        const byIssue = {};
+        let count = 0;
+        for (const source of sources) {
+          const n = lookup.get(`${day}\t${source}`) || 0;
+          byIssue[source] = n;
+          count += n;
+        }
+        return { t: day, count, byIssue };
+      });
+      const totalImported = rows.reduce((sum, r) => sum + (Number(r.count) || 0), 0);
+      if (noteEl) {
+        noteEl.textContent = `${totalImported} factos criados entre ${formatShortDate(days[0])} e ${formatShortDate(days[days.length - 1])} (hora de Portugal). Inclui inactivos. Clica num dia para listar.`;
+      }
+      const labelMap = Object.fromEntries(sources.map((s) => [s, s]));
+      renderStackedColumnChart(el, series, sources, 'day', {
+        labelMap,
+        colorFn: knowledgeSourceColor,
+        chartId: 'knowledgeImport',
+      });
+      const chipsEl = document.getElementById('knowledgeImportDayChips');
+      if (chipsEl) {
+        const byDayTotal = new Map();
+        for (const row of rows) {
+          byDayTotal.set(row.day, (byDayTotal.get(row.day) || 0) + (Number(row.count) || 0));
+        }
+        chipsEl.innerHTML = days.map((day) => {
+          const n = byDayTotal.get(day) || 0;
+          return `<button type="button" class="pill knowledge-day-chip" data-knowledge-day="${esc(day)}" title="Listar factos importados em ${esc(day)}">${esc(formatShortDate(day))} <strong>${n}</strong></button>`;
+        }).join(' ');
+      }
+    }
+
+    function renderKnowledgeSourceTable(stats) {
+      const body = document.getElementById('knowledgeSourceTableBody');
+      const foot = document.getElementById('knowledgeSourceTableFoot');
+      if (!body || !foot) return;
+      if (!stats.bySource.length) {
+        body.innerHTML = '<tr><td colspan="5" class="sub">Sem factos no repositório.</td></tr>';
+        foot.innerHTML = '';
+        return;
+      }
+      const totActive = stats.bySource.reduce((s, r) => s + r.active, 0);
+      const totInactive = stats.bySource.reduce((s, r) => s + r.inactive, 0);
+      const tot = stats.bySource.reduce((s, r) => s + r.total, 0);
+      body.innerHTML = stats.bySource.map((row, i) => {
+        const pct = row.total ? Math.round((row.active / row.total) * 100) : 0;
+        return `<tr data-knowledge-source="${esc(row.source)}" title="Listar factos de ${esc(row.source)}">
+          <td>${knowledgeSourceDot(row.source, i)}${esc(row.source)}</td>
+          <td class="num">${row.active}</td>
+          <td class="num">${row.inactive}</td>
+          <td class="num">${row.total}</td>
+          <td class="num">${pct}%</td>
+        </tr>`;
+      }).join('');
+      foot.innerHTML = `<tr class="total-row">
+        <th>Total</th>
+        <th class="num">${totActive}</th>
+        <th class="num">${totInactive}</th>
+        <th class="num">${tot}</th>
+        <th class="num">${tot ? Math.round((totActive / tot) * 100) : 0}%</th>
+      </tr>`;
+    }
+
+    function renderKnowledgeSourceTopicTable(stats) {
+      const body = document.getElementById('knowledgeSourceTopicBody');
+      const foot = document.getElementById('knowledgeSourceTopicFoot');
+      if (!body || !foot) return;
+      const rows = stats.bySourceTopic.length
+        ? stats.bySourceTopic
+        : stats.byCategoryTopic.map((row) => ({
+          source: '—',
+          category_n: row.category_n,
+          topic: row.topic,
+          active: Number(row.count) || 0,
+          inactive: 0,
+          total: Number(row.count) || 0,
+        }));
+      if (!rows.length) {
+        body.innerHTML = '<tr><td colspan="6" class="sub">Sem dados por tópico.</td></tr>';
+        foot.innerHTML = '';
+        return;
+      }
+      const catMap = Object.fromEntries(BANK_CATEGORIES.map((c) => [String(c.n), c.name]));
+      const totActive = rows.reduce((s, r) => s + (Number(r.active) || 0), 0);
+      const totInactive = rows.reduce((s, r) => s + (Number(r.inactive) || 0), 0);
+      const tot = rows.reduce((s, r) => s + (Number(r.total) || 0), 0);
+      body.innerHTML = rows.map((row, i) => {
+        const catLabel = catMap[String(row.category_n)] || row.category_n || '—';
+        return `<tr data-knowledge-source="${esc(row.source || '')}" data-knowledge-topic="${esc(row.topic || '')}" title="Listar ${esc(row.source || '')} · ${esc(row.topic || '')}">
+          <td>${knowledgeSourceDot(row.source, i)}${esc(row.source || '—')}</td>
+          <td>${esc(row.topic || '—')}</td>
+          <td>${esc(catLabel)}</td>
+          <td class="num">${Number(row.active) || 0}</td>
+          <td class="num">${Number(row.inactive) || 0}</td>
+          <td class="num">${Number(row.total) || 0}</td>
+        </tr>`;
+      }).join('');
+      foot.innerHTML = `<tr class="total-row">
+        <th colspan="3">Total</th>
+        <th class="num">${totActive}</th>
+        <th class="num">${totInactive}</th>
+        <th class="num">${tot}</th>
+      </tr>`;
+    }
+
+    function renderKnowledgeBankCharts(stats) {
+      const chartEl = document.getElementById('knowledgeBankChart');
+      const noteEl = document.getElementById('knowledgeBankNote');
+      const body = document.getElementById('knowledgeBankTableBody');
+      const foot = document.getElementById('knowledgeBankTableFoot');
+      const linked = stats.bankLinked;
+      const bankMap = new Map((stats.bankByKnowledgeSource || []).map((row) => [row.source, Number(row.count) || 0]));
+      const merged = [];
+      const seen = new Set();
+      for (const row of stats.bySource) {
+        seen.add(row.source);
+        merged.push({
+          source: row.source,
+          facts: row.active,
+          bank: bankMap.get(row.source) || 0,
+        });
+      }
+      for (const [source, count] of bankMap) {
+        if (seen.has(source)) continue;
+        merged.push({ source, facts: 0, bank: count });
+      }
+      merged.sort((a, b) => b.bank - a.bank || b.facts - a.facts || String(a.source).localeCompare(String(b.source), 'pt'));
+      if (noteEl) {
+        if (linked) {
+          const pct = linked.total ? Math.round((linked.withKnowledgeId / linked.total) * 100) : 0;
+          const missing = merged.filter((row) => row.facts > 0 && row.bank === 0).map((row) => row.source);
+          const extra = missing.length
+            ? ` Sem perguntas no banco: ${missing.join(', ')}.`
+            : '';
+          noteEl.textContent = `${linked.withKnowledgeId || 0} de ${linked.total || 0} perguntas do banco (${pct}%) têm knowledge_id.${extra}`;
+        } else {
+          noteEl.textContent = 'Perguntas em question_bank com knowledge_id.';
+        }
+      }
+      const entries = merged.filter((row) => row.bank > 0).map((row) => [row.source, row.bank]);
+      if (chartEl) renderBarChart(chartEl, entries, (key) => key, { colorFn: knowledgeSourceColor });
+      if (!body || !foot) return;
+      if (!merged.length) {
+        body.innerHTML = '<tr><td colspan="3" class="sub">Nenhuma pergunta do banco ligada a um facto.</td></tr>';
+        foot.innerHTML = '';
+        return;
+      }
+      const totFacts = merged.reduce((s, r) => s + r.facts, 0);
+      const totBank = merged.reduce((s, r) => s + r.bank, 0);
+      body.innerHTML = merged.map((row, i) => `<tr data-knowledge-source="${esc(row.source || '')}">
+        <td>${knowledgeSourceDot(row.source, i)}${esc(row.source || '—')}</td>
+        <td class="num">${row.facts}</td>
+        <td class="num">${row.bank}</td>
+      </tr>`).join('');
+      foot.innerHTML = `<tr class="total-row"><th>Total</th><th class="num">${totFacts}</th><th class="num">${totBank}</th></tr>`;
+    }
+
+    async function filterKnowledgeInventory(source, topic, day) {
+      const srcEl = document.getElementById('knowledgeSearchSource');
+      const topicEl = document.getElementById('knowledgeSearchTopic');
+      const activeEl = document.getElementById('knowledgeActiveFilter');
+      const queryEl = document.getElementById('knowledgeSearchQuery');
+      const fromEl = document.getElementById('knowledgeSearchDateFrom');
+      const toEl = document.getElementById('knowledgeSearchDateTo');
+      const nextSource = source && source !== '—' && source !== '(facto removido)' ? source : '';
+      const nextTopic = topic || '';
+      const nextDay = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : '';
+      if (srcEl) srcEl.value = nextSource;
+      if (topicEl) topicEl.value = nextTopic;
+      if (activeEl) activeEl.value = 'all';
+      if (queryEl) queryEl.value = '';
+      if (fromEl) fromEl.value = nextDay ? `${nextDay}T00:00` : '';
+      if (toEl) toEl.value = nextDay ? `${nextDay}T23:59` : '';
+      document.getElementById('knowledgeBrowseSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!nextSource && !nextTopic && !nextDay) return;
+      await listKnowledgeCategory();
     }
 
     function updateKnowledgeBrowseUi() {
       const disableBtn = document.getElementById('knowledgeDisableSelectedBtn');
+      const deleteBtn = document.getElementById('knowledgeDeleteSelectedBtn');
       const exportBtn = document.getElementById('knowledgeExportBtn');
       const selectAll = document.getElementById('knowledgeSelectAll');
-      if (disableBtn) disableBtn.disabled = knowledgeDisableLoading || selectedKnowledgeIds.size === 0;
+      const mutating = knowledgeDisableLoading || knowledgeDeleteLoading;
+      if (disableBtn) disableBtn.disabled = mutating || selectedKnowledgeIds.size === 0;
+      if (deleteBtn) deleteBtn.disabled = mutating || selectedKnowledgeIds.size === 0;
       if (exportBtn) exportBtn.disabled = !lastKnowledgeSearchRows.length;
       if (selectAll && lastKnowledgeSearchRows.length) {
         selectAll.checked = lastKnowledgeSearchRows.every((r) => selectedKnowledgeIds.has(r.knowledge_id));
@@ -13849,12 +14278,39 @@
       }
     }
 
+    function formatKnowledgeTimestamp(iso) {
+      const d = iso instanceof Date ? iso : new Date(iso);
+      if (!iso || Number.isNaN(d.getTime())) {
+        return { date: '—', time: '', title: '', iso: '' };
+      }
+      const date = d.toLocaleDateString('pt-PT', {
+        timeZone: 'Europe/Lisbon',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      });
+      const time = d.toLocaleTimeString('pt-PT', {
+        timeZone: 'Europe/Lisbon',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false,
+      });
+      const isoText = d.toISOString();
+      return {
+        date,
+        time,
+        title: `${date} ${time} (Portugal) · ${isoText}`,
+        iso: isoText,
+      };
+    }
+
     function renderKnowledgeSearchResults(rows) {
       lastKnowledgeSearchRows = rows || [];
       const body = document.getElementById('knowledgeSearchBody');
       if (!body) return;
       if (!lastKnowledgeSearchRows.length) {
-        body.innerHTML = '<tr><td colspan="8" class="sub">Nenhum facto encontrado.</td></tr>';
+        body.innerHTML = '<tr><td colspan="9" class="sub">Nenhum facto encontrado.</td></tr>';
         updateKnowledgeBrowseUi();
         return;
       }
@@ -13863,6 +14319,7 @@
         const kid = row.knowledge_id || '';
         const checked = selectedKnowledgeIds.has(kid) ? 'checked' : '';
         const active = row.is_active !== false;
+        const ts = formatKnowledgeTimestamp(row.created_at);
         return `<tr data-kid="${esc(kid)}">
           <td><input type="checkbox" class="knowledge-row-check" data-kid="${esc(kid)}" ${checked} aria-label="Seleccionar facto"></td>
           <td><code>${esc(kid || '—')}</code></td>
@@ -13870,10 +14327,13 @@
           <td>${esc(row.answer || '—')}</td>
           <td>${esc(catMap[String(row.category_n)] || row.category_n || '—')}</td>
           <td>${esc(row.source || '—')}</td>
+          <td class="knowledge-timestamp" title="${esc(ts.title)}">${esc(ts.date)}${ts.time ? `<span class="ts-time">${esc(ts.time)}</span>` : ''}</td>
           <td>${active ? '<span class="pill">activo</span>' : '<span class="pill">inactivo</span>'}</td>
-          <td class="actions-cell">${active ? `
-            <button type="button" class="secondary knowledge-release-quarantine" data-kid="${esc(kid)}" title="Libertar da quarentena anti-reuso">Libertar</button>
-            <button type="button" class="danger knowledge-disable-one" data-kid="${esc(kid)}">Desactivar</button>` : '—'}</td>
+          <td class="actions-cell">
+            ${active ? `<button type="button" class="secondary knowledge-release-quarantine" data-kid="${esc(kid)}" title="Libertar da quarentena anti-reuso">Libertar</button>
+            <button type="button" class="danger knowledge-disable-one" data-kid="${esc(kid)}">Desactivar</button>` : ''}
+            <button type="button" class="danger knowledge-delete-one" data-kid="${esc(kid)}" title="Apagar da base para poder importar de novo">Apagar</button>
+          </td>
         </tr>`;
       }).join('');
       updateKnowledgeBrowseUi();
@@ -13881,20 +14341,30 @@
 
     async function searchKnowledgeRecords(options = {}) {
       if (knowledgeSearchLoading) return;
-      const { query, categoryN, topic, source, activeFilter } = getKnowledgeSearchFilters();
+      const { query, categoryN, topic, source, createdFrom, createdTo, activeFilter } = getKnowledgeSearchFilters();
       const requireQuery = options.requireQuery !== false;
+      const requireDate = options.requireDate === true;
       const statusEl = document.getElementById('knowledgeSearchStatus');
+      const hasDate = !!(createdFrom || createdTo);
+      const hasFilter = !!(query || categoryN || topic || source || hasDate);
 
-      if (requireQuery && !query) {
+      if (requireDate && !hasDate) {
         if (statusEl) {
-          statusEl.textContent = 'Indica texto para pesquisar (ou usa «Listar categoria»).';
+          statusEl.textContent = 'Escolhe uma data/hora (De / Até) ou clica num dia no inventário.';
           statusEl.className = 'status err';
         }
         return;
       }
-      if (!requireQuery && !categoryN && !topic && !source) {
+      if (requireQuery && !query && !hasDate) {
         if (statusEl) {
-          statusEl.textContent = 'Escolhe categoria, tópico ou fonte para listar.';
+          statusEl.textContent = 'Indica texto, uma data/hora, ou usa «Listar categoria».';
+          statusEl.className = 'status err';
+        }
+        return;
+      }
+      if (!requireQuery && !hasFilter) {
+        if (statusEl) {
+          statusEl.textContent = 'Escolhe categoria, tópico, fonte ou data/hora para listar.';
           statusEl.className = 'status err';
         }
         return;
@@ -13915,14 +14385,19 @@
             categoryN: categoryN ? Number(categoryN) : null,
             topic,
             source,
+            createdFrom,
+            createdTo,
             activeFilter,
-            limit: 100,
+            limit: 500,
           }),
         });
         renderKnowledgeSearchResults(data.rows || []);
         if (statusEl) {
           const shown = (data.rows || []).length;
-          statusEl.textContent = `${shown} facto(s) encontrado(s).`;
+          const dateNote = hasDate
+            ? ` · ${createdFrom || '…'} → ${createdTo || '…'}`
+            : '';
+          statusEl.textContent = `${shown} facto(s) encontrado(s)${dateNote}.`;
           statusEl.className = 'status ok';
         }
       } catch (err) {
@@ -13938,6 +14413,10 @@
 
     async function listKnowledgeCategory() {
       await searchKnowledgeRecords({ requireQuery: false });
+    }
+
+    async function listKnowledgeByDate() {
+      await searchKnowledgeRecords({ requireQuery: false, requireDate: true });
     }
 
     async function disableKnowledgeRecords(knowledgeIds, options = {}) {
@@ -13983,9 +14462,48 @@
       }
     }
 
+    async function deleteKnowledgeRecords(knowledgeIds, options = {}) {
+      const unique = [...new Set((knowledgeIds || []).map((id) => String(id || '').trim()).filter(Boolean))];
+      if (!unique.length) return null;
+      const statusEl = options.statusEl || document.getElementById('knowledgeSearchStatus');
+
+      knowledgeDeleteLoading = true;
+      updateKnowledgeBrowseUi();
+      if (statusEl) {
+        statusEl.textContent = 'A apagar…';
+        statusEl.className = 'status';
+      }
+
+      try {
+        const data = await api('/api/knowledge-import-admin', {
+          method: 'POST',
+          body: JSON.stringify({ action: 'delete', knowledgeIds: unique }),
+        });
+        unique.forEach((id) => selectedKnowledgeIds.delete(id));
+        lastKnowledgeSearchRows = lastKnowledgeSearchRows.filter((row) => !unique.includes(row.knowledge_id));
+        renderKnowledgeSearchResults(lastKnowledgeSearchRows);
+        await loadKnowledgeDashboard({ quiet: true });
+        if (statusEl) {
+          const bank = data.bankDeleted || 0;
+          statusEl.textContent = `${data.deleted || 0} facto(s) apagado(s)${bank ? ` · ${bank} pergunta(s) do banco removida(s)` : ''}. Podes importar de novo.`;
+          statusEl.className = data.deleted ? 'status ok' : 'status err';
+        }
+        return data;
+      } catch (err) {
+        if (statusEl) {
+          statusEl.textContent = err.message || 'Erro ao apagar.';
+          statusEl.className = 'status err';
+        }
+        return null;
+      } finally {
+        knowledgeDeleteLoading = false;
+        updateKnowledgeBrowseUi();
+      }
+    }
+
     function exportKnowledgeCsv() {
       if (!lastKnowledgeSearchRows.length) return;
-      const headers = ['knowledge_id', 'category_n', 'topic', 'subtopic', 'fact', 'answer', 'source', 'source_id', 'confidence', 'is_active', 'age_bands', 'allowed_formats'];
+      const headers = ['knowledge_id', 'category_n', 'topic', 'subtopic', 'fact', 'answer', 'source', 'source_id', 'confidence', 'is_active', 'age_bands', 'allowed_formats', 'created_at'];
       const lines = [headers.join(',')];
       for (const row of lastKnowledgeSearchRows) {
         const cells = headers.map((key) => {
@@ -14057,6 +14575,7 @@
         <div class="stat stat-total"><strong>${summary.pending ?? '—'}</strong><span>Pendentes na fila</span></div>
         <div class="stat stat-resolved"><strong>${summary.imported ?? '—'}</strong><span>Já importados</span></div>
         <div class="stat stat-repository"><strong>${repo.active ?? repo.total ?? '—'}</strong><span>Activos no Supabase</span></div>
+        <div class="stat stat-cancelled"><strong>${repo.inactive ?? '—'}</strong><span>Inactivos no Supabase</span></div>
         <div class="stat stat-quarantine"><strong>${qKnowledge}</strong><span>Quarentena repo (${qDays}d)</span></div>
         <div class="stat stat-top-issue"><strong>${bankPct}</strong><span>Banco (entrega)</span></div>
         <div class="stat stat-top-issue"><strong>${repoPct}</strong><span>Repositório (entrega)</span></div>
@@ -15347,6 +15866,16 @@
       await deleteBankQuestions([hash], { block, clearLocal });
     });
     document.getElementById('knowledgeRefreshBtn')?.addEventListener('click', () => loadKnowledgeDashboard());
+    document.getElementById('knowledgeInventorySection')?.addEventListener('click', (e) => {
+      const dayEl = e.target.closest('[data-knowledge-day]');
+      if (dayEl) {
+        filterKnowledgeInventory('', '', dayEl.dataset.knowledgeDay);
+        return;
+      }
+      const row = e.target.closest('[data-knowledge-source]');
+      if (!row) return;
+      filterKnowledgeInventory(row.dataset.knowledgeSource, row.dataset.knowledgeTopic || '', '');
+    });
     document.getElementById('knowledgeSyncBtn')?.addEventListener('click', () => syncKnowledgeQueue());
     document.getElementById('knowledgeDryRunBtn')?.addEventListener('click', () => runKnowledgeImport({ dryRun: true }));
     document.getElementById('knowledgeImportBtn')?.addEventListener('click', () => runKnowledgeImport());
@@ -15366,6 +15895,7 @@
     document.getElementById('knowledgeDedupeApplyBtn')?.addEventListener('click', () => applyKnowledgeDedupe());
     document.getElementById('knowledgeSearchBtn')?.addEventListener('click', () => searchKnowledgeRecords());
     document.getElementById('knowledgeListCategoryBtn')?.addEventListener('click', () => listKnowledgeCategory());
+    document.getElementById('knowledgeListDateBtn')?.addEventListener('click', () => listKnowledgeByDate());
     document.getElementById('knowledgeSearchQuery')?.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') searchKnowledgeRecords();
     });
@@ -15380,11 +15910,21 @@
       if (!ok) return;
       await disableKnowledgeRecords(ids);
     });
+    document.getElementById('knowledgeDeleteSelectedBtn')?.addEventListener('click', async () => {
+      const ids = [...selectedKnowledgeIds];
+      if (!ids.length) return;
+      const ok = await confirmAction(
+        `Apagar ${ids.length} facto(s) do repositório? Isto remove o facto (não só desactiva) e as perguntas do banco ligadas, para poderes importar de novo.`,
+        { okLabel: 'Apagar', danger: true },
+      );
+      if (!ok) return;
+      await deleteKnowledgeRecords(ids);
+    });
     document.getElementById('knowledgeSelectAll')?.addEventListener('change', (e) => {
       const checked = e.target.checked;
       for (const row of lastKnowledgeSearchRows) {
         const kid = row.knowledge_id;
-        if (!kid || row.is_active === false) continue;
+        if (!kid) continue;
         if (checked) selectedKnowledgeIds.add(kid);
         else selectedKnowledgeIds.delete(kid);
       }
@@ -15407,6 +15947,17 @@
           reloadBank: true,
           reloadKnowledge: true,
         });
+        return;
+      }
+      if (e.target.classList.contains('knowledge-delete-one')) {
+        const kid = e.target.dataset.kid;
+        if (!kid) return;
+        const ok = await confirmAction(
+          `Apagar o facto ${kid}? Remove-o da base (e perguntas do banco ligadas) para poderes importar de novo.`,
+          { okLabel: 'Apagar', danger: true },
+        );
+        if (!ok) return;
+        await deleteKnowledgeRecords([kid]);
         return;
       }
       if (!e.target.classList.contains('knowledge-disable-one')) return;

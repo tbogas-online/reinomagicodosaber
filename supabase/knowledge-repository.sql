@@ -303,6 +303,57 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------------
+-- RPC: apagar factos (admin) para permitir reimportação
+-- Remove o facto, perguntas do banco com o mesmo knowledge_id e eventos de reuso.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.delete_knowledge_records(p_knowledge_ids TEXT[])
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_ids TEXT[];
+  v_deleted INT := 0;
+  v_bank INT := 0;
+  v_reuse INT := 0;
+BEGIN
+  SELECT COALESCE(array_agg(DISTINCT trimmed), '{}'::TEXT[])
+    INTO v_ids
+  FROM (
+    SELECT trim(id) AS trimmed
+    FROM unnest(COALESCE(p_knowledge_ids, '{}'::TEXT[])) AS id
+    WHERE trim(id) <> ''
+  ) s;
+
+  IF v_ids IS NULL OR cardinality(v_ids) = 0 THEN
+    RETURN jsonb_build_object('ok', false, 'deleted', 0, 'bankDeleted', 0, 'reuseDeleted', 0);
+  END IF;
+
+  IF to_regclass('public.question_reuse_events') IS NOT NULL THEN
+    DELETE FROM public.question_reuse_events
+    WHERE knowledge_id = ANY(v_ids);
+    GET DIAGNOSTICS v_reuse = ROW_COUNT;
+  END IF;
+
+  DELETE FROM public.question_bank
+  WHERE knowledge_id = ANY(v_ids);
+  GET DIAGNOSTICS v_bank = ROW_COUNT;
+
+  DELETE FROM public.knowledge_records
+  WHERE knowledge_id = ANY(v_ids);
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'deleted', v_deleted,
+    'bankDeleted', v_bank,
+    'reuseDeleted', v_reuse
+  );
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
 -- RPC: estatísticas (admin — service role)
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.get_knowledge_repository_stats()
@@ -314,11 +365,17 @@ AS $$
 DECLARE
   v_total INT;
   v_active INT;
+  v_inactive INT;
   v_by_category JSONB;
   v_by_source JSONB;
+  v_by_source_topic JSONB;
+  v_by_day JSONB;
+  v_bank_linked JSONB;
+  v_bank_by_knowledge_source JSONB;
 BEGIN
   SELECT COUNT(*) INTO v_total FROM public.knowledge_records;
   SELECT COUNT(*) INTO v_active FROM public.knowledge_records WHERE is_active = true;
+  v_inactive := COALESCE(v_total, 0) - COALESCE(v_active, 0);
 
   SELECT COALESCE(jsonb_agg(
     jsonb_build_object('category_n', t.category_n, 'topic', t.topic, 'count', t.cnt)
@@ -333,21 +390,97 @@ BEGIN
   ) t;
 
   SELECT COALESCE(jsonb_agg(
-    jsonb_build_object('source', t.source, 'count', t.cnt) ORDER BY t.cnt DESC, t.source
+    jsonb_build_object(
+      'source', t.source,
+      'count', t.active,
+      'active', t.active,
+      'inactive', t.inactive,
+      'total', t.total
+    ) ORDER BY t.active DESC, t.source
   ), '[]'::jsonb)
   INTO v_by_source
   FROM (
-    SELECT source, COUNT(*)::INT AS cnt
+    SELECT
+      source,
+      COUNT(*) FILTER (WHERE is_active)::INT AS active,
+      COUNT(*) FILTER (WHERE NOT is_active)::INT AS inactive,
+      COUNT(*)::INT AS total
     FROM public.knowledge_records
-    WHERE is_active = true
     GROUP BY source
+  ) t;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'source', t.source,
+      'category_n', t.category_n,
+      'topic', t.topic,
+      'active', t.active,
+      'inactive', t.inactive,
+      'total', t.total
+    ) ORDER BY t.active DESC, t.source, t.topic
+  ), '[]'::jsonb)
+  INTO v_by_source_topic
+  FROM (
+    SELECT
+      source,
+      category_n,
+      topic,
+      COUNT(*) FILTER (WHERE is_active)::INT AS active,
+      COUNT(*) FILTER (WHERE NOT is_active)::INT AS inactive,
+      COUNT(*)::INT AS total
+    FROM public.knowledge_records
+    GROUP BY source, category_n, topic
+  ) t;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'day', to_char(t.day, 'YYYY-MM-DD'),
+      'source', t.source,
+      'count', t.cnt
+    ) ORDER BY t.day, t.source
+  ), '[]'::jsonb)
+  INTO v_by_day
+  FROM (
+    SELECT
+      (created_at AT TIME ZONE 'Europe/Lisbon')::date AS day,
+      source,
+      COUNT(*)::INT AS cnt
+    FROM public.knowledge_records
+    GROUP BY 1, 2
+  ) t;
+
+  SELECT jsonb_build_object(
+    'total', COUNT(*)::INT,
+    'withKnowledgeId', COUNT(*) FILTER (
+      WHERE knowledge_id IS NOT NULL AND btrim(knowledge_id) <> ''
+    )::INT
+  )
+  INTO v_bank_linked
+  FROM public.question_bank;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object('source', t.source, 'count', t.cnt)
+    ORDER BY t.cnt DESC, t.source
+  ), '[]'::jsonb)
+  INTO v_bank_by_knowledge_source
+  FROM (
+    SELECT COALESCE(kr.source, '(facto removido)') AS source, COUNT(*)::INT AS cnt
+    FROM public.question_bank qb
+    LEFT JOIN public.knowledge_records kr ON kr.knowledge_id = qb.knowledge_id
+    WHERE qb.knowledge_id IS NOT NULL AND btrim(qb.knowledge_id) <> ''
+    GROUP BY 1
   ) t;
 
   RETURN jsonb_build_object(
     'total', v_total,
     'active', v_active,
+    'inactive', v_inactive,
     'byCategoryTopic', v_by_category,
-    'bySource', v_by_source
+    'bySource', v_by_source,
+    'bySourceTopic', v_by_source_topic,
+    'byDay', v_by_day,
+    'bankLinked', v_bank_linked,
+    'bankByKnowledgeSource', v_bank_by_knowledge_source
   );
 END;
 $$;
@@ -438,6 +571,9 @@ GRANT EXECUTE ON FUNCTION public.import_knowledge_batch(JSONB) TO service_role;
 
 REVOKE ALL ON FUNCTION public.disable_knowledge_record(TEXT) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.disable_knowledge_record(TEXT) TO service_role;
+
+REVOKE ALL ON FUNCTION public.delete_knowledge_records(TEXT[]) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.delete_knowledge_records(TEXT[]) TO service_role;
 
 REVOKE ALL ON FUNCTION public.get_knowledge_repository_stats() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_knowledge_repository_stats() TO service_role;
