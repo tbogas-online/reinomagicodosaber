@@ -1,59 +1,59 @@
 /* Service Worker — Reino Mágico do Saber
  * APP_BUILD e PRECACHE_URLS são gerados por scripts/generate-version.js
  */
-const APP_BUILD = '20260909-140200';
+const APP_BUILD = '20260909-145032';
 const STATIC_CACHE = `reino-static-${APP_BUILD}`;
 
 // GENERATED_PRECACHE_START
 const PRECACHE_URLS = [
-  '/answer-events-sync.js?v=20260909-114432',
-  '/app-update.js?v=20260909-114432',
+  '/answer-events-sync.js?v=20260909-145032',
+  '/app-update.js?v=20260909-145032',
   '/favicon.ico',
-  '/game-history.js?v=20260909-114432',
-  '/html-escape.js?v=20260909-114432',
+  '/game-history.js?v=20260909-145032',
+  '/html-escape.js?v=20260909-145032',
   '/icon-any-192.png',
   '/icon-any-512.png',
   '/index.html',
-  '/knowledge-repository.js?v=20260909-114432',
+  '/knowledge-repository.js?v=20260909-145032',
   '/manifest.webmanifest',
-  '/multiplayer-controller.js?v=20260909-114432',
-  '/multiplayer-sync.js?v=20260909-114432',
-  '/player-names.js?v=20260909-114432',
-  '/question-bank.js?v=20260909-114432',
-  '/question-engine.js?v=20260909-132800',
-  '/question-engine/adivinha-answer-pool.js?v=20260909-114432',
-  '/question-engine/adivinha-distractors.js?v=20260909-114432',
-  '/question-engine/adivinha-verify.js?v=20260909-114432',
-  '/question-engine/age-validators.js?v=20260909-114432',
-  '/question-engine/category-validators.js?v=20260909-114432',
-  '/question-engine/content-safety-data.js?v=20260909-114432',
-  '/question-engine/content-safety.js?v=20260909-114432',
-  '/question-engine/difficulty-estimate.js?v=20260909-114432',
-  '/question-engine/engine-config.js?v=20260909-114432',
-  '/question-engine/factual-verify.js?v=20260909-114432',
-  '/question-engine/wikidata-verify.js?v=20260909-132800',
-  '/question-engine/format-validators.js?v=20260909-114432',
-  '/question-engine/issue-codes.js?v=20260909-114432',
-  '/question-engine/issue-overrides.js?v=20260909-114432',
-  '/question-engine/knowledge-key-compute.js?v=20260909-114432',
-  '/question-engine/knowledge-key.js?v=20260909-114432',
-  '/question-engine/known-facts.js?v=20260909-114432',
-  '/question-engine/learning-engine.js?v=20260909-114432',
-  '/question-engine/mc-assembly.js?v=20260909-114432',
-  '/question-engine/mc-distractor-quality.js?v=20260909-114432',
-  '/question-engine/mc-validators.js?v=20260909-140200',
-  '/question-engine/persistent-history.js?v=20260909-114432',
-  '/question-engine/prompt-builder.js?v=20260909-132800',
-  '/question-engine/pt-pt-validators.js?v=20260909-114432',
-  '/question-engine/question-archetypes.js?v=20260909-114432',
-  '/question-engine/question-scoring.js?v=20260909-114432',
-  '/question-engine/repetition-validators.js?v=20260909-114432',
-  '/question-engine/reported-content.js?v=20260909-114432',
-  '/question-engine/retry-strategy.js?v=20260909-114432',
-  '/question-engine/semantic-validators.js?v=20260909-114432',
-  '/question-engine/telemetry.js?v=20260909-114432',
-  '/supabase-client.js?v=20260909-114432',
-  '/supabase-config.js?v=20260909-114432',
+  '/multiplayer-controller.js?v=20260909-145032',
+  '/multiplayer-sync.js?v=20260909-145032',
+  '/player-names.js?v=20260909-145032',
+  '/question-bank.js?v=20260909-145032',
+  '/question-engine.js?v=20260909-145032',
+  '/question-engine/adivinha-answer-pool.js?v=20260909-145032',
+  '/question-engine/adivinha-distractors.js?v=20260909-145032',
+  '/question-engine/adivinha-verify.js?v=20260909-145032',
+  '/question-engine/age-validators.js?v=20260909-145032',
+  '/question-engine/category-validators.js?v=20260909-145032',
+  '/question-engine/content-safety-data.js?v=20260909-145032',
+  '/question-engine/content-safety.js?v=20260909-145032',
+  '/question-engine/difficulty-estimate.js?v=20260909-145032',
+  '/question-engine/engine-config.js?v=20260909-145032',
+  '/question-engine/factual-verify.js?v=20260909-145032',
+  '/question-engine/format-validators.js?v=20260909-145032',
+  '/question-engine/issue-codes.js?v=20260909-145032',
+  '/question-engine/issue-overrides.js?v=20260909-145032',
+  '/question-engine/knowledge-key-compute.js?v=20260909-145032',
+  '/question-engine/knowledge-key.js?v=20260909-145032',
+  '/question-engine/known-facts.js?v=20260909-145032',
+  '/question-engine/learning-engine.js?v=20260909-145032',
+  '/question-engine/mc-assembly.js?v=20260909-145032',
+  '/question-engine/mc-distractor-quality.js?v=20260909-145032',
+  '/question-engine/mc-validators.js?v=20260909-145032',
+  '/question-engine/persistent-history.js?v=20260909-145032',
+  '/question-engine/prompt-builder.js?v=20260909-145032',
+  '/question-engine/pt-pt-validators.js?v=20260909-145032',
+  '/question-engine/question-archetypes.js?v=20260909-145032',
+  '/question-engine/question-scoring.js?v=20260909-145032',
+  '/question-engine/repetition-validators.js?v=20260909-145032',
+  '/question-engine/reported-content.js?v=20260909-145032',
+  '/question-engine/retry-strategy.js?v=20260909-145032',
+  '/question-engine/semantic-validators.js?v=20260909-145032',
+  '/question-engine/telemetry.js?v=20260909-145032',
+  '/question-engine/wikidata-verify.js?v=20260909-145032',
+  '/supabase-client.js?v=20260909-145032',
+  '/supabase-config.js?v=20260909-145032',
 ];
 // GENERATED_PRECACHE_END
 
@@ -117,6 +117,7 @@ async function staleWhileRevalidate(request) {
 }
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil((async () => {
     const cache = await caches.open(STATIC_CACHE);
     await Promise.all(PRECACHE_URLS.map(async (urlPath) => {
@@ -153,7 +154,12 @@ self.addEventListener('fetch', (event) => {
   if (url.origin !== self.location.origin) return;
 
   if (isNetworkOnly(url)) {
-    event.respondWith(fetch(event.request));
+    event.respondWith(
+      fetch(event.request).catch(() => new Response('Offline', {
+        status: 503,
+        statusText: 'Service Unavailable',
+      })),
+    );
     return;
   }
 
