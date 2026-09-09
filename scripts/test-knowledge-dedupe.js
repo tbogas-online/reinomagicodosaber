@@ -48,5 +48,50 @@ assert('filterNewRecords rejeita duplicado', filterNewRecords(
   curiosidades,
 ).skipped.length === 1);
 
+const unescoSites = [
+  {
+    knowledge_id: 'knw-cat20-cur-wd-q174779-unesco-t',
+    topic: 'curiosidade surpreendente',
+    fact: 'Mosteiro da Batalha faz parte do Património Mundial da UNESCO.',
+    answer: 'Verdadeiro',
+    source: 'Wikidata',
+    source_id: 'Q174779',
+    is_active: true,
+  },
+  {
+    knowledge_id: 'knw-cat20-cur-wd-q593147-unesco-t',
+    topic: 'curiosidade surpreendente',
+    fact: 'Mosteiro de Alcobaça faz parte do Património Mundial da UNESCO.',
+    answer: 'Verdadeiro',
+    source: 'Wikidata',
+    source_id: 'Q593147',
+    is_active: true,
+  },
+];
+assert('UNESCO Q-ids diferentes não colapsam', filterNewRecords(unescoSites, []).accepted.length === 2);
+assert('UNESCO Q-ids diferentes não desactiva no dedupe', buildDedupePlan(unescoSites, { curiosidades: true, adivinhas: false }).toDisable.length === 0);
+
+const unescoVf = filterNewRecords([
+  {
+    knowledge_id: 'knw-cat20-cur-wd-q193683-unesco-t',
+    topic: 'curiosidade surpreendente',
+    fact: 'Mosteiro dos Jerónimos faz parte do Património Mundial da UNESCO.',
+    answer: 'Verdadeiro',
+    source: 'Wikidata',
+    source_id: 'Q193683:unesco-t',
+    source_url: 'https://www.wikidata.org/wiki/Q193683',
+  },
+  {
+    knowledge_id: 'knw-cat20-cur-wd-q193683-unesco-f',
+    topic: 'curiosidade surpreendente',
+    fact: 'Mosteiro dos Jerónimos fica em Espanha.',
+    answer: 'Falso',
+    source: 'Wikidata',
+    source_id: 'Q193683:unesco-f',
+    source_url: 'https://www.wikidata.org/wiki/Q193683',
+  },
+], []);
+assert('UNESCO V e F do mesmo Q-id são factos distintos', unescoVf.accepted.length === 2);
+
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

@@ -3640,7 +3640,7 @@
 <script src="question-engine/telemetry.js?v=20260909-114432"></script>
 <script src="question-engine/known-facts.js?v=20260909-114432"></script>
 <script src="question-engine/factual-verify.js?v=20260909-114432"></script>
-<script src="question-engine/wikidata-verify.js?v=20260909-114432"></script>
+<script src="question-engine/wikidata-verify.js?v=20260909-132800"></script>
 <script src="question-engine/adivinha-verify.js?v=20260909-114432"></script>
 <script src="question-engine/adivinha-answer-pool.js?v=20260909-114432"></script>
 <script src="question-engine/content-safety-data.js?v=20260909-114432"></script>
@@ -3649,7 +3649,7 @@
 <script src="question-engine/difficulty-estimate.js?v=20260909-114432"></script>
 <script src="question-engine/pt-pt-validators.js?v=20260909-114432"></script>
 <script src="question-engine/format-validators.js?v=20260909-114432"></script>
-<script src="question-engine/mc-validators.js?v=20260909-114432"></script>
+<script src="question-engine/mc-validators.js?v=20260909-140200"></script>
 <script src="question-engine/mc-distractor-quality.js?v=20260909-114432"></script>
 <script src="question-engine/age-validators.js?v=20260909-114432"></script>
 <script src="question-engine/category-validators.js?v=20260909-114432"></script>
@@ -3660,11 +3660,11 @@
 <script src="question-engine/persistent-history.js?v=20260909-114432"></script>
 <script src="question-engine/question-archetypes.js?v=20260909-114432"></script>
 <script src="question-engine/learning-engine.js?v=20260909-114432"></script>
-<script src="question-engine/prompt-builder.js?v=20260909-114432"></script>
+<script src="question-engine/prompt-builder.js?v=20260909-132800"></script>
 <script src="question-engine/mc-assembly.js?v=20260909-114432"></script>
 <script src="question-engine/issue-overrides.js?v=20260909-114432"></script>
 <script src="question-engine/question-scoring.js?v=20260909-114432"></script>
-<script src="question-engine.js?v=20260909-114432" id="question-engine-script"></script>
+<script src="question-engine.js?v=20260909-132800" id="question-engine-script"></script>
 <script src="question-bank.js?v=20260909-114432"></script>
 <script defer>
   // Modo debug: adiciona ?debug=1 ao URL para logs extra na consola.
@@ -3995,7 +3995,7 @@
   // perguntas — primeiro da mesma categoria/faixa etária (mais relevantes) e,
   // se não houver suficientes, de outras categorias da mesma faixa etária.
   // Garante que o banco local também é sempre apresentado em escolha múltipla.
-  function isPlausibleMcDistractor(correctAnswer, candidateAnswer){
+  function isPlausibleMcDistractor(correctAnswer, candidateAnswer, questionText){
     const correct = String(correctAnswer || '').trim();
     const candidate = String(candidateAnswer || '').trim();
     if(!candidate || candidate === '—') return false;
@@ -4006,17 +4006,26 @@
     if(cWords <= 4 && dWords > 5) return false;
     if(cLen <= 25 && dLen > Math.max(40, cLen * 2.5)) return false;
     if(cWords >= 1 && dWords > cWords + 3) return false;
+    const Mc = window.QuestionEngineMcValidators;
+    if(Mc?.classifyMcOptionKind){
+      const ck = Mc.classifyMcOptionKind(correct);
+      const dk = Mc.classifyMcOptionKind(candidate);
+      const asksPerson = Mc.questionExpectsPersonOptions?.(questionText || '', null);
+      const fullPersonName = ck === 'person' && correct.split(/\s+/).filter(Boolean).length >= 2;
+      if(asksPerson || fullPersonName) return dk === 'person';
+      if(ck !== 'other' && ck !== 'concept' && ck !== 'empty' && dk !== ck) return false;
+    }
     return true;
   }
 
-  function buildFallbackOptions(correctAnswer, categoryNumber, ageBandKey){
+  function buildFallbackOptions(correctAnswer, categoryNumber, ageBandKey, questionText){
     const correctNorm = normalizeQ(correctAnswer);
     const seen = new Set([correctNorm]);
     const candidates = [];
 
     function tryAdd(answer){
       const norm = normalizeQ(answer);
-      if(seen.has(norm) || !isPlausibleMcDistractor(correctAnswer, answer)) return false;
+      if(seen.has(norm) || !isPlausibleMcDistractor(correctAnswer, answer, questionText)) return false;
       seen.add(norm);
       candidates.push(answer);
       return true;
@@ -4150,7 +4159,39 @@
     return ['Verdadeiro', 'Falso'];
   }
 
-  function ensureMcOptionsForQuestion(item, categoryNumber, ageBandKey, format){
+  function bankMcFailsConceptualClass(item, categoryNumber, ageBandKey, format){
+    const engine = QE();
+    if(!engine?.validateQuestion) return false;
+    const fmt = String(format || item.format || engine.FORMAT_IDS.ESCOLHA_MULTIPLA).toUpperCase();
+    if(fmt === 'VERDADEIRO_FALSO' || fmt === 'CURIOSIDADE' || fmt === 'ADIVINHA') return false;
+    const result = engine.validateQuestion({
+      q: item.q,
+      a: item.a,
+      options: item.options,
+    }, {
+      formatId: fmt,
+      ageBandKey,
+      categoryNumber,
+      isMC: true,
+      difficulty: 2,
+      usedQuestions: [],
+      usedAnswers: [],
+      usedKnowledgeKeys: [],
+      persistentKnowledgeKeys: [],
+      stripTags,
+      normalizeFn: normalizeQ,
+      helpers: { stripTags, validateTrueFalseQuestion: () => ({ ok: true, issues: [] }), ageBandKey },
+    });
+    const codes = (result.issueDetails || []).map((d) => d?.code).filter(Boolean);
+    return codes.some((code) => (
+      code === 'MC_WRONG_CLASS'
+      || code === 'MC_ABSURD_DISTRACTORS'
+      || code === 'MC_NEAR_DUPLICATE'
+      || code === 'MC_MULTIPLE_CORRECT'
+    ));
+  }
+
+  function ensureMcOptionsForQuestion(item, categoryNumber, ageBandKey, format, { allowFallback = true } = {}){
     const fmt = format || item.format;
     const optsFromBank = parseOptionsArray(item.options);
     if(hasValidMcOptions(optsFromBank, fmt, item.a)){
@@ -4168,7 +4209,8 @@
       const vfOpts = buildTrueFalseOptions(item.a);
       if(vfOpts) return { ...item, options: vfOpts, format: fmt || 'CURIOSIDADE' };
     }
-    const fallbackOpts = buildFallbackOptions(item.a, categoryNumber, ageBandKey);
+    if(!allowFallback) return null;
+    const fallbackOpts = buildFallbackOptions(item.a, categoryNumber, ageBandKey, item.q);
     if(fallbackOpts) return { ...item, options: fallbackOpts };
     return null;
   }
@@ -4273,11 +4315,17 @@
           { q: row.q, a: row.a, options: row.options, format: row.format },
           categoryN,
           ageBandKey,
-          row.format
+          row.format,
+          { allowFallback: false }
         );
         if(!withOpts){
           if(row.question_hash) excludeHashes.push(row.question_hash);
           if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: pergunta sem opções válidas — ignorada', row.question_hash);
+          continue;
+        }
+        if(bankMcFailsConceptualClass(withOpts, categoryN, ageBandKey, row.format)){
+          if(row.question_hash) excludeHashes.push(row.question_hash);
+          if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: opções incoerentes com a pergunta — ignorada', row.question_hash);
           continue;
         }
         if(DEBUG_MODE) console.info('[Reino debug] Banco Supabase: pergunta encontrada', withOpts);
@@ -4342,9 +4390,11 @@
       { q: bankRow.q, a: bankRow.a, options: bankRow.options },
       category.n,
       ageBandKey,
-      bankRow.format
+      bankRow.format,
+      { allowFallback: false }
     );
     if(!withOpts) return null;
+    if(bankMcFailsConceptualClass(withOpts, category.n, ageBandKey, bankRow.format)) return null;
     recordBankDeliveryTelemetry(engine, category, ageBandKey, bankRow);
     return finalizeQuestion(applyAdivinhaAnswerMode({
       q: withOpts.q,

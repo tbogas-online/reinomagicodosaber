@@ -11,6 +11,7 @@ const SOURCE_RANK = {
   'Pumpkin.pt': 60,
   'Brinca Comigo': 55,
   'Santander Salto': 50,
+  Wikidata: 45,
   'Quero Bolsa': 40,
   sample: 10,
 };
@@ -31,12 +32,31 @@ function jaccard(a, b) {
 function idTier(knowledgeId) {
   const id = String(knowledgeId || '');
   if (/-cur-b5[0-9]-/.test(id)) return 90;
+  if (/-cur-wd-/.test(id)) return 62;
   if (/-mm-/.test(id)) return 85;
   if (/-web-/.test(id)) return 50;
   if (/-adv-daily-/.test(id)) return 45;
   if (/-cur-daily-/.test(id)) return 35;
   if (/-sample-/.test(id)) return 10;
   return 30;
+}
+
+function wikidataQid(row) {
+  const blob = [
+    row?.source_id,
+    row?.sourceId,
+    row?.source_url,
+    row?.sourceUrl,
+    row?.metadata?.qid,
+  ].map((part) => String(part || '')).join(' ');
+  const match = blob.match(/\bQ\d+\b/i);
+  return match ? match[0].toUpperCase() : '';
+}
+
+function distinctWikidataEntities(a, b) {
+  const qa = wikidataQid(a);
+  const qb = wikidataQid(b);
+  return !!(qa && qb && qa !== qb);
 }
 
 function scoreRecord(row) {
@@ -74,6 +94,7 @@ function buildJaccardClusters(records, textField = 'fact') {
     used.add(i);
     for (let j = i + 1; j < records.length; j += 1) {
       if (used.has(j)) continue;
+      if (distinctWikidataEntities(records[i], records[j])) continue;
       const sim = jaccard(records[i][textField] || '', records[j][textField] || '');
       if (sim >= JACCARD_THRESHOLD) {
         cluster.push(records[j]);
@@ -191,6 +212,7 @@ function isDuplicateOfExisting(record, existingRecords, { topic } = {}) {
     const fact = normalizeText(rec.fact);
     for (const row of peers) {
       if (normalizeText(row.fact) === fact) return { duplicate: true, reason: 'exact_fact', of: row.knowledge_id };
+      if (distinctWikidataEntities(rec, row)) continue;
       if (jaccard(row.fact, rec.fact) >= JACCARD_THRESHOLD) {
         return { duplicate: true, reason: 'similar_fact', of: row.knowledge_id };
       }
@@ -239,4 +261,6 @@ module.exports = {
   buildDedupePlan,
   isDuplicateOfExisting,
   filterNewRecords,
+  wikidataQid,
+  distinctWikidataEntities,
 };

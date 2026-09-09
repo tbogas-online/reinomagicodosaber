@@ -61,7 +61,8 @@ function classifyMcOptionKind(text) {
   if (!t) return 'empty';
   if (/^(cerca de\s+)?\d{3,4}s?$/i.test(t)) return 'year';
   if (/^(portugal|espanha|frança|franca|alemanha|japão|japao|itália|italia|brasil|china|índia|india|catar|inglaterra|eua|estados unidos)$/i.test(t)) return 'country';
-  if (/^(spacex|nasa|esa|agência espacial europeia|google|apple|meta|tesla|brt)$/i.test(t)) return 'brand';
+  if (/^(spacex|nasa|esa|agência espacial europeia|google|apple|meta|tesla|brt|de havilland|boeing|airbus|lockheed|ferrari|fiat|renault|peugeot|volkswagen|mercedes|bmw|toyota|honda|samsung|microsoft|netflix|amazon|ford)$/i.test(t)) return 'brand';
+  if (/\b(biocombust[íi]vel|gasolina|petr[oó]leo|diesel|etanol|querosene|hidrog[eé]nio|propolente)\b/i.test(t)) return 'substance';
   if (looksLikeProverbOption(t)) return 'proverb';
   if (looksLikeFilmTitle(t)) return 'film';
   if (/\b(arcadismo|barroco|romantismo|modernismo|pós-modernismo|simbolismo|surrealismo|realismo|impressionismo|expressionismo)\b/i.test(t)) return 'literary_movement';
@@ -74,8 +75,12 @@ function classifyMcOptionKind(text) {
 }
 
 function questionExpectsPersonOptions(q, formatId) {
-  return formatId === FORMAT_IDS.QUEM_E
-    || /\b(quem\s+(interpretou|realizou|dirigiu|escreveu|inventou|compôs|compôs|pintou)|qual\s+(ator|actriz|realizador|cineasta))\b/i.test(q);
+  if (formatId === FORMAT_IDS.ADIVINHA) return false;
+  if (formatId === FORMAT_IDS.QUEM_E) return true;
+  const t = String(q || '');
+  if (/\bquem\s+(é|e|foi|era)\s+(o|a|os|as)\b/i.test(t)) return true;
+  if (/\bquem\s+(interpretou|realizou|dirigiu|escreveu|inventou|compôs|compos|pintou|projectou|projetou|concebeu|construiu|ajudou)\b/i.test(t)) return true;
+  return /\bqual\s+(ator|actriz|atriz|realizador|cineasta|engenheiro|arquitecto|arquiteto|inventor|compositor|pintor|escultor)\b/i.test(t);
 }
 
 function validateMcDistractorMixing(q, options, correctAnswer, stripTags, formatId) {
@@ -91,10 +96,16 @@ function validateMcDistractorMixing(q, options, correctAnswer, stripTags, format
   const isGeoQ = formatId === FORMAT_IDS.ONDE_FICA
     || /\b(em que país|em que continente|capital de|onde fica)\b/i.test(q);
 
-  if (asksPerson || correctKind === 'person') {
-    const badKinds = kinds.filter((k) => ['film', 'year', 'country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'].includes(k));
-    if (badKinds.length) {
-      pushMcWrongClass(issues, 'opções incoerentes — com pessoa pedida, todas as opções devem ser nomes de pessoas (não filmes, anos, países nem provérbios)');
+  // Só quando a pergunta pede uma pessoa (QUEM É / "quem é o engenheiro…").
+  // Não usar o tipo da resposta certa: nomes comuns capitalizados ("Pinhões")
+  // classificam-se como pessoa e as adivinhas ficariam sem distractores do pool.
+  if (asksPerson) {
+    const nonPerson = kinds.filter((k, i) => {
+      if (clean[i].toLowerCase() === correct.toLowerCase()) return false;
+      return k !== 'person';
+    });
+    if (nonPerson.length) {
+      pushMcWrongClass(issues, 'opções incoerentes — a pergunta pede uma pessoa; todas as opções devem ser nomes de pessoas (não empresas, combustíveis nem objectos)');
     }
   }
 
@@ -153,13 +164,16 @@ function validateMcDistractorMixing(q, options, correctAnswer, stripTags, format
     if (kinds.includes('brand') && correctKind !== 'brand' && !/\b(empresa|marca|spacex|nasa|esa)\b/i.test(q)) {
       pushMcWrongClass(issues, 'opções incoerentes — marcas ou empresas genéricas (ex.: SpaceX) não encaixam nesta pergunta');
     }
+    if (kinds.includes('substance') && correctKind !== 'substance') {
+      pushMcWrongClass(issues, 'opções incoerentes — combustíveis ou substâncias não encaixam nesta pergunta');
+    }
   }
 
   if (kinds.includes('proverb')) {
     pushMcWrongClass(issues, 'opções incoerentes — não uses provérbios ou frases longas como opção de escolha múltipla');
   }
 
-  const foreignKinds = ['film', 'year', 'country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'];
+  const foreignKinds = ['film', 'year', 'country', 'brand', 'substance', 'proverb', 'literary_movement', 'fashion_concept'];
   const distinctForeign = new Set(kinds.filter((k) => foreignKinds.includes(k)));
   if (distinctForeign.size >= 2) {
     pushMcWrongClass(issues, 'opções parecem respostas de perguntas diferentes — todas devem ser do mesmo tipo');
@@ -477,7 +491,7 @@ function validateMcConceptualClass(options, correctAnswer, stripTags) {
   if (distinctWrong.size >= 3 && correctBucket === 'entity') {
     pushMcWrongClass(issues, 'distratores incoerentes — devem pertencer à mesma classe conceptual que a resposta');
   }
-  const foreignKinds = ['film', 'year', 'country', 'brand', 'proverb', 'literary_movement', 'fashion_concept'];
+  const foreignKinds = ['film', 'year', 'country', 'brand', 'substance', 'proverb', 'literary_movement', 'fashion_concept'];
   const foreignWrong = wrongKinds.filter((k) => foreignKinds.includes(k));
   if (foreignWrong.length >= 2 && !foreignKinds.includes(correctKind)) {
     pushMcWrongClass(issues, 'distratores incoerentes — mistura tipos incompatíveis (filmes, anos, países, marcas…)');
@@ -553,5 +567,6 @@ function collectMcIssues(parsed, ctx) {
     validateMcConceptualClass,
     validateMcSingleCorrect,
     collectMcIssues,
+    questionExpectsPersonOptions,
   });
 })(typeof window !== 'undefined' ? window : globalThis);

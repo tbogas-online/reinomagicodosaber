@@ -86,6 +86,7 @@ exports.handler = async (event) => {
         } catch (err) {
           console.error('[knowledge-import-admin] import-source failed:', err);
           if (err.code === 'NOT_CONFIGURED') return json(503, { error: err.message });
+          if (err.code === 'WIKIDATA_FETCH') return json(503, { error: err.message });
           if (err.code === 'INVALID_BATCH' || err.code === 'INVALID_SOURCE' || err.code === 'INVALID_RECORD') {
             return json(400, { error: err.message, details: err.details || null });
           }

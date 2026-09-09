@@ -3,6 +3,11 @@
 const { getSupabaseAdmin } = require('./rooms-store');
 const supa = require('../../../scripts/lib/knowledge-import-supabase');
 const { listImportSources, importCuriosidadesBatches } = require('../../../scripts/lib/curiosidades-batch-import');
+const { importWikidataCuriosidades, listWikidataImportSources } = require('../../../scripts/lib/wikidata-curiosidades-import');
+
+function listAllImportSources() {
+  return [...listImportSources(), ...listWikidataImportSources()];
+}
 
 function requireAdmin() {
   const cfg = getSupabaseAdmin();
@@ -18,7 +23,7 @@ async function getImportDashboard() {
   const dashboard = await supa.getDashboard(requireAdmin());
   return {
     ...(dashboard && typeof dashboard === 'object' ? dashboard : {}),
-    importSources: listImportSources(),
+    importSources: listAllImportSources(),
   };
 }
 
@@ -48,8 +53,11 @@ async function syncImportQueueFromSeed() {
 
 async function importSource(_event, { source, batch, dryRun } = {}) {
   const kind = String(source || 'curiosidades-batch').trim();
+  if (kind === 'wikidata') {
+    return importWikidataCuriosidades(requireAdmin(), { dryRun, materializeQuestions: false });
+  }
   if (kind !== 'curiosidades-batch') {
-    const err = new Error('Fonte de importação desconhecida. Por agora só «curiosidades-batch».');
+    const err = new Error('Fonte de importação desconhecida. Usa «curiosidades-batch» ou «wikidata».');
     err.code = 'INVALID_SOURCE';
     throw err;
   }
@@ -62,4 +70,5 @@ module.exports = {
   resetImportOverrides,
   syncImportQueueFromSeed,
   importSource,
+  listAllImportSources,
 };

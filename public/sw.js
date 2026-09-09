@@ -1,7 +1,7 @@
 /* Service Worker — Reino Mágico do Saber
  * APP_BUILD e PRECACHE_URLS são gerados por scripts/generate-version.js
  */
-const APP_BUILD = '20260909-114432';
+const APP_BUILD = '20260909-140200';
 const STATIC_CACHE = `reino-static-${APP_BUILD}`;
 
 // GENERATED_PRECACHE_START
@@ -20,7 +20,7 @@ const PRECACHE_URLS = [
   '/multiplayer-sync.js?v=20260909-114432',
   '/player-names.js?v=20260909-114432',
   '/question-bank.js?v=20260909-114432',
-  '/question-engine.js?v=20260909-114432',
+  '/question-engine.js?v=20260909-132800',
   '/question-engine/adivinha-answer-pool.js?v=20260909-114432',
   '/question-engine/adivinha-distractors.js?v=20260909-114432',
   '/question-engine/adivinha-verify.js?v=20260909-114432',
@@ -31,7 +31,7 @@ const PRECACHE_URLS = [
   '/question-engine/difficulty-estimate.js?v=20260909-114432',
   '/question-engine/engine-config.js?v=20260909-114432',
   '/question-engine/factual-verify.js?v=20260909-114432',
-  '/question-engine/wikidata-verify.js?v=20260909-114432',
+  '/question-engine/wikidata-verify.js?v=20260909-132800',
   '/question-engine/format-validators.js?v=20260909-114432',
   '/question-engine/issue-codes.js?v=20260909-114432',
   '/question-engine/issue-overrides.js?v=20260909-114432',
@@ -41,9 +41,9 @@ const PRECACHE_URLS = [
   '/question-engine/learning-engine.js?v=20260909-114432',
   '/question-engine/mc-assembly.js?v=20260909-114432',
   '/question-engine/mc-distractor-quality.js?v=20260909-114432',
-  '/question-engine/mc-validators.js?v=20260909-114432',
+  '/question-engine/mc-validators.js?v=20260909-140200',
   '/question-engine/persistent-history.js?v=20260909-114432',
-  '/question-engine/prompt-builder.js?v=20260909-114432',
+  '/question-engine/prompt-builder.js?v=20260909-132800',
   '/question-engine/pt-pt-validators.js?v=20260909-114432',
   '/question-engine/question-archetypes.js?v=20260909-114432',
   '/question-engine/question-scoring.js?v=20260909-114432',

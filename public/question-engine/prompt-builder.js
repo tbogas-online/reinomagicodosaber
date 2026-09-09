@@ -503,6 +503,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
       const presentation = formatId === FORMAT_IDS.VERDADEIRO_FALSO
         ? 'afirmação factual directa terminada em "Verdadeiro ou Falso?"'
         : 'curiosidade surpreendente com "Sabias que…" ou "É verdade que…" e "Verdadeiro ou Falso?" no final';
+      const restHint = record.metadata?.restDescription
+        ? `- Descrição Wikidata (contexto; não inventes a partir disto): ${record.metadata.restDescription}`
+        : '';
       return `Formulas UMA curiosidade em português de Portugal a partir do FACTO VERIFICADO abaixo.
 NÃO inventes factos nem alteres a verdade do registo — só reformula em PT-PT natural.
 
@@ -510,6 +513,7 @@ FACTO VERIFICADO (fonte: ${sourceLine}):
 - Resposta correcta OBRIGATÓRIA no campo "a": ${expectedAnswer}
 - Facto/base: ${record.fact}
 ${statementHint}
+${restHint}
 
 REGRAS DO REPOSITÓRIO (obrigatórias):
 - O campo "a" tem de ser EXACTAMENTE "${expectedAnswer}" — só "Verdadeiro" ou "Falso".
@@ -535,7 +539,38 @@ ${mcInstruction || ''}
 Só json válido, sem markdown: ${jsonFormat}`;
     }
 
-    throw new Error(`buildPromptFromFact: formato não suportado (${formatId})`);
+    const restHint = record.metadata?.restDescription
+      ? `- Descrição Wikidata (contexto; não inventes a partir disto): ${record.metadata.restDescription}`
+      : '';
+    return `Formulas UMA pergunta em português de Portugal a partir do FACTO VERIFICADO abaixo.
+NÃO inventes factos, datas, nomes nem números — só reformula em PT-PT natural.
+
+FACTO VERIFICADO (fonte: ${sourceLine}):
+- Resposta correcta OBRIGATÓRIA no campo "a": ${expectedAnswer}
+- Facto/base: ${record.fact}
+${restHint}
+
+REGRAS DO REPOSITÓRIO (obrigatórias):
+- O campo "a" tem de ser EXACTAMENTE "${expectedAnswer}".
+- NÃO inventes dados novos nem contradigas o facto verificado.
+- NÃO mudes o sentido do facto (a pergunta tem de ser sobre este facto).
+
+CATEGORIA: ${category.name} (${category.desc})
+FORMATO: ${formatLabel} (${formatId})
+IDADE: ${ageBandPromptText}
+${retryBlock}${learnedBlock}
+${buildGlobalRules()}
+
+${buildFormatRules(formatId, { ageBandKey, isMC, isTrueFalse })}
+
+${buildAgeRules(ageBandKey, ageBandPromptText)}
+${ageDifficultyExtra || ''}
+
+${ptPtRules || ''}
+${openModeExtra || ''}
+${mcInstruction || ''}
+
+Só json válido, sem markdown: ${jsonFormat}`;
   }
 
   global.QuestionEnginePromptBuilder = {

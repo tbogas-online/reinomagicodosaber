@@ -1214,6 +1214,34 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('111. MC_WRONG_CLASS Versalhes', !r.ok && r.issueDetails?.some((i) => i.code === 'MC_WRONG_CLASS'), r.issues?.join(', '));
 }
 {
+  const golden = {
+    q: 'Quem é o engenheiro que ajudou a construir a ponte Golden Gate Bridge, na Califórnia',
+    a: 'Joseph Strauss',
+    options: ['Joseph Strauss', 'SpaceX', 'De Havilland', 'Biocombustível'],
+  };
+  const r = QE.validateQuestion(golden, baseCtx({
+    isMC: true,
+    formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA,
+    categoryNumber: 19,
+    ageBandKey: '15+',
+  }));
+  assert('111b. Golden Gate distractores incoerentes', !r.ok && r.issueDetails?.some((i) => i.code === 'MC_WRONG_CLASS'), r.issues?.join(', '));
+}
+{
+  const goldenOk = {
+    q: 'Quem é o engenheiro que ajudou a construir a ponte Golden Gate, na Califórnia?',
+    a: 'Joseph Strauss',
+    options: ['Joseph Strauss', 'John A. Roebling', 'Gustave Eiffel', 'Apolodoro de Damasco'],
+  };
+  const r = QE.validateQuestion(goldenOk, baseCtx({
+    isMC: true,
+    formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA,
+    categoryNumber: 19,
+    ageBandKey: '15+',
+  }));
+  assert('111c. Golden Gate engenheiros aceite', r.ok, r.issues?.join(', '));
+}
+{
   const congelamento = { q: 'Completa: O processo de solidificação da água é chamado de ___.', a: 'Congelamento' };
   const r = QE.validateQuestion(congelamento, baseCtx({ formatId: QE.FORMAT_IDS.COMPLETA, categoryNumber: 5, ageBandKey: '15+' }));
   assert('112. CATEGORY_MISMATCH congelamento', !r.ok && r.issueDetails?.some((i) => i.code === 'CATEGORY_MISMATCH'), r.issues?.join(', '));
@@ -2290,6 +2318,10 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     { source: 'Wikidata', sourceId: 'Q45', answer: 'Lisboa', category: 20 },
     { categoryNumber: 20, formatId: 'CURIOSIDADE' },
   ));
+  assert('256b. Wikidata pede geografia cat. 2', QE.shouldRequestWikidataVerify(
+    { source: 'Wikidata', sourceId: 'Q45', answer: 'Lisboa' },
+    { categoryNumber: 2, formatId: 'RESPOSTA_DIRETA' },
+  ));
   const lisbon = {
     id: 'Q597',
     labels: { pt: { value: 'Lisboa' }, en: { value: 'Lisbon' } },
@@ -2315,6 +2347,51 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     },
   );
   assert('259. Wikidata rede falhou não bloqueia', skippedNet.ok === true && skippedNet.skipped === true);
+
+  const restLisbon = {
+    id: 'Q597',
+    labels: { pt: 'Lisboa', en: 'Lisbon' },
+    descriptions: { pt: 'capital de Portugal' },
+    aliases: { pt: ['Olissipo'] },
+  };
+  assert('260. REST labels string confirma Lisboa', QE.evaluateWikidataSupport({ answer: 'Lisboa' }, restLisbon).matched === true);
+
+  let fetchedUrl = '';
+  const restOk = await QE.verifyAgainstWikidata(
+    { source: 'Wikidata', sourceId: 'Q597', answer: 'Lisboa' },
+    {
+      categoryNumber: 2,
+      formatId: 'RESPOSTA_DIRETA',
+      fetch: async (url) => {
+        fetchedUrl = String(url);
+        return { ok: true, json: async () => restLisbon };
+      },
+    },
+  );
+  assert('261. verify usa REST v1', /rest\.php\/wikibase\/v1\/entities\/items\/Q597/.test(fetchedUrl) && restOk.matched === true);
+
+  const geoPrompt = QE.buildPromptFromFact({
+    fact: 'A capital de Portugal é Lisboa.',
+    answer: 'Lisboa',
+    source: 'Wikidata',
+    sourceId: 'Q45',
+    metadata: { restDescription: 'país da Europa Ocidental' },
+  }, {
+    category: QE.CATEGORIES[2],
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: QE.FORMAT_IDS.RESPOSTA_DIRETA,
+    ptPtRules: '',
+    isMC: false,
+    isTrueFalse: false,
+    jsonFormat: '{"q":"","a":""}',
+  });
+  assert('262. prompt geografia a partir do facto', geoPrompt.includes('Lisboa') && geoPrompt.includes('NÃO inventes') && geoPrompt.includes('país da Europa Ocidental'));
+  const verified = QE.buildVerifiedAiInput(
+    { fact: 'A capital de Portugal é Lisboa.', answer: 'Lisboa', sourceId: 'Q45' },
+    restLisbon,
+  );
+  assert('263. input verificado para a IA', verified.qid === 'Q45' && verified.label === 'Lisboa' && /NÃO inventes/.test(verified.instruction));
   console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
   process.exit(failed > 0 ? 1 : 0);
 })().catch((err) => {
