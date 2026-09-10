@@ -14768,8 +14768,8 @@
           <td>${active ? '<span class="pill">activo</span>' : '<span class="pill">inactivo</span>'}</td>
           <td>${reasonCell}</td>
           <td class="actions-cell">
-            ${active ? `<button type="button" class="secondary knowledge-release-quarantine" data-kid="${esc(kid)}" title="Libertar da quarentena anti-reuso">Libertar</button>
-            <button type="button" class="danger knowledge-disable-one" data-kid="${esc(kid)}">Desactivar</button>` : ''}
+            ${active && row.in_quarantine ? `<button type="button" class="secondary knowledge-release-quarantine" data-kid="${esc(kid)}" title="Libertar da quarentena anti-reuso (foi jogado nos últimos 30 dias)">Libertar</button>` : ''}
+            ${active ? `<button type="button" class="danger knowledge-disable-one" data-kid="${esc(kid)}">Desactivar</button>` : ''}
             <button type="button" class="danger knowledge-delete-one" data-kid="${esc(kid)}" title="Apagar da base para poder importar de novo">Apagar</button>
           </td>
         </tr>`;

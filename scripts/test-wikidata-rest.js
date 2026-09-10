@@ -83,6 +83,37 @@ const capitals = transformCountryCapitalBindings([
 assert('geografia aceita Portugal/Lisboa', capitals.length === 1 && capitals[0].answer === 'Lisboa');
 assert('geografia source Q-id do país', capitals[0].source_id === 'Q45' && capitals[0].category_n === 2);
 assert('geografia válido', validateRecord(capitals[0]).length === 0, validateRecord(capitals[0]).join(','));
+assert('atalho capitais ignora data de fim', String(getQueryById('countryCapitals')?.sparql || '').includes('P582'));
+
+const southCapitals = transformCountryCapitalBindings([
+  {
+    country: { value: 'http://www.wikidata.org/entity/Q258' },
+    countryLabel: { value: 'África do Sul' },
+    capital: { value: 'http://www.wikidata.org/entity/Q3926' },
+    capitalLabel: { value: 'Pretória' },
+    capitalTypeLabel: { value: 'capital administrativa' },
+  },
+  {
+    country: { value: 'http://www.wikidata.org/entity/Q258' },
+    countryLabel: { value: 'África do Sul' },
+    capital: { value: 'http://www.wikidata.org/entity/Q5468' },
+    capitalLabel: { value: 'Cidade do Cabo' },
+    capitalTypeLabel: { value: 'capital legislativa' },
+  },
+  {
+    country: { value: 'http://www.wikidata.org/entity/Q258' },
+    countryLabel: { value: 'África do Sul' },
+    capital: { value: 'http://www.wikidata.org/entity/Q37701' },
+    capitalLabel: { value: 'Bloemfontein' },
+    capitalEnd: { value: '1910-01-01T00:00:00Z' },
+  },
+]);
+assert(
+  'geografia distingue capitais e ignora históricas',
+  southCapitals.length === 2
+    && southCapitals.some((row) => row.fact.includes('administrativa') && row.answer === 'Pretória')
+    && southCapitals.some((row) => row.fact.includes('legislativa') && row.answer === 'Cidade do Cabo'),
+);
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
 process.exit(failed > 0 ? 1 : 0);

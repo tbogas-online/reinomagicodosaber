@@ -77,6 +77,7 @@ assert('separa vírgulas e ponto-e-vírgula', sanitizeWords(['portugal, seleçã
 assert('limite 4 palavras', sanitizeWords(['um', 'dois', 'três', 'quatro', 'cinco']).length === 4);
 assert('tokens de campo livre', splitWordTokens('portugal, seleção; golo').length === 3);
 assert('query SPARQL usa EntitySearch', buildKeywordSearchQuery('Lisboa').includes('EntitySearch') && buildKeywordSearchQuery('Lisboa').includes('Lisboa'));
+assert('query SPARQL lê capitais com data de fim', buildKeywordSearchQuery('Lisboa').includes('p:P36') && buildKeywordSearchQuery('Lisboa').includes('P582') && buildKeywordSearchQuery('Lisboa').includes('p:P1376'));
 
 const portugal = groupKeywordBindings([
   binding({
@@ -91,6 +92,62 @@ const portugal = groupKeywordBindings([
 assert('agrupa Portugal', portugal.length === 1 && portugal[0].capitals[0].label === 'Lisboa');
 const capitalFact = pickFact(portugal[0]);
 assert('capital de Portugal', capitalFact?.fact === 'A capital de Portugal é Lisboa.' && capitalFact.suffix === 'p36');
+
+const southAfrica = groupKeywordBindings([
+  binding({
+    item: 'http://www.wikidata.org/entity/Q258',
+    itemLabel: 'África do Sul',
+    class: 'http://www.wikidata.org/entity/Q6256',
+    classLabel: 'país',
+    capital: 'http://www.wikidata.org/entity/Q3926',
+    capitalLabel: 'Pretória',
+    capitalType: 'http://www.wikidata.org/entity/Q1306755',
+    capitalTypeLabel: 'capital administrativa',
+  }),
+  binding({
+    item: 'http://www.wikidata.org/entity/Q258',
+    itemLabel: 'África do Sul',
+    class: 'http://www.wikidata.org/entity/Q6256',
+    classLabel: 'país',
+    capital: 'http://www.wikidata.org/entity/Q5468',
+    capitalLabel: 'Cidade do Cabo',
+    capitalTypeLabel: 'capital legislativa',
+  }),
+  binding({
+    item: 'http://www.wikidata.org/entity/Q258',
+    itemLabel: 'África do Sul',
+    class: 'http://www.wikidata.org/entity/Q6256',
+    classLabel: 'país',
+    capital: 'http://www.wikidata.org/entity/Q37701',
+    capitalLabel: 'Bloemfontein',
+    capitalTypeLabel: 'capital judicial',
+  }),
+]);
+const southAfricaFacts = listFacts(southAfrica[0], { categoryN: 2 });
+assert(
+  'África do Sul distingue três capitais',
+  southAfricaFacts.some((row) => row.fact === 'A capital administrativa de África do Sul é Pretória.')
+    && southAfricaFacts.some((row) => row.fact === 'A capital legislativa de África do Sul é Cidade do Cabo.')
+    && southAfricaFacts.some((row) => row.fact === 'A capital judicial de África do Sul é Bloemfontein.'),
+);
+
+const nycFormer = groupKeywordBindings([
+  binding({
+    item: 'http://www.wikidata.org/entity/Q60',
+    itemLabel: 'Nova Iorque',
+    class: 'http://www.wikidata.org/entity/Q515',
+    classLabel: 'cidade',
+    capitalOf: 'http://www.wikidata.org/entity/Q30',
+    capitalOfLabel: 'Estados Unidos',
+    capitalOfEnd: '1790-12-05T00:00:00Z',
+    country: 'http://www.wikidata.org/entity/Q30',
+    countryLabel: 'Estados Unidos',
+  }),
+]);
+assert(
+  'capital histórica de Nova Iorque fica de fora',
+  !listFacts(nycFormer[0], { categoryN: 2 }).some((row) => /é a capital de Estados Unidos/.test(row.fact)),
+);
 
 const rio = groupKeywordBindings([
   binding({
@@ -128,7 +185,7 @@ assert('registo válido', validateRecord(records[0]).length === 0, validateRecor
 const twelve = Array.from({ length: 12 }, (_, i) => ({ knowledge_id: `knw-${i}`, fact: `Facto ${i}.`, answer: 'X' }));
 assert('lista de importação tem 10 entradas', buildImportCandidates(twelve, []).length === PREVIEW_LIMIT);
 assert('filtra IDs seleccionados', applyKnowledgeIdFilter(twelve, ['knw-1', 'knw-9']).records.map((row) => row.knowledge_id).join() === 'knw-1,knw-9');
-assert('duplicados preenchem a lista', buildImportCandidates(twelve.slice(0, 2), [{ record: twelve[2], reason: 'dup' }]).some((row) => row.status === 'duplicate'));
+assert('duplicados ficam de fora da lista', buildImportCandidates(twelve.slice(0, 2), [{ record: twelve[2], reason: 'dup' }]).every((row) => row.status === 'new') && buildImportCandidates(twelve.slice(0, 2), [{ record: twelve[2], reason: 'dup' }]).length === 2);
 
 const curiosity = transformKeywordItems(taxon, { categoryN: 20, word: 'polvo' });
 assert('cat. 20 responde Verdadeiro', curiosity[0]?.answer === 'Verdadeiro' && curiosity[0].topic === 'curiosidade surpreendente');

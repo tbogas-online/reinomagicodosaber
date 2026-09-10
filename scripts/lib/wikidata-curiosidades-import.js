@@ -82,7 +82,7 @@ async function persistWikidataRecords(cfg, raw, {
   const filtered = filterNewRecords(records, existing);
   let accepted = filtered.accepted;
   const skipped = filtered.skipped;
-  const candidates = buildImportCandidates(accepted, skipped);
+  const candidates = buildImportCandidates(accepted, skipped, briefing?.limit);
   const selectedIds = Array.isArray(knowledgeIds) ? normalizeKnowledgeIds(knowledgeIds) : null;
 
   if (!dryRun && selectedIds) {
@@ -135,7 +135,12 @@ async function persistWikidataRecords(cfg, raw, {
 
   if (dryRun) {
     const selectable = candidates.filter((row) => row.selectable).length;
-    summary.message = `Lista Wikidata (até ${briefing?.limit || 10}): ${selectable} novo(s) para validar, ${skipped.length} já no repositório. Aceita ou rejeita e confirma: a lista limpa e só entram os aceites.`;
+    if (!selectable && skipped.length) {
+      summary.message = `Nenhum facto novo para validar — ${skipped.length} já estão no repositório (ocultos).`;
+    } else {
+      const hidden = skipped.length ? ` ${skipped.length} já no repositório (ocultos).` : '';
+      summary.message = `Lista Wikidata (até ${briefing?.limit || 10}): ${selectable} novo(s) para validar.${hidden} Aceita ou rejeita e confirma: a lista limpa e só entram os aceites.`;
+    }
     return summary;
   }
 

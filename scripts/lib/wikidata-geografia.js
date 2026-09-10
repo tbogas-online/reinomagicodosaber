@@ -6,20 +6,22 @@
 
 const { getCategoryQueries } = require('./wikidata-category-queries');
 const { fetchSparql, bindValue, qidFromUri, isUsableLabel } = require('./wikidata-sparql');
+const { resolveCapitalKind, formatCountryHasCapital } = require('./wikidata-keyword-search');
 
 const SOURCE = 'Wikidata';
 const LICENSE = 'CC0';
 const TOPIC = 'capital';
 
-function toCapitalRecord(countryQid, countryLabel, capitalQid, capitalLabel) {
+function toCapitalRecord(countryQid, countryLabel, capitalQid, capitalLabel, { kind, multi } = {}) {
+  const kindBit = kind?.suffix ? `-${kind.suffix}` : (multi ? `-${String(capitalQid || '').toLowerCase()}` : '');
   return {
-    knowledge_id: `knw-cat2-geo-wd-${countryQid.toLowerCase()}-capital`,
+    knowledge_id: `knw-cat2-geo-wd-${countryQid.toLowerCase()}-capital${kindBit}`,
     category_n: 2,
     topic: TOPIC,
     subtopic: 'capital',
-    fact: `A capital de ${countryLabel} é ${capitalLabel}.`,
+    fact: formatCountryHasCapital(countryLabel, capitalLabel, { kind, multi }),
     answer: capitalLabel,
-    statement: `A capital de ${countryLabel} é ${capitalLabel}. Verdadeiro ou Falso?`,
+    statement: `${formatCountryHasCapital(countryLabel, capitalLabel, { kind, multi })} Verdadeiro ou Falso?`,
     is_true: true,
     source: SOURCE,
     source_id: countryQid,
@@ -31,12 +33,17 @@ function toCapitalRecord(countryQid, countryLabel, capitalQid, capitalLabel) {
     allowed_formats: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'ONDE_FICA', 'VERDADEIRO_FALSO'],
     tags: ['wikidata', 'geografia', 'capital'],
     verified_by: 'wikidata-sparql-v1',
-    metadata: { pipeline: 'wikidata-sparql', qid: countryQid, relatedQid: capitalQid },
+    metadata: {
+      pipeline: 'wikidata-sparql',
+      qid: countryQid,
+      relatedQid: capitalQid,
+      capitalKind: kind?.id || (multi ? 'one-of-many' : 'sole'),
+    },
   };
 }
 
 function transformCountryCapitalBindings(bindings) {
-  const records = [];
+  const staged = [];
   for (const binding of bindings || []) {
     const countryQid = qidFromUri(bindValue(binding, 'country'));
     const capitalQid = qidFromUri(bindValue(binding, 'capital'));
@@ -44,9 +51,25 @@ function transformCountryCapitalBindings(bindings) {
     const capitalLabel = bindValue(binding, 'capitalLabel');
     if (!countryQid || !capitalQid) continue;
     if (!isUsableLabel(countryLabel) || !isUsableLabel(capitalLabel)) continue;
-    records.push(toCapitalRecord(countryQid, countryLabel, capitalQid, capitalLabel));
+    if (bindValue(binding, 'capitalEnd')) continue;
+    const kind = resolveCapitalKind(
+      qidFromUri(bindValue(binding, 'capitalType')) || qidFromUri(bindValue(binding, 'capitalRole')) || qidFromUri(bindValue(binding, 'capitalMethod')),
+      bindValue(binding, 'capitalTypeLabel'),
+      bindValue(binding, 'capitalRoleLabel'),
+      bindValue(binding, 'capitalMethodLabel'),
+    );
+    if (kind.skip) continue;
+    staged.push({ countryQid, capitalQid, countryLabel, capitalLabel, kind: kind.id ? kind : null });
   }
-  return records;
+  const counts = new Map();
+  for (const row of staged) counts.set(row.countryQid, (counts.get(row.countryQid) || 0) + 1);
+  return staged.map((row) => toCapitalRecord(
+    row.countryQid,
+    row.countryLabel,
+    row.capitalQid,
+    row.capitalLabel,
+    { kind: row.kind, multi: (counts.get(row.countryQid) || 0) > 1 },
+  ));
 }
 
 async function collectGeografiaRecords({ fetchFn, timeoutMs } = {}) {

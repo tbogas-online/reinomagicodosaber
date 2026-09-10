@@ -44,12 +44,20 @@ LIMIT 20`,
       api: 'sparql',
       label: 'Capitais de países (rótulo PT)',
       rest: { fields: ['labels', 'descriptions', 'statements'], confirmProperties: ['P36'] },
-      sparql: `SELECT ?country ?countryLabel ?capital ?capitalLabel WHERE {
+      sparql: `SELECT ?country ?countryLabel ?capital ?capitalLabel ?capitalType ?capitalTypeLabel ?capitalRole ?capitalRoleLabel ?capitalMethod ?capitalMethodLabel WHERE {
   ?country wdt:P31 wd:Q6256.
-  ?country wdt:P36 ?capital.
+  ?country p:P36 ?stmt.
+  ?stmt ps:P36 ?capital.
+  ?stmt wikibase:rank ?rank.
+  FILTER(?rank != wikibase:DeprecatedRank)
+  FILTER NOT EXISTS { ?stmt pq:P582 ?ended. }
+  FILTER NOT EXISTS { ?stmt pq:P31 wd:Q1933965. }
+  OPTIONAL { ?stmt pq:P31 ?capitalType. }
+  OPTIONAL { ?stmt pq:P3831 ?capitalRole. }
+  OPTIONAL { ?stmt pq:P459 ?capitalMethod. }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
 }
-LIMIT 80`,
+LIMIT 160`,
     },
   ],
 };

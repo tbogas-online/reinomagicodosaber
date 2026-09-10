@@ -54,6 +54,15 @@ const CLASS_PHRASE = {
   cefalópode: 'um cefalópode',
 };
 
+const FORMER_CAPITAL_KIND = /antiga capital|former capital|ex-capital|capital hist[oó]ric|historical capital/i;
+const CAPITAL_KIND_RULES = [
+  { id: 'admin', phrase: 'administrativa', suffix: 'admin', qids: new Set(['Q1306755', 'Q15991390']), re: /administrativ|sede do governo|seat of government|executive capital|administrative (capital|centre|center)/i },
+  { id: 'leg', phrase: 'legislativa', suffix: 'leg', qids: new Set(['Q1861831']), re: /legislativ|parlamentar|legislative/i },
+  { id: 'jud', phrase: 'judicial', suffix: 'jud', qids: new Set(['Q1478433']), re: /judicial|judici[aá]ri/i },
+  { id: 'off', phrase: 'oficial', suffix: 'off', qids: new Set(), re: /constitucional|oficial|statutory|constitutional/i },
+  { id: 'defacto', phrase: 'de facto', suffix: 'defacto', qids: new Set(), re: /de facto|efectiva/i },
+];
+
 function sanitizeWord(raw) {
   const text = String(raw || '').trim().replace(/\s+/g, ' ');
   if (text.length < 2 || text.length > 40) return '';
@@ -116,15 +125,13 @@ function candidateFromRecord(row, status, extra = {}) {
 }
 
 function buildImportCandidates(accepted, skipped, limit = PREVIEW_LIMIT) {
+  const cap = Math.min(20, Math.max(1, Number(limit) || PREVIEW_LIMIT));
   const rows = [];
   for (const row of accepted || []) {
-    if (rows.length >= limit) break;
+    if (rows.length >= cap) break;
     rows.push(candidateFromRecord(row, 'new'));
   }
-  for (const item of skipped || []) {
-    if (rows.length >= limit) break;
-    rows.push(candidateFromRecord(item.record, 'duplicate', { reason: item.reason }));
-  }
+  void skipped;
   return rows;
 }
 
@@ -137,7 +144,7 @@ function escapeSparqlString(value) {
 function buildKeywordSearchQuery(word) {
   const search = escapeSparqlString(sanitizeWord(word));
   if (!search) return '';
-  return `SELECT ?item ?itemLabel ?class ?classLabel ?country ?countryLabel ?capital ?capitalLabel ?place ?placeLabel ?occupation ?occupationLabel ?sport ?sportLabel ?continent ?continentLabel ?language ?languageLabel ?currency ?currencyLabel ?mouth ?mouthLabel ?capitalOf ?capitalOfLabel ?parent ?parentLabel WHERE {
+  return `SELECT ?item ?itemLabel ?class ?classLabel ?country ?countryLabel ?capital ?capitalLabel ?capitalType ?capitalTypeLabel ?capitalRole ?capitalRoleLabel ?capitalMethod ?capitalMethodLabel ?place ?placeLabel ?occupation ?occupationLabel ?sport ?sportLabel ?continent ?continentLabel ?language ?languageLabel ?currency ?currencyLabel ?mouth ?mouthLabel ?capitalOf ?capitalOfLabel ?capitalOfType ?capitalOfTypeLabel ?capitalOfRole ?capitalOfRoleLabel ?capitalOfMethod ?capitalOfMethodLabel ?parent ?parentLabel WHERE {
   SERVICE wikibase:mwapi {
     bd:serviceParam wikibase:api "EntitySearch" .
     bd:serviceParam wikibase:endpoint "www.wikidata.org" .
@@ -148,7 +155,17 @@ function buildKeywordSearchQuery(word) {
   }
   OPTIONAL { ?item wdt:P31 ?class. }
   OPTIONAL { ?item wdt:P17 ?country. }
-  OPTIONAL { ?item wdt:P36 ?capital. }
+  OPTIONAL {
+    ?item p:P36 ?capitalStmt.
+    ?capitalStmt ps:P36 ?capital.
+    ?capitalStmt wikibase:rank ?capitalRank.
+    FILTER(?capitalRank != wikibase:DeprecatedRank)
+    FILTER NOT EXISTS { ?capitalStmt pq:P582 ?capitalEnded. }
+    FILTER NOT EXISTS { ?capitalStmt pq:P31 wd:Q1933965. }
+    OPTIONAL { ?capitalStmt pq:P31 ?capitalType. }
+    OPTIONAL { ?capitalStmt pq:P3831 ?capitalRole. }
+    OPTIONAL { ?capitalStmt pq:P459 ?capitalMethod. }
+  }
   OPTIONAL { ?item wdt:P131 ?place. }
   OPTIONAL { ?item wdt:P106 ?occupation. }
   OPTIONAL { ?item wdt:P641 ?sport. }
@@ -156,17 +173,103 @@ function buildKeywordSearchQuery(word) {
   OPTIONAL { ?item wdt:P37 ?language. }
   OPTIONAL { ?item wdt:P38 ?currency. }
   OPTIONAL { ?item wdt:P403 ?mouth. }
-  OPTIONAL { ?item wdt:P1376 ?capitalOf. }
+  OPTIONAL {
+    ?item p:P1376 ?capitalOfStmt.
+    ?capitalOfStmt ps:P1376 ?capitalOf.
+    ?capitalOfStmt wikibase:rank ?capitalOfRank.
+    FILTER(?capitalOfRank != wikibase:DeprecatedRank)
+    FILTER NOT EXISTS { ?capitalOfStmt pq:P582 ?capitalOfEnded. }
+    FILTER NOT EXISTS { ?capitalOfStmt pq:P31 wd:Q1933965. }
+    OPTIONAL { ?capitalOfStmt pq:P31 ?capitalOfType. }
+    OPTIONAL { ?capitalOfStmt pq:P3831 ?capitalOfRole. }
+    OPTIONAL { ?capitalOfStmt pq:P459 ?capitalOfMethod. }
+  }
   OPTIONAL { ?item wdt:P171 ?parent. }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
 }
-LIMIT 80`;
+LIMIT 250`;
 }
 
 function pushUnique(list, qid, label) {
   if (!qid || !isUsableLabel(label)) return;
   if (list.some((row) => row.qid === qid)) return;
   list.push({ qid, label });
+}
+
+function resolveCapitalKind(...parts) {
+  const qid = parts.map((part) => String(part || '')).map((part) => (part.match(/\bQ\d+\b/i) || [''])[0].toUpperCase()).find(Boolean) || '';
+  const blob = parts.map((part) => String(part || '').trim()).filter(Boolean).join(' ');
+  if (FORMER_CAPITAL_KIND.test(blob) || qid === 'Q1933965') return { skip: true };
+  for (const rule of CAPITAL_KIND_RULES) {
+    if ((qid && rule.qids.has(qid)) || (blob && rule.re.test(blob))) {
+      return { id: rule.id, phrase: rule.phrase, suffix: rule.suffix };
+    }
+  }
+  return { id: '', phrase: '', suffix: '' };
+}
+
+function formatCountryHasCapital(country, capital, { kind, multi } = {}) {
+  if (kind?.phrase) return `A capital ${kind.phrase} de ${country} é ${capital}.`;
+  if (multi) return `Uma das capitais de ${country} é ${capital}.`;
+  return `A capital de ${country} é ${capital}.`;
+}
+
+function formatCityIsCapital(city, country, { kind, multi } = {}) {
+  if (kind?.phrase) return `${city} é a capital ${kind.phrase} de ${country}.`;
+  if (multi) return `${city} é uma das capitais de ${country}.`;
+  return `${city} é a capital de ${country}.`;
+}
+
+function pushCapital(list, qid, label, extra = {}) {
+  if (!qid || !isUsableLabel(label)) return;
+  if (extra.ended) return;
+  const kind = extra.kind && extra.kind.skip ? extra.kind : resolveCapitalKind(
+    extra.kindQid,
+    extra.kindLabel,
+    extra.roleLabel,
+    extra.methodLabel,
+  );
+  if (kind.skip) return;
+  const existing = list.find((row) => row.qid === qid);
+  if (!existing) {
+    list.push({
+      qid,
+      label,
+      kind: kind.id || '',
+      kindPhrase: kind.phrase || '',
+      kindSuffix: kind.suffix || '',
+    });
+    return;
+  }
+  if (!existing.kind && kind.id) {
+    existing.kind = kind.id;
+    existing.kindPhrase = kind.phrase;
+    existing.kindSuffix = kind.suffix;
+  }
+}
+
+function currentCapitals(list) {
+  return (list || []).filter((row) => row?.qid && row?.label && !row.ended && !row.kindSkip);
+}
+
+function buildCapitalFacts(subjectLabel, entries, { direction } = {}) {
+  const current = currentCapitals(entries).filter((row) => !sameLabel(row.label, subjectLabel));
+  const multi = current.length > 1;
+  return current.map((row, index) => {
+    const kind = row.kindPhrase ? { phrase: row.kindPhrase, suffix: row.kindSuffix || row.kind } : null;
+    const suffixBase = direction === 'of' ? 'p1376' : 'p36';
+    const suffix = kind?.suffix
+      ? `${suffixBase}-${kind.suffix}`
+      : (multi ? `${suffixBase}-${String(row.qid || index).toLowerCase()}` : suffixBase);
+    return {
+      fact: direction === 'of'
+        ? formatCityIsCapital(subjectLabel, row.label, { kind, multi })
+        : formatCountryHasCapital(subjectLabel, row.label, { kind, multi }),
+      answer: row.label,
+      suffix,
+      subtopic: 'capital',
+    };
+  });
 }
 
 function groupKeywordBindings(bindings) {
@@ -197,7 +300,13 @@ function groupKeywordBindings(bindings) {
     }
     pushUnique(row.classes, qidFromUri(bindValue(binding, 'class')), bindValue(binding, 'classLabel'));
     pushUnique(row.countries, qidFromUri(bindValue(binding, 'country')), bindValue(binding, 'countryLabel'));
-    pushUnique(row.capitals, qidFromUri(bindValue(binding, 'capital')), bindValue(binding, 'capitalLabel'));
+    pushCapital(row.capitals, qidFromUri(bindValue(binding, 'capital')), bindValue(binding, 'capitalLabel'), {
+      ended: Boolean(bindValue(binding, 'capitalEnd')),
+      kindQid: qidFromUri(bindValue(binding, 'capitalType')) || qidFromUri(bindValue(binding, 'capitalRole')) || qidFromUri(bindValue(binding, 'capitalMethod')),
+      kindLabel: bindValue(binding, 'capitalTypeLabel'),
+      roleLabel: bindValue(binding, 'capitalRoleLabel'),
+      methodLabel: bindValue(binding, 'capitalMethodLabel'),
+    });
     pushUnique(row.places, qidFromUri(bindValue(binding, 'place')), bindValue(binding, 'placeLabel'));
     pushUnique(row.occupations, qidFromUri(bindValue(binding, 'occupation')), bindValue(binding, 'occupationLabel'));
     pushUnique(row.sports, qidFromUri(bindValue(binding, 'sport')), bindValue(binding, 'sportLabel'));
@@ -205,7 +314,13 @@ function groupKeywordBindings(bindings) {
     pushUnique(row.languages, qidFromUri(bindValue(binding, 'language')), bindValue(binding, 'languageLabel'));
     pushUnique(row.currencies, qidFromUri(bindValue(binding, 'currency')), bindValue(binding, 'currencyLabel'));
     pushUnique(row.mouths, qidFromUri(bindValue(binding, 'mouth')), bindValue(binding, 'mouthLabel'));
-    pushUnique(row.capitalOf, qidFromUri(bindValue(binding, 'capitalOf')), bindValue(binding, 'capitalOfLabel'));
+    pushCapital(row.capitalOf, qidFromUri(bindValue(binding, 'capitalOf')), bindValue(binding, 'capitalOfLabel'), {
+      ended: Boolean(bindValue(binding, 'capitalOfEnd')),
+      kindQid: qidFromUri(bindValue(binding, 'capitalOfType')) || qidFromUri(bindValue(binding, 'capitalOfRole')) || qidFromUri(bindValue(binding, 'capitalOfMethod')),
+      kindLabel: bindValue(binding, 'capitalOfTypeLabel'),
+      roleLabel: bindValue(binding, 'capitalOfRoleLabel'),
+      methodLabel: bindValue(binding, 'capitalOfMethodLabel'),
+    });
     pushUnique(row.parents, qidFromUri(bindValue(binding, 'parent')), bindValue(binding, 'parentLabel'));
   }
   return [...map.values()];
@@ -252,7 +367,6 @@ function listFacts(item, { categoryN } = {}) {
   if (n && !itemFitsCategory(item, n)) return [];
 
   const label = item.label;
-  const capital = item.capitals?.[0];
   const country = item.countries?.[0];
   const place = item.places?.[0];
   const occupation = item.occupations?.[0];
@@ -261,7 +375,6 @@ function listFacts(item, { categoryN } = {}) {
   const language = item.languages?.[0];
   const currency = item.currencies?.[0];
   const mouth = item.mouths?.[0];
-  const capitalOf = item.capitalOf?.[0];
   const parent = item.parents?.[0];
   const cls = n
     ? (item.classes || []).find((entry) => classAllowedForCategory(entry, n))
@@ -271,18 +384,8 @@ function listFacts(item, { categoryN } = {}) {
   const allowPeople = !!filter?.people;
 
   const builders = {
-    capital: () => (capital && !sameLabel(capital.label, label) ? {
-      fact: `A capital de ${label} é ${capital.label}.`,
-      answer: capital.label,
-      suffix: 'p36',
-      subtopic: 'capital',
-    } : null),
-    capitalOf: () => (capitalOf && !sameLabel(capitalOf.label, label) ? {
-      fact: `${label} é a capital de ${capitalOf.label}.`,
-      answer: capitalOf.label,
-      suffix: 'p1376',
-      subtopic: 'capital',
-    } : null),
+    capital: () => buildCapitalFacts(label, item.capitals, { direction: 'has' }),
+    capitalOf: () => buildCapitalFacts(label, item.capitalOf, { direction: 'of' }),
     continent: () => (continent && !sameLabel(continent.label, label) ? {
       fact: `${label} fica ${continentPrep(continent.label)}.`,
       answer: continent.label,
@@ -349,6 +452,10 @@ function listFacts(item, { categoryN } = {}) {
   const seen = new Set();
   const push = (picked) => {
     if (!picked) return;
+    if (Array.isArray(picked)) {
+      picked.forEach(push);
+      return;
+    }
     const key = `${picked.suffix}:${picked.answer}`;
     if (seen.has(key)) return;
     seen.add(key);
@@ -520,6 +627,10 @@ module.exports = {
   groupKeywordBindings,
   pickFact,
   listFacts,
+  resolveCapitalKind,
+  formatCountryHasCapital,
+  formatCityIsCapital,
+  buildCapitalFacts,
   itemSearchScore,
   diversifyRecords,
   transformKeywordItems,

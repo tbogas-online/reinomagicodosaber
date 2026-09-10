@@ -153,10 +153,31 @@ async function searchKnowledgeRecords(options = {}) {
   }
 
   const rows = await supabaseRequest(`/knowledge_records?${params.toString()}`);
+  const list = Array.isArray(rows) ? rows : [];
+  const quarantined = await getQuarantinedKnowledgeIds(list.map((row) => row.knowledge_id));
   return {
-    rows: Array.isArray(rows) ? rows : [],
-    total: Array.isArray(rows) ? rows.length : 0,
+    rows: list.map((row) => ({ ...row, in_quarantine: quarantined.has(row.knowledge_id) })),
+    total: list.length,
   };
+}
+
+async function getQuarantinedKnowledgeIds(ids, days = 30) {
+  const unique = [...new Set((ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+  if (!unique.length) return new Set();
+
+  const cutoff = new Date(Date.now() - Math.max(Number(days) || 30, 1) * 24 * 60 * 60 * 1000).toISOString();
+  const quoted = unique.map((id) => `"${id.replace(/"/g, '')}"`).join(',');
+  const params = new URLSearchParams();
+  params.set('select', 'knowledge_id');
+  params.set('knowledge_id', `in.(${quoted})`);
+  params.set('played_at', `gte.${cutoff}`);
+
+  try {
+    const rows = await supabaseRequest(`/question_reuse_events?${params.toString()}`);
+    return new Set((Array.isArray(rows) ? rows : []).map((r) => r.knowledge_id).filter(Boolean));
+  } catch {
+    return new Set();
+  }
 }
 
 function clipDisabledReason(reason) {
