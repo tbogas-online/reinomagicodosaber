@@ -3784,7 +3784,7 @@
             <div id="knowledgeWikidataPresets" class="knowledge-word-chips"></div>
             <p class="sub" id="knowledgeWikidataSelected" style="margin:4px 0 0;"></p>
             <div id="knowledgeWikidataPreviewWrap" class="hidden">
-              <p class="sub" id="knowledgeWikidataPreviewHint" style="margin:10px 0 0;">Aceita ou rejeita cada facto. Depois <strong>Confirmar</strong>: vês quantos são e a lista limpa. Só os aceites entram no repositório.</p>
+              <p class="sub" id="knowledgeWikidataPreviewHint" style="margin:10px 0 0;">Aceita os que queres importar e <strong>Confirmar</strong>. <strong>Rejeitar</strong> tira o facto da lista; <strong>Rejeitar todos</strong> limpa tudo sem importar.</p>
               <div class="wikidata-preview-actions">
                 <button type="button" class="success" id="knowledgeWikidataSelectAllBtn">✓ Aceitar todos</button>
                 <button type="button" class="danger" id="knowledgeWikidataSelectNoneBtn">✕ Rejeitar todos</button>
@@ -15313,6 +15313,43 @@
       updateWikidataPreviewCount();
     }
 
+    function setWikidataImportStatus(text, kind = 'ok') {
+      const statusEl = document.getElementById('knowledgeSourceImportStatus');
+      if (!statusEl) return;
+      statusEl.textContent = text;
+      statusEl.className = kind === 'ok' ? 'status ok' : (kind === 'err' ? 'status err' : 'status');
+    }
+
+    function finishWikidataReject(rejected) {
+      const n = Math.max(0, Number(rejected) || 0);
+      clearWikidataWordInput();
+      clearWikidataPreview();
+      setWikidataImportStatus(`Confirmado: 0 aceites, ${n} rejeitado(s). Nada foi importado. Lista limpa.`);
+    }
+
+    async function rejectAllWikidataPreview() {
+      const n = wikidataPreviewRows().length;
+      if (!n) return;
+      const ok = await confirmAction(
+        `Rejeitar ${n} facto(s) e não importar nenhum? A lista será limpa.`,
+        { okLabel: 'Rejeitar', danger: true },
+      );
+      if (!ok) return;
+      finishWikidataReject(n);
+    }
+
+    function rejectWikidataPreviewRow(row) {
+      if (!row || row.classList.contains('is-dup')) return;
+      const remainingBefore = wikidataPreviewRows().length;
+      row.remove();
+      const left = wikidataPreviewRows().length;
+      if (!left) {
+        finishWikidataReject(remainingBefore);
+        return;
+      }
+      updateWikidataPreviewCount();
+    }
+
     function renderWikidataPreview(data) {
       const wrap = document.getElementById('knowledgeWikidataPreviewWrap');
       const body = document.getElementById('knowledgeWikidataPreviewBody');
@@ -15408,11 +15445,7 @@
         knowledgeIds = selectedWikidataCandidateIds();
         const rejected = Math.max(0, wikidataPreviewRows().length - knowledgeIds.length);
         if (!knowledgeIds.length) {
-          clearWikidataPreview();
-          if (statusEl) {
-            statusEl.textContent = `Confirmado: 0 aceites, ${rejected} rejeitado(s). Nada foi importado. Lista limpa.`;
-            statusEl.className = 'status ok';
-          }
+          finishWikidataReject(rejected);
           return;
         }
       }
@@ -16526,12 +16559,16 @@
     });
     document.getElementById('knowledgeSourceDryRunBtn')?.addEventListener('click', () => runKnowledgeSourceImport({ dryRun: true }));
     document.getElementById('knowledgeWikidataSelectAllBtn')?.addEventListener('click', () => setWikidataPreviewChecks(true));
-    document.getElementById('knowledgeWikidataSelectNoneBtn')?.addEventListener('click', () => setWikidataPreviewChecks(false));
+    document.getElementById('knowledgeWikidataSelectNoneBtn')?.addEventListener('click', () => rejectAllWikidataPreview());
     document.getElementById('knowledgeWikidataPreviewBody')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-wikidata-decide]');
       if (!btn) return;
       const row = btn.closest('tr');
-      setWikidataRowDecision(row, btn.dataset.wikidataDecide === 'accept');
+      if (btn.dataset.wikidataDecide === 'reject') {
+        rejectWikidataPreviewRow(row);
+        return;
+      }
+      setWikidataRowDecision(row, true);
       updateWikidataPreviewCount();
     });
     async function confirmWikidataDecisionsOrImport() {
