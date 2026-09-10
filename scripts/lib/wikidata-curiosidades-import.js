@@ -12,6 +12,7 @@ const {
   buildImportCandidates,
   normalizeKnowledgeIds,
 } = require('./wikidata-keyword-search');
+const { applyBriefingToRecords } = require('./knowledge-import-briefing');
 const { buildCuriosityBankItems } = require('./curiosidade-question-from-fact');
 const { importQuestionBatch } = require('../../netlify/functions/lib/bank-from-knowledge');
 const { enrichRecordsWithRest } = require('./wikidata-rest');
@@ -58,8 +59,10 @@ async function persistWikidataRecords(cfg, raw, {
   enrichWithRest = false,
   labels = 'Wikidata',
   knowledgeIds,
+  briefing = null,
 } = {}) {
-  const records = (raw || []).map((row) => normalizeRecord(row));
+  const stamped = applyBriefingToRecords(raw, briefing);
+  const records = stamped.map((row) => normalizeRecord(row));
   const invalid = records
     .map((record) => ({ knowledgeId: record.knowledge_id, missing: validateRecord(record) }))
     .filter((row) => row.missing.length);
@@ -122,6 +125,7 @@ async function persistWikidataRecords(cfg, raw, {
       reason: item.reason,
       of: item.of,
     })),
+    briefing: briefing || null,
   };
 
   if (!records.length) {
@@ -131,7 +135,7 @@ async function persistWikidataRecords(cfg, raw, {
 
   if (dryRun) {
     const selectable = candidates.filter((row) => row.selectable).length;
-    summary.message = `Lista Wikidata (até 10): ${selectable} novo(s) para validar, ${skipped.length} já no repositório. Aceita ou rejeita e confirma: a lista limpa e só entram os aceites.`;
+    summary.message = `Lista Wikidata (até ${briefing?.limit || 10}): ${selectable} novo(s) para validar, ${skipped.length} já no repositório. Aceita ou rejeita e confirma: a lista limpa e só entram os aceites.`;
     return summary;
   }
 
@@ -212,6 +216,7 @@ async function importWikidataFromOptions(cfg, {
   words,
   preset,
   knowledgeIds,
+  briefing = null,
   materializeQuestions = false,
   enrichWithRest = false,
 } = {}) {
@@ -239,7 +244,12 @@ async function importWikidataFromOptions(cfg, {
     } else {
       const n = Number(categoryN) || 20;
       labels = `Wikidata — cat. ${n} (${cleanWords.join(', ')})`;
-      raw = await collectKeywordRecords({ categoryN: n, words: cleanWords, fetchFn });
+      raw = await collectKeywordRecords({
+        categoryN: n,
+        words: cleanWords,
+        fetchFn,
+        limit: briefing?.limit,
+      });
     }
   } catch (err) {
     if (err.code === 'INVALID_WORDS' || err.code === 'INVALID_CATEGORY') throw err;
@@ -255,6 +265,7 @@ async function importWikidataFromOptions(cfg, {
     enrichWithRest,
     labels,
     knowledgeIds,
+    briefing,
   });
 }
 

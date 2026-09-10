@@ -255,6 +255,9 @@ collectKeywordRecords({ categoryN: 2, words: ['Lisboa'], fetchFn: mockSparqlFetc
     rows.some((row) => row.fact === 'Lisboa fica em Portugal.') && rows.some((row) => row.fact === 'Lisboa é uma cidade.'),
   );
   assert('ids estáveis', rows.some((row) => row.knowledge_id === 'knw-cat2-wd-q597-p17'));
+  return collectKeywordRecords({ categoryN: 2, words: ['Lisboa'], fetchFn: mockSparqlFetch, limit: 1 });
+}).then((capped) => {
+  assert('respeita limite do briefing', capped.length === 1);
   console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
   process.exit(failed > 0 ? 1 : 0);
 }).catch((err) => {

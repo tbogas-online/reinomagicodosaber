@@ -471,7 +471,7 @@ async function searchKeywordItems(word, { fetchFn, timeoutMs } = {}) {
   return groupKeywordBindings(bindings);
 }
 
-async function collectKeywordRecords({ categoryN, words, fetchFn, timeoutMs } = {}) {
+async function collectKeywordRecords({ categoryN, words, fetchFn, timeoutMs, limit } = {}) {
   const n = Number(categoryN);
   if (!n || n < 1 || n > 20) {
     const err = new Error('Escolhe uma categoria (1 a 20).');
@@ -501,7 +501,8 @@ async function collectKeywordRecords({ categoryN, words, fetchFn, timeoutMs } = 
       records.push(record);
     }
   }
-  return diversifyRecords(records, MAX_RECORDS);
+  const cap = Math.min(20, Math.max(1, Number(limit) || MAX_RECORDS));
+  return diversifyRecords(records, cap);
 }
 
 module.exports = {

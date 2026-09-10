@@ -143,7 +143,7 @@ function listWikidataImportSources() {
       id: 'wikidata',
       kind: 'wikidata',
       batch: 'pt',
-      label: 'Wikidata — categoria e palavras',
+      label: 'Wikidata — briefing de curadoria',
       source: SOURCE,
     },
   ];

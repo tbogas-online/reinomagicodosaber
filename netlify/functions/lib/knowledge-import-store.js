@@ -5,6 +5,11 @@ const supa = require('../../../scripts/lib/knowledge-import-supabase');
 const { listImportSources, importCuriosidadesBatches } = require('../../../scripts/lib/curiosidades-batch-import');
 const { importWikidataCuriosidades, importWikidataFromOptions, listWikidataImportSources } = require('../../../scripts/lib/wikidata-curiosidades-import');
 const { listCategoryTopics } = require('../../../scripts/lib/wikidata-category-topics');
+const {
+  listCollectors,
+  parseBriefing,
+  requireCollector,
+} = require('../../../scripts/lib/knowledge-import-briefing');
 
 function listAllImportSources() {
   return [...listImportSources(), ...listWikidataImportSources()];
@@ -25,6 +30,7 @@ async function getImportDashboard() {
   return {
     ...(dashboard && typeof dashboard === 'object' ? dashboard : {}),
     importSources: listAllImportSources(),
+    importCollectors: listCollectors(),
     wikidataCategoryTopics: listCategoryTopics(),
   };
 }
@@ -53,26 +59,33 @@ async function syncImportQueueFromSeed() {
   return supa.syncSeedQueue(requireAdmin());
 }
 
-async function importSource(_event, { source, batch, dryRun, categoryN, words, preset, knowledgeIds } = {}) {
+async function importSource(_event, { source, batch, dryRun, categoryN, words, preset, knowledgeIds, briefing } = {}) {
   const kind = String(source || 'curiosidades-batch').trim();
+  requireCollector(kind);
   if (kind === 'wikidata') {
-    const hasDynamic = String(preset || '').trim() || (Array.isArray(words) && words.length) || categoryN;
+    const nested = briefing && typeof briefing === 'object' ? briefing : {};
+    const parsed = parseBriefing({
+      ...nested,
+      source: kind,
+      categoryN: nested.categoryN ?? categoryN,
+      words: nested.words ?? words,
+      preset: nested.preset ?? preset,
+    });
+    const hasDynamic = String(parsed.briefing.preset || '').trim()
+      || parsed.briefing.words.length
+      || parsed.briefing.categoryN;
     if (hasDynamic) {
       return importWikidataFromOptions(requireAdmin(), {
         dryRun,
-        categoryN,
-        words,
-        preset,
+        categoryN: parsed.briefing.categoryN,
+        words: parsed.briefing.words,
+        preset: parsed.briefing.preset,
         knowledgeIds,
+        briefing: parsed.briefing,
         materializeQuestions: false,
       });
     }
     return importWikidataCuriosidades(requireAdmin(), { dryRun, materializeQuestions: false, knowledgeIds });
-  }
-  if (kind !== 'curiosidades-batch') {
-    const err = new Error('Fonte de importação desconhecida. Usa «curiosidades-batch» ou «wikidata».');
-    err.code = 'INVALID_SOURCE';
-    throw err;
   }
   return importCuriosidadesBatches(requireAdmin(), { batch, dryRun });
 }

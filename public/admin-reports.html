@@ -209,6 +209,38 @@
     }
     #knowledgeWikidataPanel.hidden { display: none !important; }
     #knowledgeWikidataPreviewWrap.hidden { display: none !important; }
+    .knowledge-briefing {
+      display: grid;
+      gap: 8px;
+      margin: 0 0 10px;
+      padding: 10px 12px;
+      border: 1px solid var(--border, #334155);
+      border-radius: 10px;
+      background: rgba(15, 23, 42, 0.45);
+    }
+    .knowledge-briefing-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+    }
+    .knowledge-briefing-row label.sub { margin: 0; white-space: nowrap; }
+    .knowledge-briefing-row select,
+    .knowledge-briefing-row input[type="text"] {
+      min-width: 140px;
+    }
+    .knowledge-briefing-checks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px 14px;
+      font-size: 0.85rem;
+    }
+    .knowledge-briefing-checks label {
+      display: inline-flex;
+      gap: 6px;
+      align-items: center;
+      cursor: pointer;
+    }
     .wikidata-preview-actions {
       display: flex;
       flex-wrap: wrap;
@@ -3756,7 +3788,7 @@
           <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
             <div>
               <h2 class="charts-title" style="margin:0;">Importar fontes</h2>
-              <p class="chart-filter-note" style="margin:6px 0 0">Carrega factos verificados para o repositório. Lotes A/B/C: curadoria manual no Git. Wikidata: escolhe a <strong>categoria</strong> e palavras (vírgulas aceites), clica <strong>Simular</strong> para listar até 10 factos, marca os que queres adicionar e importa só esses. RTP e Ciência Viva ainda não têm importador.</p>
+              <p class="chart-filter-note" style="margin:6px 0 0">Curadoria de <strong>factos</strong> verificados — o Question Engine é que formula as perguntas. Lotes A/B/C: Git. Wikidata: preenche o <strong>briefing</strong>, simula, aceita ou rejeita. RTP e Ciência Viva ainda não têm colector.</p>
             </div>
           </div>
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; align-items:center;">
@@ -3766,12 +3798,68 @@
               <option value="a" data-kind="curiosidades-batch">Curiosidades — lote A (50)</option>
               <option value="b" data-kind="curiosidades-batch">Curiosidades — lote B (50)</option>
               <option value="c" data-kind="curiosidades-batch">Curiosidades — lote C (48)</option>
-              <option value="wikidata" data-kind="wikidata">Wikidata — categoria e palavras</option>
+              <option value="wikidata" data-kind="wikidata">Wikidata — briefing de curadoria</option>
             </select>
-            <button type="button" class="secondary" id="knowledgeSourceDryRunBtn" title="Listar até 10 factos Wikidata para validar, sem gravar">🧪 Simular</button>
+            <button type="button" class="secondary" id="knowledgeSourceDryRunBtn" title="Listar candidatos Wikidata para validar, sem gravar">🧪 Simular</button>
             <button type="button" class="primary" id="knowledgeSourceImportBtn" title="Confirmar aceites e rejeitados">📥 Importar</button>
           </div>
           <div id="knowledgeWikidataPanel" class="hidden" style="margin-top:10px;">
+            <div class="knowledge-briefing" id="knowledgeWikidataBriefing">
+              <p class="sub" style="margin:0;">Briefing de curadoria — define o que o colector Wikidata deve ir buscar. Não gera perguntas.</p>
+              <div class="knowledge-briefing-row">
+                <label for="knowledgeBriefingGoal" class="sub">Objetivo</label>
+                <select id="knowledgeBriefingGoal" aria-label="Objetivo da importação">
+                  <option value="theme" selected>Tema específico</option>
+                  <option value="fill-gaps">Preencher défices</option>
+                  <option value="discover">Descobrir conteúdos</option>
+                </select>
+                <label for="knowledgeBriefingScope" class="sub">Âmbito</label>
+                <select id="knowledgeBriefingScope" aria-label="Âmbito geográfico">
+                  <option value="world" selected>Mundial</option>
+                  <option value="europa">Europa</option>
+                  <option value="portugal">Portugal</option>
+                </select>
+                <label for="knowledgeBriefingType" class="sub">Tipo</label>
+                <select id="knowledgeBriefingType" aria-label="Tipo de conteúdo">
+                  <option value="place">Local</option>
+                  <option value="person">Pessoa</option>
+                  <option value="animal">Animal</option>
+                  <option value="event">Acontecimento</option>
+                  <option value="object">Objecto</option>
+                  <option value="date">Data</option>
+                  <option value="record">Recorde</option>
+                  <option value="curiosity" selected>Curiosidade</option>
+                </select>
+                <label for="knowledgeBriefingLimit" class="sub">Quantidade</label>
+                <select id="knowledgeBriefingLimit" aria-label="Número de candidatos">
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="20">20</option>
+                </select>
+              </div>
+              <div class="knowledge-briefing-row">
+                <span class="sub">Faixa etária</span>
+                <div id="knowledgeBriefingAges" class="knowledge-briefing-checks">
+                  <label><input type="checkbox" value="6-9" checked> 6–9</label>
+                  <label><input type="checkbox" value="10-15" checked> 10–15</label>
+                  <label><input type="checkbox" value="15+" checked> 15+</label>
+                </div>
+              </div>
+              <div class="knowledge-briefing-row">
+                <span class="sub">Formatos (no jogo)</span>
+                <div id="knowledgeBriefingFormats" class="knowledge-briefing-checks">
+                  <label><input type="checkbox" value="RESPOSTA_DIRETA" checked> Resposta directa</label>
+                  <label><input type="checkbox" value="ESCOLHA_MULTIPLA" checked> Escolha múltipla</label>
+                  <label><input type="checkbox" value="VERDADEIRO_FALSO" checked> V/F</label>
+                  <label><input type="checkbox" value="ONDE_FICA"> Onde fica</label>
+                  <label><input type="checkbox" value="CURIOSIDADE"> Curiosidade</label>
+                </div>
+              </div>
+              <div class="knowledge-briefing-row">
+                <label for="knowledgeBriefingSubtopic" class="sub">Subtema</label>
+                <input type="text" id="knowledgeBriefingSubtopic" maxlength="60" placeholder="Opcional (ex.: rios de Portugal)" style="flex:1; min-width:180px;">
+              </div>
+            </div>
             <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
               <label for="knowledgeWikidataCategory" class="sub" style="margin:0;">Categoria</label>
               <select id="knowledgeWikidataCategory" aria-label="Categoria Wikidata" style="min-width:220px;"></select>
@@ -15111,6 +15199,63 @@
       return (sel?.selectedOptions?.[0]?.dataset?.kind || '') === 'wikidata';
     }
 
+    function defaultBriefingContentType(categoryN) {
+      const n = Number(categoryN);
+      if (n === 2) return 'place';
+      if (n === 3) return 'event';
+      if (n === 5) return 'animal';
+      return 'curiosity';
+    }
+
+    function defaultBriefingFormats(categoryN) {
+      const n = Number(categoryN);
+      if (n === 20) return ['CURIOSIDADE', 'VERDADEIRO_FALSO'];
+      if (n === 2) return ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO', 'ONDE_FICA'];
+      return ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'VERDADEIRO_FALSO'];
+    }
+
+    function defaultBriefingAges(categoryN) {
+      return Number(categoryN) === 20 ? ['10-15', '15+'] : ['6-9', '10-15', '15+'];
+    }
+
+    function setBriefingChecks(rootId, values) {
+      const wanted = new Set(values || []);
+      document.querySelectorAll(`#${rootId} input[type="checkbox"]`).forEach((el) => {
+        el.checked = wanted.has(el.value);
+      });
+    }
+
+    function readBriefingChecks(rootId) {
+      return [...document.querySelectorAll(`#${rootId} input[type="checkbox"]:checked`)].map((el) => el.value);
+    }
+
+    function syncBriefingDefaultsForCategory() {
+      const n = currentWikidataCategoryN();
+      const typeSel = document.getElementById('knowledgeBriefingType');
+      if (typeSel) typeSel.value = defaultBriefingContentType(n);
+      setBriefingChecks('knowledgeBriefingAges', defaultBriefingAges(n));
+      setBriefingChecks('knowledgeBriefingFormats', defaultBriefingFormats(n));
+    }
+
+    function readWikidataBriefing() {
+      const categoryN = currentWikidataCategoryN();
+      const topic = currentWikidataTopic();
+      return {
+        source: 'wikidata',
+        goal: document.getElementById('knowledgeBriefingGoal')?.value || 'theme',
+        categoryN,
+        topic: topic.topic || '',
+        subtopic: String(document.getElementById('knowledgeBriefingSubtopic')?.value || '').trim(),
+        ageBands: readBriefingChecks('knowledgeBriefingAges'),
+        contentType: document.getElementById('knowledgeBriefingType')?.value || defaultBriefingContentType(categoryN),
+        scope: document.getElementById('knowledgeBriefingScope')?.value || 'world',
+        words: [...selectedWikidataWords],
+        preset: selectedWikidataPreset || '',
+        limit: Number(document.getElementById('knowledgeBriefingLimit')?.value || 10) || 10,
+        allowedFormats: readBriefingChecks('knowledgeBriefingFormats'),
+      };
+    }
+
     function fillWikidataCategorySelect() {
       const sel = document.getElementById('knowledgeWikidataCategory');
       if (!sel) return;
@@ -15171,6 +15316,10 @@
       panel.classList.toggle('hidden', !show);
       if (show) {
         fillWikidataCategorySelect();
+        if (panel.dataset.briefingReady !== '1') {
+          syncBriefingDefaultsForCategory();
+          panel.dataset.briefingReady = '1';
+        }
         renderWikidataWordUi();
       } else {
         clearWikidataPreview();
@@ -15232,10 +15381,14 @@
     }
 
     function wikidataSearchKey() {
+      const briefing = readWikidataBriefing();
       return JSON.stringify({
-        n: currentWikidataCategoryN(),
-        words: [...selectedWikidataWords].sort((a, b) => a.localeCompare(b, 'pt')),
-        preset: selectedWikidataPreset || '',
+        n: briefing.categoryN,
+        words: [...briefing.words].sort((a, b) => a.localeCompare(b, 'pt')),
+        preset: briefing.preset || '',
+        scope: briefing.scope,
+        contentType: briefing.contentType,
+        limit: briefing.limit,
       });
     }
 
@@ -15402,10 +15555,12 @@
     }
 
     function wikidataImportPayload() {
+      const briefing = readWikidataBriefing();
       return {
-        categoryN: currentWikidataCategoryN(),
-        words: [...selectedWikidataWords],
-        preset: selectedWikidataPreset || '',
+        categoryN: briefing.categoryN,
+        words: briefing.words,
+        preset: briefing.preset,
+        briefing,
       };
     }
 
@@ -16523,8 +16678,12 @@
       selectedWikidataWords.clear();
       selectedWikidataPreset = '';
       clearWikidataWordInput();
+      syncBriefingDefaultsForCategory();
       renderWikidataWordUi();
       clearWikidataPreview();
+    });
+    ['knowledgeBriefingScope', 'knowledgeBriefingType', 'knowledgeBriefingLimit'].forEach((id) => {
+      document.getElementById(id)?.addEventListener('change', () => clearWikidataPreview());
     });
     document.getElementById('knowledgeWikidataAddWordBtn')?.addEventListener('click', () => {
       const input = document.getElementById('knowledgeWikidataWordInput');
