@@ -83,7 +83,11 @@ const capitals = transformCountryCapitalBindings([
 assert('geografia aceita Portugal/Lisboa', capitals.length === 1 && capitals[0].answer === 'Lisboa');
 assert('geografia source Q-id do país', capitals[0].source_id === 'Q45' && capitals[0].category_n === 2);
 assert('geografia válido', validateRecord(capitals[0]).length === 0, validateRecord(capitals[0]).join(','));
-assert('atalho capitais ignora data de fim', String(getQueryById('countryCapitals')?.sparql || '').includes('P582'));
+assert(
+  'atalho capitais usa P36 directo (consulta leve)',
+  String(getQueryById('countryCapitals')?.sparql || '').includes('wdt:P36')
+    && !String(getQueryById('countryCapitals')?.sparql || '').includes('p:P36'),
+);
 assert('atalho capitais exclui países dissolvidos', String(getQueryById('countryCapitals')?.sparql || '').includes('P576') && String(getQueryById('countryCapitals')?.sparql || '').includes('Q3624078'));
 
 const waldeck = transformCountryCapitalBindings([

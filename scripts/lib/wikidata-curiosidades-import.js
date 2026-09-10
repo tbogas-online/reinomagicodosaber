@@ -180,6 +180,18 @@ async function persistWikidataRecords(cfg, raw, {
   return summary;
 }
 
+function wikidataUnavailableError(err) {
+  const msg = String(err?.message || err || '');
+  if (err?.name === 'AbortError' || /aborted|abortado/i.test(msg)) {
+    const wrapped = new Error('Wikidata demorou demasiado. Tenta simular outra vez daqui a um momento.');
+    wrapped.code = 'WIKIDATA_FETCH';
+    return wrapped;
+  }
+  const wrapped = new Error(`Wikidata indisponível: ${msg}`);
+  wrapped.code = 'WIKIDATA_FETCH';
+  return wrapped;
+}
+
 async function importWikidataCuriosidades(cfg, {
   dryRun = false,
   fetchFn,
@@ -198,9 +210,7 @@ async function importWikidataCuriosidades(cfg, {
   try {
     raw = await collectWikidataRecords({ fetchFn });
   } catch (err) {
-    const wrapped = new Error(`Wikidata indisponível: ${err.message || err}`);
-    wrapped.code = 'WIKIDATA_FETCH';
-    throw wrapped;
+    throw wikidataUnavailableError(err);
   }
 
   return persistWikidataRecords(cfg, raw, {
@@ -258,9 +268,7 @@ async function importWikidataFromOptions(cfg, {
     }
   } catch (err) {
     if (err.code === 'INVALID_WORDS' || err.code === 'INVALID_CATEGORY') throw err;
-    const wrapped = new Error(`Wikidata indisponível: ${err.message || err}`);
-    wrapped.code = 'WIKIDATA_FETCH';
-    throw wrapped;
+    throw wikidataUnavailableError(err);
   }
 
   return persistWikidataRecords(cfg, raw, {

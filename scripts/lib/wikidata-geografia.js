@@ -73,7 +73,7 @@ function transformCountryCapitalBindings(bindings) {
   ));
 }
 
-async function collectGeografiaRecords({ fetchFn, timeoutMs } = {}) {
+async function collectGeografiaRecords({ fetchFn, timeoutMs = 20000 } = {}) {
   const query = getCategoryQueries(2).find((row) => row.id === 'countryCapitals');
   if (!query) return [];
   const bindings = await fetchSparql(query.sparql, { fetchFn, timeoutMs });
