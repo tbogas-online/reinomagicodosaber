@@ -51,7 +51,8 @@ LIMIT 20`,
   ?country wdt:P36 ?capital.
   SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
 }
-LIMIT 80`,
+ORDER BY ?countryLabel ?capitalLabel
+LIMIT 250`,
     },
   ],
 };

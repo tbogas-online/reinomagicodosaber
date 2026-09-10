@@ -59,7 +59,7 @@ async function syncImportQueueFromSeed() {
   return supa.syncSeedQueue(requireAdmin());
 }
 
-async function importSource(_event, { source, batch, dryRun, categoryN, words, preset, knowledgeIds, briefing } = {}) {
+async function importSource(_event, { source, batch, dryRun, categoryN, words, preset, knowledgeIds, records, briefing } = {}) {
   const kind = String(source || 'curiosidades-batch').trim();
   requireCollector(kind);
   if (kind === 'wikidata') {
@@ -81,6 +81,7 @@ async function importSource(_event, { source, batch, dryRun, categoryN, words, p
         words: parsed.briefing.words,
         preset: parsed.briefing.preset,
         knowledgeIds,
+        records,
         briefing: parsed.briefing,
         materializeQuestions: false,
       });

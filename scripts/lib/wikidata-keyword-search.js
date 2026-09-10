@@ -120,6 +120,7 @@ function candidateFromRecord(row, status, extra = {}) {
     sourceId: row?.source_id,
     status,
     selectable: status === 'new',
+    record: status === 'new' ? row : undefined,
     ...extra,
   };
 }

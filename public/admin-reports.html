@@ -3876,7 +3876,7 @@
             <div id="knowledgeWikidataPresets" class="knowledge-word-chips"></div>
             <p class="sub" id="knowledgeWikidataSelected" style="margin:4px 0 0;"></p>
             <div id="knowledgeWikidataPreviewWrap" class="hidden">
-              <p class="sub" id="knowledgeWikidataPreviewHint" style="margin:10px 0 0;">Aceita os que queres importar e <strong>Confirmar</strong>. <strong>Rejeitar</strong> tira o facto da lista; <strong>Rejeitar todos</strong> limpa tudo sem importar.</p>
+              <p class="sub" id="knowledgeWikidataPreviewHint" style="margin:10px 0 0;"><strong>Aceitar</strong> só marca o facto. <strong>Confirmar decisões</strong> é que grava no repositório. <strong>Rejeitar</strong> tira o facto da lista; <strong>Rejeitar todos</strong> limpa tudo sem importar.</p>
               <div class="wikidata-preview-actions">
                 <button type="button" class="success" id="knowledgeWikidataSelectAllBtn">✓ Aceitar todos</button>
                 <button type="button" class="danger" id="knowledgeWikidataSelectNoneBtn">✕ Rejeitar todos</button>
@@ -14777,6 +14777,20 @@
       updateKnowledgeBrowseUi();
     }
 
+    async function refreshKnowledgeBrowseAfterImport(data, importedRecords = []) {
+      if (!(Number(data?.imported) > 0)) return;
+      const queryEl = document.getElementById('knowledgeSearchQuery');
+      const current = queryEl?.value?.trim() || '';
+      if (queryEl && !current) {
+        const fromRecord = (importedRecords || []).find((row) => row?.answer || row?.fact);
+        const fromPreview = (data?.preview || []).find((row) => row?.answer || row?.fact);
+        const hint = fromRecord?.answer || fromRecord?.fact || fromPreview?.answer || fromPreview?.fact || '';
+        if (hint) queryEl.value = String(hint).replace(/\.$/, '');
+      }
+      await searchKnowledgeRecords({ requireQuery: false });
+      document.getElementById('knowledgeBrowseSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
     async function searchKnowledgeRecords(options = {}) {
       if (knowledgeSearchLoading) return;
       const { query, categoryN, topic, source, createdFrom, createdTo, activeFilter } = getKnowledgeSearchFilters();
@@ -15650,15 +15664,23 @@
       const accepted = selectable.filter((el) => el.classList.contains('is-accept')).length;
       const rejected = selectable.length - accepted;
       const count = document.getElementById('knowledgeWikidataPreviewCount');
-      if (!count) return;
-      if (!selectable.length) {
-        count.innerHTML = '';
-        return;
+      if (count) {
+        if (!selectable.length) {
+          count.innerHTML = '';
+        } else {
+          count.innerHTML = `
+            <span class="wikidata-count-pill is-accept">${accepted} aceite${accepted === 1 ? '' : 's'}</span>
+            <span class="wikidata-count-pill is-reject">${rejected} rejeitado${rejected === 1 ? '' : 's'}</span>
+          `;
+        }
       }
-      count.innerHTML = `
-        <span class="wikidata-count-pill is-accept">${accepted} aceite${accepted === 1 ? '' : 's'}</span>
-        <span class="wikidata-count-pill is-reject">${rejected} rejeitado${rejected === 1 ? '' : 's'}</span>
-      `;
+      const statusEl = document.getElementById('knowledgeSourceImportStatus');
+      if (statusEl && selectable.length) {
+        statusEl.textContent = accepted
+          ? `${accepted} aceite(s) na lista. Clica «Confirmar decisões» para gravar no repositório.`
+          : 'Marca Aceitar nos factos que queres e clica Confirmar decisões.';
+        statusEl.className = 'status';
+      }
     }
 
     function setWikidataRowDecision(row, accepted) {
@@ -15793,6 +15815,7 @@
         return;
       }
       let knowledgeIds;
+      let records;
       if (source === 'wikidata' && !dryRun) {
         const keyChanged = lastWikidataSearchKey !== wikidataSearchKey();
         if (!lastWikidataCandidates.length || keyChanged) {
@@ -15813,6 +15836,10 @@
           finishWikidataReject(rejected);
           return;
         }
+        const selected = new Set(knowledgeIds);
+        records = lastWikidataCandidates
+          .filter((row) => selected.has(row.knowledgeId) && row.record)
+          .map((row) => row.record);
       }
       if (statusEl) {
         statusEl.textContent = dryRun ? 'A listar propostas…' : 'A importar seleccionados…';
@@ -15830,6 +15857,7 @@
         if (source === 'wikidata') {
           Object.assign(body, wikidataImportPayload());
           if (knowledgeIds) body.knowledgeIds = knowledgeIds;
+          if (Array.isArray(records) && records.length) body.records = records;
         }
         const data = await api('/api/knowledge-import-admin', {
           method: 'POST',
@@ -15843,7 +15871,10 @@
           statusEl.textContent = formatKnowledgeImportResult(data);
           statusEl.className = data?.ok ? 'status ok' : 'status';
         }
-        if (!dryRun) await loadKnowledgeDashboard({ quiet: true });
+        if (!dryRun) {
+          await loadKnowledgeDashboard({ quiet: true });
+          await refreshKnowledgeBrowseAfterImport(data, records);
+        }
       } catch (err) {
         if (statusEl) {
           statusEl.textContent = err.message || 'Erro na importação da fonte.';

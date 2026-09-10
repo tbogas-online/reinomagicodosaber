@@ -224,6 +224,16 @@ async function importWikidataCuriosidades(cfg, {
   });
 }
 
+function labelsForWikidataPreset(presetId, categoryN, words) {
+  if (presetId === 'countryCapitals') return 'Wikidata — capitais';
+  if (presetId === 'ichPt') return 'Wikidata — património imaterial PT';
+  if (presetId === 'unescoPt') return 'Wikidata — UNESCO PT';
+  if (presetId === 'unesco') return 'Wikidata — UNESCO e imaterial PT';
+  const n = Number(categoryN) || 20;
+  const list = Array.isArray(words) ? words.filter(Boolean) : [];
+  return list.length ? `Wikidata — cat. ${n} (${list.join(', ')})` : `Wikidata — cat. ${n}`;
+}
+
 async function importWikidataFromOptions(cfg, {
   dryRun = false,
   fetchFn,
@@ -231,6 +241,7 @@ async function importWikidataFromOptions(cfg, {
   words,
   preset,
   knowledgeIds,
+  records,
   briefing = null,
   materializeQuestions = false,
   enrichWithRest = false,
@@ -243,22 +254,21 @@ async function importWikidataFromOptions(cfg, {
 
   const presetId = String(preset || '').trim();
   const cleanWords = sanitizeWords(words);
+  const labels = labelsForWikidataPreset(presetId, categoryN, cleanWords);
+  const fromPreview = applyKnowledgeIdFilter(Array.isArray(records) ? records : [], knowledgeIds).records;
   let raw;
-  let labels = 'Wikidata';
 
   try {
-    if (presetId === 'countryCapitals') {
-      labels = 'Wikidata — capitais';
+    if (!dryRun && fromPreview.length) {
+      raw = fromPreview;
+    } else if (presetId === 'countryCapitals') {
       raw = await collectGeografiaRecords({ fetchFn });
     } else if (presetId === 'unescoPt' || presetId === 'ichPt') {
-      labels = presetId === 'ichPt' ? 'Wikidata — património imaterial PT' : 'Wikidata — UNESCO PT';
       raw = await collectWikidataRecords({ fetchFn, queryIds: [presetId] });
     } else if (presetId === 'unesco') {
-      labels = 'Wikidata — UNESCO e imaterial PT';
       raw = await collectWikidataRecords({ fetchFn });
     } else {
       const n = Number(categoryN) || 20;
-      labels = `Wikidata — cat. ${n} (${cleanWords.join(', ')})`;
       raw = await collectKeywordRecords({
         categoryN: n,
         words: cleanWords,

@@ -13,9 +13,10 @@ const LICENSE = 'CC0';
 const TOPIC = 'capital';
 
 function toCapitalRecord(countryQid, countryLabel, capitalQid, capitalLabel, { kind, multi } = {}) {
-  const kindBit = kind?.suffix ? `-${kind.suffix}` : (multi ? `-${String(capitalQid || '').toLowerCase()}` : '');
+  const capitalBit = String(capitalQid || '').toLowerCase();
+  const kindBit = kind?.suffix ? `-${kind.suffix}` : '';
   return {
-    knowledge_id: `knw-cat2-geo-wd-${countryQid.toLowerCase()}-capital${kindBit}`,
+    knowledge_id: `knw-cat2-geo-wd-${countryQid.toLowerCase()}-capital-${capitalBit}${kindBit}`,
     category_n: 2,
     topic: TOPIC,
     subtopic: 'capital',

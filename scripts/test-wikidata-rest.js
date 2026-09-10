@@ -82,11 +82,13 @@ const capitals = transformCountryCapitalBindings([
 ]);
 assert('geografia aceita Portugal/Lisboa', capitals.length === 1 && capitals[0].answer === 'Lisboa');
 assert('geografia source Q-id do país', capitals[0].source_id === 'Q45' && capitals[0].category_n === 2);
+assert('geografia id estável com Q-id da capital', capitals[0].knowledge_id === 'knw-cat2-geo-wd-q45-capital-q597');
 assert('geografia válido', validateRecord(capitals[0]).length === 0, validateRecord(capitals[0]).join(','));
 assert(
   'atalho capitais usa P36 directo (consulta leve)',
   String(getQueryById('countryCapitals')?.sparql || '').includes('wdt:P36')
-    && !String(getQueryById('countryCapitals')?.sparql || '').includes('p:P36'),
+    && !String(getQueryById('countryCapitals')?.sparql || '').includes('p:P36')
+    && String(getQueryById('countryCapitals')?.sparql || '').includes('ORDER BY'),
 );
 assert('atalho capitais exclui países dissolvidos', String(getQueryById('countryCapitals')?.sparql || '').includes('P576') && String(getQueryById('countryCapitals')?.sparql || '').includes('Q3624078'));
 
@@ -128,6 +130,34 @@ assert(
   southCapitals.length === 2
     && southCapitals.some((row) => row.fact.includes('administrativa') && row.answer === 'Pretória')
     && southCapitals.some((row) => row.fact.includes('legislativa') && row.answer === 'Cidade do Cabo'),
+);
+
+const pretoriaAlone = transformCountryCapitalBindings([
+  {
+    country: { value: 'http://www.wikidata.org/entity/Q258' },
+    countryLabel: { value: 'África do Sul' },
+    capital: { value: 'http://www.wikidata.org/entity/Q3926' },
+    capitalLabel: { value: 'Pretória' },
+  },
+]);
+const pretoriaWithPeer = transformCountryCapitalBindings([
+  {
+    country: { value: 'http://www.wikidata.org/entity/Q258' },
+    countryLabel: { value: 'África do Sul' },
+    capital: { value: 'http://www.wikidata.org/entity/Q3926' },
+    capitalLabel: { value: 'Pretória' },
+  },
+  {
+    country: { value: 'http://www.wikidata.org/entity/Q258' },
+    countryLabel: { value: 'África do Sul' },
+    capital: { value: 'http://www.wikidata.org/entity/Q5468' },
+    capitalLabel: { value: 'Cidade do Cabo' },
+  },
+]);
+assert(
+  'id de Pretória não muda se o lote vier só com uma capital',
+  pretoriaAlone[0]?.knowledge_id === 'knw-cat2-geo-wd-q258-capital-q3926'
+    && pretoriaAlone[0]?.knowledge_id === pretoriaWithPeer.find((row) => row.answer === 'Pretória')?.knowledge_id,
 );
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
