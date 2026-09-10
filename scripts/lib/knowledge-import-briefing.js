@@ -110,6 +110,7 @@ function parseBriefing(input = {}) {
   }
   const topic = String(input.topic || getCategoryTopic(categoryN)?.topic || '').trim();
   const subtopic = String(input.subtopic || '').trim();
+  const focus = String(input.focus || '').trim();
   const goal = pickAllowed(input.goal, GOALS, 'theme');
   const scope = pickAllowed(input.scope, SCOPES, 'world');
   const contentType = pickAllowed(input.contentType, CONTENT_TYPES, categoryN === 5 ? 'animal' : (categoryN === 2 ? 'place' : 'curiosity'));
@@ -129,6 +130,7 @@ function parseBriefing(input = {}) {
     categoryN: Number.isInteger(categoryN) && categoryN >= 1 && categoryN <= 20 ? categoryN : 20,
     topic,
     subtopic,
+    focus,
     ageBands,
     contentType,
     scope,
@@ -151,11 +153,14 @@ function applyBriefingToRecords(records, briefing) {
       contentType: briefing.contentType,
       limit: briefing.limit,
       categoryN: briefing.categoryN,
+      subtopic: briefing.subtopic || null,
+      focus: briefing.focus || null,
     };
+    const subtopicPath = [briefing.subtopic, briefing.focus].filter(Boolean).join(' · ');
     return {
       ...row,
       topic: briefing.topic || row.topic,
-      subtopic: briefing.subtopic || row.subtopic || null,
+      subtopic: subtopicPath || row.subtopic || null,
       age_bands: [...briefing.ageBands],
       allowed_formats: [...briefing.allowedFormats],
       metadata,
@@ -167,7 +172,8 @@ function briefingSummary(briefing) {
   if (!briefing) return '';
   const ages = (briefing.ageBands || []).join(', ');
   const scopeLabel = briefing.scope === 'portugal' ? 'Portugal' : (briefing.scope === 'europa' ? 'Europa' : 'Mundial');
-  return `cat. ${briefing.categoryN} · ${scopeLabel} · ${briefing.contentType} · ${briefing.limit} · ${ages}`;
+  const path = [briefing.subtopic, briefing.focus].filter(Boolean).join(' · ');
+  return `cat. ${briefing.categoryN}${path ? ` · ${path}` : ''} · ${scopeLabel} · ${briefing.contentType} · ${briefing.limit} · ${ages}`;
 }
 
 module.exports = {

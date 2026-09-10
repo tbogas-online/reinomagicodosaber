@@ -86,6 +86,10 @@ assert('aplica formatos do briefing', stamped[0].allowed_formats.includes('ONDE_
 assert('preserva metadata existente', stamped[0].metadata.qid === 'Q1');
 assert('grava resumo do briefing', stamped[0].metadata.briefing.scope === 'portugal');
 assert('subtema opcional', applyBriefingToRecords([{ knowledge_id: 'x' }], { ...parsed.briefing, subtopic: 'rios' })[0].subtopic === 'rios');
+assert('grava tópico específico', applyBriefingToRecords([{ knowledge_id: 'x' }], { ...parsed.briefing, subtopic: 'Portugal', focus: 'Rios' })[0].subtopic === 'Portugal · Rios');
+assert('focus no metadata', applyBriefingToRecords([{ knowledge_id: 'x' }], { ...parsed.briefing, subtopic: 'Portugal', focus: 'Rios' })[0].metadata.briefing.focus === 'Rios');
+assert('parse inclui focus', parseBriefing({ categoryN: 2, subtopic: 'Portugal', focus: 'Rios' }).briefing.focus === 'Rios');
+assert('sumário com caminho', /Portugal · Rios/.test(briefingSummary({ ...parsed.briefing, subtopic: 'Portugal', focus: 'Rios' })));
 assert('sumário legível', /cat\. 2/.test(briefingSummary(parsed.briefing)) && /Portugal/.test(briefingSummary(parsed.briefing)));
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

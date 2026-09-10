@@ -2,7 +2,7 @@
 'use strict';
 
 const { validateRecord } = require('./lib/knowledge-import-core');
-const { listCategoryTopics, getCategoryTopic } = require('./lib/wikidata-category-topics');
+const { listCategoryTopics, getCategoryTopic, findSubtopic, findFocus, suggestionsFor } = require('./lib/wikidata-category-topics');
 const {
   sanitizeWords,
   splitWordTokens,
@@ -46,9 +46,31 @@ console.log('Wikidata pesquisa por palavras — testes\n');
 assert('catálogo tem 20 categorias', listCategoryTopics().length === 20);
 assert('cat. 5 sugere polvo', getCategoryTopic(5).suggestions.includes('polvo'));
 assert('cat. 20 tem atalho UNESCO', getCategoryTopic(20).presets.some((p) => p.id === 'unescoPt'));
+assert('cat. 2 tem subtema Portugal', findSubtopic(2, 'portugal')?.label === 'Portugal');
+assert('Portugal tem tópico Rios', findFocus(2, 'portugal', 'rivers')?.label === 'Rios');
+assert('Rios de Portugal sugere Tejo', suggestionsFor(2, 'portugal', 'rivers').includes('Tejo'));
+assert('subtema pelo rótulo', findSubtopic(2, 'Portugal')?.id === 'portugal');
+assert('tópico pelo rótulo', findFocus(2, 'europa', 'Capitais')?.label === 'Capitais');
+assert('sem tópico junta palavras do subtema', suggestionsFor(2, 'portugal').includes('Tejo'));
+assert('sem subtema usa sugestões da categoria', suggestionsFor(2, '').includes('Portugal'));
+assert('piloto geografia tem 6 subtemas', getCategoryTopic(2).subtopics.length === 6);
+assert('Europa tem 6 tópicos', findSubtopic(2, 'europa').topics.length === 6);
 for (const topic of listCategoryTopics()) {
   const clean = sanitizeWords(topic.suggestions);
   assert(`cat. ${topic.categoryN} tem sugestões utilizáveis`, clean.length >= 3, `${topic.suggestions.join(', ')} → ${clean.join(', ')}`);
+  assert(`cat. ${topic.categoryN} tem subtemas`, (topic.subtopics || []).length >= 2);
+  for (const sub of topic.subtopics || []) {
+    if (sub.topics?.length) {
+      assert(`cat. ${topic.categoryN} / ${sub.id} tem tópicos`, sub.topics.length >= 3);
+      for (const focus of sub.topics) {
+        const focusClean = sanitizeWords(focus.suggestions);
+        assert(`cat. ${topic.categoryN} / ${sub.id} / ${focus.id} tem palavras`, focusClean.length >= 3, `${(focus.suggestions || []).join(', ')} → ${focusClean.join(', ')}`);
+      }
+    } else {
+      const subClean = sanitizeWords(sub.suggestions);
+      assert(`cat. ${topic.categoryN} / ${sub.id} tem palavras`, subClean.length >= 3, `${(sub.suggestions || []).join(', ')} → ${subClean.join(', ')}`);
+    }
+  }
 }
 assert('sanitiza palavras', sanitizeWords(['  Tejo ', 'Tejo', '???', 'a']).join() === 'Tejo');
 assert('separa vírgulas e ponto-e-vírgula', sanitizeWords(['portugal, seleção, golo']).join() === 'portugal,seleção,golo');

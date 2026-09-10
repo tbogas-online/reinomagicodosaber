@@ -3856,8 +3856,12 @@
                 </div>
               </div>
               <div class="knowledge-briefing-row">
-                <label for="knowledgeBriefingSubtopic" class="sub">Subtema</label>
-                <input type="text" id="knowledgeBriefingSubtopic" maxlength="60" placeholder="Opcional (ex.: rios de Portugal)" style="flex:1; min-width:180px;">
+                <span class="sub">Subtema</span>
+                <div id="knowledgeBriefingSubtopics" class="knowledge-word-chips" style="margin:0;"></div>
+              </div>
+              <div class="knowledge-briefing-row hidden" id="knowledgeBriefingTopicsRow">
+                <span class="sub">Tópico</span>
+                <div id="knowledgeBriefingTopics" class="knowledge-word-chips" style="margin:0;"></div>
               </div>
             </div>
             <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
@@ -3866,7 +3870,7 @@
               <input type="search" id="knowledgeWikidataWordInput" placeholder="polvo, lobo, abelha" maxlength="120" style="min-width:160px; flex:1;">
               <button type="button" class="secondary" id="knowledgeWikidataAddWordBtn">Adicionar</button>
             </div>
-            <p class="sub" style="margin:0;">Clica nas <strong>sugestões desta categoria</strong> (máx. 4). Ou escreve as tuas, separadas por vírgula.</p>
+            <p class="sub" id="knowledgeWikidataWordHelp" style="margin:0;">Clica num <strong>subtema</strong> para ver as sugestões certas, depois escolhe até 4 palavras.</p>
             <div id="knowledgeWikidataSuggestions" class="knowledge-word-chips"></div>
             <p class="sub" id="knowledgeWikidataPresetLabel" style="margin:8px 0 0;">Atalhos desta categoria</p>
             <div id="knowledgeWikidataPresets" class="knowledge-word-chips"></div>
@@ -10951,7 +10955,95 @@
     ];
     const WIKIDATA_TOPIC_FALLBACK = {
       1: { suggestions: ['Portugal', 'Europa', 'ONU', 'Nobel', 'olimpíadas'] },
-      2: { suggestions: ['Portugal', 'Lisboa', 'Tejo', 'Alpes', 'Amazonas', 'Sahara', 'Antárctida'], presets: [{ id: 'countryCapitals', label: 'Capitais de países' }] },
+      2: {
+        suggestions: ['Portugal', 'Lisboa', 'Tejo', 'Alpes', 'Amazonas', 'Sahara', 'Antárctida'],
+        presets: [{ id: 'countryCapitals', label: 'Capitais de países' }],
+        subtopics: [
+          {
+            id: 'portugal',
+            label: 'Portugal',
+            contentType: 'place',
+            scope: 'portugal',
+            topics: [
+              { id: 'districts', label: 'Distritos', suggestions: ['Lisboa', 'Porto', 'Faro', 'Braga', 'Coimbra'] },
+              { id: 'municipalities', label: 'Municípios', suggestions: ['Sintra', 'Cascais', 'Guimarães', 'Óbidos', 'Évora'] },
+              { id: 'regions', label: 'Regiões', suggestions: ['Alentejo', 'Algarve', 'Minho', 'Douro', 'Açores'] },
+              { id: 'rivers', label: 'Rios', suggestions: ['Tejo', 'Douro', 'Guadiana', 'Minho', 'Mondego'] },
+              { id: 'mountains', label: 'Serras', suggestions: ['Estrela', 'Gerês', 'Arrábida', 'Sintra', 'Marão'] },
+              { id: 'beaches', label: 'Praias', suggestions: ['Nazaré', 'Guincho', 'Algarve', 'Figueira'] },
+              { id: 'islands', label: 'Ilhas', suggestions: ['Madeira', 'Porto Santo', 'São Miguel', 'Terceira', 'Pico'] },
+              { id: 'parks', label: 'Parques naturais', suggestions: ['Gerês', 'Arrábida', 'Sintra', 'Peneda'] },
+            ],
+          },
+          {
+            id: 'europa',
+            label: 'Europa',
+            contentType: 'place',
+            scope: 'europa',
+            topics: [
+              { id: 'countries', label: 'Países', suggestions: ['Espanha', 'França', 'Alemanha', 'Itália', 'Grécia'] },
+              { id: 'capitals', label: 'Capitais', suggestions: ['Paris', 'Madrid', 'Berlim', 'Roma', 'Atenas'] },
+              { id: 'rivers', label: 'Rios', suggestions: ['Danúbio', 'Reno', 'Sena', 'Volga', 'Tamisa'] },
+              { id: 'mountains', label: 'Montanhas', suggestions: ['Alpes', 'Pirenéus', 'Cárpatos', 'Apeninos'] },
+              { id: 'seas', label: 'Mares', suggestions: ['Mediterrâneo', 'Báltico', 'Negro', 'Norte'] },
+              { id: 'borders', label: 'Fronteiras', suggestions: ['Pirenéus', 'Alpes', 'Reno', 'Danúbio'] },
+            ],
+          },
+          {
+            id: 'world',
+            label: 'Mundo',
+            contentType: 'place',
+            scope: 'world',
+            topics: [
+              { id: 'countries', label: 'Países', suggestions: ['Brasil', 'China', 'Índia', 'Japão', 'Egipto'] },
+              { id: 'capitals', label: 'Capitais', suggestions: ['Pequim', 'Tóquio', 'Brasília', 'Cairo'] },
+              { id: 'continents', label: 'Continentes', suggestions: ['Europa', 'África', 'Ásia', 'América', 'Antárctida'] },
+              { id: 'oceans', label: 'Oceanos', suggestions: ['Atlântico', 'Pacífico', 'Índico', 'Ártico'] },
+              { id: 'rivers', label: 'Grandes rios', suggestions: ['Amazonas', 'Nilo', 'Mississípi', 'Yangtzé'] },
+              { id: 'mountains', label: 'Grandes montanhas', suggestions: ['Evereste', 'Aconcágua', 'Kilimanjaro', 'Elbrus'] },
+            ],
+          },
+          {
+            id: 'physical',
+            label: 'Geografia física',
+            contentType: 'place',
+            scope: 'world',
+            topics: [
+              { id: 'relief', label: 'Relevo', suggestions: ['Himalaias', 'Alpes', 'Grand Canyon', 'Rift'] },
+              { id: 'climate', label: 'Clima', suggestions: ['Sahara', 'Amazónia', 'Antárctida', 'Mediterrâneo'] },
+              { id: 'volcanoes', label: 'Vulcões', suggestions: ['Etna', 'Vesúvio', 'Fuji', 'Kilauea'] },
+              { id: 'glaciers', label: 'Glaciares', suggestions: ['Gronelândia', 'Antárctida', 'Patagónia', 'Islândia'] },
+              { id: 'deserts', label: 'Desertos', suggestions: ['Sahara', 'Gobi', 'Atacama', 'Kalahari'] },
+              { id: 'forests', label: 'Florestas', suggestions: ['Amazónia', 'Taiga', 'Congo', 'Bornéu'] },
+            ],
+          },
+          {
+            id: 'human',
+            label: 'Geografia humana',
+            contentType: 'place',
+            scope: 'world',
+            topics: [
+              { id: 'population', label: 'População', suggestions: ['China', 'Índia', 'Tóquio', 'Lagos'] },
+              { id: 'cities', label: 'Cidades', suggestions: ['Tóquio', 'Nova Iorque', 'Londres', 'São Paulo'] },
+              { id: 'migration', label: 'Migrações', suggestions: ['Nova Iorque', 'Alemanha', 'Dubai', 'Califórnia'] },
+              { id: 'density', label: 'Densidade populacional', suggestions: ['Singapura', 'Mónaco', 'Bangladeche', 'Mongólia'] },
+              { id: 'urban', label: 'Urbanização', suggestions: ['Tóquio', 'Lagos', 'São Paulo', 'Dubai'] },
+            ],
+          },
+          {
+            id: 'maps',
+            label: 'Mapas e localização',
+            contentType: 'place',
+            scope: 'world',
+            topics: [
+              { id: 'coordinates', label: 'Coordenadas', suggestions: ['Equador', 'Greenwich', 'Trópico', 'Meridiano'] },
+              { id: 'cardinal', label: 'Pontos cardeais', suggestions: ['Pólo Norte', 'Pólo Sul', 'Equador', 'Greenwich'] },
+              { id: 'borders', label: 'Fronteiras', suggestions: ['Pirenéus', 'Alpes', 'Rio Grande', 'Danúbio'] },
+              { id: 'relative', label: 'Localização relativa', suggestions: ['Equador', 'Trópico', 'Greenwich', 'Pólo Norte'] },
+            ],
+          },
+        ],
+      },
       3: { suggestions: ['Viriato', 'Roma', 'Egipto', 'Napoleão', 'Descobrimentos'] },
       4: { suggestions: ['Newton', 'Curie', 'átomo', 'vacina', 'oxigénio'] },
       5: { suggestions: ['polvo', 'lobo', 'abelha', 'sobreiro', 'golfinho', 'girafa', 'carvalho'] },
@@ -14273,6 +14365,8 @@
     let wikidataCategoryTopics = [];
     const selectedWikidataWords = new Set();
     let selectedWikidataPreset = '';
+    let selectedWikidataSubtopic = '';
+    let selectedWikidataFocus = '';
     let lastWikidataCandidates = [];
     let lastWikidataSearchKey = '';
 
@@ -15185,12 +15279,32 @@
     function currentWikidataTopic() {
       const n = currentWikidataCategoryN();
       const fromApi = wikidataCategoryTopics.find((row) => Number(row.categoryN) === n);
-      const fallback = WIKIDATA_TOPIC_FALLBACK[n] || { suggestions: [], presets: [] };
+      const fallback = WIKIDATA_TOPIC_FALLBACK[n] || { suggestions: [], presets: [], subtopics: [] };
+      const subtopics = (fromApi?.subtopics?.length ? fromApi.subtopics : fallback.subtopics) || [];
+      const sub = subtopics.find((row) => row.id === selectedWikidataSubtopic) || null;
+      const focusList = sub?.topics || [];
+      const focus = focusList.find((row) => row.id === selectedWikidataFocus) || null;
+      const hasTree = subtopics.some((row) => (row.topics || []).length);
+      let suggestions = [];
+      if (focus?.suggestions?.length) {
+        suggestions = focus.suggestions;
+      } else if (!hasTree) {
+        suggestions = (sub?.suggestions?.length
+          ? sub.suggestions
+          : (fromApi?.suggestions?.length ? fromApi.suggestions : fallback.suggestions)) || [];
+      } else if (sub?.suggestions?.length && !focusList.length) {
+        suggestions = sub.suggestions;
+      }
       return {
         categoryN: n,
         topic: fromApi?.topic || '',
-        suggestions: (fromApi?.suggestions?.length ? fromApi.suggestions : fallback.suggestions) || [],
+        suggestions,
         presets: (fromApi?.presets?.length ? fromApi.presets : fallback.presets) || [],
+        subtopics,
+        subtopic: sub,
+        focusList,
+        focus,
+        hasTree,
       };
     }
 
@@ -15245,7 +15359,8 @@
         goal: document.getElementById('knowledgeBriefingGoal')?.value || 'theme',
         categoryN,
         topic: topic.topic || '',
-        subtopic: String(document.getElementById('knowledgeBriefingSubtopic')?.value || '').trim(),
+        subtopic: topic.subtopic?.label || '',
+        focus: topic.focus?.label || '',
         ageBands: readBriefingChecks('knowledgeBriefingAges'),
         contentType: document.getElementById('knowledgeBriefingType')?.value || defaultBriefingContentType(categoryN),
         scope: document.getElementById('knowledgeBriefingScope')?.value || 'world',
@@ -15278,15 +15393,55 @@
       const presetLabel = document.getElementById('knowledgeWikidataPresetLabel');
       const selectedEl = document.getElementById('knowledgeWikidataSelected');
       const input = document.getElementById('knowledgeWikidataWordInput');
+      const subEl = document.getElementById('knowledgeBriefingSubtopics');
+      const focusEl = document.getElementById('knowledgeBriefingTopics');
+      const focusRow = document.getElementById('knowledgeBriefingTopicsRow');
+      const helpEl = document.getElementById('knowledgeWikidataWordHelp');
       const presets = topic.presets || [];
+      const subtopics = topic.subtopics || [];
+      const focusList = topic.focusList || [];
+      if (subEl) {
+        subEl.innerHTML = subtopics.map((sub) => {
+          const on = selectedWikidataSubtopic === sub.id ? ' is-on' : '';
+          return `<button type="button" class="knowledge-word-chip${on}" data-wikidata-subtopic="${esc(sub.id)}">${esc(sub.label)}</button>`;
+        }).join('') || '<span class="sub">Sem subtemas nesta categoria.</span>';
+      }
+      if (focusRow) {
+        const showFocus = !!(topic.hasTree && selectedWikidataSubtopic);
+        focusRow.classList.toggle('hidden', !showFocus);
+      }
+      if (focusEl) {
+        if (selectedWikidataSubtopic && focusList.length) {
+          focusEl.innerHTML = focusList.map((row) => {
+            const on = selectedWikidataFocus === row.id ? ' is-on' : '';
+            return `<button type="button" class="knowledge-word-chip${on}" data-wikidata-focus="${esc(row.id)}">${esc(row.label)}</button>`;
+          }).join('');
+        } else {
+          focusEl.innerHTML = '<span class="sub">Clica num subtema para ver os tópicos.</span>';
+        }
+      }
+      if (helpEl) {
+        helpEl.innerHTML = topic.hasTree
+          ? 'Clica num <strong>subtema</strong> e depois num <strong>tópico</strong> — as palavras de pesquisa aparecem a seguir (máx. 4).'
+          : 'Clica num <strong>subtema</strong> para ver as sugestões certas, depois escolhe até 4 palavras.';
+      }
       if (input) {
         input.placeholder = (topic.suggestions || []).slice(0, 3).join(', ') || 'Adicionar palavra…';
       }
       if (sugEl) {
-        sugEl.innerHTML = (topic.suggestions || []).map((word) => {
-          const on = [...selectedWikidataWords].some((sel) => sel.toLowerCase() === word.toLowerCase()) ? ' is-on' : '';
-          return `<button type="button" class="knowledge-word-chip${on}" data-wikidata-word="${esc(word)}">${esc(word)}</button>`;
-        }).join('') || '<span class="sub">Sem sugestões nesta categoria.</span>';
+        const hint = topic.suggestions || [];
+        if (hint.length) {
+          sugEl.innerHTML = hint.map((word) => {
+            const on = [...selectedWikidataWords].some((sel) => sel.toLowerCase() === word.toLowerCase()) ? ' is-on' : '';
+            return `<button type="button" class="knowledge-word-chip${on}" data-wikidata-word="${esc(word)}">${esc(word)}</button>`;
+          }).join('');
+        } else if (topic.hasTree && selectedWikidataSubtopic && !selectedWikidataFocus) {
+          sugEl.innerHTML = '<span class="sub">Clica num tópico para ver as palavras de pesquisa.</span>';
+        } else if (topic.hasTree) {
+          sugEl.innerHTML = '<span class="sub">Clica num subtema para ver os tópicos.</span>';
+        } else {
+          sugEl.innerHTML = '<span class="sub">Clica num subtema para ver sugestões.</span>';
+        }
       }
       if (presetEl) {
         presetEl.innerHTML = presets.map((preset) => {
@@ -15303,10 +15458,63 @@
           selectedEl.innerHTML = `Seleccionadas (${selectedWikidataWords.size}/4): ${[...selectedWikidataWords].map((word) =>
             `<button type="button" class="knowledge-word-chip is-on" data-wikidata-word="${esc(word)}">${esc(word)} ×</button>`,
           ).join('')}`;
+        } else if (topic.hasTree && selectedWikidataSubtopic && !selectedWikidataFocus) {
+          selectedEl.textContent = 'Clica num tópico deste subtema.';
+        } else if (selectedWikidataSubtopic) {
+          selectedEl.textContent = 'Clica nas sugestões deste subtema (máx. 4).';
         } else {
-          selectedEl.textContent = 'Clica numa sugestão para a seleccionar (máx. 4).';
+          selectedEl.textContent = topic.hasTree
+            ? 'Clica num subtema e depois num tópico (máx. 4 palavras).'
+            : 'Clica num subtema ou numa sugestão (máx. 4).';
         }
       }
+    }
+
+    function applyWikidataSelectionDefaults(row) {
+      if (!row) return;
+      const typeSel = document.getElementById('knowledgeBriefingType');
+      if (typeSel && row.contentType) typeSel.value = row.contentType;
+      const scopeSel = document.getElementById('knowledgeBriefingScope');
+      if (scopeSel && row.scope) scopeSel.value = row.scope;
+      if (row.preset) {
+        selectedWikidataPreset = row.preset;
+        return;
+      }
+      (row.suggestions || []).slice(0, 4).forEach((word) => selectedWikidataWords.add(word));
+    }
+
+    function applyWikidataSubtopic(id) {
+      const key = String(id || '').trim();
+      const next = selectedWikidataSubtopic === key ? '' : key;
+      selectedWikidataSubtopic = next;
+      selectedWikidataFocus = '';
+      selectedWikidataWords.clear();
+      selectedWikidataPreset = '';
+      clearWikidataWordInput();
+      const topic = currentWikidataTopic();
+      const sub = topic.subtopic;
+      if (sub && !(sub.topics || []).length) {
+        applyWikidataSelectionDefaults(sub);
+      } else if (sub) {
+        const typeSel = document.getElementById('knowledgeBriefingType');
+        if (typeSel && sub.contentType) typeSel.value = sub.contentType;
+        const scopeSel = document.getElementById('knowledgeBriefingScope');
+        if (scopeSel && sub.scope) scopeSel.value = sub.scope;
+      }
+      renderWikidataWordUi();
+      clearWikidataPreview();
+    }
+
+    function applyWikidataFocus(id) {
+      const key = String(id || '').trim();
+      const next = selectedWikidataFocus === key ? '' : key;
+      selectedWikidataFocus = next;
+      selectedWikidataWords.clear();
+      selectedWikidataPreset = '';
+      clearWikidataWordInput();
+      applyWikidataSelectionDefaults(currentWikidataTopic().focus);
+      renderWikidataWordUi();
+      clearWikidataPreview();
     }
 
     function toggleWikidataImportPanel() {
@@ -15389,6 +15597,8 @@
         scope: briefing.scope,
         contentType: briefing.contentType,
         limit: briefing.limit,
+        subtopic: selectedWikidataSubtopic || '',
+        focus: selectedWikidataFocus || '',
       });
     }
 
@@ -16677,6 +16887,8 @@
     document.getElementById('knowledgeWikidataCategory')?.addEventListener('change', () => {
       selectedWikidataWords.clear();
       selectedWikidataPreset = '';
+      selectedWikidataSubtopic = '';
+      selectedWikidataFocus = '';
       clearWikidataWordInput();
       syncBriefingDefaultsForCategory();
       renderWikidataWordUi();
@@ -16706,11 +16918,23 @@
       if (!btn) return;
       toggleWikidataWord(btn.dataset.wikidataWord);
     });
+    document.getElementById('knowledgeBriefingSubtopics')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-wikidata-subtopic]');
+      if (!btn) return;
+      applyWikidataSubtopic(btn.dataset.wikidataSubtopic);
+    });
+    document.getElementById('knowledgeBriefingTopics')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-wikidata-focus]');
+      if (!btn) return;
+      applyWikidataFocus(btn.dataset.wikidataFocus);
+    });
     document.getElementById('knowledgeWikidataPresets')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-wikidata-preset]');
       if (!btn) return;
       const id = btn.dataset.wikidataPreset;
       selectedWikidataWords.clear();
+      selectedWikidataSubtopic = '';
+      selectedWikidataFocus = '';
       selectedWikidataPreset = selectedWikidataPreset === id ? '' : id;
       clearWikidataWordInput();
       renderWikidataWordUi();
