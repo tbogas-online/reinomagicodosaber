@@ -212,6 +212,7 @@ assert('registo válido', validateRecord(records[0]).length === 0, validateRecor
 const twelve = Array.from({ length: 12 }, (_, i) => ({ knowledge_id: `knw-${i}`, fact: `Facto ${i}.`, answer: 'X' }));
 assert('lista de importação tem 10 entradas', buildImportCandidates(twelve, []).length === PREVIEW_LIMIT);
 assert('candidato novo inclui o registo', buildImportCandidates(twelve.slice(0, 1), [])[0].record?.knowledge_id === 'knw-0');
+assert('exclui ids já vistos e preenche os seguintes', buildImportCandidates(twelve, [], 10, ['knw-0', 'knw-1']).map((row) => row.knowledgeId).join() === 'knw-2,knw-3,knw-4,knw-5,knw-6,knw-7,knw-8,knw-9,knw-10,knw-11');
 assert('filtra IDs seleccionados', applyKnowledgeIdFilter(twelve, ['knw-1', 'knw-9']).records.map((row) => row.knowledge_id).join() === 'knw-1,knw-9');
 assert('duplicados ficam de fora da lista', buildImportCandidates(twelve.slice(0, 2), [{ record: twelve[2], reason: 'dup' }]).every((row) => row.status === 'new') && buildImportCandidates(twelve.slice(0, 2), [{ record: twelve[2], reason: 'dup' }]).length === 2);
 

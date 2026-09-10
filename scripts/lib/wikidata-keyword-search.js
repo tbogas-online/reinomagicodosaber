@@ -125,10 +125,12 @@ function candidateFromRecord(row, status, extra = {}) {
   };
 }
 
-function buildImportCandidates(accepted, skipped, limit = PREVIEW_LIMIT) {
+function buildImportCandidates(accepted, skipped, limit = PREVIEW_LIMIT, excludeIds) {
   const cap = Math.min(20, Math.max(1, Number(limit) || PREVIEW_LIMIT));
+  const skip = new Set(normalizeKnowledgeIds(excludeIds));
   const rows = [];
   for (const row of accepted || []) {
+    if (skip.has(row?.knowledge_id)) continue;
     if (rows.length >= cap) break;
     rows.push(candidateFromRecord(row, 'new'));
   }

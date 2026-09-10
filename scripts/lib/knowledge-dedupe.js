@@ -113,7 +113,33 @@ const DEDUPE_REASON_LABELS = {
   similar_answer: 'resposta parecida',
   exact_answer_fact: 'mesma resposta e mesmo texto',
   similar_answer_fact: 'mesma resposta e texto parecido',
+  same_capital: 'mesma capital do país',
 };
+
+function isGeographyLike(row) {
+  const topic = normalizeText(row?.topic);
+  return topic === 'geografia' || topic === 'capital' || topic.includes('geografia') || topic.includes('capital');
+}
+
+function relatedCapitalQid(row) {
+  const fromMeta = String(row?.metadata?.relatedQid || '').toUpperCase();
+  if (/^Q\d+$/.test(fromMeta)) return fromMeta;
+  const id = String(row?.knowledge_id || '');
+  const match = id.match(/-capital-(q\d+)/i);
+  return match ? match[1].toUpperCase() : '';
+}
+
+function sameCapitalIdentity(a, b) {
+  const countryA = wikidataQid(a);
+  const countryB = wikidataQid(b);
+  if (!countryA || countryA !== countryB) return false;
+  const capA = relatedCapitalQid(a);
+  const capB = relatedCapitalQid(b);
+  if (capA && capB) return capA === capB;
+  const ansA = normalizeText(a?.answer);
+  const ansB = normalizeText(b?.answer);
+  return !!(ansA && ansB && ansA === ansB);
+}
 
 function formatDisabledReason(entry) {
   const code = String(entry?.reason || '').trim();
@@ -222,7 +248,23 @@ function buildDedupePlan(records, { adivinhas = false, curiosidades = true } = {
 function isDuplicateOfExisting(record, existingRecords, { topic } = {}) {
   const rec = record;
   const topicFilter = topic || rec.topic;
-  const peers = existingRecords.filter((r) => r.is_active !== false && r.topic === topicFilter);
+  const active = existingRecords.filter((r) => r.is_active !== false);
+
+  if (isGeographyLike(rec)) {
+    const fact = normalizeText(rec.fact);
+    const geoPeers = active.filter((row) => isGeographyLike(row));
+    const peers = geoPeers.length ? geoPeers : active;
+    for (const row of peers) {
+      if (fact && normalizeText(row.fact) === fact) {
+        return { duplicate: true, reason: 'exact_fact', of: row.knowledge_id };
+      }
+      if (sameCapitalIdentity(rec, row)) {
+        return { duplicate: true, reason: 'same_capital', of: row.knowledge_id };
+      }
+    }
+  }
+
+  const peers = active.filter((r) => r.topic === topicFilter);
 
   if (topicFilter === 'curiosidade surpreendente') {
     const fact = normalizeText(rec.fact);

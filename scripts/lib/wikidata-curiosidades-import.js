@@ -59,6 +59,7 @@ async function persistWikidataRecords(cfg, raw, {
   enrichWithRest = false,
   labels = 'Wikidata',
   knowledgeIds,
+  excludeKnowledgeIds,
   briefing = null,
 } = {}) {
   const stamped = applyBriefingToRecords(raw, briefing);
@@ -82,7 +83,7 @@ async function persistWikidataRecords(cfg, raw, {
   const filtered = filterNewRecords(records, existing);
   let accepted = filtered.accepted;
   const skipped = filtered.skipped;
-  const candidates = buildImportCandidates(accepted, skipped, briefing?.limit);
+  const candidates = buildImportCandidates(accepted, skipped, briefing?.limit, excludeKnowledgeIds);
   const selectedIds = Array.isArray(knowledgeIds) ? normalizeKnowledgeIds(knowledgeIds) : null;
 
   if (!dryRun && selectedIds) {
@@ -139,7 +140,10 @@ async function persistWikidataRecords(cfg, raw, {
       summary.message = `Nenhum facto novo para validar — ${skipped.length} já estão no repositório (ocultos).`;
     } else {
       const hidden = skipped.length ? ` ${skipped.length} já no repositório (ocultos).` : '';
-      summary.message = `Lista Wikidata (até ${briefing?.limit || 10}): ${selectable} novo(s) para validar.${hidden} Aceita ou rejeita e confirma: a lista limpa e só entram os aceites.`;
+      const skippedSeen = normalizeKnowledgeIds(excludeKnowledgeIds).length
+        ? ' Simular outra vez mostra os seguintes, não os mesmos.'
+        : '';
+      summary.message = `Lista Wikidata (até ${briefing?.limit || 10}): ${selectable} novo(s) para validar.${hidden}${skippedSeen} Aceita ou rejeita e confirma: a lista limpa e só entram os aceites.`;
     }
     return summary;
   }
@@ -242,6 +246,7 @@ async function importWikidataFromOptions(cfg, {
   preset,
   knowledgeIds,
   records,
+  excludeKnowledgeIds,
   briefing = null,
   materializeQuestions = false,
   enrichWithRest = false,
@@ -288,6 +293,7 @@ async function importWikidataFromOptions(cfg, {
     enrichWithRest,
     labels,
     knowledgeIds,
+    excludeKnowledgeIds,
     briefing,
   });
 }

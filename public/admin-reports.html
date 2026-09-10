@@ -14369,6 +14369,8 @@
     let selectedWikidataFocus = '';
     let lastWikidataCandidates = [];
     let lastWikidataSearchKey = '';
+    const wikidataSkipIds = new Set();
+    let wikidataSkipKey = '';
 
     function initKnowledgeSearchCategorySelect() {
       const sel = document.getElementById('knowledgeSearchCategory');
@@ -15620,6 +15622,26 @@
       return lastWikidataCandidates.length > 0 && lastWikidataSearchKey === wikidataSearchKey();
     }
 
+    function syncWikidataSkipKey() {
+      const key = wikidataSearchKey();
+      if (wikidataSkipKey !== key) {
+        wikidataSkipIds.clear();
+        wikidataSkipKey = key;
+      }
+    }
+
+    function rememberWikidataSkippedIds(ids) {
+      syncWikidataSkipKey();
+      for (const id of ids || []) {
+        const kid = String(id || '').trim();
+        if (kid) wikidataSkipIds.add(kid);
+      }
+    }
+
+    function rememberWikidataPreviewIds() {
+      rememberWikidataSkippedIds(wikidataPreviewRows().map((row) => row.dataset.kid));
+    }
+
     function syncWikidataConfirmButton() {
       const importBtn = document.getElementById('knowledgeSourceImportBtn');
       const confirmBtn = document.getElementById('knowledgeWikidataConfirmBtn');
@@ -15707,6 +15729,7 @@
 
     function finishWikidataReject(rejected) {
       const n = Math.max(0, Number(rejected) || 0);
+      rememberWikidataPreviewIds();
       clearWikidataWordInput();
       clearWikidataPreview();
       setWikidataImportStatus(`Confirmado: 0 aceites, ${n} rejeitado(s). Nada foi importado. Lista limpa.`);
@@ -15725,6 +15748,7 @@
 
     function rejectWikidataPreviewRow(row) {
       if (!row || row.classList.contains('is-dup')) return;
+      rememberWikidataSkippedIds([row.dataset.kid]);
       const remainingBefore = wikidataPreviewRows().length;
       row.remove();
       const left = wikidataPreviewRows().length;
@@ -15804,6 +15828,7 @@
       const dryBtn = document.getElementById('knowledgeSourceDryRunBtn');
       const importBtn = document.getElementById('knowledgeSourceImportBtn');
       if (source === 'wikidata') {
+        if (dryRun && wikidataPreviewIsReady()) rememberWikidataPreviewIds();
         if (dryRun || !wikidataPreviewIsReady()) harvestWikidataInput();
         else clearWikidataWordInput();
       }
@@ -15858,6 +15883,7 @@
           Object.assign(body, wikidataImportPayload());
           if (knowledgeIds) body.knowledgeIds = knowledgeIds;
           if (Array.isArray(records) && records.length) body.records = records;
+          if (dryRun && wikidataSkipIds.size) body.excludeKnowledgeIds = [...wikidataSkipIds];
         }
         const data = await api('/api/knowledge-import-admin', {
           method: 'POST',

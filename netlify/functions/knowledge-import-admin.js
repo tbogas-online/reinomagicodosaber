@@ -87,6 +87,7 @@ exports.handler = async (event) => {
             preset: body.preset,
             knowledgeIds: body.knowledgeIds,
             records: body.records,
+            excludeKnowledgeIds: body.excludeKnowledgeIds,
             briefing: body.briefing,
           });
           return json(200, result);
