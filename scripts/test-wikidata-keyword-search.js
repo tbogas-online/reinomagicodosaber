@@ -12,6 +12,9 @@ const {
   buildKeywordSearchQuery,
   groupKeywordBindings,
   pickFact,
+  listFacts,
+  itemSearchScore,
+  diversifyRecords,
   transformKeywordItems,
   collectKeywordRecords,
 } = require('./lib/wikidata-keyword-search');
@@ -174,6 +177,56 @@ const giraffe = groupKeywordBindings([
 ]);
 assert('táxon sem país gera espécie', pickFact(giraffe[0], { categoryN: 5 })?.fact === 'girafa é uma espécie.');
 
+const portugalTypes = listFacts(portugal[0], { categoryN: 2 });
+assert(
+  'Portugal gera capital e identificação',
+  portugalTypes.some((row) => row.suffix === 'p36') && portugalTypes.some((row) => row.suffix === 'p31'),
+);
+
+const tejoRich = groupKeywordBindings([
+  binding({
+    item: 'http://www.wikidata.org/entity/Q14294',
+    itemLabel: 'Tejo',
+    class: 'http://www.wikidata.org/entity/Q4022',
+    classLabel: 'rio',
+    country: 'http://www.wikidata.org/entity/Q45',
+    countryLabel: 'Portugal',
+    mouth: 'http://www.wikidata.org/entity/Q97',
+    mouthLabel: 'Oceano Atlântico',
+  }),
+]);
+const tejoFacts = listFacts(tejoRich[0], { categoryN: 2 });
+assert(
+  'Tejo gera hidrografia e classe, não só localização',
+  tejoFacts.some((row) => row.suffix === 'p403') && tejoFacts.some((row) => row.suffix === 'p31'),
+);
+
+const rioJaneiro = groupKeywordBindings([
+  binding({
+    item: 'http://www.wikidata.org/entity/Q8678',
+    itemLabel: 'Rio de Janeiro',
+    class: 'http://www.wikidata.org/entity/Q515',
+    classLabel: 'cidade',
+    country: 'http://www.wikidata.org/entity/Q155',
+    countryLabel: 'Brasil',
+  }),
+]);
+assert(
+  'palavra rio prefere o rio Tejo à cidade Rio de Janeiro',
+  itemSearchScore(tejoRich[0], 'rio') > itemSearchScore(rioJaneiro[0], 'rio'),
+);
+
+const mixedTypes = [
+  { knowledge_id: 'a', metadata: { factKey: 'p17' } },
+  { knowledge_id: 'b', metadata: { factKey: 'p17' } },
+  { knowledge_id: 'c', metadata: { factKey: 'p36' } },
+  { knowledge_id: 'd', metadata: { factKey: 'p31' } },
+];
+assert(
+  'lista mistura tipos de facto',
+  diversifyRecords(mixedTypes, 3).map((row) => row.metadata.factKey).join() === 'p17,p36,p31',
+);
+
 function mockSparqlFetch(url) {
   const query = decodeURIComponent(String(url));
   let bindings = [];
@@ -197,8 +250,11 @@ function mockSparqlFetch(url) {
 }
 
 collectKeywordRecords({ categoryN: 2, words: ['Lisboa'], fetchFn: mockSparqlFetch }).then((rows) => {
-  assert('pesquisa Lisboa gera facto', rows[0]?.fact === 'Lisboa fica em Portugal.');
-  assert('ids estáveis', rows[0]?.knowledge_id === 'knw-cat2-wd-q597-p17');
+  assert(
+    'pesquisa Lisboa gera localização e identificação',
+    rows.some((row) => row.fact === 'Lisboa fica em Portugal.') && rows.some((row) => row.fact === 'Lisboa é uma cidade.'),
+  );
+  assert('ids estáveis', rows.some((row) => row.knowledge_id === 'knw-cat2-wd-q597-p17'));
   console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
   process.exit(failed > 0 ? 1 : 0);
 }).catch((err) => {

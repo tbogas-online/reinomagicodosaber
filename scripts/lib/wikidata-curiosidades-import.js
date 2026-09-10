@@ -131,7 +131,7 @@ async function persistWikidataRecords(cfg, raw, {
 
   if (dryRun) {
     const selectable = candidates.filter((row) => row.selectable).length;
-    summary.message = `Lista Wikidata (até 10): ${selectable} novo(s) para validar, ${skipped.length} já no repositório. Marca os que queres adicionar; os outros são rejeitados.`;
+    summary.message = `Lista Wikidata (até 10): ${selectable} novo(s) para validar, ${skipped.length} já no repositório. Aceita ou rejeita e confirma: a lista limpa e só entram os aceites.`;
     return summary;
   }
 

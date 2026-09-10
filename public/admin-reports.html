@@ -3769,7 +3769,7 @@
               <option value="wikidata" data-kind="wikidata">Wikidata — categoria e palavras</option>
             </select>
             <button type="button" class="secondary" id="knowledgeSourceDryRunBtn" title="Listar até 10 factos Wikidata para validar, sem gravar">🧪 Simular</button>
-            <button type="button" class="primary" id="knowledgeSourceImportBtn" title="Importar só os factos marcados">📥 Importar</button>
+            <button type="button" class="primary" id="knowledgeSourceImportBtn" title="Confirmar aceites e rejeitados">📥 Importar</button>
           </div>
           <div id="knowledgeWikidataPanel" class="hidden" style="margin-top:10px;">
             <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:8px;">
@@ -3784,10 +3784,11 @@
             <div id="knowledgeWikidataPresets" class="knowledge-word-chips"></div>
             <p class="sub" id="knowledgeWikidataSelected" style="margin:4px 0 0;"></p>
             <div id="knowledgeWikidataPreviewWrap" class="hidden">
-              <p class="sub" id="knowledgeWikidataPreviewHint" style="margin:10px 0 0;">Aceita ou rejeita cada facto. Só os <strong>aceites</strong> são importados.</p>
+              <p class="sub" id="knowledgeWikidataPreviewHint" style="margin:10px 0 0;">Aceita ou rejeita cada facto. Depois <strong>Confirmar</strong>: vês quantos são e a lista limpa. Só os aceites entram no repositório.</p>
               <div class="wikidata-preview-actions">
                 <button type="button" class="success" id="knowledgeWikidataSelectAllBtn">✓ Aceitar todos</button>
                 <button type="button" class="danger" id="knowledgeWikidataSelectNoneBtn">✕ Rejeitar todos</button>
+                <button type="button" class="primary" id="knowledgeWikidataConfirmBtn">Confirmar decisões</button>
                 <span class="wikidata-preview-count" id="knowledgeWikidataPreviewCount"></span>
               </div>
               <div class="bank-matrix-wrap">
@@ -15065,6 +15066,12 @@
 
     function formatKnowledgeImportResult(data) {
       if (data?.action === 'import-source') {
+        if (!data.dryRun && data.source === 'wikidata') {
+          const imported = Number(data.imported) || 0;
+          const rejected = Number(data.rejected) || 0;
+          const skipped = Number(data.skipped) || 0;
+          return `Confirmado: ${imported} aceite(s) importado(s), ${rejected} rejeitado(s)${skipped ? `, ${skipped} já no repositório` : ''}. Lista limpa.`;
+        }
         const extra = data.dryRun
           ? ''
           : ((data.preview || []).map((row) => row.fact).filter(Boolean).slice(0, 3).length
@@ -15168,6 +15175,7 @@
       } else {
         clearWikidataPreview();
       }
+      syncWikidataConfirmButton();
     }
 
     function addWikidataWord(raw, { evict = true } = {}) {
@@ -15231,6 +15239,26 @@
       });
     }
 
+    function wikidataPreviewIsReady() {
+      return lastWikidataCandidates.length > 0 && lastWikidataSearchKey === wikidataSearchKey();
+    }
+
+    function syncWikidataConfirmButton() {
+      const importBtn = document.getElementById('knowledgeSourceImportBtn');
+      const confirmBtn = document.getElementById('knowledgeWikidataConfirmBtn');
+      const ready = isWikidataSourceSelected() && wikidataPreviewIsReady();
+      if (importBtn && isWikidataSourceSelected()) {
+        importBtn.textContent = ready ? '✅ Confirmar' : '📥 Importar';
+        importBtn.title = ready
+          ? 'Confirmar aceites e rejeitados, informar quantos e limpar a lista'
+          : 'Listar ou importar factos Wikidata';
+      } else if (importBtn) {
+        importBtn.textContent = '📥 Importar';
+        importBtn.title = 'Importar para o repositório';
+      }
+      if (confirmBtn) confirmBtn.disabled = !ready;
+    }
+
     function clearWikidataPreview() {
       lastWikidataCandidates = [];
       lastWikidataSearchKey = '';
@@ -15240,6 +15268,7 @@
       if (wrap) wrap.classList.add('hidden');
       if (body) body.innerHTML = '';
       if (count) count.innerHTML = '';
+      syncWikidataConfirmButton();
     }
 
     function wikidataPreviewRows() {
@@ -15315,6 +15344,7 @@
       }).join('');
       wrap.classList.remove('hidden');
       updateWikidataPreviewCount();
+      syncWikidataConfirmButton();
     }
 
     function renderKnowledgeImportSources(data) {
@@ -15349,7 +15379,10 @@
       const source = sel?.selectedOptions?.[0]?.dataset?.kind || 'curiosidades-batch';
       const dryBtn = document.getElementById('knowledgeSourceDryRunBtn');
       const importBtn = document.getElementById('knowledgeSourceImportBtn');
-      if (source === 'wikidata') harvestWikidataInput();
+      if (source === 'wikidata') {
+        if (dryRun || !wikidataPreviewIsReady()) harvestWikidataInput();
+        else clearWikidataWordInput();
+      }
       if (source === 'wikidata' && !selectedWikidataPreset && !selectedWikidataWords.size) {
         if (statusEl) {
           statusEl.textContent = 'Escolhe uma categoria e palavras (ou um atalho) antes de importar da Wikidata.';
@@ -15367,16 +15400,18 @@
           }
           await runKnowledgeSourceImport({ dryRun: true });
           if (statusEl && lastWikidataCandidates.length) {
-            statusEl.textContent = 'Marca os factos a adicionar (1 ou mais) e volta a clicar Importar. Os desmarcados são rejeitados.';
+            statusEl.textContent = 'Aceita ou rejeita cada facto e clica Confirmar. Vês quantos são e a lista limpa.';
             statusEl.className = 'status';
           }
           return;
         }
         knowledgeIds = selectedWikidataCandidateIds();
+        const rejected = Math.max(0, wikidataPreviewRows().length - knowledgeIds.length);
         if (!knowledgeIds.length) {
+          clearWikidataPreview();
           if (statusEl) {
-            statusEl.textContent = 'Selecciona pelo menos um facto para adicionar. Os outros ficam rejeitados.';
-            statusEl.className = 'status err';
+            statusEl.textContent = `Confirmado: 0 aceites, ${rejected} rejeitado(s). Nada foi importado. Lista limpa.`;
+            statusEl.className = 'status ok';
           }
           return;
         }
@@ -16499,26 +16534,36 @@
       setWikidataRowDecision(row, btn.dataset.wikidataDecide === 'accept');
       updateWikidataPreviewCount();
     });
-    document.getElementById('knowledgeSourceImportBtn')?.addEventListener('click', async () => {
+    async function confirmWikidataDecisionsOrImport() {
       const wikidata = isWikidataSourceSelected();
       const selectedIds = wikidata ? selectedWikidataCandidateIds() : [];
       const selectable = wikidata ? wikidataPreviewRows().length : 0;
+      const rejected = Math.max(0, selectable - selectedIds.length);
+      if (wikidata && wikidataPreviewIsReady()) {
+        const ok = await confirmAction(
+          selectedIds.length
+            ? `Importar ${selectedIds.length} aceite(s) e rejeitar ${rejected}? A lista será limpa.`
+            : `Rejeitar ${rejected} facto(s) e não importar nenhum? A lista será limpa.`,
+          { okLabel: selectedIds.length ? 'Importar' : 'Confirmar' },
+        );
+        if (!ok) return;
+        await runKnowledgeSourceImport({ dryRun: false });
+        return;
+      }
       const detail = wikidata
-        ? (lastWikidataCandidates.length
-          ? `${selectedIds.length} facto(s) a adicionar, ${Math.max(0, selectable - selectedIds.length)} rejeitado(s)`
-          : (selectedWikidataPreset
-            ? `atalho ${selectedWikidataPreset}`
-            : `cat. ${currentWikidataCategoryN()} · ${[...selectedWikidataWords].join(', ') || 'sem palavras'}`))
+        ? (selectedWikidataPreset
+          ? `atalho ${selectedWikidataPreset}`
+          : `cat. ${currentWikidataCategoryN()} · ${[...selectedWikidataWords].join(', ') || 'sem palavras'}`)
         : (document.getElementById('knowledgeSourceSelect')?.selectedOptions?.[0]?.textContent || 'este lote');
       const ok = await confirmAction(
-        wikidata && lastWikidataCandidates.length
-          ? `Importar ${detail}? Só entram os aceites.`
-          : `Importar ${detail} para o repositório? Só entram factos novos (duplicados são ignorados).`,
+        `Importar ${detail} para o repositório? Só entram factos novos (duplicados são ignorados).`,
         { okLabel: 'Importar' },
       );
       if (!ok) return;
       await runKnowledgeSourceImport({ dryRun: false });
-    });
+    }
+    document.getElementById('knowledgeWikidataConfirmBtn')?.addEventListener('click', () => confirmWikidataDecisionsOrImport());
+    document.getElementById('knowledgeSourceImportBtn')?.addEventListener('click', () => confirmWikidataDecisionsOrImport());
     document.getElementById('knowledgeDedupeAuditBtn')?.addEventListener('click', () => auditKnowledgeDuplicates());
     document.getElementById('knowledgeDedupeApplyBtn')?.addEventListener('click', () => applyKnowledgeDedupe());
     document.getElementById('knowledgeSearchBtn')?.addEventListener('click', () => searchKnowledgeRecords());

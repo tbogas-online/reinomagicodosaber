@@ -137,7 +137,7 @@ function escapeSparqlString(value) {
 function buildKeywordSearchQuery(word) {
   const search = escapeSparqlString(sanitizeWord(word));
   if (!search) return '';
-  return `SELECT ?item ?itemLabel ?class ?classLabel ?country ?countryLabel ?capital ?capitalLabel ?place ?placeLabel ?occupation ?occupationLabel ?sport ?sportLabel WHERE {
+  return `SELECT ?item ?itemLabel ?class ?classLabel ?country ?countryLabel ?capital ?capitalLabel ?place ?placeLabel ?occupation ?occupationLabel ?sport ?sportLabel ?continent ?continentLabel ?language ?languageLabel ?currency ?currencyLabel ?mouth ?mouthLabel ?capitalOf ?capitalOfLabel ?parent ?parentLabel WHERE {
   SERVICE wikibase:mwapi {
     bd:serviceParam wikibase:api "EntitySearch" .
     bd:serviceParam wikibase:endpoint "www.wikidata.org" .
@@ -152,9 +152,15 @@ function buildKeywordSearchQuery(word) {
   OPTIONAL { ?item wdt:P131 ?place. }
   OPTIONAL { ?item wdt:P106 ?occupation. }
   OPTIONAL { ?item wdt:P641 ?sport. }
+  OPTIONAL { ?item wdt:P30 ?continent. }
+  OPTIONAL { ?item wdt:P37 ?language. }
+  OPTIONAL { ?item wdt:P38 ?currency. }
+  OPTIONAL { ?item wdt:P403 ?mouth. }
+  OPTIONAL { ?item wdt:P1376 ?capitalOf. }
+  OPTIONAL { ?item wdt:P171 ?parent. }
   SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
 }
-LIMIT 24`;
+LIMIT 80`;
 }
 
 function pushUnique(list, qid, label) {
@@ -180,6 +186,12 @@ function groupKeywordBindings(bindings) {
         places: [],
         occupations: [],
         sports: [],
+        continents: [],
+        languages: [],
+        currencies: [],
+        mouths: [],
+        capitalOf: [],
+        parents: [],
       };
       map.set(qid, row);
     }
@@ -189,6 +201,12 @@ function groupKeywordBindings(bindings) {
     pushUnique(row.places, qidFromUri(bindValue(binding, 'place')), bindValue(binding, 'placeLabel'));
     pushUnique(row.occupations, qidFromUri(bindValue(binding, 'occupation')), bindValue(binding, 'occupationLabel'));
     pushUnique(row.sports, qidFromUri(bindValue(binding, 'sport')), bindValue(binding, 'sportLabel'));
+    pushUnique(row.continents, qidFromUri(bindValue(binding, 'continent')), bindValue(binding, 'continentLabel'));
+    pushUnique(row.languages, qidFromUri(bindValue(binding, 'language')), bindValue(binding, 'languageLabel'));
+    pushUnique(row.currencies, qidFromUri(bindValue(binding, 'currency')), bindValue(binding, 'currencyLabel'));
+    pushUnique(row.mouths, qidFromUri(bindValue(binding, 'mouth')), bindValue(binding, 'mouthLabel'));
+    pushUnique(row.capitalOf, qidFromUri(bindValue(binding, 'capitalOf')), bindValue(binding, 'capitalOfLabel'));
+    pushUnique(row.parents, qidFromUri(bindValue(binding, 'parent')), bindValue(binding, 'parentLabel'));
   }
   return [...map.values()];
 }
@@ -209,21 +227,47 @@ function sameLabel(a, b) {
   return String(a || '').trim().toLowerCase() === String(b || '').trim().toLowerCase();
 }
 
-function pickFact(item, { categoryN } = {}) {
+function continentPrep(name) {
+  const label = String(name || '').trim();
+  if (/^(europa|áfrica|africa|ásia|asia|américa|america|oceânia|oceania|antárctida|antártida|antarctica)$/i.test(label)) {
+    return `na ${label}`;
+  }
+  return `em ${label}`;
+}
+
+function itemSearchScore(item, word) {
+  const w = String(word || '').trim().toLowerCase();
+  const label = String(item?.label || '').trim().toLowerCase();
+  if (!w || !label) return 0;
+  const classHit = (item.classes || []).some((cls) => String(cls.label || '').trim().toLowerCase() === w);
+  if (classHit && label !== w) return 90;
+  if (label === w) return 80;
+  if (label.startsWith(`${w} `) || label.startsWith(`${w}-`)) return 40;
+  if (label.includes(w)) return 15;
+  return 5;
+}
+
+function listFacts(item, { categoryN } = {}) {
   const n = Number(categoryN) || 0;
-  if (n && !itemFitsCategory(item, n)) return null;
+  if (n && !itemFitsCategory(item, n)) return [];
 
   const label = item.label;
-  const capital = item.capitals[0];
-  const country = item.countries[0];
-  const place = item.places[0];
-  const occupation = item.occupations[0];
+  const capital = item.capitals?.[0];
+  const country = item.countries?.[0];
+  const place = item.places?.[0];
+  const occupation = item.occupations?.[0];
   const sport = item.sports?.[0];
+  const continent = item.continents?.[0];
+  const language = item.languages?.[0];
+  const currency = item.currencies?.[0];
+  const mouth = item.mouths?.[0];
+  const capitalOf = item.capitalOf?.[0];
+  const parent = item.parents?.[0];
   const cls = n
-    ? item.classes.find((entry) => classAllowedForCategory(entry, n))
-    : item.classes.find(usableClass);
+    ? (item.classes || []).find((entry) => classAllowedForCategory(entry, n))
+    : (item.classes || []).find(usableClass);
   const filter = getCategoryFilter(n);
-  const order = filter?.factOrder || ['capital', 'country', 'place', 'occupation', 'class'];
+  const order = filter?.factOrder || ['capital', 'capitalOf', 'continent', 'mouth', 'country', 'place', 'occupation', 'class'];
   const allowPeople = !!filter?.people;
 
   const builders = {
@@ -233,17 +277,53 @@ function pickFact(item, { categoryN } = {}) {
       suffix: 'p36',
       subtopic: 'capital',
     } : null),
-    country: () => (country ? {
+    capitalOf: () => (capitalOf && !sameLabel(capitalOf.label, label) ? {
+      fact: `${label} é a capital de ${capitalOf.label}.`,
+      answer: capitalOf.label,
+      suffix: 'p1376',
+      subtopic: 'capital',
+    } : null),
+    continent: () => (continent && !sameLabel(continent.label, label) ? {
+      fact: `${label} fica ${continentPrep(continent.label)}.`,
+      answer: continent.label,
+      suffix: 'p30',
+      subtopic: 'continente',
+    } : null),
+    mouth: () => (mouth && !sameLabel(mouth.label, label) ? {
+      fact: `${label} desagua em ${mouth.label}.`,
+      answer: mouth.label,
+      suffix: 'p403',
+      subtopic: 'hidrografia',
+    } : null),
+    country: () => (country && !sameLabel(country.label, label) ? {
       fact: `${label} fica em ${country.label}.`,
       answer: country.label,
       suffix: 'p17',
       subtopic: 'localização',
     } : null),
-    place: () => (place ? {
+    place: () => (place && !sameLabel(place.label, label) && !sameLabel(place.label, country?.label) ? {
       fact: `${label} fica em ${place.label}.`,
       answer: place.label,
       suffix: 'p131',
       subtopic: 'localização',
+    } : null),
+    language: () => (language && !sameLabel(language.label, label) ? {
+      fact: `A língua oficial de ${label} é ${language.label}.`,
+      answer: language.label,
+      suffix: 'p37',
+      subtopic: 'língua',
+    } : null),
+    currency: () => (currency && !sameLabel(currency.label, label) ? {
+      fact: `A moeda de ${label} é ${currency.label}.`,
+      answer: currency.label,
+      suffix: 'p38',
+      subtopic: 'moeda',
+    } : null),
+    parent: () => (parent && usableClass(parent) && !sameLabel(parent.label, label) ? {
+      fact: `${label} pertence a ${parent.label}.`,
+      answer: parent.label,
+      suffix: 'p171',
+      subtopic: 'classificação',
     } : null),
     occupation: () => (allowPeople && occupation ? {
       fact: `${label} é ${occupation.label}.`,
@@ -265,31 +345,68 @@ function pickFact(item, { categoryN } = {}) {
     } : null),
   };
 
-  for (const key of order) {
-    const picked = builders[key]?.();
-    if (picked) return picked;
-  }
+  const facts = [];
+  const seen = new Set();
+  const push = (picked) => {
+    if (!picked) return;
+    const key = `${picked.suffix}:${picked.answer}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    facts.push(picked);
+  };
+
+  for (const key of order) push(builders[key]?.());
   if (!filter && occupation) {
-    return {
+    push({
       fact: `${label} é ${occupation.label}.`,
       answer: occupation.label,
       suffix: 'p106',
       subtopic: 'personagem',
-    };
+    });
   }
-  const classFact = builders.class();
-  if (classFact) return classFact;
+  push(builders.class());
   if ((n === 5 || n === 20)
     && (item.classes || []).some((entry) => entry.qid === 'Q16521')
     && !sameLabel(label, 'táxon')) {
-    return {
+    push({
       fact: `${label} é uma espécie.`,
       answer: 'espécie',
       suffix: 'p31',
       subtopic: 'identificação',
-    };
+    });
   }
-  return null;
+  return facts;
+}
+
+function pickFact(item, options = {}) {
+  return listFacts(item, options)[0] || null;
+}
+
+function diversifyRecords(records, limit = MAX_RECORDS) {
+  const cap = Math.max(1, Number(limit) || MAX_RECORDS);
+  const buckets = new Map();
+  for (const record of records || []) {
+    const key = record?.metadata?.factKey || 'other';
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(record);
+  }
+  const out = [];
+  const seen = new Set();
+  let round = 0;
+  while (out.length < cap) {
+    let added = false;
+    for (const list of buckets.values()) {
+      const record = list[round];
+      if (!record?.knowledge_id || seen.has(record.knowledge_id)) continue;
+      seen.add(record.knowledge_id);
+      out.push(record);
+      added = true;
+      if (out.length >= cap) break;
+    }
+    if (!added) break;
+    round += 1;
+  }
+  return out;
 }
 
 function topicForCategory(categoryN) {
@@ -337,11 +454,12 @@ function toKeywordRecord(categoryN, item, picked, word) {
 }
 
 function transformKeywordItems(items, { categoryN, word } = {}) {
+  const ranked = [...(items || [])].sort((a, b) => itemSearchScore(b, word) - itemSearchScore(a, word));
   const records = [];
-  for (const item of items || []) {
-    const picked = pickFact(item, { categoryN });
-    if (!picked) continue;
-    records.push(toKeywordRecord(categoryN, item, picked, word));
+  for (const item of ranked) {
+    for (const picked of listFacts(item, { categoryN })) {
+      records.push(toKeywordRecord(categoryN, item, picked, word));
+    }
   }
   return records;
 }
@@ -381,10 +499,9 @@ async function collectKeywordRecords({ categoryN, words, fetchFn, timeoutMs } = 
       if (!record?.knowledge_id || seen.has(record.knowledge_id)) continue;
       seen.add(record.knowledge_id);
       records.push(record);
-      if (records.length >= MAX_RECORDS) return records;
     }
   }
-  return records;
+  return diversifyRecords(records, MAX_RECORDS);
 }
 
 module.exports = {
@@ -401,6 +518,9 @@ module.exports = {
   buildKeywordSearchQuery,
   groupKeywordBindings,
   pickFact,
+  listFacts,
+  itemSearchScore,
+  diversifyRecords,
   transformKeywordItems,
   collectKeywordRecords,
 };

@@ -263,14 +263,14 @@ function mergeLabel(...regexes) {
 const CATEGORY_FILTERS = {
   1: {
     denyQids: mergeQids(NAME_OR_MEDIA_QIDS, JUNK_QIDS),
-    factOrder: ['capital', 'country', 'place', 'class', 'occupation'],
+    factOrder: ['capital', 'continent', 'class', 'country', 'place', 'occupation', 'language', 'currency'],
   },
   2: {
     allowQids: GEO_QIDS,
     allowLabel: GEO_LABEL,
     denyQids: GEO_DENY_QIDS,
     denyLabel: /filme|anima[cç][aã]o|m[uú]sica|composi[cç][aã]o|publica[cç][aã]o|peri[oó]dica|nome pr[oó]prio|apelido|álbum|revista|can[cç][aã]o|surname|given name|type of/i,
-    factOrder: ['capital', 'country', 'place', 'class'],
+    factOrder: ['capital', 'capitalOf', 'continent', 'mouth', 'class', 'country', 'place', 'language', 'currency'],
   },
   3: {
     people: true,
@@ -288,7 +288,7 @@ const CATEGORY_FILTERS = {
     allowQids: NATURE_QIDS,
     allowLabel: NATURE_LABEL,
     denyQids: NAME_OR_MEDIA_QIDS,
-    factOrder: ['country', 'place', 'class'],
+    factOrder: ['class', 'parent', 'country', 'place'],
   },
   6: {
     allowQids: SPACE_QIDS,
@@ -374,7 +374,7 @@ const CATEGORY_FILTERS = {
     allowLabel: mergeLabel(NATURE_LABEL, GEO_LABEL, CULTURE_LABEL),
     denyQids: NAME_OR_MEDIA_QIDS,
     denyLabel: /nome pr[oó]prio|apelido|publica[cç][aã]o|peri[oó]dica|filme|composi[cç][aã]o musical/i,
-    factOrder: ['class', 'country', 'place', 'capital'],
+    factOrder: ['class', 'parent', 'continent', 'mouth', 'country', 'place', 'capital', 'capitalOf'],
   },
 };
 
