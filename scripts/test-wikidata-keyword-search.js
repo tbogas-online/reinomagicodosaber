@@ -17,6 +17,7 @@ const {
   diversifyRecords,
   transformKeywordItems,
   collectKeywordRecords,
+  isCurrentCountryName,
 } = require('./lib/wikidata-keyword-search');
 const { itemFitsCategory } = require('./lib/wikidata-category-match');
 
@@ -148,6 +149,32 @@ assert(
   'capital histórica de Nova Iorque fica de fora',
   !listFacts(nycFormer[0], { categoryN: 2 }).some((row) => /é a capital de Estados Unidos/.test(row.fact)),
 );
+
+const waldeckCountry = groupKeywordBindings([
+  binding({
+    item: 'http://www.wikidata.org/entity/Q165221',
+    itemLabel: 'Principado de Waldeck',
+    class: 'http://www.wikidata.org/entity/Q6256',
+    classLabel: 'país',
+    capital: 'http://www.wikidata.org/entity/Q516247',
+    capitalLabel: 'Waldeck',
+  }),
+]);
+assert(
+  'Principado de Waldeck não gera capital de país',
+  !listFacts(waldeckCountry[0], { categoryN: 2 }).some((row) => row.suffix === 'p36'),
+);
+const monaco = groupKeywordBindings([
+  binding({
+    item: 'http://www.wikidata.org/entity/Q235',
+    itemLabel: 'Mónaco',
+    class: 'http://www.wikidata.org/entity/Q6256',
+    classLabel: 'país',
+    capital: 'http://www.wikidata.org/entity/Q235',
+    capitalLabel: 'Mónaco',
+  }),
+]);
+assert('Mónaco continua país actual', isCurrentCountryName('Principado de Mónaco'));
 
 const rio = groupKeywordBindings([
   binding({

@@ -6,7 +6,7 @@
 
 const { getCategoryQueries } = require('./wikidata-category-queries');
 const { fetchSparql, bindValue, qidFromUri, isUsableLabel } = require('./wikidata-sparql');
-const { resolveCapitalKind, formatCountryHasCapital } = require('./wikidata-keyword-search');
+const { resolveCapitalKind, formatCountryHasCapital, isCurrentCountryName } = require('./wikidata-keyword-search');
 
 const SOURCE = 'Wikidata';
 const LICENSE = 'CC0';
@@ -51,7 +51,8 @@ function transformCountryCapitalBindings(bindings) {
     const capitalLabel = bindValue(binding, 'capitalLabel');
     if (!countryQid || !capitalQid) continue;
     if (!isUsableLabel(countryLabel) || !isUsableLabel(capitalLabel)) continue;
-    if (bindValue(binding, 'capitalEnd')) continue;
+    if (!isCurrentCountryName(countryLabel)) continue;
+    if (bindValue(binding, 'capitalEnd') || bindValue(binding, 'dissolved')) continue;
     const kind = resolveCapitalKind(
       qidFromUri(bindValue(binding, 'capitalType')) || qidFromUri(bindValue(binding, 'capitalRole')) || qidFromUri(bindValue(binding, 'capitalMethod')),
       bindValue(binding, 'capitalTypeLabel'),

@@ -84,6 +84,17 @@ assert('geografia aceita Portugal/Lisboa', capitals.length === 1 && capitals[0].
 assert('geografia source Q-id do país', capitals[0].source_id === 'Q45' && capitals[0].category_n === 2);
 assert('geografia válido', validateRecord(capitals[0]).length === 0, validateRecord(capitals[0]).join(','));
 assert('atalho capitais ignora data de fim', String(getQueryById('countryCapitals')?.sparql || '').includes('P582'));
+assert('atalho capitais exclui países dissolvidos', String(getQueryById('countryCapitals')?.sparql || '').includes('P576') && String(getQueryById('countryCapitals')?.sparql || '').includes('Q3624078'));
+
+const waldeck = transformCountryCapitalBindings([
+  {
+    country: { value: 'http://www.wikidata.org/entity/Q165221' },
+    countryLabel: { value: 'Principado de Waldeck' },
+    capital: { value: 'http://www.wikidata.org/entity/Q516247' },
+    capitalLabel: { value: 'Waldeck' },
+  },
+]);
+assert('atalho não trata Waldeck como país', waldeck.length === 0);
 
 const southCapitals = transformCountryCapitalBindings([
   {

@@ -220,6 +220,17 @@ function formatCityIsCapital(city, country, { kind, multi } = {}) {
   return `${city} é a capital de ${country}.`;
 }
 
+const LIVING_PRINCIPALITY = /\b(m[oó]naco|liechtenstein|andorra)\b/i;
+const HISTORICAL_POLITY = /^(principado|ducado|eleitorado|condado|landgraviat[oa]?|margraviato|marquesado|sacro imp[eé]rio|imp[eé]rio romano|uni[aã]o sovi[eé]tica|rep[uú]blica de weimar)\b/i;
+
+function isCurrentCountryName(label) {
+  const text = String(label || '').trim();
+  if (!text) return false;
+  if (LIVING_PRINCIPALITY.test(text)) return true;
+  if (HISTORICAL_POLITY.test(text)) return false;
+  return true;
+}
+
 function pushCapital(list, qid, label, extra = {}) {
   if (!qid || !isUsableLabel(label)) return;
   if (extra.ended) return;
@@ -253,7 +264,12 @@ function currentCapitals(list) {
 }
 
 function buildCapitalFacts(subjectLabel, entries, { direction } = {}) {
-  const current = currentCapitals(entries).filter((row) => !sameLabel(row.label, subjectLabel));
+  if (direction !== 'of' && !isCurrentCountryName(subjectLabel)) return [];
+  const current = currentCapitals(entries).filter((row) => {
+    if (sameLabel(row.label, subjectLabel)) return false;
+    if (direction === 'of' && !isCurrentCountryName(row.label)) return false;
+    return true;
+  });
   const multi = current.length > 1;
   return current.map((row, index) => {
     const kind = row.kindPhrase ? { phrase: row.kindPhrase, suffix: row.kindSuffix || row.kind } : null;
@@ -630,6 +646,7 @@ module.exports = {
   resolveCapitalKind,
   formatCountryHasCapital,
   formatCityIsCapital,
+  isCurrentCountryName,
   buildCapitalFacts,
   itemSearchScore,
   diversifyRecords,
