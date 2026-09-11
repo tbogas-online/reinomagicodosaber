@@ -4,6 +4,8 @@ const { getSupabaseAdmin } = require('./rooms-store');
 const supa = require('../../../scripts/lib/knowledge-import-supabase');
 const { listImportSources, importCuriosidadesBatches } = require('../../../scripts/lib/curiosidades-batch-import');
 const { importWikidataCuriosidades, importWikidataFromOptions, listWikidataImportSources } = require('../../../scripts/lib/wikidata-curiosidades-import');
+const { importWebSourceFromOptions, listWebImportSources } = require('../../../scripts/lib/web-source-import');
+const { rememberImportRejections, countImportRejections } = require('../../../scripts/lib/knowledge-import-rejection-store');
 const { listCategoryTopics } = require('../../../scripts/lib/wikidata-category-topics');
 const {
   listCollectors,
@@ -12,7 +14,7 @@ const {
 } = require('../../../scripts/lib/knowledge-import-briefing');
 
 function listAllImportSources() {
-  return [...listImportSources(), ...listWikidataImportSources()];
+  return [...listImportSources(), ...listWikidataImportSources(), ...listWebImportSources()];
 }
 
 function requireAdmin() {
@@ -27,11 +29,13 @@ function requireAdmin() {
 
 async function getImportDashboard() {
   const dashboard = await supa.getDashboard(requireAdmin());
+  const rejections = await countImportRejections(requireAdmin());
   return {
     ...(dashboard && typeof dashboard === 'object' ? dashboard : {}),
     importSources: listAllImportSources(),
     importCollectors: listCollectors(),
     wikidataCategoryTopics: listCategoryTopics(),
+    importRejections: rejections,
   };
 }
 
@@ -59,7 +63,7 @@ async function syncImportQueueFromSeed() {
   return supa.syncSeedQueue(requireAdmin());
 }
 
-async function importSource(_event, { source, batch, dryRun, categoryN, words, preset, knowledgeIds, records, excludeKnowledgeIds, briefing } = {}) {
+async function importSource(_event, { source, batch, dryRun, categoryN, words, preset, knowledgeIds, records, excludeKnowledgeIds, rejectedRecords, briefing } = {}) {
   const kind = String(source || 'curiosidades-batch').trim();
   requireCollector(kind);
   if (kind === 'wikidata') {
@@ -83,13 +87,39 @@ async function importSource(_event, { source, batch, dryRun, categoryN, words, p
         knowledgeIds,
         records,
         excludeKnowledgeIds,
+        rejectedRecords,
         briefing: parsed.briefing,
         materializeQuestions: false,
       });
     }
     return importWikidataCuriosidades(requireAdmin(), { dryRun, materializeQuestions: false, knowledgeIds });
   }
+  if (kind === 'rtp' || kind === 'ciencia-viva') {
+    const nested = briefing && typeof briefing === 'object' ? briefing : {};
+    const parsed = parseBriefing({
+      ...nested,
+      source: kind,
+      categoryN: nested.categoryN ?? categoryN,
+      words: nested.words ?? words,
+      preset: nested.preset ?? preset,
+    });
+    return importWebSourceFromOptions(requireAdmin(), {
+      source: kind,
+      dryRun,
+      categoryN: parsed.briefing.categoryN,
+      words: parsed.briefing.words,
+      knowledgeIds,
+      records,
+      excludeKnowledgeIds,
+      rejectedRecords,
+      briefing: parsed.briefing,
+    });
+  }
   return importCuriosidadesBatches(requireAdmin(), { batch, dryRun });
+}
+
+async function rememberSourceRejections(records) {
+  return rememberImportRejections(requireAdmin(), records);
 }
 
 module.exports = {
@@ -98,5 +128,6 @@ module.exports = {
   resetImportOverrides,
   syncImportQueueFromSeed,
   importSource,
+  rememberSourceRejections,
   listAllImportSources,
 };

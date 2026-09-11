@@ -2,11 +2,12 @@
 'use strict';
 
 const { validateRecord } = require('./lib/knowledge-import-core');
-const { listCategoryTopics, getCategoryTopic, findSubtopic, findFocus, suggestionsFor } = require('./lib/wikidata-category-topics');
+const { listCategoryTopics, getCategoryTopic, findSubtopic, findFocus, suggestionsFor, isRandomShortcut, pickRandomShortcutWords } = require('./lib/wikidata-category-topics');
 const {
   sanitizeWords,
   splitWordTokens,
   applyKnowledgeIdFilter,
+  coerceImportRecords,
   buildImportCandidates,
   PREVIEW_LIMIT,
   buildKeywordSearchQuery,
@@ -47,6 +48,46 @@ console.log('Wikidata pesquisa por palavras — testes\n');
 assert('catálogo tem 20 categorias', listCategoryTopics().length === 20);
 assert('cat. 5 sugere polvo', getCategoryTopic(5).suggestions.includes('polvo'));
 assert('cat. 20 tem atalho UNESCO', getCategoryTopic(20).presets.some((p) => p.id === 'unescoPt'));
+assert('cat. 2 tem atalho SPARQL de capitais', getCategoryTopic(2).presets.some((p) => p.id === 'countryCapitals' && !p.words));
+assert('cat. 2 tem pack de continentes', getCategoryTopic(2).presets.some((p) => p.id === 'geo-continentes' && p.words.includes('Europa')));
+assert(
+  'cat. 2 atalhos cobrem o currículo de Geografia',
+  getCategoryTopic(2).presets.map((p) => p.label).join('|') === [
+    '🏛️ Países e Capitais',
+    '🏳️ Países e Bandeiras',
+    '🏙️ Cidades',
+    '🌎 Continentes',
+    '🌊 Rios, Mares e Oceanos',
+    '⛰️ Montanhas e Relevo',
+    '🏝️ Ilhas',
+    '🗺️ Localização no Mapa',
+    '🇵🇹 Geografia de Portugal',
+    '🎲 Aleatório',
+  ].join('|'),
+);
+assert(
+  'Aleatório mistura palavras da categoria',
+  pickRandomShortcutWords(getCategoryTopic(2).presets, 4, () => 0).length === 4
+    && isRandomShortcut(getCategoryTopic(2).presets.find((p) => p.id === 'geo-aleatorio')),
+);
+for (const topic of listCategoryTopics()) {
+  assert(`cat. ${topic.categoryN} tem pelo menos 2 atalhos`, (topic.presets || []).length >= 2);
+  if (topic.categoryN <= 19) {
+    const last = (topic.presets || [])[(topic.presets || []).length - 1];
+    assert(`cat. ${topic.categoryN} termina em Aleatório`, isRandomShortcut(last) && /Aleatório/.test(last.label || ''));
+  }
+  for (const preset of topic.presets || []) {
+    if (isRandomShortcut(preset)) {
+      assert(`atalho ${preset.id} é aleatório`, !!preset.id && !preset.words);
+    } else if (Array.isArray(preset.words)) {
+      const clean = sanitizeWords(preset.words);
+      assert(`atalho ${preset.id} tem 2–4 palavras`, clean.length >= 2 && clean.length <= 4, `${(preset.words || []).join(', ')}`);
+      assert(`atalho ${preset.id} palavras válidas`, clean.length === preset.words.length, `${preset.words.join(', ')} → ${clean.join(', ')}`);
+    } else {
+      assert(`atalho SPARQL ${preset.id} tem id`, !!preset.id);
+    }
+  }
+}
 assert('cat. 2 tem subtema Portugal', findSubtopic(2, 'portugal')?.label === 'Portugal');
 assert('Portugal tem tópico Rios', findFocus(2, 'portugal', 'rivers')?.label === 'Rios');
 assert('Rios de Portugal sugere Tejo', suggestionsFor(2, 'portugal', 'rivers').includes('Tejo'));
@@ -78,6 +119,7 @@ assert('separa vírgulas e ponto-e-vírgula', sanitizeWords(['portugal, seleçã
 assert('limite 4 palavras', sanitizeWords(['um', 'dois', 'três', 'quatro', 'cinco']).length === 4);
 assert('tokens de campo livre', splitWordTokens('portugal, seleção; golo').length === 3);
 assert('query SPARQL usa EntitySearch', buildKeywordSearchQuery('Lisboa').includes('EntitySearch') && buildKeywordSearchQuery('Lisboa').includes('Lisboa'));
+assert('query SPARQL prefere pt-pt', buildKeywordSearchQuery('Lisboa').includes('pt-pt,pt,en'));
 assert('query SPARQL lê capitais com data de fim', buildKeywordSearchQuery('Lisboa').includes('p:P36') && buildKeywordSearchQuery('Lisboa').includes('P582') && buildKeywordSearchQuery('Lisboa').includes('p:P1376'));
 
 const portugal = groupKeywordBindings([
@@ -214,6 +256,14 @@ assert('lista de importação tem 10 entradas', buildImportCandidates(twelve, []
 assert('candidato novo inclui o registo', buildImportCandidates(twelve.slice(0, 1), [])[0].record?.knowledge_id === 'knw-0');
 assert('exclui ids já vistos e preenche os seguintes', buildImportCandidates(twelve, [], 10, ['knw-0', 'knw-1']).map((row) => row.knowledgeId).join() === 'knw-2,knw-3,knw-4,knw-5,knw-6,knw-7,knw-8,knw-9,knw-10,knw-11');
 assert('filtra IDs seleccionados', applyKnowledgeIdFilter(twelve, ['knw-1', 'knw-9']).records.map((row) => row.knowledge_id).join() === 'knw-1,knw-9');
+assert(
+  'reconstitui facto da pré-visualização',
+  coerceImportRecords([{
+    knowledgeId: 'knw-cat2-geo-wd-q750-capital-q2900',
+    fact: 'Uma das capitais de Bolívia é Sucre.',
+    answer: 'Sucre',
+  }])[0]?.source_id === 'Q750:capital:Q2900',
+);
 assert('duplicados ficam de fora da lista', buildImportCandidates(twelve.slice(0, 2), [{ record: twelve[2], reason: 'dup' }]).every((row) => row.status === 'new') && buildImportCandidates(twelve.slice(0, 2), [{ record: twelve[2], reason: 'dup' }]).length === 2);
 
 const curiosity = transformKeywordItems(taxon, { categoryN: 20, word: 'polvo' });

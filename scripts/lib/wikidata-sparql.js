@@ -8,6 +8,8 @@
 const SPARQL_ENDPOINT = 'https://query.wikidata.org/sparql';
 const USER_AGENT = 'ReinoMagicoDoSaber/1.0 (knowledge-import; educational quiz)';
 const DEFAULT_TIMEOUT_MS = 12000;
+/** Preferir rótulos PT-PT; `pt` (muitas vezes PT-BR) e inglês só como reserva. */
+const LABEL_LANGUAGES = 'pt-pt,pt,en';
 
 function qidFromUri(uri) {
   const match = String(uri || '').match(/\/(Q\d+)$/i);
@@ -67,6 +69,7 @@ module.exports = {
   SPARQL_ENDPOINT,
   USER_AGENT,
   DEFAULT_TIMEOUT_MS,
+  LABEL_LANGUAGES,
   qidFromUri,
   extractQid,
   bindValue,

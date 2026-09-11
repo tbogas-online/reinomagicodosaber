@@ -1,5 +1,6 @@
 -- Inventário do repositório: fonte, tópico, cronologia de importação e ligação ao banco.
 -- CREATE OR REPLACE de get_knowledge_repository_stats() — a assinatura não muda.
+-- byHour: últimas 24 h (Lisboa). byMinute: últimos 6 h em buckets de 5 min.
 
 CREATE OR REPLACE FUNCTION public.get_knowledge_repository_stats()
 RETURNS JSONB
@@ -15,6 +16,8 @@ DECLARE
   v_by_source JSONB;
   v_by_source_topic JSONB;
   v_by_day JSONB;
+  v_by_hour JSONB;
+  v_by_minute JSONB;
   v_bank_linked JSONB;
   v_bank_by_knowledge_source JSONB;
 BEGIN
@@ -94,6 +97,52 @@ BEGIN
     GROUP BY 1, 2
   ) t;
 
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'hour', t.hour_key,
+      'source', t.source,
+      'count', t.cnt
+    ) ORDER BY t.hour_key, t.source
+  ), '[]'::jsonb)
+  INTO v_by_hour
+  FROM (
+    SELECT
+      to_char(
+        date_trunc('hour', created_at AT TIME ZONE 'Europe/Lisbon'),
+        'YYYY-MM-DD"T"HH24'
+      ) AS hour_key,
+      source,
+      COUNT(*)::INT AS cnt
+    FROM public.knowledge_records
+    WHERE created_at >= now() - interval '24 hours'
+    GROUP BY 1, 2
+  ) t;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'minute', t.minute_key,
+      'source', t.source,
+      'count', t.cnt
+    ) ORDER BY t.minute_key, t.source
+  ), '[]'::jsonb)
+  INTO v_by_minute
+  FROM (
+    SELECT
+      to_char(
+        date_bin(
+          interval '5 minutes',
+          created_at AT TIME ZONE 'Europe/Lisbon',
+          timestamp '2000-01-01'
+        ),
+        'YYYY-MM-DD"T"HH24:MI'
+      ) AS minute_key,
+      source,
+      COUNT(*)::INT AS cnt
+    FROM public.knowledge_records
+    WHERE created_at >= now() - interval '6 hours'
+    GROUP BY 1, 2
+  ) t;
+
   SELECT jsonb_build_object(
     'total', COUNT(*)::INT,
     'withKnowledgeId', COUNT(*) FILTER (
@@ -124,6 +173,8 @@ BEGIN
     'bySource', v_by_source,
     'bySourceTopic', v_by_source_topic,
     'byDay', v_by_day,
+    'byHour', v_by_hour,
+    'byMinute', v_by_minute,
     'bankLinked', v_bank_linked,
     'bankByKnowledgeSource', v_bank_by_knowledge_source
   );

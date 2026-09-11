@@ -31,13 +31,15 @@ const collectors = listCollectors();
 assert('lista colectores', collectors.length >= 2);
 assert('Wikidata activo', getCollector('wikidata')?.status === 'active' && getCollector('wikidata').usesBriefing);
 assert('lotes sem briefing', getCollector('curiosidades-batch')?.usesBriefing === false);
-assert('RTP ainda indisponível', getCollector('rtp')?.status === 'unavailable');
+assert('RTP activo', getCollector('rtp')?.status === 'active' && getCollector('rtp').usesBriefing);
+assert('Ciência Viva activo', getCollector('ciencia-viva')?.status === 'active');
 assert('require Wikidata ok', requireCollector('wikidata').id === 'wikidata');
+assert('require RTP ok', requireCollector('rtp').id === 'rtp');
 try {
-  requireCollector('rtp');
-  assert('require RTP falha', false);
+  requireCollector('bnp');
+  assert('require BNP falha', false);
 } catch (err) {
-  assert('require RTP falha', err.code === 'COLLECTOR_UNAVAILABLE');
+  assert('require BNP falha', err.code === 'COLLECTOR_UNAVAILABLE');
 }
 try {
   requireCollector('nasa');
@@ -65,7 +67,7 @@ const parsed = parseBriefing({
 assert('sem erros no briefing válido', parsed.errors.length === 0);
 assert('normaliza objectivo', parsed.briefing.goal === 'fill-gaps');
 assert('normaliza âmbito', parsed.briefing.scope === 'portugal');
-assert('limite 5', parsed.briefing.limit === 5);
+assert('limite 5 vira 10', parsed.briefing.limit === 10);
 assert('idades escolhidas', parsed.briefing.ageBands.join() === '6-9');
 assert('ignora formato inválido', parsed.briefing.allowedFormats.join() === 'ONDE_FICA,RESPOSTA_DIRETA');
 assert('tópico geografia', parsed.briefing.topic === 'geografia');
@@ -73,7 +75,9 @@ assert('tópico geografia', parsed.briefing.topic === 'geografia');
 const fallback = parseBriefing({ source: 'wikidata', categoryN: 5, goal: 'nope', scope: 'marte', limit: 99 });
 assert('objectivo inválido cai em tema', fallback.briefing.goal === 'theme');
 assert('âmbito inválido cai em mundial', fallback.briefing.scope === 'world');
-assert('limite 99 capado a 20', fallback.briefing.limit === 20);
+assert('limite 99 capado a 50', fallback.briefing.limit === 50);
+assert('limite 50 aceite', parseBriefing({ source: 'wikidata', categoryN: 2, limit: 50 }).briefing.limit === 50);
+assert('limite 10 aceite', parseBriefing({ source: 'wikidata', categoryN: 2, limit: 10 }).briefing.limit === 10);
 assert('tipo natureza default animal', fallback.briefing.contentType === 'animal');
 assert('idades natureza completas', fallback.briefing.ageBands.join() === '6-9,10-15,15+');
 

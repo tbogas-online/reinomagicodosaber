@@ -12,6 +12,8 @@ const SOURCE_RANK = {
   'Brinca Comigo': 55,
   'Santander Salto': 50,
   Wikidata: 45,
+  'RTP Ensina': 68,
+  'Ciência Viva': 70,
   'Quero Bolsa': 40,
   sample: 10,
 };
@@ -33,6 +35,8 @@ function idTier(knowledgeId) {
   const id = String(knowledgeId || '');
   if (/-cur-b5[0-9]-/.test(id)) return 90;
   if (/-cur-wd-/.test(id)) return 62;
+  if (/-rtp-/.test(id)) return 64;
+  if (/-cv-/.test(id)) return 66;
   if (/-mm-/.test(id)) return 85;
   if (/-web-/.test(id)) return 50;
   if (/-adv-daily-/.test(id)) return 45;

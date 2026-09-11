@@ -1,8 +1,8 @@
 // GET /api/knowledge-import-admin — estado da fila e repositório
-// POST — { action: 'run' | 'dry-run' | 'import-source' | 'sync-seed' | 'reset-overrides' | 'search' | 'disable' | 'delete' }
+// POST — { action: 'run' | 'dry-run' | 'import-source' | 'remember-import-rejections' | 'sync-seed' | 'reset-overrides' | 'search' | 'disable' | 'delete' }
 
 const { json, validateAdminAuth } = require('./lib/report-utils');
-const { getImportDashboard, runDailyImport, resetImportOverrides, syncImportQueueFromSeed, importSource } = require('./lib/knowledge-import-store');
+const { getImportDashboard, runDailyImport, resetImportOverrides, syncImportQueueFromSeed, importSource, rememberSourceRejections } = require('./lib/knowledge-import-store');
 const {
   searchKnowledgeRecords,
   disableKnowledgeRecords,
@@ -88,19 +88,45 @@ exports.handler = async (event) => {
             knowledgeIds: body.knowledgeIds,
             records: body.records,
             excludeKnowledgeIds: body.excludeKnowledgeIds,
+            rejectedRecords: body.rejectedRecords,
             briefing: body.briefing,
           });
           return json(200, result);
         } catch (err) {
           console.error('[knowledge-import-admin] import-source failed:', err);
           if (err.code === 'NOT_CONFIGURED') return json(503, { error: err.message });
-          if (err.code === 'WIKIDATA_FETCH') return json(503, { error: err.message });
+          if (err.code === 'WIKIDATA_FETCH' || err.code === 'COLLECTOR_FETCH') return json(503, { error: err.message });
           if (err.code === 'INVALID_BATCH' || err.code === 'INVALID_SOURCE' || err.code === 'INVALID_RECORD'
             || err.code === 'INVALID_WORDS' || err.code === 'INVALID_CATEGORY' || err.code === 'INVALID_SELECTION'
             || err.code === 'COLLECTOR_UNAVAILABLE' || err.code === 'INVALID_BRIEFING') {
             return json(400, { error: err.message, details: err.details || null });
           }
           return json(500, { error: err.message || 'Falha na importação da fonte.' });
+        }
+      }
+
+      if (body.action === 'remember-import-rejections') {
+        if (!getSupabaseAdmin()) {
+          return json(503, {
+            error: 'Supabase admin não configurado (SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY).',
+          });
+        }
+        try {
+          const result = await rememberSourceRejections(body.records);
+          return json(200, {
+            ok: result.ok !== false,
+            action: 'remember-import-rejections',
+            remembered: Number(result.remembered) || 0,
+            available: result.available !== false,
+            message: result.available === false
+              ? 'Não foi possível gravar a rejeição — executa supabase/knowledge-import-rejections.sql no Supabase.'
+              : (result.remembered
+                ? `Memorizados ${result.remembered} facto(s) rejeitado(s). Não voltam a aparecer.`
+                : 'Nada a memorizar.'),
+          });
+        } catch (err) {
+          console.error('[knowledge-import-admin] remember rejections failed:', err);
+          return json(500, { error: err.message || 'Falha ao gravar rejeições.' });
         }
       }
 

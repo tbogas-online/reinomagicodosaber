@@ -6,12 +6,15 @@
  */
 
 const { getCategoryTopic } = require('./wikidata-category-topics');
+const { MAX_LIMIT } = require('./knowledge-import-briefing');
 const {
   bindValue,
   qidFromUri,
   isUsableLabel,
   fetchSparql,
+  LABEL_LANGUAGES,
 } = require('./wikidata-sparql');
+const { normalizePtPtText } = require('./pt-pt-normalize');
 const {
   JUNK_QIDS,
   getCategoryFilter,
@@ -104,11 +107,39 @@ function applyKnowledgeIdFilter(records, knowledgeIds) {
     return { records: records || [], rejected: 0 };
   }
   const set = new Set(wanted);
-  const kept = (records || []).filter((row) => set.has(row.knowledge_id));
+  const kept = (records || []).filter((row) => set.has(String(row?.knowledge_id || row?.knowledgeId || '').trim()));
   return {
     records: kept,
     rejected: (records || []).length - kept.length,
   };
+}
+
+function coerceImportRecords(rows) {
+  const out = [];
+  for (const row of rows || []) {
+    const nested = row?.record && typeof row.record === 'object' ? row.record : row;
+    const knowledgeId = String(nested.knowledge_id || nested.knowledgeId || row.knowledgeId || '').trim();
+    const fact = normalizePtPtText(String(nested.fact || row.fact || '').trim());
+    const answer = normalizePtPtText(String(nested.answer || row.answer || '').trim());
+    if (!knowledgeId || !fact || !answer) continue;
+    const geoIds = knowledgeId.match(/knw-cat2-geo-wd-(q\d+)-capital-(q\d+)/i);
+    const sourceId = String(nested.source_id || nested.sourceId || row.sourceId || '').trim()
+      || (geoIds ? `${geoIds[1].toUpperCase()}:capital:${geoIds[2].toUpperCase()}` : '');
+    const statementRaw = nested.statement || row.statement;
+    out.push({
+      ...nested,
+      knowledge_id: knowledgeId,
+      category_n: Number(nested.category_n || nested.categoryN || row.categoryN) || (geoIds ? 2 : 0),
+      topic: nested.topic || (geoIds ? 'capital' : ''),
+      fact,
+      answer,
+      statement: statementRaw ? normalizePtPtText(String(statementRaw)) : nested.statement,
+      source: nested.source || row.source || 'Wikidata',
+      source_id: sourceId,
+      source_url: nested.source_url || nested.sourceUrl || row.sourceUrl || (geoIds ? `https://www.wikidata.org/wiki/${geoIds[1].toUpperCase()}` : null),
+    });
+  }
+  return out;
 }
 
 function candidateFromRecord(row, status, extra = {}) {
@@ -126,7 +157,7 @@ function candidateFromRecord(row, status, extra = {}) {
 }
 
 function buildImportCandidates(accepted, skipped, limit = PREVIEW_LIMIT, excludeIds) {
-  const cap = Math.min(20, Math.max(1, Number(limit) || PREVIEW_LIMIT));
+  const cap = Math.min(MAX_LIMIT, Math.max(1, Number(limit) || PREVIEW_LIMIT));
   const skip = new Set(normalizeKnowledgeIds(excludeIds));
   const rows = [];
   for (const row of accepted || []) {
@@ -188,7 +219,7 @@ function buildKeywordSearchQuery(word) {
     OPTIONAL { ?capitalOfStmt pq:P459 ?capitalOfMethod. }
   }
   OPTIONAL { ?item wdt:P171 ?parent. }
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "${LABEL_LANGUAGES}". }
 }
 LIMIT 250`;
 }
@@ -550,14 +581,15 @@ function formatsForCategory(categoryN) {
 function toKeywordRecord(categoryN, item, picked, word) {
   const n = Number(categoryN);
   const isCuriosity = n === 20;
-  const fact = picked.fact;
+  const fact = normalizePtPtText(picked.fact);
+  const answer = isCuriosity ? 'Verdadeiro' : normalizePtPtText(picked.answer);
   return {
     knowledge_id: `knw-cat${n}-wd-${item.qid.toLowerCase()}-${picked.suffix}`,
     category_n: n,
     topic: topicForCategory(n),
     subtopic: picked.subtopic,
     fact,
-    answer: isCuriosity ? 'Verdadeiro' : picked.answer,
+    answer,
     statement: `${String(fact).replace(/\.$/, '')}. Verdadeiro ou Falso?`,
     is_true: true,
     source: SOURCE,
@@ -627,7 +659,7 @@ async function collectKeywordRecords({ categoryN, words, fetchFn, timeoutMs, lim
       records.push(record);
     }
   }
-  const cap = Math.min(20, Math.max(1, Number(limit) || MAX_RECORDS));
+  const cap = Math.min(MAX_LIMIT, Math.max(1, Number(limit) || MAX_RECORDS));
   return diversifyRecords(records, cap);
 }
 
@@ -641,6 +673,7 @@ module.exports = {
   splitWordTokens,
   normalizeKnowledgeIds,
   applyKnowledgeIdFilter,
+  coerceImportRecords,
   buildImportCandidates,
   buildKeywordSearchQuery,
   groupKeywordBindings,

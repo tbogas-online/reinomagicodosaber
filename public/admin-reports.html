@@ -722,6 +722,17 @@
       border-collapse: collapse;
       font-size: 13px;
     }
+    .bank-matrix.matrix-fit {
+      min-width: 0;
+      table-layout: fixed;
+    }
+    .bank-matrix-wrap.matrix-fit-wrap {
+      overflow-x: hidden;
+    }
+    .bank-matrix.matrix-fit thead th {
+      white-space: normal;
+      line-height: 1.25;
+    }
     .bank-matrix thead th {
       position: sticky;
       top: 0;
@@ -2167,6 +2178,11 @@
       flex-wrap: wrap;
       gap: 8px;
       align-items: center;
+    }
+    .knowledge-inventory-more {
+      margin-top: 14px;
+      padding-top: 10px;
+      border-top: 1px solid var(--border);
     }
     .bank-matrix-details > summary {
       list-style: none;
@@ -3685,16 +3701,38 @@
               <h3>Activos por tópico</h3>
               <div id="knowledgeTopicChart" class="chart"></div>
             </div>
+          </div>
+          <details class="bank-matrix-details knowledge-inventory-more" id="knowledgeInventoryMore">
+            <summary class="bank-matrix-summary">
+              <span class="bank-matrix-summary-main">
+                <strong>Mais gráficos e contagens</strong>
+                <span class="bank-matrix-hint" id="knowledgeInventoryMoreHint">Importações no tempo, tabelas por fonte e ligação ao banco.</span>
+              </span>
+            </summary>
+            <div class="charts-grid" style="margin-top:12px">
             <div class="chart-box chart-wide">
-              <h3>Importações no tempo</h3>
+              <div class="chart-head">
+                <h3 id="knowledgeImportChartTitle">Importações no tempo</h3>
+                <div class="chart-head-actions">
+                  <div class="timeline-filters" id="knowledgeImportTimelineFilters" role="group" aria-label="Período das importações">
+                    <button type="button" class="secondary" data-knowledge-import-range="1h">1 h</button>
+                    <button type="button" class="secondary" data-knowledge-import-range="3h">3 h</button>
+                    <button type="button" class="secondary" data-knowledge-import-range="6h">6 h</button>
+                    <button type="button" class="secondary" data-knowledge-import-range="12h">12 h</button>
+                    <button type="button" class="secondary active" data-knowledge-import-range="24h">24 h</button>
+                    <button type="button" class="secondary" data-knowledge-import-range="total">Tudo</button>
+                  </div>
+                  <button type="button" class="secondary" id="knowledgeImportRefreshBtn" title="Recarregar importações no tempo">↻ Actualizar</button>
+                </div>
+              </div>
               <p class="timeline-note" id="knowledgeImportTimelineNote"></p>
               <div id="knowledgeImportChart" class="chart"></div>
               <div id="knowledgeImportDayChips" class="bank-gaps-list" style="margin-top:10px;"></div>
             </div>
             <div class="chart-box chart-wide">
               <h3>Por fonte (base de dados)</h3>
-              <div class="bank-matrix-wrap">
-                <table class="bank-matrix">
+              <div class="bank-matrix-wrap matrix-fit-wrap">
+                <table class="bank-matrix matrix-fit">
                   <thead>
                     <tr>
                       <th>Fonte</th>
@@ -3711,8 +3749,8 @@
             </div>
             <div class="chart-box chart-wide">
               <h3>Fonte × tópico</h3>
-              <div class="bank-matrix-wrap">
-                <table class="bank-matrix">
+              <div class="bank-matrix-wrap matrix-fit-wrap">
+                <table class="bank-matrix matrix-fit">
                   <thead>
                     <tr>
                       <th>Fonte</th>
@@ -3735,11 +3773,11 @@
             </div>
             <div class="chart-box">
               <h3>Ligação repositório → banco</h3>
-              <div class="bank-matrix-wrap">
-                <table class="bank-matrix">
+              <div class="bank-matrix-wrap matrix-fit-wrap">
+                <table class="bank-matrix matrix-fit">
                   <thead>
                     <tr>
-                      <th>Fonte do facto</th>
+                      <th>Fonte</th>
                       <th class="num">Factos activos</th>
                       <th class="num">Perguntas no banco</th>
                     </tr>
@@ -3749,11 +3787,21 @@
                 </table>
               </div>
             </div>
-          </div>
+            </div>
+          </details>
         </div>
 
         <div class="card" id="knowledgeQuarantineSection">
-          <h2 class="charts-title" style="margin:0 0 6px;">Quarentena repositório (30 dias)</h2>
+          <details class="bank-matrix-details" id="knowledgeQuarantineDetails">
+            <summary class="bank-matrix-summary">
+              <span class="bank-matrix-summary-main">
+                <h2 class="charts-title" style="margin:0;">Quarentena repositório (30 dias)</h2>
+                <div id="knowledgeQuarantineCollapsed" class="bank-matrix-collapsed-summary" aria-live="polite">
+                  <span class="sub">A carregar…</span>
+                </div>
+              </span>
+            </summary>
+            <div class="bank-matrix-body">
           <p class="sub" id="knowledgeQuarantineNote" style="margin-top:0;">Factos verificados jogados recentemente — indisponíveis para adivinhas e curiosidades.</p>
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; margin-bottom:10px;">
             <select id="knowledgeQuarantineCategory" aria-label="Categoria para libertar quarentena">
@@ -3782,13 +3830,15 @@
             </table>
           </div>
           <div id="knowledgeQuarantineTopics" class="bank-gaps-list" style="margin-top:12px;"></div>
+            </div>
+          </details>
         </div>
 
         <div class="card" id="knowledgeSourceImportSection">
           <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
             <div>
               <h2 class="charts-title" style="margin:0;">Importar fontes</h2>
-              <p class="chart-filter-note" style="margin:6px 0 0">Curadoria de <strong>factos</strong> verificados — o Question Engine é que formula as perguntas. Lotes A/B/C: Git. Wikidata: preenche o <strong>briefing</strong>, simula, aceita ou rejeita. RTP e Ciência Viva ainda não têm colector.</p>
+              <p class="chart-filter-note" style="margin:6px 0 0">Curadoria de <strong>factos</strong> verificados — o Question Engine é que formula as perguntas. Lotes A/B/C: Git. Wikidata, RTP Ensina e Ciência Viva: preenche o <strong>briefing</strong>, simula, aceita ou rejeita. As rejeições ficam memorizadas.</p>
             </div>
           </div>
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; align-items:center;">
@@ -3799,6 +3849,8 @@
               <option value="b" data-kind="curiosidades-batch">Curiosidades — lote B (50)</option>
               <option value="c" data-kind="curiosidades-batch">Curiosidades — lote C (48)</option>
               <option value="wikidata" data-kind="wikidata">Wikidata — briefing de curadoria</option>
+              <option value="rtp" data-kind="rtp">RTP Ensina — briefing de curadoria</option>
+              <option value="ciencia-viva" data-kind="ciencia-viva">Ciência Viva — briefing de curadoria</option>
             </select>
             <button type="button" class="secondary" id="knowledgeSourceDryRunBtn" title="Listar candidatos Wikidata para validar, sem gravar">🧪 Simular</button>
             <button type="button" class="primary" id="knowledgeSourceImportBtn" title="Confirmar aceites e rejeitados">📥 Importar</button>
@@ -3806,6 +3858,7 @@
           <div id="knowledgeWikidataPanel" class="hidden" style="margin-top:10px;">
             <div class="knowledge-briefing" id="knowledgeWikidataBriefing">
               <p class="sub" style="margin:0;">Briefing de curadoria — define o que o colector Wikidata deve ir buscar. Não gera perguntas.</p>
+              <p class="sub" id="knowledgeImportRejectionNote" style="margin:6px 0 0;"></p>
               <div class="knowledge-briefing-row">
                 <label for="knowledgeBriefingGoal" class="sub">Objetivo</label>
                 <select id="knowledgeBriefingGoal" aria-label="Objetivo da importação">
@@ -3832,9 +3885,8 @@
                 </select>
                 <label for="knowledgeBriefingLimit" class="sub">Quantidade</label>
                 <select id="knowledgeBriefingLimit" aria-label="Número de candidatos">
-                  <option value="5">5</option>
                   <option value="10" selected>10</option>
-                  <option value="20">20</option>
+                  <option value="50">50</option>
                 </select>
               </div>
               <div class="knowledge-briefing-row">
@@ -3876,7 +3928,7 @@
             <div id="knowledgeWikidataPresets" class="knowledge-word-chips"></div>
             <p class="sub" id="knowledgeWikidataSelected" style="margin:4px 0 0;"></p>
             <div id="knowledgeWikidataPreviewWrap" class="hidden">
-              <p class="sub" id="knowledgeWikidataPreviewHint" style="margin:10px 0 0;"><strong>Aceitar</strong> só marca o facto. <strong>Confirmar decisões</strong> é que grava no repositório. <strong>Rejeitar</strong> tira o facto da lista; <strong>Rejeitar todos</strong> limpa tudo sem importar.</p>
+              <p class="sub" id="knowledgeWikidataPreviewHint" style="margin:10px 0 0;"><strong>Aceitar</strong> só marca o facto. <strong>Confirmar decisões</strong> é que grava no repositório. <strong>Rejeitar</strong> memoriza o facto para não voltar a aparecer; <strong>Rejeitar todos</strong> limpa a lista sem importar.</p>
               <div class="wikidata-preview-actions">
                 <button type="button" class="success" id="knowledgeWikidataSelectAllBtn">✓ Aceitar todos</button>
                 <button type="button" class="danger" id="knowledgeWikidataSelectNoneBtn">✕ Rejeitar todos</button>
@@ -3901,16 +3953,20 @@
         </div>
 
         <div class="card" id="knowledgeImportSection">
-          <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
-            <div>
-              <h2 class="charts-title" style="margin:0;">Importação diária</h2>
-              <p class="chart-filter-note" style="margin:6px 0 0">Importa até 1 facto verificado por faixa etária (6–9, 10–15, 15+) para o Knowledge Repository no Supabase.</p>
-            </div>
-            <div class="rooms-refresh-wrap">
-              <span id="knowledgeLastUpdated" class="rooms-last-updated"></span>
-            </div>
-          </div>
-
+          <details class="bank-matrix-details" id="knowledgeImportDetails">
+            <summary class="bank-matrix-summary">
+              <span class="bank-matrix-summary-main">
+                <h2 class="charts-title" style="margin:0;">Importação diária</h2>
+                <div id="knowledgeImportCollapsed" class="bank-matrix-collapsed-summary" aria-live="polite">
+                  <span class="sub">Fila de 1 facto por faixa etária</span>
+                </div>
+              </span>
+              <div class="rooms-refresh-wrap" onclick="event.stopPropagation()">
+                <span id="knowledgeLastUpdated" class="rooms-last-updated"></span>
+              </div>
+            </summary>
+            <div class="bank-matrix-body">
+          <p class="chart-filter-note" style="margin:0 0 12px">Importa até 1 facto verificado por faixa etária (6–9, 10–15, 15+) para o Knowledge Repository no Supabase.</p>
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px;">
             <button type="button" class="primary" id="knowledgeRefreshBtn">↻ Actualizar estado</button>
             <button type="button" class="secondary" id="knowledgeSyncBtn" title="Copia novos itens de data/knowledge-import-queue.json para o Supabase">⟳ Sincronizar fila</button>
@@ -3919,17 +3975,26 @@
             <button type="button" class="danger" id="knowledgeForceImportBtn" title="Repetir mesmo que já tenha corrido hoje">⚡ Forçar importação</button>
             <button type="button" class="secondary" id="knowledgeResetBtn" title="Limpa marcações importadas no servidor e repõe a fila pendente">↩ Repor fila pendente</button>
           </div>
-
           <p class="status" id="knowledgeImportStatus"></p>
           <p class="sub" id="knowledgeDiagnostics" style="margin-top:0;"></p>
           <p class="sub" style="margin-top:0;">Fila e estado no <strong>Supabase</strong>. O ficheiro <code>data/knowledge-import-queue.json</code> no Git é modelo para sincronizar novos itens.</p>
-
           <h3 style="margin:16px 0 8px; font-size:0.95rem;">Próximos na fila</h3>
           <div id="knowledgeQueuePreview" class="knowledge-queue-preview"></div>
+            </div>
+          </details>
         </div>
 
         <div class="card" id="knowledgeDedupeSection">
-          <h2 class="charts-title" style="margin:0 0 6px;">Duplicados (categoria 20)</h2>
+          <details class="bank-matrix-details" id="knowledgeDedupeDetails">
+            <summary class="bank-matrix-summary">
+              <span class="bank-matrix-summary-main">
+                <h2 class="charts-title" style="margin:0;">Duplicados (categoria 20)</h2>
+                <div id="knowledgeDedupeCollapsed" class="bank-matrix-collapsed-summary" aria-live="polite">
+                  <span class="sub">Validar e desactivar duplicados</span>
+                </div>
+              </span>
+            </summary>
+            <div class="bank-matrix-body">
           <p class="sub" style="margin-top:0;">Valida registos activos e desactiva duplicados — mantém o de maior prioridade (MemóriaMedia &gt; manual &gt; web).</p>
           <div class="knowledge-dedupe-options">
             <label><input type="checkbox" id="knowledgeDedupeCuriosidades" checked> Curiosidades</label>
@@ -3941,6 +4006,8 @@
           </div>
           <p class="status" id="knowledgeDedupeStatus"></p>
           <div id="knowledgeDedupePreview" class="knowledge-dedupe-preview"></div>
+            </div>
+          </details>
         </div>
 
         <div class="card" id="knowledgeBrowseSection">
@@ -4342,6 +4409,7 @@
   <script src="question-engine/content-safety.js?v=20260903-085100"></script>
   <script src="question-engine/adivinha-distractors.js?v=20260903-085100"></script>
   <script src="question-engine/difficulty-estimate.js?v=20260903-085100"></script>
+  <script src="question-engine/pt-pt-place-names.js?v=20260910-114142"></script>
   <script src="question-engine/pt-pt-validators.js?v=20260903-085100"></script>
   <script src="question-engine/format-validators.js?v=20260903-085100"></script>
   <script src="question-engine/mc-validators.js?v=20260909-140200"></script>
@@ -4930,25 +4998,37 @@
     }
 
     function formatShortDate(key) {
-      const [, m, d] = key.split('-');
+      const text = String(key || '').slice(0, 10);
+      const [, m, d] = text.split('-');
+      if (!m || !d) return String(key || '');
       return `${d}/${m}`;
     }
 
     function formatTimelineLabel(key, granularity) {
-      if (granularity === 'hour') {
-        const day = key.slice(8, 10);
-        const month = key.slice(5, 7);
-        const hour = key.slice(11, 13);
+      const text = String(key || '');
+      if (granularity === 'minute' && text.includes(':')) {
+        const day = text.slice(8, 10);
+        const month = text.slice(5, 7);
+        const hour = text.slice(11, 13);
+        const minute = text.slice(14, 16);
+        return `${day}/${month} ${hour}:${minute}`;
+      }
+      if ((granularity === 'hour' || granularity === 'minute') && text.length >= 13) {
+        const day = text.slice(8, 10);
+        const month = text.slice(5, 7);
+        const hour = text.slice(11, 13);
         return `${day}/${month} ${hour}h`;
       }
-      return formatShortDate(key);
+      return formatShortDate(text);
     }
 
     function chartTimelineGranularityLabel(granularity) {
+      if (granularity === 'minute') return 'por 5 min';
       return granularity === 'hour' ? 'por hora' : 'por dia';
     }
 
     function chartTimelineGranularityNote(granularity) {
+      if (granularity === 'minute') return 'Granularidade de 5 minutos.';
       return granularity === 'hour'
         ? 'Granularidade por hora.'
         : 'Granularidade por dia.';
@@ -5060,7 +5140,8 @@
       return series.map((point, i) => {
         if (i % labelStep !== 0 && i !== series.length - 1) return '';
         const x = padX + slotW * i + slotW / 2;
-        return `<text class="line-label" x="${x}" y="${h - 6}" text-anchor="middle">${formatTimelineLabel(point.key, granularity)}</text>`;
+        const label = formatTimelineLabel(point.key || point.t || point.date, granularity);
+        return `<text class="line-label" x="${x}" y="${h - 6}" text-anchor="middle">${label}</text>`;
       }).join('');
     }
 
@@ -6413,7 +6494,7 @@
       ADIVINHA_CLUE_LEAKS_ANSWER: 'ADIVINHA pista revela resposta',
       ADIVINHA_SEMANTIC_REJECT: 'ADIVINHA semântica rejeitada',
       AGE_TOO_HARD: 'Demasiado difícil para idade',
-      PT_COUNTRY_NAME: 'Nome de país PT-PT',
+      PT_COUNTRY_NAME: 'Nome de país ou cidade PT-PT',
       PT_INVALID_SCRIPT: 'Caracteres inválidos',
       PT_MIXED_WORD: 'Palavra misturada',
       PT_STEREOTYPE: 'Estereótipo cultural',
@@ -10954,10 +11035,35 @@
       { n: 20, e: '🤔', name: 'Adivinhas e Curiosidades' },
     ];
     const WIKIDATA_TOPIC_FALLBACK = {
-      1: { suggestions: ['Portugal', 'Europa', 'ONU', 'Nobel', 'olimpíadas'] },
+      1: {
+        suggestions: ['Portugal', 'Europa', 'ONU', 'Nobel', 'olimpíadas'],
+        presets: [
+          { id: 'cg-mundo', label: '🌍 Mundo', words: ['Europa', 'África', 'Ásia', 'América'] },
+          { id: 'cg-pessoas', label: '👤 Pessoas Famosas', words: ['Einstein', 'Mozart', 'Camões', 'Curie'] },
+          { id: 'cg-datas', label: '📅 Datas e Acontecimentos', words: ['Napoleão', 'Descobrimentos', 'Roma', 'ONU'] },
+          { id: 'cg-invencoes', label: '💡 Invenções e Descobertas', words: ['lâmpada', 'telefone', 'internet', 'vacina'] },
+          { id: 'cg-recordes', label: '🏆 Recordes', words: ['Evereste', 'Amazonas', 'Nilo', 'Sahara'] },
+          { id: 'cg-numeros', label: '🔢 Números e Estatísticas', words: ['pi', 'zero', 'Fibonacci', 'milhão'] },
+          { id: 'cg-cultura', label: '🎯 Cultura Geral', words: ['ONU', 'Nobel', 'Oscar', 'olimpíadas'] },
+          { id: 'cg-curiosidades', label: '🤯 Curiosidades', words: ['polvo', 'girafa', 'colibri', 'Evereste'] },
+          { id: 'cg-portugal', label: '🇵🇹 Portugal', words: ['Portugal', 'Lisboa', 'Camões', 'fado'] },
+          { id: 'cg-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
       2: {
         suggestions: ['Portugal', 'Lisboa', 'Tejo', 'Alpes', 'Amazonas', 'Sahara', 'Antárctida'],
-        presets: [{ id: 'countryCapitals', label: 'Capitais de países' }],
+        presets: [
+          { id: 'countryCapitals', label: '🏛️ Países e Capitais' },
+          { id: 'geo-bandeiras', label: '🏳️ Países e Bandeiras', words: ['Portugal', 'Japão', 'Canadá', 'Suíça'] },
+          { id: 'geo-cidades', label: '🏙️ Cidades', words: ['Tóquio', 'Londres', 'Paris', 'Cairo'] },
+          { id: 'geo-continentes', label: '🌎 Continentes', words: ['Europa', 'África', 'Ásia', 'América'] },
+          { id: 'geo-rios-mares', label: '🌊 Rios, Mares e Oceanos', words: ['Amazonas', 'Nilo', 'Atlântico', 'Mediterrâneo'] },
+          { id: 'geo-montanhas', label: '⛰️ Montanhas e Relevo', words: ['Alpes', 'Himalaias', 'Evereste', 'Estrela'] },
+          { id: 'geo-ilhas', label: '🏝️ Ilhas', words: ['Madeira', 'Islândia', 'Madagascar', 'Sicília'] },
+          { id: 'geo-mapa', label: '🗺️ Localização no Mapa', words: ['Equador', 'Greenwich', 'Trópico', 'Meridiano'] },
+          { id: 'geo-portugal', label: '🇵🇹 Geografia de Portugal', words: ['Lisboa', 'Tejo', 'Douro', 'Algarve'] },
+          { id: 'geo-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
         subtopics: [
           {
             id: 'portugal',
@@ -11044,28 +11150,268 @@
           },
         ],
       },
-      3: { suggestions: ['Viriato', 'Roma', 'Egipto', 'Napoleão', 'Descobrimentos'] },
-      4: { suggestions: ['Newton', 'Curie', 'átomo', 'vacina', 'oxigénio'] },
-      5: { suggestions: ['polvo', 'lobo', 'abelha', 'sobreiro', 'golfinho', 'girafa', 'carvalho'] },
-      6: { suggestions: ['Marte', 'Lua', 'Saturno', 'Júpiter', 'cometa'] },
-      7: { suggestions: ['Pitágoras', 'pi', 'triângulo', 'zero', 'Fibonacci'] },
-      8: { suggestions: ['Camões', 'Pessoa', 'Shakespeare', 'Saramago'] },
-      9: { suggestions: ['Camões', 'Pessoa', 'alfabeto', 'provérbio'] },
-      10: { suggestions: ['Picasso', 'Van Gogh', 'Mona Lisa', 'azulejo'] },
-      11: { suggestions: ['Oscar', 'animação', 'documentário', 'filme'] },
-      12: { suggestions: ['fado', 'Amália', 'Mozart', 'piano', 'Beatles'] },
-      13: { suggestions: ['seda', 'algodão', 'barrete', 'traje'] },
-      14: { suggestions: ['bacalhau', 'azeite', 'francesinha', 'nata'] },
-      15: { suggestions: ['futebol', 'Eusébio', 'natação', 'ténis', 'olimpíadas'] },
-      16: { suggestions: ['xadrez', 'damas', 'monopoly', 'sueca'] },
-      17: { suggestions: ['internet', 'GPS', 'telefone', 'lâmpada', 'robô'] },
-      18: { suggestions: ['fado', 'Carnaval', 'kimono', 'sari'] },
-      19: { suggestions: ['comboio', 'avião', 'bicicleta', 'navio', 'metro'] },
+      3: {
+        suggestions: ['Viriato', 'Roma', 'Egipto', 'Napoleão', 'Descobrimentos'],
+        presets: [
+          { id: 'hist-antigas', label: '🏛️ Civilizações Antigas', words: ['Roma', 'Egipto', 'Grécia', 'Mesopotâmia'] },
+          { id: 'hist-reis', label: '👑 Reis e Governantes', words: ['Napoleão', 'César', 'Cleópatra', 'Afonso'] },
+          { id: 'hist-guerras', label: '⚔️ Guerras e Batalhas', words: ['Waterloo', 'Aljubarrota', 'Troia', 'Napoleão'] },
+          { id: 'hist-descobrimentos', label: '🗺️ Descobrimentos', words: ['Descobrimentos', 'Gama', 'Magalhães', 'Índia'] },
+          { id: 'hist-portugal', label: '🇵🇹 História de Portugal', words: ['Viriato', 'Descobrimentos', 'Aljubarrota', 'Lisboa'] },
+          { id: 'hist-revolucoes', label: '🔥 Revoluções', words: ['Bastilha', 'França', 'Rússia', 'Liberalismo'] },
+          { id: 'hist-datas', label: '📅 Datas Históricas', words: ['Restauração', 'Abril', '1143', '1492'] },
+          { id: 'hist-figuras', label: '👤 Figuras Históricas', words: ['Viriato', 'Napoleão', 'César', 'Camões'] },
+          { id: 'hist-mundial', label: '🌎 História Mundial', words: ['Roma', 'Egipto', 'Napoleão', 'China'] },
+          { id: 'hist-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      4: {
+        suggestions: ['Newton', 'Curie', 'átomo', 'vacina', 'oxigénio'],
+        presets: [
+          { id: 'sci-biologia', label: '🧬 Biologia', words: ['célula', 'DNA', 'Darwin', 'fotossíntese'] },
+          { id: 'sci-fisica', label: '⚛️ Física', words: ['Newton', 'gravidade', 'Einstein', 'átomo'] },
+          { id: 'sci-quimica', label: '🧪 Química', words: ['oxigénio', 'hidrogénio', 'ferro', 'ouro'] },
+          { id: 'sci-corpo', label: '🧍 Corpo Humano', words: ['coração', 'cérebro', 'pulmão', 'sangue'] },
+          { id: 'sci-astronomia', label: '🔭 Astronomia', words: ['Marte', 'Lua', 'Saturno', 'cometa'] },
+          { id: 'sci-terra', label: '🌡️ Ciência da Terra', words: ['vulcão', 'terramoto', 'clima', 'placa'] },
+          { id: 'sci-descobertas', label: '💡 Descobertas Científicas', words: ['vacina', 'átomo', 'gravidade', 'penicilina'] },
+          { id: 'sci-cientistas', label: '🔬 Cientistas', words: ['Newton', 'Curie', 'Einstein', 'Darwin'] },
+          { id: 'sci-diaadia', label: '🧠 Ciência no Dia a Dia', words: ['electricidade', 'íman', 'vacina', 'termómetro'] },
+          { id: 'sci-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      5: {
+        suggestions: ['polvo', 'lobo', 'abelha', 'sobreiro', 'golfinho', 'girafa', 'carvalho'],
+        presets: [
+          { id: 'nat-animais', label: '🐾 Animais', words: ['polvo', 'lobo', 'golfinho', 'girafa'] },
+          { id: 'nat-plantas', label: '🌱 Plantas', words: ['sobreiro', 'oliveira', 'carvalho', 'pinheiro'] },
+          { id: 'nat-florestas', label: '🌳 Florestas', words: ['Amazónia', 'Taiga', 'Congo', 'Bornéu'] },
+          { id: 'nat-oceanos', label: '🌊 Oceanos e Mares', words: ['Atlântico', 'Pacífico', 'Mediterrâneo', 'Índico'] },
+          { id: 'nat-desertos', label: '🏜️ Desertos', words: ['Sahara', 'Gobi', 'Atacama', 'Kalahari'] },
+          { id: 'nat-ecosistemas', label: '🏔️ Ecossistemas', words: ['Amazónia', 'recife', 'tundra', 'savana'] },
+          { id: 'nat-insectos', label: '🦋 Insectos', words: ['abelha', 'borboleta', 'formiga', 'joaninha'] },
+          { id: 'nat-clima', label: '🌦️ Clima', words: ['chuva', 'vento', 'ciclone', 'monção'] },
+          { id: 'nat-ambiente', label: '♻️ Ambiente', words: ['reciclagem', 'ozono', 'carbono', 'Amazónia'] },
+          { id: 'nat-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      6: {
+        suggestions: ['Marte', 'Lua', 'Saturno', 'Júpiter', 'cometa'],
+        presets: [
+          { id: 'esp-sistema', label: '☀️ Sistema Solar', words: ['Sol', 'Marte', 'Júpiter', 'Saturno'] },
+          { id: 'esp-planetas', label: '🪐 Planetas', words: ['Marte', 'Saturno', 'Júpiter', 'Vénus'] },
+          { id: 'esp-lua', label: '🌙 Lua', words: ['Lua', 'eclipse', 'Apollo', 'maré'] },
+          { id: 'esp-estrelas', label: '⭐ Estrelas', words: ['Sol', 'Sirius', 'Polar', 'supernova'] },
+          { id: 'esp-galaxias', label: '🌌 Galáxias', words: ['Via Láctea', 'Andrómeda', 'galáxia', 'Hubble'] },
+          { id: 'esp-exploracao', label: '🚀 Exploração Espacial', words: ['Apollo', 'Voyager', 'NASA', 'Sputnik'] },
+          { id: 'esp-astronautas', label: '👨‍🚀 Astronautas', words: ['Armstrong', 'Gagarin', 'Aldrin', 'Shepard'] },
+          { id: 'esp-satelites', label: '🛰️ Satélites', words: ['Hubble', 'GPS', 'Lua', 'Sputnik'] },
+          { id: 'esp-universo', label: '🔭 Universo', words: ['Big Bang', 'galáxia', 'buraco negro', 'Via Láctea'] },
+          { id: 'esp-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      7: {
+        suggestions: ['Pitágoras', 'pi', 'triângulo', 'zero', 'Fibonacci'],
+        presets: [
+          { id: 'mat-numeros', label: '🔢 Números', words: ['zero', 'pi', 'primo', 'Fibonacci'] },
+          { id: 'mat-calculo', label: '➕ Cálculo Mental', words: ['soma', 'produto', 'percentagem', 'média'] },
+          { id: 'mat-operacoes', label: '✖️ Operações', words: ['adição', 'subtracção', 'multiplicação', 'divisão'] },
+          { id: 'mat-geometria', label: '📐 Geometria', words: ['triângulo', 'círculo', 'quadrado', 'pi'] },
+          { id: 'mat-medidas', label: '📏 Medidas', words: ['metro', 'litro', 'quilograma', 'segundo'] },
+          { id: 'mat-padroes', label: '🧩 Padrões e Sequências', words: ['Fibonacci', 'primo', 'sequência', 'padrão'] },
+          { id: 'mat-logica', label: '🧠 Raciocínio Lógico', words: ['Euclides', 'Pitágoras', 'conjunto', 'silogismo'] },
+          { id: 'mat-problemas', label: '🎯 Problemas', words: ['Pitágoras', 'Euclides', 'percentagem', 'média'] },
+          { id: 'mat-probabilidade', label: '🎲 Probabilidade', words: ['dado', 'probabilidade', 'média', 'percentagem'] },
+          { id: 'mat-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      8: {
+        suggestions: ['Camões', 'Pessoa', 'Shakespeare', 'Saramago'],
+        presets: [
+          { id: 'lit-autores', label: '✍️ Autores', words: ['Camões', 'Pessoa', 'Shakespeare', 'Saramago'] },
+          { id: 'lit-livros', label: '📚 Livros', words: ['Lusíadas', 'Hamlet', 'Quixote', 'Mensagem'] },
+          { id: 'lit-personagens', label: '👤 Personagens', words: ['Hamlet', 'Quixote', 'Ulisses', 'Sherlock'] },
+          { id: 'lit-pt', label: '🇵🇹 Literatura Portuguesa', words: ['Camões', 'Pessoa', 'Saramago', 'Eça'] },
+          { id: 'lit-mundo', label: '🌎 Literatura Mundial', words: ['Shakespeare', 'Homero', 'Cervantes', 'Tolstói'] },
+          { id: 'lit-poesia', label: '📝 Poesia', words: ['Camões', 'Pessoa', 'Homero', 'soneto'] },
+          { id: 'lit-contos', label: '🧚 Contos e Fábulas', words: ['Esopo', 'Grimm', 'Andersen', 'fábula'] },
+          { id: 'lit-classicos', label: '🏛️ Clássicos', words: ['Homero', 'Shakespeare', 'Camões', 'Cervantes'] },
+          { id: 'lit-obras', label: '🏆 Obras Famosas', words: ['Lusíadas', 'Hamlet', 'Quixote', 'Odisseia'] },
+          { id: 'lit-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      9: {
+        suggestions: ['Camões', 'Pessoa', 'alfabeto', 'provérbio'],
+        presets: [
+          { id: 'pt-vocabulario', label: '📖 Vocabulário', words: ['alfabeto', 'dicionário', 'vocabulário', 'palavra'] },
+          { id: 'pt-ortografia', label: '🔤 Ortografia', words: ['acento', 'cedilha', 'hífen', 'alfabeto'] },
+          { id: 'pt-gramatica', label: '📝 Gramática', words: ['verbo', 'substantivo', 'adjectivo', 'sujeito'] },
+          { id: 'pt-sinonimos', label: '🔄 Sinónimos', words: ['sinónimo', 'dicionário', 'vocabulário', 'Camões'] },
+          { id: 'pt-antonimos', label: '↔️ Antónimos', words: ['antónimo', 'dicionário', 'vocabulário', 'alfabeto'] },
+          { id: 'pt-expressoes', label: '💬 Expressões', words: ['provérbio', 'ditado', 'expressão', 'idioma'] },
+          { id: 'pt-proverbios', label: '🗣️ Provérbios', words: ['provérbio', 'ditado', 'sabedoria', 'Camões'] },
+          { id: 'pt-significado', label: '🔎 Significado de Palavras', words: ['dicionário', 'vocabulário', 'etimologia', 'palavra'] },
+          { id: 'pt-portugal', label: '🇵🇹 Português de Portugal', words: ['Camões', 'Pessoa', 'Lisboa', 'alfabeto'] },
+          { id: 'pt-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      10: {
+        suggestions: ['Picasso', 'Van Gogh', 'Mona Lisa', 'azulejo'],
+        presets: [
+          { id: 'arte-pintura', label: '🖼️ Pintura', words: ['Picasso', 'Van Gogh', 'Monet', 'Vinci'] },
+          { id: 'arte-escultura', label: '🗿 Escultura', words: ['Miguel Ângelo', 'David', 'Rodin', 'mármore'] },
+          { id: 'arte-arquitetura', label: '🏛️ Arquitetura', words: ['Coliseu', 'pirâmide', 'Gótico', 'Sagrada Família'] },
+          { id: 'arte-teatro', label: '🎭 Teatro', words: ['Shakespeare', 'Vicente', 'ópera', 'palco'] },
+          { id: 'arte-artistas', label: '👨‍🎨 Artistas', words: ['Picasso', 'Van Gogh', 'Miguel Ângelo', 'Amadeo'] },
+          { id: 'arte-obras', label: '🖼️ Obras Famosas', words: ['Mona Lisa', 'Guernica', 'David', 'azulejo'] },
+          { id: 'arte-antiga', label: '🏺 Arte Antiga', words: ['Egipto', 'Grécia', 'Roma', 'pirâmide'] },
+          { id: 'arte-movimentos', label: '🎨 Movimentos Artísticos', words: ['Impressionismo', 'Cubismo', 'Barroco', 'Renascimento'] },
+          { id: 'arte-pt', label: '🇵🇹 Arte Portuguesa', words: ['azulejo', 'Amadeo', 'Bordalo', 'Nasoni'] },
+          { id: 'arte-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      11: {
+        suggestions: ['Oscar', 'animação', 'documentário', 'filme'],
+        presets: [
+          { id: 'cin-filmes', label: '🎬 Filmes', words: ['Spielberg', 'Pixar', 'Star Wars', 'Titanic'] },
+          { id: 'cin-series', label: '📺 Séries', words: ['Friends', 'Lost', 'série', 'Netflix'] },
+          { id: 'cin-atores', label: '👤 Atores e Atrizes', words: ['Chaplin', 'Hepburn', 'Streep', 'Pacino'] },
+          { id: 'cin-realizadores', label: '🎥 Realizadores', words: ['Spielberg', 'Hitchcock', 'Scorsese', 'Nolan'] },
+          { id: 'cin-personagens', label: '🦸 Personagens', words: ['Batman', 'Harry Potter', 'Shrek', 'Yoda'] },
+          { id: 'cin-premios', label: '🏆 Prémios', words: ['Oscar', 'Goya', 'César', 'BAFTA'] },
+          { id: 'cin-bandas', label: '🎵 Bandas Sonoras', words: ['Williams', 'Zimmer', 'musical', 'Oscar'] },
+          { id: 'cin-franchises', label: '🧙 Franchises', words: ['Star Wars', 'Marvel', 'Harry Potter', 'Bond'] },
+          { id: 'cin-pt', label: '🇵🇹 Cinema Português', words: ['Oliveira', 'Lopes', 'filme', 'Cannes'] },
+          { id: 'cin-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      12: {
+        suggestions: ['fado', 'Amália', 'Mozart', 'piano', 'Beatles'],
+        presets: [
+          { id: 'mus-artistas', label: '🎤 Artistas', words: ['Amália', 'Beatles', 'Mozart', 'Madonna'] },
+          { id: 'mus-bandas', label: '🎸 Bandas', words: ['Beatles', 'Queen', 'U2', 'ABBA'] },
+          { id: 'mus-cancoes', label: '🎵 Canções', words: ['Beatles', 'Amália', 'fado', 'hino'] },
+          { id: 'mus-albuns', label: '💿 Álbuns', words: ['Beatles', 'Thriller', 'Queen', 'Amália'] },
+          { id: 'mus-generos', label: '🎼 Géneros Musicais', words: ['fado', 'jazz', 'ópera', 'rock'] },
+          { id: 'mus-instrumentos', label: '🎸 Instrumentos', words: ['piano', 'guitarra', 'violino', 'flauta'] },
+          { id: 'mus-decadas', label: '📅 Música por Décadas', words: ['Beatles', 'disco', 'jazz', 'rock'] },
+          { id: 'mus-premios', label: '🏆 Prémios', words: ['Grammy', 'Eurovisão', 'Nobel', 'Oscar'] },
+          { id: 'mus-pt', label: '🇵🇹 Música Portuguesa', words: ['fado', 'Amália', 'Zeca', 'Carlos'] },
+          { id: 'mus-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      13: {
+        suggestions: ['seda', 'algodão', 'barrete', 'traje'],
+        presets: [
+          { id: 'moda-designers', label: '👗 Designers', words: ['Chanel', 'Dior', 'Gucci', 'Armani'] },
+          { id: 'moda-marcas', label: '👠 Marcas', words: ['Nike', 'Adidas', 'Zara', 'Gucci'] },
+          { id: 'moda-pecas', label: '🧥 Peças de Roupa', words: ['camisola', 'casaco', 'vestido', 'calças'] },
+          { id: 'moda-calcado', label: '👟 Calçado', words: ['sapatilha', 'bota', 'sandália', 'Nike'] },
+          { id: 'moda-acessorios', label: '💎 Acessórios', words: ['relógio', 'chapéu', 'lenço', 'cinto'] },
+          { id: 'moda-decadas', label: '📅 Moda por Décadas', words: ['Chanel', 'Dior', 'minissaia', 'Twiggy'] },
+          { id: 'moda-mundo', label: '🌎 Moda pelo Mundo', words: ['kimono', 'sari', 'kilt', 'traje'] },
+          { id: 'moda-icones', label: '⭐ Ícones da Moda', words: ['Chanel', 'Hepburn', 'Twiggy', 'Dior'] },
+          { id: 'moda-pt', label: '🇵🇹 Moda Portuguesa', words: ['traje', 'barrete', 'Lisboa', 'algodão'] },
+          { id: 'moda-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      14: {
+        suggestions: ['bacalhau', 'azeite', 'francesinha', 'nata'],
+        presets: [
+          { id: 'gastro-pt', label: '🇵🇹 Comida Portuguesa', words: ['bacalhau', 'francesinha', 'nata', 'azeite'] },
+          { id: 'gastro-mundo', label: '🌎 Cozinhas do Mundo', words: ['pizza', 'sushi', 'taco', 'curry'] },
+          { id: 'gastro-pratos', label: '🍲 Pratos Típicos', words: ['paella', 'pizza', 'sushi', 'bacalhau'] },
+          { id: 'gastro-ingredientes', label: '🥕 Ingredientes', words: ['azeite', 'alho', 'tomate', 'sal'] },
+          { id: 'gastro-frutas', label: '🍎 Frutas e Vegetais', words: ['maçã', 'laranja', 'tomate', 'banana'] },
+          { id: 'gastro-doces', label: '🍰 Doces e Sobremesas', words: ['nata', 'chocolate', 'bolo', 'gelado'] },
+          { id: 'gastro-queijos', label: '🧀 Queijos', words: ['queijo', 'serra', 'roquefort', 'mozzarella'] },
+          { id: 'gastro-especiarias', label: '🌶️ Sabores e Especiarias', words: ['pimenta', 'canela', 'açafrão', 'alho'] },
+          { id: 'gastro-regional', label: '🗺️ Gastronomia Regional', words: ['Alentejo', 'Algarve', 'Minho', 'francesinha'] },
+          { id: 'gastro-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      15: {
+        suggestions: ['futebol', 'Eusébio', 'natação', 'ténis', 'olimpíadas'],
+        presets: [
+          { id: 'desp-futebol', label: '⚽ Futebol', words: ['futebol', 'Eusébio', 'Ronaldo', 'Mundial'] },
+          { id: 'desp-basquete', label: '🏀 Basquetebol', words: ['basquetebol', 'NBA', 'Jordan', 'cesto'] },
+          { id: 'desp-tenis', label: '🎾 Ténis', words: ['ténis', 'Wimbledon', 'Nadal', 'Federer'] },
+          { id: 'desp-atletismo', label: '🏃 Atletismo', words: ['atletismo', 'maratona', 'Bolt', 'olimpíadas'] },
+          { id: 'desp-ciclismo', label: '🚴 Ciclismo', words: ['ciclismo', 'Tour', 'Volta', 'bicicleta'] },
+          { id: 'desp-auto', label: '🏎️ Automobilismo', words: ['Senna', 'Ferrari', 'rally', 'Fórmula'] },
+          { id: 'desp-natacao', label: '🏊 Natação', words: ['natação', 'Phelps', 'olimpíadas', 'mariposa'] },
+          { id: 'desp-olimpicos', label: '🥇 Jogos Olímpicos', words: ['olimpíadas', 'atleta', 'medalha', 'natação'] },
+          { id: 'desp-pt', label: '🇵🇹 Desporto Português', words: ['Eusébio', 'Ronaldo', 'Benfica', 'Porto'] },
+          { id: 'desp-modalidades', label: '🏅 Modalidades', words: ['andebol', 'voleibol', 'rugby', 'hóquei'] },
+          { id: 'desp-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      16: {
+        suggestions: ['xadrez', 'damas', 'monopoly', 'sueca'],
+        presets: [
+          { id: 'jogos-video', label: '🎮 Videojogos', words: ['Mario', 'Zelda', 'Minecraft', 'Fortnite'] },
+          { id: 'jogos-consolas', label: '🕹️ Consolas', words: ['PlayStation', 'Nintendo', 'Xbox', 'Sega'] },
+          { id: 'jogos-personagens', label: '👾 Personagens', words: ['Mario', 'Zelda', 'Pikachu', 'Sonic'] },
+          { id: 'jogos-tabuleiro', label: '🧩 Jogos de Tabuleiro', words: ['xadrez', 'damas', 'monopoly', 'ludo'] },
+          { id: 'jogos-cartas', label: '🃏 Jogos de Cartas', words: ['sueca', 'póquer', 'uno', 'bridge'] },
+          { id: 'jogos-tradicionais', label: '🎲 Jogos Tradicionais', words: ['malha', 'pião', 'sueca', 'xadrez'] },
+          { id: 'jogos-minecraft', label: '⛏️ Minecraft', words: ['Minecraft', 'bloco', 'Creeper', 'Steve'] },
+          { id: 'jogos-nintendo', label: '🍄 Nintendo', words: ['Nintendo', 'Mario', 'Zelda', 'Switch'] },
+          { id: 'jogos-famosos', label: '🏆 Jogos Famosos', words: ['xadrez', 'Mario', 'Tetris', 'monopoly'] },
+          { id: 'jogos-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      17: {
+        suggestions: ['internet', 'GPS', 'telefone', 'lâmpada', 'robô'],
+        presets: [
+          { id: 'tec-computadores', label: '🖥️ Computadores', words: ['computador', 'Windows', 'Linux', 'teclado'] },
+          { id: 'tec-telemoveis', label: '📱 Telemóveis', words: ['telemóvel', 'iPhone', 'Android', 'Samsung'] },
+          { id: 'tec-internet', label: '🌐 Internet', words: ['internet', 'Google', 'WWW', 'email'] },
+          { id: 'tec-ia', label: '🤖 Inteligência Artificial', words: ['Turing', 'robô', 'algoritmo', 'rede'] },
+          { id: 'tec-jogos', label: '🎮 Tecnologia nos Jogos', words: ['PlayStation', 'Nintendo', 'consola', 'realidade'] },
+          { id: 'tec-seguranca', label: '🔐 Segurança Digital', words: ['vírus', 'firewall', 'encriptação', 'palavra-passe'] },
+          { id: 'tec-invencoes', label: '💡 Invenções', words: ['lâmpada', 'telefone', 'internet', 'GPS'] },
+          { id: 'tec-programacao', label: '👨‍💻 Programação', words: ['Python', 'Java', 'algoritmo', 'Turing'] },
+          { id: 'tec-empresas', label: '🏢 Empresas Tecnológicas', words: ['Google', 'Apple', 'Microsoft', 'Nokia'] },
+          { id: 'tec-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      18: {
+        suggestions: ['fado', 'Carnaval', 'kimono', 'sari'],
+        presets: [
+          { id: 'cult-linguas', label: '🗣️ Línguas', words: ['português', 'inglês', 'mandarim', 'árabe'] },
+          { id: 'cult-gastro', label: '🍽️ Gastronomia', words: ['sushi', 'pizza', 'bacalhau', 'curry'] },
+          { id: 'cult-festas', label: '🎉 Festas e Celebrações', words: ['Carnaval', 'Natal', 'Diwali', 'Ramadão'] },
+          { id: 'cult-vestuario', label: '👘 Vestuário e Moda', words: ['kimono', 'sari', 'kilt', 'traje'] },
+          { id: 'cult-tradicoes', label: '🏛️ Tradições', words: ['fado', 'Fátima', 'romaria', 'São João'] },
+          { id: 'cult-musica', label: '🎵 Música e Dança', words: ['fado', 'samba', 'flamenco', 'ballet'] },
+          { id: 'cult-costumes', label: '🏠 Costumes', words: ['chá', 'sesta', 'sauna', 'saudações'] },
+          { id: 'cult-religioes', label: '🛕 Religiões e Monumentos', words: ['Vaticano', 'Meca', 'templo', 'mesquita'] },
+          { id: 'cult-povos', label: '🌍 Países e Povos', words: ['Japão', 'Índia', 'Brasil', 'Egipto'] },
+          { id: 'cult-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
+      19: {
+        suggestions: ['comboio', 'avião', 'bicicleta', 'navio', 'metro'],
+        presets: [
+          { id: 'trans-auto', label: '🚗 Automóveis', words: ['automóvel', 'Ford', 'Ferrari', 'motor'] },
+          { id: 'trans-comboios', label: '🚆 Comboios', words: ['comboio', 'TGV', 'metro', 'locomotiva'] },
+          { id: 'trans-avioes', label: '✈️ Aviões', words: ['avião', 'Boeing', 'Concorde', 'piloto'] },
+          { id: 'trans-navios', label: '🚢 Navios', words: ['navio', 'Titanic', 'caravela', 'porto'] },
+          { id: 'trans-publicos', label: '🚌 Transportes Públicos', words: ['autocarro', 'metro', 'eléctrico', 'comboio'] },
+          { id: 'trans-bicicletas', label: '🚲 Bicicletas', words: ['bicicleta', 'Tour', 'pedais', 'velocípede'] },
+          { id: 'trans-motas', label: '🏍️ Motas', words: ['mota', 'Honda', 'Harley', 'scooter'] },
+          { id: 'trans-espaco', label: '🚀 Transportes Espaciais', words: ['foguetão', 'Apollo', 'Voyager', 'Sputnik'] },
+          { id: 'trans-historicos', label: '🏁 Transportes Históricos', words: ['caravela', 'diligência', 'locomotiva', 'galeão'] },
+          { id: 'trans-aleatorio', label: '🎲 Aleatório', random: true },
+        ],
+      },
       20: {
         suggestions: ['polvo', 'girafa', 'colibri', 'azulejo', 'fado'],
         presets: [
           { id: 'unescoPt', label: 'Património UNESCO em Portugal' },
           { id: 'ichPt', label: 'Património imaterial PT' },
+          { id: 'cur-animais', label: 'Animais curiosos', words: ['polvo', 'girafa', 'colibri', 'lobo'] },
         ],
       },
     };
@@ -14354,6 +14700,23 @@
       }).join('');
     }
 
+    const KNOWLEDGE_IMPORT_TIMELINE_RANGES = {
+      '1h': { label: 'última hora', granularity: 'minute', hours: 1 },
+      '3h': { label: 'últimas 3 horas', granularity: 'minute', hours: 3 },
+      '6h': { label: 'últimas 6 horas', granularity: 'minute', hours: 6 },
+      '12h': { label: 'últimas 12 horas', granularity: 'hour', hours: 12 },
+      '24h': { label: 'últimas 24 horas', granularity: 'hour', hours: 24 },
+      total: { label: 'tudo (por dia)', granularity: 'day' },
+    };
+    const KNOWLEDGE_IMPORT_TIMELINE_STORAGE_KEY = 'reino_admin_knowledge_import_range';
+    let knowledgeImportTimelineRange = '24h';
+    try {
+      const savedKnowledgeImportRange = localStorage.getItem(KNOWLEDGE_IMPORT_TIMELINE_STORAGE_KEY);
+      if (savedKnowledgeImportRange && KNOWLEDGE_IMPORT_TIMELINE_RANGES[savedKnowledgeImportRange]) {
+        knowledgeImportTimelineRange = savedKnowledgeImportRange;
+      }
+    } catch { /* ignore */ }
+
     let knowledgeLoading = false;
     let lastKnowledgePayload = null;
     let lastKnowledgeDedupePlan = null;
@@ -14365,6 +14728,7 @@
     let wikidataCategoryTopics = [];
     const selectedWikidataWords = new Set();
     let selectedWikidataPreset = '';
+    let selectedWikidataRandomId = '';
     let selectedWikidataSubtopic = '';
     let selectedWikidataFocus = '';
     let lastWikidataCandidates = [];
@@ -14414,6 +14778,8 @@
 
     const KNOWLEDGE_SOURCE_COLORS = {
       Wikidata: '#0ea5e9',
+      'RTP Ensina': '#e11d48',
+      'Ciência Viva': '#16a34a',
       manual: '#f59e0b',
       'MemóriaMedia': '#a78bfa',
       'Ditos.pt': '#34d399',
@@ -14470,6 +14836,8 @@
         byCategoryTopic: Array.isArray(repo.byCategoryTopic) ? repo.byCategoryTopic : [],
         bySourceTopic: Array.isArray(repo.bySourceTopic) ? repo.bySourceTopic : [],
         byDay: Array.isArray(repo.byDay) ? repo.byDay : [],
+        byHour: Array.isArray(repo.byHour) ? repo.byHour : null,
+        byMinute: Array.isArray(repo.byMinute) ? repo.byMinute : null,
         bankLinked: repo.bankLinked && typeof repo.bankLinked === 'object' ? repo.bankLinked : null,
         bankByKnowledgeSource: Array.isArray(repo.bankByKnowledgeSource) ? repo.bankByKnowledgeSource : [],
       };
@@ -14481,6 +14849,9 @@
       const sourceEntries = stats.bySource
         .filter((s) => s.active > 0)
         .map((s) => [s.source, s.active]);
+      renderKnowledgeSourceTable(stats);
+      renderKnowledgeSourceTopicTable(stats);
+      renderKnowledgeBankCharts(stats);
       const donutEl = document.getElementById('knowledgeSourceDonut');
       if (donutEl) renderDonutChart(donutEl, sourceEntries, (key) => key, { colorFn });
 
@@ -14492,58 +14863,206 @@
       if (topicEl) renderBarChart(topicEl, topicEntries, (key) => key);
 
       renderKnowledgeImportTimeline(stats);
-      renderKnowledgeSourceTable(stats);
-      renderKnowledgeSourceTopicTable(stats);
-      renderKnowledgeBankCharts(stats);
+      const moreHint = document.getElementById('knowledgeInventoryMoreHint');
+      if (moreHint) {
+        const imported = (stats.byDay || []).reduce((sum, row) => sum + (Number(row.count) || 0), 0);
+        const sources = stats.bySource.length;
+        const linked = stats.bankLinked;
+        const bankBit = linked
+          ? ` · ${linked.withKnowledgeId || 0}/${linked.total || 0} perguntas com knowledge_id`
+          : '';
+        moreHint.textContent = imported || sources
+          ? `${imported} importações · ${sources} fonte(s)${bankBit}`
+          : 'Importações no tempo, tabelas por fonte e ligação ao banco.';
+      }
+    }
+
+    function knowledgeLisbonParts(date, withMinute) {
+      const opts = {
+        timeZone: 'Europe/Lisbon',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        hour12: false,
+      };
+      if (withMinute) opts.minute = '2-digit';
+      const parts = new Intl.DateTimeFormat('sv-SE', opts).formatToParts(date);
+      return Object.fromEntries(parts.map((p) => [p.type, p.value]));
+    }
+
+    function knowledgeHourKey(date) {
+      const map = knowledgeLisbonParts(date, false);
+      return `${map.year}-${map.month}-${map.day}T${map.hour}`;
+    }
+
+    function knowledgeMinuteKey(date, bucketMin = 5) {
+      const map = knowledgeLisbonParts(date, true);
+      const minute = String(Math.floor(Number(map.minute) / bucketMin) * bucketMin).padStart(2, '0');
+      return `${map.year}-${map.month}-${map.day}T${map.hour}:${minute}`;
+    }
+
+    function knowledgeHourKeyToUtcMs(key) {
+      const text = String(key || '');
+      if (!text.includes('T')) return NaN;
+      const [datePart, hourPart] = text.split('T');
+      const [year, month, day] = datePart.split('-').map(Number);
+      const hour = Number(String(hourPart).slice(0, 2));
+      const want = `${datePart}T${String(hour).padStart(2, '0')}`;
+      const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'Europe/Lisbon',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        hour12: false,
+      });
+      for (const offsetHours of [-2, -1, 0, 1, 2]) {
+        const probe = new Date(Date.UTC(year, month - 1, day, hour + offsetHours, 0, 0, 0));
+        const parts = formatter.formatToParts(probe);
+        const map = Object.fromEntries(parts.map((p) => [p.type, p.value]));
+        if (`${map.year}-${map.month}-${map.day}T${map.hour}` === want) return probe.getTime();
+      }
+      return Date.UTC(year, month - 1, day, hour, 0, 0, 0);
+    }
+
+    function knowledgeBucketToUtcMs(key) {
+      const match = String(key || '').match(/^(\d{4}-\d{2}-\d{2})T(\d{2})(?::(\d{2}))?$/);
+      if (!match) return NaN;
+      const hourMs = knowledgeHourKeyToUtcMs(`${match[1]}T${match[2]}`);
+      if (!Number.isFinite(hourMs)) return NaN;
+      return hourMs + (Number(match[3] || 0) * 60000);
+    }
+
+    function buildKnowledgeHourKeys(hours) {
+      const keys = [];
+      let key = knowledgeHourKey(new Date());
+      for (let i = 0; i < hours; i += 1) {
+        keys.unshift(key);
+        if (i < hours - 1) {
+          const ms = knowledgeHourKeyToUtcMs(key);
+          key = knowledgeHourKey(new Date(ms - 3600000));
+        }
+      }
+      return keys;
+    }
+
+    function buildKnowledgeMinuteKeys(hours, bucketMin = 5) {
+      const count = Math.round((hours * 60) / bucketMin);
+      const keys = [];
+      let key = knowledgeMinuteKey(new Date(), bucketMin);
+      for (let i = 0; i < count; i += 1) {
+        keys.unshift(key);
+        if (i < count - 1) {
+          const ms = knowledgeBucketToUtcMs(key);
+          key = knowledgeMinuteKey(new Date(ms - bucketMin * 60000), bucketMin);
+        }
+      }
+      return keys;
+    }
+
+    function stackKnowledgeImportRows(rows, keys, keyField) {
+      const sources = [...new Set((rows || []).map((r) => r.source || '—'))];
+      const lookup = new Map((rows || []).map((r) => [`${r[keyField]}\t${r.source || '—'}`, Number(r.count) || 0]));
+      const series = keys.map((key) => {
+        const byIssue = {};
+        let count = 0;
+        for (const source of sources) {
+          const n = lookup.get(`${key}\t${source}`) || 0;
+          byIssue[source] = n;
+          count += n;
+        }
+        return { key, t: key, count, byIssue };
+      });
+      return { series, sources };
+    }
+
+    function knowledgeBucketChipRange(key, granularity) {
+      if (granularity === 'minute') {
+        const from = key;
+        const ms = knowledgeBucketToUtcMs(key);
+        const to = Number.isFinite(ms) ? knowledgeMinuteKey(new Date(ms + 4 * 60000), 1) : key;
+        return { from, to };
+      }
+      if (granularity === 'hour') {
+        return { from: `${key}:00`, to: `${key}:59` };
+      }
+      return { from: `${key}T00:00`, to: `${key}T23:59` };
+    }
+
+    function knowledgeImportChipHtml(series, granularity) {
+      return series.filter((point) => point.count > 0).map((point) => {
+        const range = knowledgeBucketChipRange(point.key, granularity);
+        const label = formatTimelineLabel(point.key, granularity);
+        return `<button type="button" class="pill knowledge-day-chip" data-knowledge-from="${esc(range.from)}" data-knowledge-to="${esc(range.to)}" title="Listar factos importados em ${esc(label)}">${esc(label)} <strong>${point.count}</strong></button>`;
+      }).join(' ');
     }
 
     function renderKnowledgeImportTimeline(stats) {
       const el = document.getElementById('knowledgeImportChart');
       const noteEl = document.getElementById('knowledgeImportTimelineNote');
+      const titleEl = document.getElementById('knowledgeImportChartTitle');
+      const chipsEl = document.getElementById('knowledgeImportDayChips');
+      const meta = KNOWLEDGE_IMPORT_TIMELINE_RANGES[knowledgeImportTimelineRange]
+        || KNOWLEDGE_IMPORT_TIMELINE_RANGES.total;
+      if (titleEl) titleEl.textContent = `Importações no tempo — ${meta.label}`;
+      document.querySelectorAll('#knowledgeImportTimelineFilters [data-knowledge-import-range]').forEach((btn) => {
+        btn.classList.toggle('active', btn.dataset.knowledgeImportRange === knowledgeImportTimelineRange);
+      });
       if (!el) return;
-      const rows = stats.byDay || [];
-      if (!rows.length) {
-        el.innerHTML = '<div class="chart-empty">Sem datas de importação (created_at) no repositório.</div>';
+
+      let series = [];
+      let sources = [];
+      let granularity = meta.granularity;
+      let note = '';
+      let emptyMessage = `Sem importações ${meta.label}.`;
+
+      if (meta.granularity === 'day') {
+        const rows = stats.byDay || [];
+        if (!rows.length) {
+          el.innerHTML = '<div class="chart-empty">Sem datas de importação (created_at) no repositório.</div>';
+          if (noteEl) noteEl.textContent = '';
+          if (chipsEl) chipsEl.innerHTML = '';
+          return;
+        }
+        const days = [...new Set(rows.map((r) => r.day).filter(Boolean))].sort();
+        const filled = eachIsoDayInclusive(days[0], days[days.length - 1]);
+        ({ series, sources } = stackKnowledgeImportRows(rows, filled, 'day'));
+        const totalImported = rows.reduce((sum, r) => sum + (Number(r.count) || 0), 0);
+        note = `${totalImported} factos criados entre ${formatShortDate(days[0])} e ${formatShortDate(days[days.length - 1])} (hora de Portugal). Inclui inactivos. Clica num dia para listar.`;
+      } else if (meta.granularity === 'minute' && stats.byMinute) {
+        const keys = buildKnowledgeMinuteKeys(meta.hours, 5);
+        ({ series, sources } = stackKnowledgeImportRows(stats.byMinute, keys, 'minute'));
+        const totalImported = series.reduce((sum, p) => sum + p.count, 0);
+        note = `${totalImported} facto(s) ${meta.label} (buckets de 5 min, hora de Portugal). Inclui inactivos. Clica num intervalo para listar.`;
+      } else if (stats.byHour) {
+        const keys = buildKnowledgeHourKeys(meta.hours);
+        ({ series, sources } = stackKnowledgeImportRows(stats.byHour, keys, 'hour'));
+        granularity = 'hour';
+        const totalImported = series.reduce((sum, p) => sum + p.count, 0);
+        const granNote = meta.granularity === 'minute'
+          ? 'Sem dados de 5 min — a mostrar por hora.'
+          : 'Por hora, hora de Portugal.';
+        note = `${totalImported} facto(s) ${meta.label}. ${granNote} Inclui inactivos. Clica num intervalo para listar.`;
+      } else {
+        el.innerHTML = `<div class="chart-empty">Dados horários indisponíveis. Escolhe Tudo ou actualiza o inventário.</div>`;
         if (noteEl) noteEl.textContent = '';
-        const chipsEl = document.getElementById('knowledgeImportDayChips');
         if (chipsEl) chipsEl.innerHTML = '';
         return;
       }
-      const sources = [...new Set(rows.map((r) => r.source || '—'))];
-      const days = [...new Set(rows.map((r) => r.day).filter(Boolean))].sort();
-      const filled = eachIsoDayInclusive(days[0], days[days.length - 1]);
-      const lookup = new Map(rows.map((r) => [`${r.day}\t${r.source}`, Number(r.count) || 0]));
-      const series = filled.map((day) => {
-        const byIssue = {};
-        let count = 0;
-        for (const source of sources) {
-          const n = lookup.get(`${day}\t${source}`) || 0;
-          byIssue[source] = n;
-          count += n;
-        }
-        return { t: day, count, byIssue };
-      });
-      const totalImported = rows.reduce((sum, r) => sum + (Number(r.count) || 0), 0);
-      if (noteEl) {
-        noteEl.textContent = `${totalImported} factos criados entre ${formatShortDate(days[0])} e ${formatShortDate(days[days.length - 1])} (hora de Portugal). Inclui inactivos. Clica num dia para listar.`;
+
+      if (noteEl) noteEl.textContent = note;
+      if (!series.some((point) => point.count > 0)) {
+        el.innerHTML = `<div class="chart-empty">${esc(emptyMessage)}</div>`;
+      } else {
+        const labelMap = Object.fromEntries(sources.map((s) => [s, s]));
+        renderStackedColumnChart(el, series, sources, granularity, {
+          labelMap,
+          colorFn: knowledgeSourceColor,
+          chartId: 'knowledgeImport',
+        });
       }
-      const labelMap = Object.fromEntries(sources.map((s) => [s, s]));
-      renderStackedColumnChart(el, series, sources, 'day', {
-        labelMap,
-        colorFn: knowledgeSourceColor,
-        chartId: 'knowledgeImport',
-      });
-      const chipsEl = document.getElementById('knowledgeImportDayChips');
-      if (chipsEl) {
-        const byDayTotal = new Map();
-        for (const row of rows) {
-          byDayTotal.set(row.day, (byDayTotal.get(row.day) || 0) + (Number(row.count) || 0));
-        }
-        chipsEl.innerHTML = days.map((day) => {
-          const n = byDayTotal.get(day) || 0;
-          return `<button type="button" class="pill knowledge-day-chip" data-knowledge-day="${esc(day)}" title="Listar factos importados em ${esc(day)}">${esc(formatShortDate(day))} <strong>${n}</strong></button>`;
-        }).join(' ');
-      }
+      if (chipsEl) chipsEl.innerHTML = knowledgeImportChipHtml(series, granularity);
     }
 
     function renderKnowledgeSourceTable(stats) {
@@ -14671,7 +15190,7 @@
       foot.innerHTML = `<tr class="total-row"><th>Total</th><th class="num">${totFacts}</th><th class="num">${totBank}</th></tr>`;
     }
 
-    async function filterKnowledgeInventory(source, topic, day) {
+    async function filterKnowledgeInventory(source, topic, day, range) {
       const srcEl = document.getElementById('knowledgeSearchSource');
       const topicEl = document.getElementById('knowledgeSearchTopic');
       const activeEl = document.getElementById('knowledgeActiveFilter');
@@ -14681,14 +15200,16 @@
       const nextSource = source && source !== '—' && source !== '(facto removido)' ? source : '';
       const nextTopic = topic || '';
       const nextDay = day && /^\d{4}-\d{2}-\d{2}$/.test(day) ? day : '';
+      const nextFrom = range?.from || (nextDay ? `${nextDay}T00:00` : '');
+      const nextTo = range?.to || (nextDay ? `${nextDay}T23:59` : '');
       if (srcEl) srcEl.value = nextSource;
       if (topicEl) topicEl.value = nextTopic;
       if (activeEl) activeEl.value = 'all';
       if (queryEl) queryEl.value = '';
-      if (fromEl) fromEl.value = nextDay ? `${nextDay}T00:00` : '';
-      if (toEl) toEl.value = nextDay ? `${nextDay}T23:59` : '';
+      if (fromEl) fromEl.value = nextFrom;
+      if (toEl) toEl.value = nextTo;
       document.getElementById('knowledgeBrowseSection')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      if (!nextSource && !nextTopic && !nextDay) return;
+      if (!nextSource && !nextTopic && !nextDay && !nextFrom && !nextTo) return;
       await listKnowledgeCategory();
     }
 
@@ -15003,8 +15524,16 @@
 
     function renderKnowledgeDiagnostics(data) {
       const el = document.getElementById('knowledgeDiagnostics');
-      if (!el) return;
+      const collapsed = document.getElementById('knowledgeImportCollapsed');
       const d = data?.diagnostics;
+      const pendingRaw = d?.effectivePending ?? data?.summary?.pending;
+      const pending = Number(pendingRaw);
+      if (collapsed) {
+        collapsed.innerHTML = Number.isFinite(pending)
+          ? `<span class="pill">${pending}</span> pendente${pending === 1 ? '' : 's'} na fila`
+          : '<span class="sub">Fila de 1 facto por faixa etária</span>';
+      }
+      if (!el) return;
       if (!d) {
         el.textContent = '';
         return;
@@ -15071,11 +15600,18 @@
 
       const q = data?.quarantine || {};
       const days = q.days || 30;
+      const total = q.available === false ? null : (Number(q.knowledgeTotal) || 0);
+      const collapsedEl = document.getElementById('knowledgeQuarantineCollapsed');
+      if (collapsedEl) {
+        collapsedEl.innerHTML = total == null
+          ? '<span class="sub">Anti-reuso indisponível</span>'
+          : `<span class="pill">${total}</span> facto${total === 1 ? '' : 's'} em quarentena`;
+      }
       if (noteEl) {
         if (q.available === false) {
           noteEl.textContent = 'Anti-reuso global indisponível — executa supabase/question-reuse-global.sql no Supabase.';
         } else {
-          noteEl.innerHTML = `Factos verificados jogados nos últimos <strong>${days}</strong> dias. Total em quarentena: <strong>${q.knowledgeTotal || 0}</strong>.`;
+          noteEl.innerHTML = `Factos verificados jogados nos últimos <strong>${days}</strong> dias. Total em quarentena: <strong>${total || 0}</strong>.`;
         }
       }
 
@@ -15129,8 +15665,14 @@
 
     function renderKnowledgeDedupePreview(data) {
       const el = document.getElementById('knowledgeDedupePreview');
+      const collapsed = document.getElementById('knowledgeDedupeCollapsed');
       if (!el) return;
       const items = data?.toDisable || [];
+      if (collapsed) {
+        collapsed.innerHTML = items.length
+          ? `<span class="pill">${items.length}</span> duplicado${items.length === 1 ? '' : 's'} a desactivar`
+          : '<span class="sub">Sem duplicados detectados</span>';
+      }
       if (!items.length) {
         el.innerHTML = '<p class="sub" style="margin:0;">Sem duplicados detectados com os filtros actuais.</p>';
         return;
@@ -15264,11 +15806,16 @@
 
     function formatKnowledgeImportResult(data) {
       if (data?.action === 'import-source') {
-        if (!data.dryRun && data.source === 'wikidata') {
+        if (!data.dryRun && (data.source === 'wikidata' || data.source === 'rtp' || data.source === 'ciencia-viva')) {
           const imported = Number(data.imported) || 0;
           const rejected = Number(data.rejected) || 0;
           const skipped = Number(data.skipped) || 0;
-          return `Confirmado: ${imported} aceite(s) importado(s), ${rejected} rejeitado(s)${skipped ? `, ${skipped} já no repositório` : ''}. Lista limpa.`;
+          const rpcSkipped = Number(data.rpcSkipped) || 0;
+          if (!imported) {
+            return data.message || `Nenhum facto gravado${rpcSkipped ? ` (${rpcSkipped} ignorado(s) no repositório)` : ''}.`;
+          }
+          const learned = Number(data.learnedSkipped) || 0;
+          return `Confirmado: ${imported} aceite(s) importado(s), ${rejected} rejeitado(s)${skipped ? `, ${skipped} já no repositório` : ''}${rpcSkipped ? `, ${rpcSkipped} identificador(es) já ocupado(s)` : ''}${learned ? `, ${learned} já rejeitado(s) noutros lotes` : ''}. Lista limpa.`;
         }
         const extra = data.dryRun
           ? ''
@@ -15324,9 +15871,18 @@
       };
     }
 
-    function isWikidataSourceSelected() {
+    function selectedImportKind() {
       const sel = document.getElementById('knowledgeSourceSelect');
-      return (sel?.selectedOptions?.[0]?.dataset?.kind || '') === 'wikidata';
+      return (sel?.selectedOptions?.[0]?.dataset?.kind || '') || '';
+    }
+
+    function isBriefingSourceSelected() {
+      const kind = selectedImportKind();
+      return kind === 'wikidata' || kind === 'rtp' || kind === 'ciencia-viva';
+    }
+
+    function isWikidataSourceSelected() {
+      return selectedImportKind() === 'wikidata';
     }
 
     function defaultBriefingContentType(categoryN) {
@@ -15402,6 +15958,71 @@
       if (input) input.value = '';
     }
 
+    function isWikidataWordPack(preset) {
+      return Array.isArray(preset?.words) && preset.words.length >= 2;
+    }
+
+    function isWikidataRandomPreset(preset) {
+      return !!(preset && preset.random);
+    }
+
+    function pickRandomWikidataWords(topic, limit = 4) {
+      const seen = new Set();
+      const pool = [];
+      for (const preset of topic?.presets || []) {
+        if (!Array.isArray(preset.words)) continue;
+        for (const word of preset.words) {
+          const text = String(word || '').trim();
+          const key = text.toLowerCase();
+          if (!text || seen.has(key)) continue;
+          seen.add(key);
+          pool.push(text);
+        }
+      }
+      for (let i = pool.length - 1; i > 0; i -= 1) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      return pool.slice(0, Math.min(4, Math.max(0, Number(limit) || 4), pool.length));
+    }
+
+    function wikidataWordPackIsOn(preset) {
+      const pack = (preset?.words || []).map((word) => String(word || '').toLowerCase());
+      const selected = [...selectedWikidataWords].map((word) => word.toLowerCase());
+      return pack.length > 0
+        && pack.length === selected.length
+        && pack.every((word) => selected.includes(word));
+    }
+
+    function applyWikidataPreset(id) {
+      const topic = currentWikidataTopic();
+      const preset = (topic.presets || []).find((row) => row.id === id);
+      if (!preset) return;
+      const isRandom = isWikidataRandomPreset(preset);
+      const isPack = isWikidataWordPack(preset);
+      const alreadyOn = isRandom
+        ? false
+        : (isPack ? wikidataWordPackIsOn(preset) : selectedWikidataPreset === id);
+      selectedWikidataWords.clear();
+      selectedWikidataSubtopic = '';
+      selectedWikidataFocus = '';
+      selectedWikidataPreset = '';
+      selectedWikidataRandomId = '';
+      clearWikidataWordInput();
+      if (!alreadyOn) {
+        if (isRandom) {
+          pickRandomWikidataWords(topic).forEach((word) => selectedWikidataWords.add(word));
+          selectedWikidataRandomId = id;
+        } else if (isPack) {
+          preset.words.slice(0, 4).forEach((word) => selectedWikidataWords.add(word));
+        } else {
+          selectedWikidataPreset = id;
+        }
+      }
+      renderWikidataWordUi();
+      clearWikidataPreview();
+    }
+
     function renderWikidataWordUi() {
       const topic = currentWikidataTopic();
       const sugEl = document.getElementById('knowledgeWikidataSuggestions');
@@ -15437,9 +16058,13 @@
         }
       }
       if (helpEl) {
-        helpEl.innerHTML = topic.hasTree
+        const base = topic.hasTree
           ? 'Clica num <strong>subtema</strong> e depois num <strong>tópico</strong> — as palavras de pesquisa aparecem a seguir (máx. 4).'
           : 'Clica num <strong>subtema</strong> para ver as sugestões certas, depois escolhe até 4 palavras.';
+        const extra = selectedImportKind() !== 'wikidata'
+          ? ' Na RTP Ensina e na Ciência Viva as palavras são opcionais: sem elas vêm os mais recentes da categoria.'
+          : '';
+        helpEl.innerHTML = base + extra;
       }
       if (input) {
         input.placeholder = (topic.suggestions || []).slice(0, 3).join(', ') || 'Adicionar palavra…';
@@ -15461,15 +16086,29 @@
       }
       if (presetEl) {
         presetEl.innerHTML = presets.map((preset) => {
-          const on = selectedWikidataPreset === preset.id ? ' is-on' : '';
+          const on = isWikidataRandomPreset(preset)
+            ? (selectedWikidataRandomId === preset.id ? ' is-on' : '')
+            : isWikidataWordPack(preset)
+              ? (wikidataWordPackIsOn(preset) ? ' is-on' : '')
+              : (selectedWikidataPreset === preset.id ? ' is-on' : '');
           return `<button type="button" class="knowledge-word-chip is-preset${on}" data-wikidata-preset="${esc(preset.id)}">${esc(preset.label)}</button>`;
         }).join('');
       }
       if (presetLabel) presetLabel.classList.toggle('hidden', !presets.length);
       if (selectedEl) {
+        const activePack = presets.find((row) => isWikidataWordPack(row) && wikidataWordPackIsOn(row));
         if (selectedWikidataPreset) {
           const preset = presets.find((row) => row.id === selectedWikidataPreset);
           selectedEl.textContent = `Atalho: ${preset?.label || selectedWikidataPreset}`;
+        } else if (selectedWikidataRandomId) {
+          const preset = presets.find((row) => row.id === selectedWikidataRandomId);
+          selectedEl.innerHTML = `Atalho: ${esc(preset?.label || 'Aleatório')} (${selectedWikidataWords.size}/4): ${[...selectedWikidataWords].map((word) =>
+            `<button type="button" class="knowledge-word-chip is-on" data-wikidata-word="${esc(word)}">${esc(word)} ×</button>`,
+          ).join('')}`;
+        } else if (activePack) {
+          selectedEl.innerHTML = `Atalho: ${esc(activePack.label)} (${selectedWikidataWords.size}/4): ${[...selectedWikidataWords].map((word) =>
+            `<button type="button" class="knowledge-word-chip is-on" data-wikidata-word="${esc(word)}">${esc(word)} ×</button>`,
+          ).join('')}`;
         } else if (selectedWikidataWords.size) {
           selectedEl.innerHTML = `Seleccionadas (${selectedWikidataWords.size}/4): ${[...selectedWikidataWords].map((word) =>
             `<button type="button" class="knowledge-word-chip is-on" data-wikidata-word="${esc(word)}">${esc(word)} ×</button>`,
@@ -15506,6 +16145,7 @@
       selectedWikidataFocus = '';
       selectedWikidataWords.clear();
       selectedWikidataPreset = '';
+      selectedWikidataRandomId = '';
       clearWikidataWordInput();
       const topic = currentWikidataTopic();
       const sub = topic.subtopic;
@@ -15527,6 +16167,7 @@
       selectedWikidataFocus = next;
       selectedWikidataWords.clear();
       selectedWikidataPreset = '';
+      selectedWikidataRandomId = '';
       clearWikidataWordInput();
       applyWikidataSelectionDefaults(currentWikidataTopic().focus);
       renderWikidataWordUi();
@@ -15536,8 +16177,14 @@
     function toggleWikidataImportPanel() {
       const panel = document.getElementById('knowledgeWikidataPanel');
       if (!panel) return;
-      const show = isWikidataSourceSelected();
+      const show = isBriefingSourceSelected();
+      const kind = selectedImportKind();
       panel.classList.toggle('hidden', !show);
+      const intro = panel.querySelector('.knowledge-briefing > .sub');
+      if (intro) {
+        const label = kind === 'rtp' ? 'RTP Ensina' : (kind === 'ciencia-viva' ? 'Ciência Viva' : 'Wikidata');
+        intro.textContent = `Briefing de curadoria — define o que o colector ${label} deve ir buscar. Não gera perguntas.`;
+      }
       if (show) {
         fillWikidataCategorySelect();
         if (panel.dataset.briefingReady !== '1') {
@@ -15560,6 +16207,10 @@
       let changed = false;
       if (selectedWikidataPreset) {
         selectedWikidataPreset = '';
+        changed = true;
+      }
+      if (selectedWikidataRandomId) {
+        selectedWikidataRandomId = '';
         changed = true;
       }
       for (const word of parts) {
@@ -15594,6 +16245,7 @@
       if (!key) return;
       const existing = [...selectedWikidataWords].find((sel) => sel.toLowerCase() === key.toLowerCase());
       selectedWikidataPreset = '';
+      selectedWikidataRandomId = '';
       clearWikidataWordInput();
       if (existing) {
         selectedWikidataWords.delete(existing);
@@ -15638,6 +16290,60 @@
       }
     }
 
+    function wikidataCandidateById(kid) {
+      const id = String(kid || '').trim();
+      return lastWikidataCandidates.find((row) => String(row.knowledgeId || row.knowledge_id || '') === id) || null;
+    }
+
+    function wikidataRecordFromCandidate(row) {
+      if (!row) return null;
+      return row.record || row;
+    }
+
+    function renderImportRejectionNote(data) {
+      const el = document.getElementById('knowledgeImportRejectionNote');
+      if (!el) return;
+      const n = Number(data?.importRejections?.count) || 0;
+      if (!n) {
+        el.textContent = 'As rejeições passam a ser memorizadas: o mesmo facto (e formulações parecidas da mesma entidade) não volta a aparecer nas próximas listas.';
+        return;
+      }
+      el.textContent = `${n} rejeição(ões) memorizada(s). Simular esconde esses factos e tenta preencher com outros.`;
+    }
+
+    async function persistWikidataRejections(rows) {
+      const records = (rows || []).map(wikidataRecordFromCandidate).filter((row) => {
+        const id = String(row?.knowledge_id || row?.knowledgeId || '').trim();
+        const fact = String(row?.fact || '').trim();
+        return id && fact;
+      });
+      if (!records.length) return { remembered: 0, available: true };
+      const data = await api('/api/knowledge-import-admin', {
+        method: 'POST',
+        body: JSON.stringify({ action: 'remember-import-rejections', records }),
+      });
+      if (data?.available === false) {
+        setWikidataImportStatus(data.message || 'Rejeição só ficou nesta sessão — falta criar a tabela no Supabase.', 'err');
+      } else if (Number(data?.remembered) > 0 && lastKnowledgePayload) {
+        const prev = Number(lastKnowledgePayload.importRejections?.count) || 0;
+        lastKnowledgePayload.importRejections = {
+          ...(lastKnowledgePayload.importRejections || {}),
+          count: prev + Number(data.remembered),
+          available: true,
+        };
+        renderImportRejectionNote(lastKnowledgePayload);
+      } else if (Number(data?.remembered) > 0 && lastKnowledgePayload) {
+        const prev = Number(lastKnowledgePayload.importRejections?.count) || 0;
+        lastKnowledgePayload.importRejections = {
+          ...(lastKnowledgePayload.importRejections || {}),
+          count: prev + Number(data.remembered),
+          available: true,
+        };
+        renderImportRejectionNote(lastKnowledgePayload);
+      }
+      return data;
+    }
+
     function rememberWikidataPreviewIds() {
       rememberWikidataSkippedIds(wikidataPreviewRows().map((row) => row.dataset.kid));
     }
@@ -15645,12 +16351,12 @@
     function syncWikidataConfirmButton() {
       const importBtn = document.getElementById('knowledgeSourceImportBtn');
       const confirmBtn = document.getElementById('knowledgeWikidataConfirmBtn');
-      const ready = isWikidataSourceSelected() && wikidataPreviewIsReady();
-      if (importBtn && isWikidataSourceSelected()) {
+      const ready = isBriefingSourceSelected() && wikidataPreviewIsReady();
+      if (importBtn && isBriefingSourceSelected()) {
         importBtn.textContent = ready ? '✅ Confirmar' : '📥 Importar';
         importBtn.title = ready
           ? 'Confirmar aceites e rejeitados, informar quantos e limpar a lista'
-          : 'Listar ou importar factos Wikidata';
+          : 'Listar ou importar factos da fonte';
       } else if (importBtn) {
         importBtn.textContent = '📥 Importar';
         importBtn.title = 'Importar para o repositório';
@@ -15736,27 +16442,46 @@
     }
 
     async function rejectAllWikidataPreview() {
-      const n = wikidataPreviewRows().length;
+      const rows = wikidataPreviewRows();
+      const n = rows.length;
       if (!n) return;
       const ok = await confirmAction(
-        `Rejeitar ${n} facto(s) e não importar nenhum? A lista será limpa.`,
+        `Rejeitar ${n} facto(s) e não importar nenhum? A lista será limpa e estes factos não voltam a aparecer.`,
         { okLabel: 'Rejeitar', danger: true },
       );
       if (!ok) return;
+      let warning = '';
+      try {
+        const saved = await persistWikidataRejections(rows.map((row) => wikidataCandidateById(row.dataset.kid)));
+        if (saved?.available === false) warning = saved.message || '';
+      } catch (err) {
+        warning = err.message || 'Não foi possível gravar as rejeições. Ficam só nesta sessão.';
+      }
       finishWikidataReject(n);
+      if (warning) setWikidataImportStatus(warning, 'err');
     }
 
-    function rejectWikidataPreviewRow(row) {
+    async function rejectWikidataPreviewRow(row) {
       if (!row || row.classList.contains('is-dup')) return;
-      rememberWikidataSkippedIds([row.dataset.kid]);
+      const kid = row.dataset.kid;
+      rememberWikidataSkippedIds([kid]);
+      let warning = '';
+      try {
+        const saved = await persistWikidataRejections([wikidataCandidateById(kid)]);
+        if (saved?.available === false) warning = saved.message || '';
+      } catch (err) {
+        warning = err.message || 'Não foi possível gravar a rejeição. Fica só nesta sessão.';
+      }
       const remainingBefore = wikidataPreviewRows().length;
       row.remove();
       const left = wikidataPreviewRows().length;
       if (!left) {
         finishWikidataReject(remainingBefore);
+        if (warning) setWikidataImportStatus(warning, 'err');
         return;
       }
       updateWikidataPreviewCount();
+      if (warning) setWikidataImportStatus(warning, 'err');
     }
 
     function renderWikidataPreview(data) {
@@ -15827,7 +16552,8 @@
       const source = sel?.selectedOptions?.[0]?.dataset?.kind || 'curiosidades-batch';
       const dryBtn = document.getElementById('knowledgeSourceDryRunBtn');
       const importBtn = document.getElementById('knowledgeSourceImportBtn');
-      if (source === 'wikidata') {
+      const briefingSource = source === 'wikidata' || source === 'rtp' || source === 'ciencia-viva';
+      if (briefingSource) {
         if (dryRun && wikidataPreviewIsReady()) rememberWikidataPreviewIds();
         if (dryRun || !wikidataPreviewIsReady()) harvestWikidataInput();
         else clearWikidataWordInput();
@@ -15841,30 +16567,37 @@
       }
       let knowledgeIds;
       let records;
-      if (source === 'wikidata' && !dryRun) {
-        const keyChanged = lastWikidataSearchKey !== wikidataSearchKey();
-        if (!lastWikidataCandidates.length || keyChanged) {
+      let rejectedRecords;
+      if (briefingSource && !dryRun) {
+        if (!wikidataPreviewIsReady()) {
           if (statusEl) {
-            statusEl.textContent = 'A listar propostas para validares (adicionar ou rejeitar)…';
-            statusEl.className = 'status';
-          }
-          await runKnowledgeSourceImport({ dryRun: true });
-          if (statusEl && lastWikidataCandidates.length) {
-            statusEl.textContent = 'Aceita ou rejeita cada facto e clica Confirmar. Vês quantos são e a lista limpa.';
-            statusEl.className = 'status';
+            statusEl.textContent = 'A lista expirou. Clica Simular outra vez e depois Confirmar.';
+            statusEl.className = 'status err';
           }
           return;
         }
         knowledgeIds = selectedWikidataCandidateIds();
         const rejected = Math.max(0, wikidataPreviewRows().length - knowledgeIds.length);
         if (!knowledgeIds.length) {
+          try {
+            await persistWikidataRejections(wikidataPreviewRows().map((row) => wikidataCandidateById(row.dataset.kid)));
+          } catch (err) {
+            setWikidataImportStatus(err.message || 'Não foi possível gravar as rejeições. Ficam só nesta sessão.', 'err');
+          }
           finishWikidataReject(rejected);
           return;
         }
         const selected = new Set(knowledgeIds);
         records = lastWikidataCandidates
-          .filter((row) => selected.has(row.knowledgeId) && row.record)
-          .map((row) => row.record);
+          .filter((row) => selected.has(row.knowledgeId) || selected.has(row.knowledge_id))
+          .map((row) => row.record || row);
+        rejectedRecords = lastWikidataCandidates
+          .filter((row) => {
+            if (row.selectable === false || row.status === 'duplicate') return false;
+            const id = row.knowledgeId || row.knowledge_id;
+            return id && !selected.has(id);
+          })
+          .map((row) => row.record || row);
       }
       if (statusEl) {
         statusEl.textContent = dryRun ? 'A listar propostas…' : 'A importar seleccionados…';
@@ -15879,17 +16612,18 @@
           batch,
           dryRun,
         };
-        if (source === 'wikidata') {
+        if (briefingSource) {
           Object.assign(body, wikidataImportPayload());
           if (knowledgeIds) body.knowledgeIds = knowledgeIds;
           if (Array.isArray(records) && records.length) body.records = records;
+          if (Array.isArray(rejectedRecords) && rejectedRecords.length) body.rejectedRecords = rejectedRecords;
           if (dryRun && wikidataSkipIds.size) body.excludeKnowledgeIds = [...wikidataSkipIds];
         }
         const data = await api('/api/knowledge-import-admin', {
           method: 'POST',
           body: JSON.stringify(body),
         });
-        if (source === 'wikidata') {
+        if (briefingSource) {
           if (dryRun) renderWikidataPreview(data);
           else clearWikidataPreview();
         }
@@ -15918,6 +16652,11 @@
       if (knowledgeLoading) return;
       knowledgeLoading = true;
       const statusEl = document.getElementById('knowledgeImportStatus');
+      const refreshBtns = [
+        document.getElementById('knowledgeRefreshBtn'),
+        document.getElementById('knowledgeImportRefreshBtn'),
+      ].filter(Boolean);
+      refreshBtns.forEach((btn) => { btn.disabled = true; });
       if (!quiet && statusEl) {
         statusEl.textContent = 'A carregar…';
         statusEl.className = 'status';
@@ -15937,6 +16676,7 @@
         renderKnowledgeDiagnostics(data);
         renderKnowledgeQueuePreview(data);
         renderKnowledgeImportSources(data);
+        renderImportRejectionNote(data);
         const updatedEl = document.getElementById('knowledgeLastUpdated');
         if (updatedEl) updatedEl.textContent = `Actualizado às ${formatPortugalDateTime(new Date())}`;
         if (!quiet && statusEl) statusEl.textContent = '';
@@ -15948,6 +16688,7 @@
         if (String(err.message || '').includes('incorretos')) logout();
       } finally {
         knowledgeLoading = false;
+        refreshBtns.forEach((btn) => { btn.disabled = false; });
       }
     }
 
@@ -16925,7 +17666,24 @@
       await deleteBankQuestions([hash], { block, clearLocal });
     });
     document.getElementById('knowledgeRefreshBtn')?.addEventListener('click', () => loadKnowledgeDashboard());
+    document.getElementById('knowledgeImportRefreshBtn')?.addEventListener('click', () => loadKnowledgeDashboard());
+    document.getElementById('knowledgeImportTimelineFilters')?.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-knowledge-import-range]');
+      if (!btn || !KNOWLEDGE_IMPORT_TIMELINE_RANGES[btn.dataset.knowledgeImportRange]) return;
+      knowledgeImportTimelineRange = btn.dataset.knowledgeImportRange;
+      try { localStorage.setItem(KNOWLEDGE_IMPORT_TIMELINE_STORAGE_KEY, knowledgeImportTimelineRange); } catch { /* ignore */ }
+      if (lastKnowledgePayload) renderKnowledgeImportTimeline(getKnowledgeInventoryStats(lastKnowledgePayload));
+    });
     document.getElementById('knowledgeInventorySection')?.addEventListener('click', (e) => {
+      if (e.target.closest('[data-knowledge-import-range]')) return;
+      const rangeEl = e.target.closest('[data-knowledge-from]');
+      if (rangeEl) {
+        filterKnowledgeInventory('', '', '', {
+          from: rangeEl.dataset.knowledgeFrom,
+          to: rangeEl.dataset.knowledgeTo,
+        });
+        return;
+      }
       const dayEl = e.target.closest('[data-knowledge-day]');
       if (dayEl) {
         filterKnowledgeInventory('', '', dayEl.dataset.knowledgeDay);
@@ -16944,6 +17702,7 @@
     document.getElementById('knowledgeWikidataCategory')?.addEventListener('change', () => {
       selectedWikidataWords.clear();
       selectedWikidataPreset = '';
+      selectedWikidataRandomId = '';
       selectedWikidataSubtopic = '';
       selectedWikidataFocus = '';
       clearWikidataWordInput();
@@ -16988,14 +17747,7 @@
     document.getElementById('knowledgeWikidataPresets')?.addEventListener('click', (e) => {
       const btn = e.target.closest('[data-wikidata-preset]');
       if (!btn) return;
-      const id = btn.dataset.wikidataPreset;
-      selectedWikidataWords.clear();
-      selectedWikidataSubtopic = '';
-      selectedWikidataFocus = '';
-      selectedWikidataPreset = selectedWikidataPreset === id ? '' : id;
-      clearWikidataWordInput();
-      renderWikidataWordUi();
-      clearWikidataPreview();
+      applyWikidataPreset(btn.dataset.wikidataPreset);
     });
     document.getElementById('knowledgeSourceDryRunBtn')?.addEventListener('click', () => runKnowledgeSourceImport({ dryRun: true }));
     document.getElementById('knowledgeWikidataSelectAllBtn')?.addEventListener('click', () => setWikidataPreviewChecks(true));
@@ -17012,22 +17764,22 @@
       updateWikidataPreviewCount();
     });
     async function confirmWikidataDecisionsOrImport() {
-      const wikidata = isWikidataSourceSelected();
-      const selectedIds = wikidata ? selectedWikidataCandidateIds() : [];
-      const selectable = wikidata ? wikidataPreviewRows().length : 0;
+      const briefing = isBriefingSourceSelected();
+      const selectedIds = briefing ? selectedWikidataCandidateIds() : [];
+      const selectable = briefing ? wikidataPreviewRows().length : 0;
       const rejected = Math.max(0, selectable - selectedIds.length);
-      if (wikidata && wikidataPreviewIsReady()) {
+      if (briefing && wikidataPreviewIsReady()) {
         const ok = await confirmAction(
           selectedIds.length
-            ? `Importar ${selectedIds.length} aceite(s) e rejeitar ${rejected}? A lista será limpa.`
-            : `Rejeitar ${rejected} facto(s) e não importar nenhum? A lista será limpa.`,
+            ? `Importar ${selectedIds.length} aceite(s) e rejeitar ${rejected}? Os rejeitados não voltam a aparecer.`
+            : `Rejeitar ${rejected} facto(s) e não importar nenhum? Não voltam a aparecer.`,
           { okLabel: selectedIds.length ? 'Importar' : 'Confirmar' },
         );
         if (!ok) return;
         await runKnowledgeSourceImport({ dryRun: false });
         return;
       }
-      const detail = wikidata
+      const detail = briefing
         ? (selectedWikidataPreset
           ? `atalho ${selectedWikidataPreset}`
           : `cat. ${currentWikidataCategoryN()} · ${[...selectedWikidataWords].join(', ') || 'sem palavras'}`)

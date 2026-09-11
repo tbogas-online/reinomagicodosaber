@@ -20,8 +20,8 @@ const FORMATS = [
   'CURIOSIDADE',
   'ADIVINHA',
 ];
-const LIMITS = [5, 10, 20];
-const MAX_LIMIT = 20;
+const LIMITS = [10, 50];
+const MAX_LIMIT = 50;
 
 const COLLECTORS = [
   {
@@ -36,8 +36,8 @@ const COLLECTORS = [
     usesBriefing: true,
     label: 'Wikidata',
   },
-  { id: 'rtp', status: 'unavailable', usesBriefing: true, label: 'RTP / RTP Ensina' },
-  { id: 'ciencia-viva', status: 'unavailable', usesBriefing: true, label: 'Ciência Viva' },
+  { id: 'rtp', status: 'active', usesBriefing: true, label: 'RTP / RTP Ensina' },
+  { id: 'ciencia-viva', status: 'active', usesBriefing: true, label: 'Ciência Viva' },
   { id: 'bnp', status: 'unavailable', usesBriefing: true, label: 'Biblioteca Nacional' },
   { id: 'arquivo-pt', status: 'unavailable', usesBriefing: true, label: 'Arquivo.pt' },
 ];
@@ -54,7 +54,7 @@ function getCollector(source) {
 function requireCollector(source) {
   const collector = getCollector(source);
   if (!collector) {
-    const err = new Error('Fonte de importação desconhecida. Usa «curiosidades-batch» ou «wikidata».');
+    const err = new Error('Fonte de importação desconhecida. Usa «curiosidades-batch», «wikidata», «rtp» ou «ciencia-viva».');
     err.code = 'INVALID_SOURCE';
     throw err;
   }
@@ -98,7 +98,7 @@ function clampLimit(value) {
   const n = Number(value);
   if (!Number.isFinite(n)) return 10;
   if (LIMITS.includes(n)) return n;
-  return Math.min(MAX_LIMIT, Math.max(5, Math.round(n / 5) * 5));
+  return n >= 30 ? 50 : 10;
 }
 
 function parseBriefing(input = {}) {

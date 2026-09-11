@@ -9,10 +9,13 @@ const {
   collectKeywordRecords,
   sanitizeWords,
   applyKnowledgeIdFilter,
+  coerceImportRecords,
   buildImportCandidates,
   normalizeKnowledgeIds,
 } = require('./wikidata-keyword-search');
-const { applyBriefingToRecords } = require('./knowledge-import-briefing');
+const { applyBriefingToRecords, MAX_LIMIT } = require('./knowledge-import-briefing');
+const { filterRejectedRecords } = require('./knowledge-import-rejections');
+const { loadImportRejections, rememberImportRejections } = require('./knowledge-import-rejection-store');
 const { buildCuriosityBankItems } = require('./curiosidade-question-from-fact');
 const { importQuestionBatch } = require('../../netlify/functions/lib/bank-from-knowledge');
 const { enrichRecordsWithRest } = require('./wikidata-rest');
@@ -58,8 +61,10 @@ async function persistWikidataRecords(cfg, raw, {
   materializeQuestions = true,
   enrichWithRest = false,
   labels = 'Wikidata',
+  collectorId = 'wikidata',
   knowledgeIds,
   excludeKnowledgeIds,
+  rejectedRecords,
   briefing = null,
 } = {}) {
   const stamped = applyBriefingToRecords(raw, briefing);
@@ -68,7 +73,7 @@ async function persistWikidataRecords(cfg, raw, {
     .map((record) => ({ knowledgeId: record.knowledge_id, missing: validateRecord(record) }))
     .filter((row) => row.missing.length);
   if (invalid.length) {
-    const err = new Error(`${invalid.length} registo(s) Wikidata inválido(s).`);
+    const err = new Error(`${invalid.length} registo(s) ${labels} inválido(s).`);
     err.code = 'INVALID_RECORD';
     err.details = invalid.slice(0, 5);
     throw err;
@@ -83,8 +88,18 @@ async function persistWikidataRecords(cfg, raw, {
   const filtered = filterNewRecords(records, existing);
   let accepted = filtered.accepted;
   const skipped = filtered.skipped;
+  const storedRejections = await loadImportRejections(cfg);
+  const learned = filterRejectedRecords(accepted, storedRejections);
+  accepted = learned.kept;
+  const learnedSkipped = learned.rejected.length;
   const candidates = buildImportCandidates(accepted, skipped, briefing?.limit, excludeKnowledgeIds);
   const selectedIds = Array.isArray(knowledgeIds) ? normalizeKnowledgeIds(knowledgeIds) : null;
+  const toRemember = Array.isArray(rejectedRecords) ? rejectedRecords : [];
+  let remembered = 0;
+  if (!dryRun && toRemember.length) {
+    const saved = await rememberImportRejections(cfg, toRemember);
+    remembered = Number(saved?.remembered) || 0;
+  }
 
   if (!dryRun && selectedIds) {
     if (!selectedIds.length) {
@@ -98,20 +113,20 @@ async function persistWikidataRecords(cfg, raw, {
 
   const curiosityRecords = accepted.filter((row) => Number(row.category_n) === 20);
   const plannedQuestions = buildCuriosityBankItems(curiosityRecords, { source: 'wikidata-template' });
-  const rejectedByUser = selectedIds
-    ? Math.max(0, filtered.accepted.length - accepted.length)
-    : 0;
+  const rejectedByUser = Math.max(remembered, toRemember.length);
 
   const summary = {
     ok: true,
     action: 'import-source',
-    source: 'wikidata',
+    source: collectorId,
     batch: 'pt',
     labels,
     dryRun: !!dryRun,
     total: records.length,
     newCount: filtered.accepted.length,
     skipped: skipped.length,
+    learnedSkipped,
+    remembered,
     rejected: rejectedByUser,
     imported: 0,
     questionsPrepared: plannedQuestions.items.length,
@@ -130,20 +145,24 @@ async function persistWikidataRecords(cfg, raw, {
   };
 
   if (!records.length) {
-    summary.message = 'Wikidata não devolveu factos desta categoria (rótulos PT). Tenta outras palavras ou outra categoria.';
+    summary.message = `${labels} não devolveu factos desta categoria. Tenta outras palavras ou outra categoria.`;
     return summary;
   }
 
   if (dryRun) {
     const selectable = candidates.filter((row) => row.selectable).length;
-    if (!selectable && skipped.length) {
-      summary.message = `Nenhum facto novo para validar — ${skipped.length} já estão no repositório (ocultos).`;
+    if (!selectable && (skipped.length || learnedSkipped)) {
+      const parts = [];
+      if (skipped.length) parts.push(`${skipped.length} já no repositório`);
+      if (learnedSkipped) parts.push(`${learnedSkipped} já rejeitado(s)`);
+      summary.message = `Nenhum facto novo para validar — ${parts.join(', ')} (ocultos).`;
     } else {
       const hidden = skipped.length ? ` ${skipped.length} já no repositório (ocultos).` : '';
-      const skippedSeen = normalizeKnowledgeIds(excludeKnowledgeIds).length
+      const learnedNote = learnedSkipped ? ` ${learnedSkipped} já rejeitado(s) (ocultos).` : '';
+      const skippedSeen = (normalizeKnowledgeIds(excludeKnowledgeIds).length || learnedSkipped)
         ? ' Simular outra vez mostra os seguintes, não os mesmos.'
         : '';
-      summary.message = `Lista Wikidata (até ${briefing?.limit || 10}): ${selectable} novo(s) para validar.${hidden}${skippedSeen} Aceita ou rejeita e confirma: a lista limpa e só entram os aceites.`;
+      summary.message = `Lista ${labels} (até ${briefing?.limit || 10}): ${selectable} novo(s) para validar.${hidden}${learnedNote}${skippedSeen} Aceita ou rejeita e confirma: a lista limpa e só entram os aceites.`;
     }
     return summary;
   }
@@ -151,7 +170,7 @@ async function persistWikidataRecords(cfg, raw, {
   if (!accepted.length) {
     summary.message = selectedIds
       ? 'Nenhum dos factos seleccionados pode ser importado (já existem ou a pesquisa mudou).'
-      : 'Nada a importar (Wikidata) — todos os factos obtidos já estão no repositório.';
+      : `Nada a importar (${labels}) — todos os factos obtidos já estão no repositório.`;
     return summary;
   }
 
@@ -162,11 +181,21 @@ async function persistWikidataRecords(cfg, raw, {
   }
 
   const result = await importBatch(cfg.url, cfg.key, toImport);
-  summary.imported = toImport.length;
   summary.result = result;
+  summary.imported = Number(result?.upserted) || 0;
+  summary.rpcSkipped = Number(result?.skipped) || 0;
+
+  if (!summary.imported) {
+    summary.message = summary.rpcSkipped
+      ? `Nenhum facto novo gravado (${summary.rpcSkipped} ignorado(s) — já existe um facto ${labels} com o mesmo identificador).`
+      : 'Nenhum facto foi gravado no repositório.';
+    return summary;
+  }
 
   if (!materializeQuestions || !curiosityRecords.length) {
-    summary.message = `Importados ${accepted.length} facto(s) Wikidata (${skipped.length} duplicado(s)${rejectedByUser ? `, ${rejectedByUser} rejeitado(s)` : ''}). No jogo, o template ou a IA formula a pergunta e grava no banco.`;
+    const skippedNote = skipped.length ? `, ${skipped.length} duplicado(s)` : '';
+    const rpcNote = summary.rpcSkipped ? `, ${summary.rpcSkipped} já existia(m)` : '';
+    summary.message = `Importados ${summary.imported} facto(s) ${labels}${skippedNote}${rpcNote}${rejectedByUser ? `, ${rejectedByUser} rejeitado(s)` : ''}. No jogo, o template ou a IA formula a pergunta e grava no banco.`;
     return summary;
   }
 
@@ -176,10 +205,10 @@ async function persistWikidataRecords(cfg, raw, {
     summary.questionsExists = questions.exists;
     summary.questionsBankSkipped = questions.batchSkipped;
     summary.questionResult = questions;
-    summary.message = `Importados ${accepted.length} facto(s) Wikidata e ${questions.inserted} pergunta(s) no banco (${skipped.length} duplicado(s)${rejectedByUser ? `, ${rejectedByUser} rejeitado(s)` : ''}).`;
+    summary.message = `Importados ${summary.imported} facto(s) ${labels} e ${questions.inserted} pergunta(s) no banco (${skipped.length} duplicado(s)${rejectedByUser ? `, ${rejectedByUser} rejeitado(s)` : ''}).`;
   } catch (err) {
     summary.questionError = err.message || String(err);
-    summary.message = `Importados ${accepted.length} facto(s) Wikidata, mas a materialização no banco falhou: ${summary.questionError}`;
+    summary.message = `Importados ${summary.imported} facto(s) ${labels}, mas a materialização no banco falhou: ${summary.questionError}`;
   }
   return summary;
 }
@@ -247,6 +276,7 @@ async function importWikidataFromOptions(cfg, {
   knowledgeIds,
   records,
   excludeKnowledgeIds,
+  rejectedRecords,
   briefing = null,
   materializeQuestions = false,
   enrichWithRest = false,
@@ -260,7 +290,10 @@ async function importWikidataFromOptions(cfg, {
   const presetId = String(preset || '').trim();
   const cleanWords = sanitizeWords(words);
   const labels = labelsForWikidataPreset(presetId, categoryN, cleanWords);
-  const fromPreview = applyKnowledgeIdFilter(Array.isArray(records) ? records : [], knowledgeIds).records;
+  const fromPreview = applyKnowledgeIdFilter(
+    coerceImportRecords(Array.isArray(records) ? records : []),
+    knowledgeIds,
+  ).records;
   let raw;
 
   try {
@@ -278,7 +311,7 @@ async function importWikidataFromOptions(cfg, {
         categoryN: n,
         words: cleanWords,
         fetchFn,
-        limit: briefing?.limit,
+        limit: MAX_LIMIT,
       });
     }
   } catch (err) {
@@ -294,6 +327,7 @@ async function importWikidataFromOptions(cfg, {
     labels,
     knowledgeIds,
     excludeKnowledgeIds,
+    rejectedRecords,
     briefing,
   });
 }
@@ -301,6 +335,7 @@ async function importWikidataFromOptions(cfg, {
 module.exports = {
   importWikidataCuriosidades,
   importWikidataFromOptions,
+  persistWikidataRecords,
   listWikidataImportSources,
   materializeCuriosityQuestions,
 };
