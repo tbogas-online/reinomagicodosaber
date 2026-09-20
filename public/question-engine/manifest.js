@@ -20,6 +20,7 @@
     'question-engine/content-safety.js',
     'question-engine/adivinha-distractors.js',
     'question-engine/difficulty-estimate.js',
+    'question-engine/pt-pt-place-names.js',
     'question-engine/pt-pt-validators.js',
     'question-engine/format-validators.js',
     'question-engine/mc-validators.js',

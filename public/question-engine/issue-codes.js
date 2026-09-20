@@ -54,7 +54,7 @@
     ADIVINHA_CLUE_LEAKS_ANSWER: 'Uma pista não pode revelar ou repetir a resposta.',
     ADIVINHA_SEMANTIC_REJECT: 'As pistas não conduzem de forma única à resposta indicada.',
     ADIVINHA_MC_BAD_DISTRACTORS: 'Distratores de adivinha devem ser palavras ou objectos plausíveis — não números nem factos científicos.',
-    PT_COUNTRY_NAME: 'Usa nomes de países em português de Portugal.',
+    PT_COUNTRY_NAME: 'Usa nomes de países e cidades em português de Portugal (ex.: Bagdade, não Bagdá).',
     PT_INVALID_SCRIPT: 'Usa apenas caracteres latinos portugueses — sem chinês, japonês ou outros alfabetos.',
     PT_MIXED_WORD: 'Evita palavras com letras misturadas de outro idioma.',
     PT_OFFENSIVE_LANGUAGE: 'Reformula a frase inteira com vocabulário adequado a crianças — preserva o conhecimento testado.',

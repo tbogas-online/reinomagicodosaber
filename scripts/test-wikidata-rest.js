@@ -37,6 +37,10 @@ const restItem = {
   },
 };
 assert('REST pickLabel PT', pickLabel(restItem) === 'Portugal');
+assert(
+  'REST pickLabel prefere pt-pt',
+  pickLabel({ labels: { pt: 'Bagdá', 'pt-pt': 'Bagdade', en: 'Baghdad' } }) === 'Bagdade',
+);
 assert('REST pickDescription PT', pickDescription(restItem) === 'país da Europa Ocidental');
 assert('REST statement P36', statementContents(restItem, 'P36').join() === 'Q597');
 assert('REST statement quantidade', statementContents(restItem, 'P2109').join() === '3');
@@ -81,7 +85,7 @@ const capitals = transformCountryCapitalBindings([
   },
 ]);
 assert('geografia aceita Portugal/Lisboa', capitals.length === 1 && capitals[0].answer === 'Lisboa');
-assert('geografia source Q-id do país', capitals[0].source_id === 'Q45' && capitals[0].category_n === 2);
+assert('geografia source Q-id do país', capitals[0].source_id === 'Q45:capital:Q597' && capitals[0].category_n === 2);
 assert('geografia id estável com Q-id da capital', capitals[0].knowledge_id === 'knw-cat2-geo-wd-q45-capital-q597');
 assert('geografia válido', validateRecord(capitals[0]).length === 0, validateRecord(capitals[0]).join(','));
 assert(
@@ -91,6 +95,23 @@ assert(
     && String(getQueryById('countryCapitals')?.sparql || '').includes('ORDER BY'),
 );
 assert('atalho capitais exclui países dissolvidos', String(getQueryById('countryCapitals')?.sparql || '').includes('P576') && String(getQueryById('countryCapitals')?.sparql || '').includes('Q3624078'));
+assert(
+  'SPARQL prefere rótulos pt-pt',
+  String(getQueryById('countryCapitals')?.sparql || '').includes('pt-pt,pt,en'),
+);
+
+const iraqCapital = transformCountryCapitalBindings([
+  {
+    country: { value: 'http://www.wikidata.org/entity/Q796' },
+    countryLabel: { value: 'Iraque' },
+    capital: { value: 'http://www.wikidata.org/entity/Q1530' },
+    capitalLabel: { value: 'Bagdá' },
+  },
+]);
+assert(
+  'capital Bagdá normaliza para Bagdade',
+  iraqCapital[0]?.answer === 'Bagdade' && /Bagdade/.test(iraqCapital[0]?.fact || '') && !/Bagdá/.test(iraqCapital[0]?.fact || ''),
+);
 
 const waldeck = transformCountryCapitalBindings([
   {
@@ -158,6 +179,12 @@ assert(
   'id de Pretória não muda se o lote vier só com uma capital',
   pretoriaAlone[0]?.knowledge_id === 'knw-cat2-geo-wd-q258-capital-q3926'
     && pretoriaAlone[0]?.knowledge_id === pretoriaWithPeer.find((row) => row.answer === 'Pretória')?.knowledge_id,
+);
+assert(
+  'source_id distingue duas capitais do mesmo país',
+  pretoriaWithPeer.length === 2
+    && pretoriaWithPeer[0].source_id !== pretoriaWithPeer[1].source_id
+    && pretoriaWithPeer.every((row) => row.source_id.startsWith('Q258:capital:')),
 );
 
 console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);

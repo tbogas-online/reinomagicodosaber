@@ -7,6 +7,7 @@
 const { getCategoryQueries } = require('./wikidata-category-queries');
 const { fetchSparql, bindValue, qidFromUri, isUsableLabel } = require('./wikidata-sparql');
 const { resolveCapitalKind, formatCountryHasCapital, isCurrentCountryName } = require('./wikidata-keyword-search');
+const { normalizePtPtText } = require('./pt-pt-normalize');
 
 const SOURCE = 'Wikidata';
 const LICENSE = 'CC0';
@@ -15,21 +16,23 @@ const TOPIC = 'capital';
 function toCapitalRecord(countryQid, countryLabel, capitalQid, capitalLabel, { kind, multi } = {}) {
   const capitalBit = String(capitalQid || '').toLowerCase();
   const kindBit = kind?.suffix ? `-${kind.suffix}` : '';
+  const country = normalizePtPtText(countryLabel);
+  const capital = normalizePtPtText(capitalLabel);
   return {
     knowledge_id: `knw-cat2-geo-wd-${countryQid.toLowerCase()}-capital-${capitalBit}${kindBit}`,
     category_n: 2,
     topic: TOPIC,
     subtopic: 'capital',
-    fact: formatCountryHasCapital(countryLabel, capitalLabel, { kind, multi }),
-    answer: capitalLabel,
-    statement: `${formatCountryHasCapital(countryLabel, capitalLabel, { kind, multi })} Verdadeiro ou Falso?`,
+    fact: formatCountryHasCapital(country, capital, { kind, multi }),
+    answer: capital,
+    statement: `${formatCountryHasCapital(country, capital, { kind, multi })} Verdadeiro ou Falso?`,
     is_true: true,
     source: SOURCE,
-    source_id: countryQid,
+    source_id: `${countryQid}:capital:${capitalQid}`,
     source_url: `https://www.wikidata.org/wiki/${countryQid}`,
     license: LICENSE,
     confidence: 0.94,
-    priority_pt: countryLabel.toLowerCase().includes('portugal') ? 90 : 55,
+    priority_pt: country.toLowerCase().includes('portugal') ? 90 : 55,
     age_bands: ['6-9', '10-15', '15+'],
     allowed_formats: ['RESPOSTA_DIRETA', 'ESCOLHA_MULTIPLA', 'ONDE_FICA', 'VERDADEIRO_FALSO'],
     tags: ['wikidata', 'geografia', 'capital'],

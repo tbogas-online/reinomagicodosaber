@@ -117,9 +117,21 @@ assert('clueLeaksAnswer ignora seguro', !clueLeaksAnswer(['tem dentes mas não m
 }
 
 {
-  const { normalizePtPtText } = require('./lib/pt-pt-normalize');
+  const { normalizePtPtText, normalizePtPtRecord } = require('./lib/pt-pt-normalize');
   assert('PT-PT nao', normalizePtPtText('Nao morde') === 'Não morde');
   assert('PT-PT aviao', normalizePtPtText('um aviao') === 'um avião');
+  assert('PT-PT Bagdá → Bagdade', normalizePtPtText('Bagdá') === 'Bagdade');
+  assert('PT-PT Bagdad → Bagdade', normalizePtPtText('Bagdad') === 'Bagdade');
+  assert('PT-PT Baguedade → Bagdade', normalizePtPtText('Baguedade') === 'Bagdade');
+  assert('PT-PT Bagdade inalterado', normalizePtPtText('Bagdade') === 'Bagdade');
+  const bagdadFact = normalizePtPtRecord({
+    fact: 'A capital do Iraque é Bagdá.',
+    answer: 'Bagdá',
+    statement: 'A capital do Iraque é Bagdá. Verdadeiro ou Falso?',
+  });
+  assert('PT-PT facto Bagdá', bagdadFact.fact === 'A capital do Iraque é Bagdade.');
+  assert('PT-PT resposta Bagdá', bagdadFact.answer === 'Bagdade');
+  assert('PT-PT statement Bagdá', bagdadFact.statement === 'A capital do Iraque é Bagdade. Verdadeiro ou Falso?');
 }
 
 {

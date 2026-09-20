@@ -1497,6 +1497,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const PB = sandbox.globalThis.QuestionEnginePromptBuilder;
   const globalRules = PB.buildGlobalRules();
   assert('140. prompt-builder global rules', globalRules.includes('REGRAS GLOBAIS') && globalRules.includes('PT-PT'));
+  assert('140c. prompt-builder topónimos PT-PT', globalRules.includes('Bagdade') && globalRules.includes('MESMA grafia'));
   const fmtRules = PB.buildFormatRules('QUEM_E', { ageBandKey: '10-15', isMC: false, isTrueFalse: false });
   assert('140b. prompt-builder format rules', fmtRules.includes('QUEM_E'));
   const cat = QE.CATEGORIES[2];
@@ -1619,6 +1620,17 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('152. repository answer mismatch', !badRepo.ok && badRepo.issues.some((i) => /repositório/i.test(i)));
 }
 
+{
+  const geo = {
+    knowledgeId: 'knw-geo-sucre',
+    answer: 'Sucre',
+    isTrue: true,
+    fact: 'A capital constitucional da Bolívia é Sucre.',
+  };
+  assert('152b. geo MC usa a capital', QE.getRepositoryExpectedAnswer(geo, 'ESCOLHA_MULTIPLA') === 'Sucre');
+  assert('152c. geo V/F usa Verdadeiro', QE.getRepositoryExpectedAnswer(geo, 'VERDADEIRO_FALSO') === 'Verdadeiro');
+}
+
 // 153–154. CURIOSIDADE — só Verdadeiro/Falso
 {
   const ostra = {
@@ -1669,8 +1681,8 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 
 // 156–158. KR-2 — curiosidades a partir do repositório
 {
-  assert('156. getRepositoryExpectedAnswer isTrue', QE.getRepositoryExpectedAnswer({ isTrue: true, answer: 'X' }) === 'Verdadeiro');
-  assert('157. getRepositoryExpectedAnswer isFalse', QE.getRepositoryExpectedAnswer({ isTrue: false, answer: 'X' }) === 'Falso');
+  assert('156. getRepositoryExpectedAnswer isTrue', QE.getRepositoryExpectedAnswer({ isTrue: true, answer: 'X' }, 'CURIOSIDADE') === 'Verdadeiro');
+  assert('157. getRepositoryExpectedAnswer isFalse', QE.getRepositoryExpectedAnswer({ isTrue: false, answer: 'X' }, 'VERDADEIRO_FALSO') === 'Falso');
   const curRecord = {
     knowledgeId: 'knw-cur-test',
     fact: 'Um polvo tem três corações e sangue azul.',
@@ -2392,6 +2404,61 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     restLisbon,
   );
   assert('263. input verificado para a IA', verified.qid === 'Q45' && verified.label === 'Lisboa' && /NÃO inventes/.test(verified.instruction));
+
+  const bagdadRejected = QE.validateQuestion(
+    { q: 'Qual é a capital do Iraque?', a: 'Bagdá' },
+    baseCtx({ categoryNumber: 2 }),
+  );
+  assert(
+    '264. Bagdá rejeitado',
+    !bagdadRejected.ok && bagdadRejected.issueDetails?.some((i) => i.code === 'PT_COUNTRY_NAME'),
+    bagdadRejected.issues?.join(', '),
+  );
+  const bagdadeOk = QE.validateQuestion(
+    { q: 'Qual é a capital do Iraque?', a: 'Bagdade' },
+    baseCtx({ categoryNumber: 2 }),
+  );
+  assert('265. Bagdade aceite', bagdadeOk.ok, bagdadeOk.issues?.join(', '));
+  const mismatch = sandbox.globalThis.QuestionEnginePtPt.collectPtPtIssues(
+    'Bagdá é a capital de que país?',
+    'Bagdade',
+    [],
+    '10-15',
+  );
+  assert(
+    '266. grafias diferentes na pergunta e na resposta',
+    mismatch.some((i) => i.code === 'PT_COUNTRY_NAME'),
+    mismatch.map((i) => i.message).join(', '),
+  );
+  assert(
+    '267. repositório Bagdá pede Bagdade',
+    QE.getRepositoryExpectedAnswer({ answer: 'Bagdá' }, 'RESPOSTA_DIRETA') === 'Bagdade',
+  );
+  const bagdadPrompt = QE.buildPromptFromFact({
+    fact: 'A capital do Iraque é Bagdá.',
+    answer: 'Bagdá',
+    source: 'Wikidata',
+    sourceId: 'Q796',
+  }, {
+    category: QE.CATEGORIES[2],
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: QE.FORMAT_IDS.RESPOSTA_DIRETA,
+    ptPtRules: '',
+    isMC: false,
+    isTrueFalse: false,
+    jsonFormat: '{"q":"","a":""}',
+  });
+  assert(
+    '268. prompt canoniza Bagdá',
+    bagdadPrompt.includes('A capital do Iraque é Bagdade.')
+      && bagdadPrompt.includes('campo "a": Bagdade'),
+  );
+  const wdBagdad = QE.evaluateWikidataSupport(
+    { answer: 'Bagdade' },
+    { id: 'Q1530', labels: { pt: 'Bagdá', en: 'Baghdad' }, descriptions: { pt: 'capital do Iraque' } },
+  );
+  assert('269. Wikidata Bagdá confirma Bagdade', wdBagdad.ok === true && wdBagdad.matched === true);
   console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
   process.exit(failed > 0 ? 1 : 0);
 })().catch((err) => {

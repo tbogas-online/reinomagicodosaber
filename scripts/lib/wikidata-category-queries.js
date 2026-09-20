@@ -8,6 +8,8 @@
  * não número de corações. A Wikidata não tem propriedade de «nº de corações».
  */
 
+const { LABEL_LANGUAGES } = require('./wikidata-sparql');
+
 const CATEGORY_QUERIES = {
   20: [
     {
@@ -19,7 +21,7 @@ const CATEGORY_QUERIES = {
       sparql: `SELECT ?item ?itemLabel WHERE {
   ?item wdt:P1435 wd:Q9259.
   ?item wdt:P17 wd:Q45.
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "${LABEL_LANGUAGES}". }
 }
 LIMIT 40`,
     },
@@ -32,7 +34,7 @@ LIMIT 40`,
       sparql: `SELECT ?item ?itemLabel WHERE {
   ?item wdt:P3259 ?status.
   ?item wdt:P17 wd:Q45.
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "${LABEL_LANGUAGES}". }
 }
 LIMIT 20`,
     },
@@ -42,14 +44,14 @@ LIMIT 20`,
       id: 'countryCapitals',
       categoryN: 2,
       api: 'sparql',
-      label: 'Capitais de países (rótulo PT)',
+      label: 'Países e capitais (rótulo PT-PT)',
       rest: { fields: ['labels', 'descriptions', 'statements'], confirmProperties: ['P36'] },
       sparql: `SELECT DISTINCT ?country ?countryLabel ?capital ?capitalLabel WHERE {
   ?country wdt:P31 wd:Q3624078.
   FILTER NOT EXISTS { ?country wdt:P31 wd:Q3024240. }
   FILTER NOT EXISTS { ?country wdt:P576 ?dissolved. }
   ?country wdt:P36 ?capital.
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "pt,en". }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "${LABEL_LANGUAGES}". }
 }
 ORDER BY ?countryLabel ?capitalLabel
 LIMIT 250`,

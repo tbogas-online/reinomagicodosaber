@@ -144,18 +144,22 @@ async function supabaseRequest(path, options = {}) {
 
 const BANK_SELECT_CORE = 'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at';
 const BANK_SELECT_BASE = `${BANK_SELECT_CORE},difficulty,difficulty_by_age_band`;
-const BANK_SELECT_FULL = `${BANK_SELECT_BASE},category_ns,age_bands,knowledge_id`;
+const BANK_SELECT_FULL = `${BANK_SELECT_BASE},category_ns,age_bands,knowledge_id,source_id`;
 
 let bankTaxonomyColumnsAvailable = null;
 let bankDifficultyColumnAvailable = null;
 let bankDifficultyByAgeColumnAvailable = null;
+let bankSourceIdColumnAvailable = null;
 
 async function queryBankRows(buildParams) {
   const buildSelect = (useTaxonomy, useDifficulty, useDifficultyByAge) => {
     let select = BANK_SELECT_CORE;
     if (useDifficulty) select += ',difficulty';
     if (useDifficultyByAge) select += ',difficulty_by_age_band';
-    if (useTaxonomy) select += ',category_ns,age_bands,knowledge_id';
+    if (useTaxonomy) {
+      select += ',category_ns,age_bands,knowledge_id';
+      if (bankSourceIdColumnAvailable !== false) select += ',source_id';
+    }
     return select;
   };
 
@@ -179,6 +183,10 @@ async function queryBankRows(buildParams) {
         return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: true };
       } catch (err) {
         const msg = String(err?.message || err);
+        if (bankSourceIdColumnAvailable !== false && msg.includes('source_id')) {
+          bankSourceIdColumnAvailable = false;
+          return tryQuery();
+        }
         if (bankDifficultyByAgeColumnAvailable !== false
           && (msg.includes('difficulty_by_age_band') || msg.includes('42703'))) {
           bankDifficultyByAgeColumnAvailable = false;

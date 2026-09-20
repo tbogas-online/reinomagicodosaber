@@ -10,7 +10,7 @@
   const WIKIDATA_REST = 'https://www.wikidata.org/w/rest.php/wikibase/v1';
   const DEFAULT_TIMEOUT_MS = 4000;
   const USER_AGENT = 'ReinoMagicoDoSaber/1.0 (knowledge-verify; educational quiz)';
-  const PT_LANGS = ['pt', 'pt-pt', 'pt-br', 'en'];
+  const PT_LANGS = ['pt-pt', 'pt', 'pt-br', 'en'];
 
   function normalizePlain(value) {
     return String(value || '')
@@ -97,14 +97,19 @@
     return '';
   }
 
+  function canonicalizePlace(text) {
+    const fn = global.QuestionEnginePtPtPlaces?.canonicalizePlaceText;
+    return typeof fn === 'function' ? fn(String(text || '')) : String(text || '');
+  }
+
   function evaluateWikidataSupport(record, entity) {
     if (!entity) return { ok: true, skipped: true, reason: 'no_entity' };
-    const answer = normalizePlain(record?.answer);
+    const answer = normalizePlain(canonicalizePlace(record?.answer));
     if (!answer) return { ok: true, skipped: true, reason: 'no_answer' };
     if (/^(verdadeiro|falso)$/.test(answer)) {
       return { ok: true, skipped: true, reason: 'true_false' };
     }
-    const texts = collectEntityTexts(entity).map(normalizePlain).filter(Boolean);
+    const texts = collectEntityTexts(entity).map((text) => normalizePlain(canonicalizePlace(text))).filter(Boolean);
     if (!texts.length) return { ok: true, skipped: true, reason: 'empty_entity' };
     if (texts.some((text) => text === answer || text.includes(answer) || answer.includes(text))) {
       return { ok: true, matched: true, qid: entity.id || '' };
@@ -160,10 +165,10 @@
     return {
       knowledgeId: record?.knowledgeId || record?.knowledge_id || '',
       qid,
-      fact: String(record?.fact || '').trim(),
-      answer: String(record?.answer || '').trim(),
-      label: langValue(item?.labels),
-      description: langValue(item?.descriptions) || String(record?.metadata?.restDescription || ''),
+      fact: canonicalizePlace(record?.fact),
+      answer: canonicalizePlace(record?.answer),
+      label: canonicalizePlace(langValue(item?.labels)),
+      description: canonicalizePlace(langValue(item?.descriptions) || String(record?.metadata?.restDescription || '')),
       source: 'Wikidata',
       sourceId: qid,
       sourceUrl: qid ? `https://www.wikidata.org/wiki/${qid}` : '',

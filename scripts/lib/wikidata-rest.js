@@ -7,12 +7,13 @@
  */
 
 const { extractQid } = require('./wikidata-sparql');
+const { normalizePtPtText } = require('./pt-pt-normalize');
 
 const REST_BASE = 'https://www.wikidata.org/w/rest.php/wikibase/v1';
 const USER_AGENT = 'ReinoMagicoDoSaber/1.0 (knowledge-import; educational quiz)';
 const DEFAULT_TIMEOUT_MS = 8000;
 const DEFAULT_FIELDS = ['labels', 'descriptions', 'aliases', 'statements'];
-const PT_LANGS = ['pt', 'pt-pt', 'pt-br', 'en'];
+const PT_LANGS = ['pt-pt', 'pt', 'pt-br', 'en'];
 
 function itemUrl(qid, fields = DEFAULT_FIELDS) {
   const id = String(qid || '').trim().toUpperCase();
@@ -102,8 +103,8 @@ function statementContents(item, propertyId) {
 
 function attachRestMetadata(record, item) {
   if (!record) return record;
-  const label = pickLabel(item);
-  const description = pickDescription(item);
+  const label = normalizePtPtText(pickLabel(item));
+  const description = normalizePtPtText(pickDescription(item));
   return {
     ...record,
     verified_by: record.verified_by
@@ -120,19 +121,19 @@ function attachRestMetadata(record, item) {
 
 function buildVerifiedAiInput(record, item) {
   const qid = extractQid(record?.source_id, record?.sourceId, record?.metadata?.qid, item?.id);
-  const fact = String(record?.fact || '').trim();
+  const fact = normalizePtPtText(String(record?.fact || '').trim());
   const answer = record?.is_true === false || record?.isTrue === false
     ? 'Falso'
     : (record?.is_true === true || record?.isTrue === true
       ? 'Verdadeiro'
-      : String(record?.answer || '').trim());
+      : normalizePtPtText(String(record?.answer || '').trim()));
   return {
     knowledgeId: record?.knowledge_id || record?.knowledgeId || '',
     qid,
     fact,
     answer,
-    label: pickLabel(item) || '',
-    description: pickDescription(item) || String(record?.metadata?.restDescription || ''),
+    label: normalizePtPtText(pickLabel(item) || ''),
+    description: normalizePtPtText(pickDescription(item) || String(record?.metadata?.restDescription || '')),
     source: 'Wikidata',
     sourceId: qid,
     sourceUrl: qid ? `https://www.wikidata.org/wiki/${qid}` : String(record?.source_url || record?.sourceUrl || ''),

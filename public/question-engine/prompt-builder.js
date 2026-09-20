@@ -28,6 +28,11 @@
     throw new Error('prompt-builder: carrega question-archetypes.js antes deste módulo');
   }
   const ARCHETYPE_MAX_CONSECUTIVE = ENGINE_CONFIG.ARCHETYPE_MAX_CONSECUTIVE || FORMAT_MAX_CONSECUTIVE;
+
+  function canonicalizePlace(text) {
+    const fn = global.QuestionEnginePtPtPlaces?.canonicalizePlaceText;
+    return typeof fn === 'function' ? fn(String(text || '')) : String(text || '');
+  }
   const McQuality = global.QuestionEngineMcDistractorQuality;
 
   function buildMcDifficultyRules(difficulty, ageBandKey, formatId, isMC, isTrueFalse) {
@@ -91,7 +96,7 @@ ${contentSafetyRules ? `\n${contentSafetyRules}\n` : ''}- Não repitas o mesmo c
 - COMPLETA: frase curta com a lacuna "___" só no FINAL — fácil de ler em voz alta.
 - Texto 100% em caracteres latinos portugueses — nunca chinês, japonês, coreano nem outro alfabeto misturado.
 - Respostas e opções em português de Portugal — nunca só em inglês (ex.: "Summer" → "Verão"; "Water" → "Água"). Nomes próprios internacionais (The Beatles, Taylor Swift) são aceites.
-- Nomes de países em PT-PT: "Irão" (nunca "Irã" nem "Iran"), "Catar" (nunca "Qatar"), "Cabo Verde", "Chéquia", "Coreia do Sul", "Estados Unidos", "Reino Unido".
+- Nomes de países e cidades em PT-PT: "Irão" (nunca "Irã" nem "Iran"), "Catar" (nunca "Qatar"), "Egipto" (nunca "Egito"), "Bagdade" (nunca "Bagdá", "Bagdad" nem "Baguedade"), "Moscovo" (nunca "Moscou"). Usa a MESMA grafia na pergunta, na resposta e nas opções.
 - Ortografia correcta: "a voar" (nunca "avoando"), "a andar", "a correr" — verbo auxiliar separado.
 - Situações de física do quotidiano: especifica o referencial ("em relação a ti", "dentro do avião"). Evita "para onde cai?" sem contexto — a resposta muda conforme o observador.`;
   }
@@ -429,11 +434,15 @@ Só json válido, sem markdown: ${jsonFormat}`;
   /**
    * Resposta esperada para validação — curiosidades V/F usam isTrue; adivinhas usam answer.
    */
-  function getRepositoryExpectedAnswer(record) {
+  function getRepositoryExpectedAnswer(record, formatId) {
     if (!record) return '';
-    if (record.isTrue === false) return 'Falso';
-    if (record.isTrue === true) return 'Verdadeiro';
-    return String(record.answer || '');
+    const fmt = String(formatId || '').toUpperCase();
+    const useTruth = fmt === FORMAT_IDS.CURIOSIDADE || fmt === FORMAT_IDS.VERDADEIRO_FALSO;
+    if (useTruth) {
+      if (record.isTrue === false) return 'Falso';
+      if (record.isTrue === true) return 'Verdadeiro';
+    }
+    return canonicalizePlace(String(record.answer || ''));
   }
 
   /**
@@ -459,21 +468,28 @@ Só json válido, sem markdown: ${jsonFormat}`;
     const sourceLine = record.sourceId
       ? `${record.source} · ${record.sourceId}`
       : String(record.source || 'repositório');
-    const expectedAnswer = getRepositoryExpectedAnswer(record);
+    const expectedAnswer = getRepositoryExpectedAnswer(record, formatId);
+    const fact = canonicalizePlace(record.fact);
+    const statement = record.statement ? canonicalizePlace(record.statement) : '';
+    const restDescription = record.metadata?.restDescription
+      ? canonicalizePlace(record.metadata.restDescription)
+      : '';
 
     if (formatId === FORMAT_IDS.ADIVINHA) {
       if (!record.answer) throw new Error('buildPromptFromFact: adivinha sem resposta');
-      const cluesJson = JSON.stringify(Array.isArray(record.clues) ? record.clues : []);
+      const cluesJson = JSON.stringify(
+        (Array.isArray(record.clues) ? record.clues : []).map((clue) => canonicalizePlace(clue)),
+      );
       return `Formulas UMA adivinha em português de Portugal a partir do FACTO VERIFICADO abaixo.
 NÃO inventes factos, respostas nem pistas novas — usa apenas o material fornecido.
 
 FACTO VERIFICADO (fonte: ${sourceLine}):
-- Resposta correcta OBRIGATÓRIA no campo "a": ${record.answer}
-- Base/facto: ${record.fact}
+- Resposta correcta OBRIGATÓRIA no campo "a": ${expectedAnswer}
+- Base/facto: ${fact}
 - Pistas oficiais (podes reordenar em "clues", sem inventar nem alterar o sentido): ${cluesJson}
 
 REGRAS DO REPOSITÓRIO (obrigatórias):
-- O campo "a" tem de ser EXACTAMENTE "${record.answer}" — sem sinónimos nem variantes.
+- O campo "a" tem de ser EXACTAMENTE "${expectedAnswer}" — sem sinónimos nem variantes.
 - Reformula apenas "q" como adivinha natural em PT-PT; podes reordenar as pistas oficiais em "clues" (2–5 entradas).
 - NÃO mudes a resposta nem o significado do facto.
 - NÃO cries curiosidades factuais nem perguntas directas de cultura geral.
@@ -497,21 +513,21 @@ Só json válido, sem markdown: ${jsonFormat}`;
     }
 
     if (formatId === FORMAT_IDS.CURIOSIDADE || formatId === FORMAT_IDS.VERDADEIRO_FALSO) {
-      const statementHint = record.statement
-        ? `- Afirmação de referência (podes adaptar ligeiramente em "q"): ${record.statement}`
+      const statementHint = statement
+        ? `- Afirmação de referência (podes adaptar ligeiramente em "q"): ${statement}`
         : '';
       const presentation = formatId === FORMAT_IDS.VERDADEIRO_FALSO
         ? 'afirmação factual directa terminada em "Verdadeiro ou Falso?"'
         : 'curiosidade surpreendente com "Sabias que…" ou "É verdade que…" e "Verdadeiro ou Falso?" no final';
-      const restHint = record.metadata?.restDescription
-        ? `- Descrição Wikidata (contexto; não inventes a partir disto): ${record.metadata.restDescription}`
+      const restHint = restDescription
+        ? `- Descrição Wikidata (contexto; não inventes a partir disto): ${restDescription}`
         : '';
       return `Formulas UMA curiosidade em português de Portugal a partir do FACTO VERIFICADO abaixo.
 NÃO inventes factos nem alteres a verdade do registo — só reformula em PT-PT natural.
 
 FACTO VERIFICADO (fonte: ${sourceLine}):
 - Resposta correcta OBRIGATÓRIA no campo "a": ${expectedAnswer}
-- Facto/base: ${record.fact}
+- Facto/base: ${fact}
 ${statementHint}
 ${restHint}
 
@@ -539,15 +555,15 @@ ${mcInstruction || ''}
 Só json válido, sem markdown: ${jsonFormat}`;
     }
 
-    const restHint = record.metadata?.restDescription
-      ? `- Descrição Wikidata (contexto; não inventes a partir disto): ${record.metadata.restDescription}`
+    const restHint = restDescription
+      ? `- Descrição Wikidata (contexto; não inventes a partir disto): ${restDescription}`
       : '';
     return `Formulas UMA pergunta em português de Portugal a partir do FACTO VERIFICADO abaixo.
 NÃO inventes factos, datas, nomes nem números — só reformula em PT-PT natural.
 
 FACTO VERIFICADO (fonte: ${sourceLine}):
 - Resposta correcta OBRIGATÓRIA no campo "a": ${expectedAnswer}
-- Facto/base: ${record.fact}
+- Facto/base: ${fact}
 ${restHint}
 
 REGRAS DO REPOSITÓRIO (obrigatórias):

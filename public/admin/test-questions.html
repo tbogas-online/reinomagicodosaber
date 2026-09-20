@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260909-145800">
+  <meta name="app-build" content="20260911-133745">
   <title>Teste de Perguntas — Reino Mágico do Saber</title>
   <link rel="icon" href="/favicon.ico">
   <style>
@@ -183,6 +183,17 @@
     .ctx-chip.cat select.ctx-select { color: #93c5fd; }
     .ctx-chip.diff-corr select.ctx-select { color: #ddd6fe; }
     .ctx-extra { margin: 0 0 10px; }
+    .repo-fact {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.08);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+    .repo-fact strong { color: #34d399; }
+    .repo-fact .meta { color: var(--muted); font-size: 0.8rem; margin-top: 4px; word-break: break-all; }
     .layers { display: grid; gap: 8px; margin: 10px 0; font-size: 0.84rem; }
     .layer-card {
       background: var(--input); border: 1px solid var(--border);
@@ -468,7 +479,15 @@
             <option value="5">5 — especialista</option>
           </select>
         </div>
+        <div>
+          <label for="fact-source">Origem do facto</label>
+          <select id="fact-source">
+            <option value="ai" selected>IA livre (inventa o facto)</option>
+            <option value="repo">Repositório (IA só formula)</option>
+          </select>
+        </div>
       </div>
+      <p class="hint" id="fact-source-hint">A IA inventa o conteúdo. Escolhe «Repositório» para a pergunta nascer de um facto já importado.</p>
 
       <div class="row">
         <button type="button" class="primary" id="btn-generate">▶ Gerar pergunta</button>
@@ -506,6 +525,7 @@
       <p class="hint ctx-extra" id="ctx-extra" hidden></p>
       <div id="ai-usage-line" class="ai-usage-line" hidden></div>
       <div id="resolved-line" class="resolved"></div>
+      <div id="repo-fact-box" class="repo-fact" hidden></div>
       <div id="q-preview" class="q-preview"></div>
       <div id="a-preview" class="a-preview"></div>
       <div id="mc-review" class="mc-review" hidden></div>
@@ -643,43 +663,44 @@
     </details>
   </div>
 
-  <script src="/admin-auth.js?v=20260909-145800"></script>
+  <script src="/admin-auth.js?v=20260911-133745"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="/supabase-config.js?v=20260909-145800"></script>
-  <script src="/supabase-client.js?v=20260909-145800"></script>
-  <script src="/knowledge-repository.js?v=20260909-145800"></script>
-  <script src="/question-bank.js?v=20260909-145800"></script>
-  <script src="/question-engine/engine-config.js?v=20260909-145800"></script>
-  <script src="/question-engine/issue-codes.js?v=20260909-145800"></script>
-  <script src="/question-engine/knowledge-key.js?v=20260909-145800"></script>
-  <script src="/question-engine/retry-strategy.js?v=20260909-145800"></script>
-  <script src="/question-engine/telemetry.js?v=20260909-145800"></script>
-  <script src="/question-engine/known-facts.js?v=20260909-145800"></script>
-  <script src="/question-engine/factual-verify.js?v=20260909-145800"></script>
-  <script src="/question-engine/wikidata-verify.js?v=20260909-145800"></script>
-  <script src="/question-engine/adivinha-verify.js?v=20260909-145800"></script>
-  <script src="/question-engine/adivinha-answer-pool.js?v=20260909-145800"></script>
-  <script src="/question-engine/content-safety-data.js?v=20260909-145800"></script>
-  <script src="/question-engine/content-safety.js?v=20260909-145800"></script>
-  <script src="/question-engine/adivinha-distractors.js?v=20260909-145800"></script>
-  <script src="/question-engine/difficulty-estimate.js?v=20260909-145800"></script>
-  <script src="/question-engine/pt-pt-validators.js?v=20260909-145800"></script>
-  <script src="/question-engine/format-validators.js?v=20260909-145800"></script>
-  <script src="/question-engine/mc-validators.js?v=20260909-145800"></script>
-  <script src="/question-engine/mc-distractor-quality.js?v=20260909-145800"></script>
-  <script src="/question-engine/age-validators.js?v=20260909-145800"></script>
-  <script src="/question-engine/category-validators.js?v=20260909-145800"></script>
-  <script src="/question-engine/semantic-validators.js?v=20260909-145800"></script>
-  <script src="/question-engine/reported-content.js?v=20260909-145800"></script>
-  <script src="/question-engine/repetition-validators.js?v=20260909-145800"></script>
-  <script src="/question-engine/knowledge-key-compute.js?v=20260909-145800"></script>
-  <script src="/question-engine/persistent-history.js?v=20260909-145800"></script>
-  <script src="/question-engine/question-archetypes.js?v=20260909-145800"></script>
-  <script src="/question-engine/learning-engine.js?v=20260909-145800"></script>
-  <script src="/question-engine/prompt-builder.js?v=20260909-145800"></script>
-  <script src="/question-engine/mc-assembly.js?v=20260909-145800"></script>
-  <script src="/question-engine/question-scoring.js?v=20260909-145800"></script>
-  <script src="/question-engine.js?v=20260909-145800"></script>
+  <script src="/supabase-config.js?v=20260911-133745"></script>
+  <script src="/supabase-client.js?v=20260911-133745"></script>
+  <script src="/knowledge-repository.js?v=20260911-133745"></script>
+  <script src="/question-bank.js?v=20260911-133745"></script>
+  <script src="/question-engine/engine-config.js?v=20260911-133745"></script>
+  <script src="/question-engine/issue-codes.js?v=20260911-133745"></script>
+  <script src="/question-engine/knowledge-key.js?v=20260911-133745"></script>
+  <script src="/question-engine/retry-strategy.js?v=20260911-133745"></script>
+  <script src="/question-engine/telemetry.js?v=20260911-133745"></script>
+  <script src="/question-engine/known-facts.js?v=20260911-133745"></script>
+  <script src="/question-engine/factual-verify.js?v=20260911-133745"></script>
+  <script src="/question-engine/wikidata-verify.js?v=20260911-133745"></script>
+  <script src="/question-engine/adivinha-verify.js?v=20260911-133745"></script>
+  <script src="/question-engine/adivinha-answer-pool.js?v=20260911-133745"></script>
+  <script src="/question-engine/content-safety-data.js?v=20260911-133745"></script>
+  <script src="/question-engine/content-safety.js?v=20260911-133745"></script>
+  <script src="/question-engine/adivinha-distractors.js?v=20260911-133745"></script>
+  <script src="/question-engine/difficulty-estimate.js?v=20260911-133745"></script>
+  <script src="/question-engine/pt-pt-place-names.js?v=20260911-133745"></script>
+  <script src="/question-engine/pt-pt-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/format-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/mc-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/mc-distractor-quality.js?v=20260911-133745"></script>
+  <script src="/question-engine/age-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/category-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/semantic-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/reported-content.js?v=20260911-133745"></script>
+  <script src="/question-engine/repetition-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/knowledge-key-compute.js?v=20260911-133745"></script>
+  <script src="/question-engine/persistent-history.js?v=20260911-133745"></script>
+  <script src="/question-engine/question-archetypes.js?v=20260911-133745"></script>
+  <script src="/question-engine/learning-engine.js?v=20260911-133745"></script>
+  <script src="/question-engine/prompt-builder.js?v=20260911-133745"></script>
+  <script src="/question-engine/mc-assembly.js?v=20260911-133745"></script>
+  <script src="/question-engine/question-scoring.js?v=20260911-133745"></script>
+  <script src="/question-engine.js?v=20260911-133745"></script>
   <script>
   (function () {
     'use strict';
@@ -723,7 +744,7 @@
       '10-15': 'jovens dos 10 aos 15 anos — linguagem clara e intermédia',
       '15+': 'jovens e adultos 15+ — cultura geral exigente',
     };
-    const PT_PT_RULES = 'Português de Portugal (PT-PT). Evita brasileirismos.';
+    const PT_PT_RULES = 'Português de Portugal (PT-PT). Evita brasileirismos. Países e cidades: grafia PT-PT (Bagdade, não Bagdá) e a mesma forma na pergunta e na resposta.';
     const LAYER_GUIDE = QE.LAYER_GUIDE || {};
     const LAYER_ORDER = Object.keys(QE.LAYER_WEIGHTS || LAYER_GUIDE);
     const AI_PROVIDER_LABELS = {
@@ -754,7 +775,7 @@
     let applyingEdits = false;
 
     const session = {
-      usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedFormats: [],
+      usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedKnowledgeIds: [], usedFormats: [],
       usedArchetypes: [], usedDifficulties: [], usedSubtopics: [], usedAges: [], recentMcPositions: [], log: [],
       stats: { total: 0, ok: 0, fail: 0 },
       pendingReview: false,
@@ -1248,6 +1269,12 @@
       const catN = catVal === 'random' ? (CATEGORIES[0]?.n || 1) : Number(catVal);
       const ageBandKey = ageVal === 'random' ? AGES[0] : ageVal;
       populateFormatSelect(catN, ageBandKey, 'mc');
+      const hint = $('fact-source-hint');
+      if (hint) {
+        hint.textContent = $('fact-source')?.value === 'repo'
+          ? 'A IA só formula a pergunta a partir de um facto já importado no repositório. Não inventa dados novos.'
+          : 'A IA inventa o conteúdo. Escolhe «Repositório» para a pergunta nascer de um facto já importado.';
+      }
     }
 
     function applyReportUrlParams() {
@@ -1733,7 +1760,9 @@
         usedQuestions: useSession ? session.usedQuestions : [],
         usedAnswers: useSession ? session.usedAnswers : [],
         usedKnowledgeKeys: useSession ? session.usedKnowledgeKeys : [],
+        usedKnowledgeIds: useSession ? session.usedKnowledgeIds : [],
         persistentKnowledgeKeys: QE.getPersistentSlice(ageBandKey).knowledgeKeys || [],
+        repositoryRecord: overrides.repositoryRecord || r?.repositoryRecord || null,
         isMC: overrides.isMC ?? isMC,
         stripTags, normalizeFn: normalizeQ,
         helpers: { stripTags, validateTrueFalseQuestion, ageBandKey },
@@ -1769,9 +1798,10 @@
         score: fields.score ?? null,
         provider: usage.provider || '',
         model: usage.model || '',
-        source: 'ai',
+        source: fields.source || (fields.knowledgeId ? 'repo-ai' : 'ai'),
         gameMode: 'test',
         parsed: fields.parsed,
+        knowledgeId: fields.knowledgeId || '',
       });
     }
 
@@ -1858,6 +1888,7 @@
       const reqN = Number.isFinite(diffs.requested) ? diffs.requested : '—';
       const estN = Number.isFinite(diffs.estimated) ? diffs.estimated : '—';
       $('resolved-line').innerHTML = `${modeLabel} · pedida D${reqN} · estimada D${estN} · correcta D${resolved.difficulty ?? '—'} · <em>${escapeHtml(QE.ARCHETYPE_LABELS?.[resolved.archetypeId] || resolved.archetypeId || '')}</em> · <em>${escapeHtml(QE.FORMAT_LABELS[resolved.formatId] || resolved.formatId)}</em>${escapeHtml(resolved.sparseNote || '')}`;
+      renderRepoFactBox(resolved.repositoryRecord);
 
       $('q-preview').textContent = parsed.q || '';
       $('a-preview').textContent = parsed.a ? `→ ${parsed.a}` : '';
@@ -1934,12 +1965,15 @@
       session.usedQuestions.push(parsed.q);
       if (parsed.a && !/^(verdadeiro|falso)$/i.test(normalizeQ(parsed.a))) session.usedAnswers.push(parsed.a);
       if (result.knowledgeKey) session.usedKnowledgeKeys.push(result.knowledgeKey);
+      if (meta?.knowledgeId && !session.usedKnowledgeIds.includes(meta.knowledgeId)) {
+        session.usedKnowledgeIds.push(meta.knowledgeId);
+      }
       if (meta?.formatId) session.usedFormats.push(meta.formatId);
       if (meta?.archetypeId) session.usedArchetypes.push(meta.archetypeId);
       if (meta?.difficulty) session.usedDifficulties.push(meta.difficulty);
       if (meta?.subtopic) session.usedSubtopics.push(meta.subtopic);
-      ['usedQuestions','usedAnswers','usedKnowledgeKeys','usedFormats','usedArchetypes'].forEach((k, i) => {
-        const max = [80, 80, 60, 40, 40][i];
+      ['usedQuestions','usedAnswers','usedKnowledgeKeys','usedKnowledgeIds','usedFormats','usedArchetypes'].forEach((k, i) => {
+        const max = [80, 80, 60, 80, 40, 40][i];
         while (session[k].length > max) session[k].shift();
       });
     }
@@ -2102,8 +2136,9 @@
           options: parsed.options,
           format: formatId,
           knowledgeKey,
+          knowledgeId: resolved.repositoryRecord?.knowledgeId || '',
           questionHash: QB.questionHash(parsed.q, parsed.a),
-          source: 'test-page',
+          source: resolved.repositoryRecord ? 'repository' : 'test-page',
         });
       } catch (err) {
         console.warn('[test-questions] save bank falhou:', err);
@@ -2111,23 +2146,150 @@
       }
     }
 
+    const REPO_ADIVINHA_TOPIC = 'adivinha tradicional';
+    const REPO_CURIOSIDADE_TOPIC = 'curiosidade surpreendente';
+
+    function usesRepoFact() {
+      return $('fact-source')?.value === 'repo';
+    }
+
+    function renderRepoFactBox(record) {
+      const el = $('repo-fact-box');
+      if (!el) return;
+      if (!record?.fact) {
+        el.hidden = true;
+        el.innerHTML = '';
+        return;
+      }
+      const answer = QE.getRepositoryExpectedAnswer
+        ? QE.getRepositoryExpectedAnswer(record, lastResolved?.formatId)
+        : (record.answer || '');
+      const src = [record.source, record.sourceId].filter(Boolean).join(' · ');
+      el.hidden = false;
+      el.innerHTML = `<strong>Facto do repositório</strong> — a IA só formulou a pergunta.<br>${escapeHtml(record.fact)}`
+        + (answer ? `<div class="meta">Resposta obrigatória: ${escapeHtml(answer)}</div>` : '')
+        + `<div class="meta">${escapeHtml(record.knowledgeId || '')}${src ? ` · ${escapeHtml(src)}` : ''}</div>`;
+    }
+
+    function formatFromRepoRecord(record, preferredFormatId, catN, ageBandKey, answerMode) {
+      const allowed = (record?.allowedFormats || []).map((f) => String(f || '').toUpperCase());
+      const engineAllowed = QE.getAllowedFormats(catN, ageBandKey, answerMode) || [];
+      const preferred = String(preferredFormatId || '').toUpperCase();
+      const overlap = engineAllowed.filter((f) => !allowed.length || allowed.includes(f));
+      const pool = overlap.length ? overlap : engineAllowed;
+      if (preferred && pool.includes(preferred)) return preferred;
+      const vfAnswer = /^(verdadeiro|falso)$/i.test(String(record?.answer || ''));
+      const rank = vfAnswer
+        ? ['VERDADEIRO_FALSO', 'CURIOSIDADE', 'ESCOLHA_MULTIPLA']
+        : ['ESCOLHA_MULTIPLA', 'ONDE_FICA', 'QUEM_E', 'O_QUE_E', 'RESPOSTA_DIRETA', 'VERDADEIRO_FALSO'];
+      return rank.find((f) => pool.includes(f)) || pool[0] || preferred || QE.FORMAT_IDS.ESCOLHA_MULTIPLA;
+    }
+
+    function repoPickTopic(catN, formatId) {
+      if (Number(catN) !== 20) return null;
+      if (formatId === QE.FORMAT_IDS.ADIVINHA) return REPO_ADIVINHA_TOPIC;
+      if (formatId === QE.FORMAT_IDS.CURIOSIDADE || formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO) {
+        return REPO_CURIOSIDADE_TOPIC;
+      }
+      return null;
+    }
+
+    async function pickOneRepoRecord(categoryN, ageBandKey, { formatId, topic } = {}) {
+      const KR = window.ReinoKnowledgeRepository;
+      const exclude = session.usedKnowledgeIds || [];
+      const tryPick = (opts) => KR.pickRecord(categoryN, ageBandKey, {
+        excludeKnowledgeIds: exclude,
+        minConfidence: 0.85,
+        ...opts,
+      });
+      let record = await tryPick({ topic: topic || null, formatId: formatId || null });
+      if (!record && (topic || formatId)) {
+        record = await tryPick({});
+      }
+      if (!record && KR.loadRecords) {
+        const rows = await KR.loadRecords(categoryN, {
+          ageBand: ageBandKey,
+          limit: 50,
+          minConfidence: 0.85,
+        });
+        record = (rows || []).find((row) => {
+          if (!row?.knowledgeId || exclude.includes(row.knowledgeId)) return false;
+          if (!KR.evaluateRecordPolicy) return true;
+          return KR.evaluateRecordPolicy(row, { categoryN, formatId }).ok;
+        }) || null;
+      }
+      return record;
+    }
+
+    async function pickRepoFactForTest(resolved) {
+      const KR = window.ReinoKnowledgeRepository;
+      if (!KR?.isConfigured?.()) {
+        throw new Error('Repositório não configurado (Supabase). Verifica supabase-config.js.');
+      }
+      const catRandom = $('cat').value === 'random';
+      const startN = resolved.cat.n;
+      const order = catRandom
+        ? [...new Set([startN, 2, 20, 5, 1, ...CATEGORIES.map((c) => c.n)])]
+        : [startN];
+      const formatHint = resolved.formatId || '';
+      for (const n of order) {
+        const record = await pickOneRepoRecord(n, resolved.ageBandKey, {
+          formatId: n === 20 ? formatHint : '',
+          topic: repoPickTopic(n, formatHint),
+        });
+        if (!record) continue;
+        const cat = CATEGORIES.find((c) => c.n === n) || resolved.cat;
+        return { record, cat };
+      }
+      return null;
+    }
+
     async function generateOne() {
       if (stopBatch) return null;
       const resolved = await resolveConfig();
       if (stopBatch) return null;
-      const { cat, ageBandKey, answerMode, difficulty } = resolved;
+      let { cat, ageBandKey, answerMode, difficulty } = resolved;
       resolved.requestedDifficulty = difficulty;
       const archetypeId = QE.chooseArchetype
         ? QE.chooseArchetype(cat.n, ageBandKey, answerMode, session.usedArchetypes)
         : '';
-      const formatId = resolveFormat(cat.n, ageBandKey, answerMode, archetypeId);
+      let formatId = resolveFormat(cat.n, ageBandKey, answerMode, archetypeId);
       resolved.formatId = formatId;
       resolved.archetypeId = archetypeId;
       resolved.cognitiveLevel = QE.getArchetype?.(archetypeId)?.cognitiveLevel || '';
       let subtopic = QE.chooseSubtopic(cat.n, session.usedSubtopics);
       resolved.subtopic = subtopic;
+      let repoRecord = null;
 
-      const isTrueFalse = formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO;
+      if (usesRepoFact()) {
+        $('gen-status').className = 'result run';
+        $('gen-status').textContent = 'A obter facto do repositório…';
+        const picked = await pickRepoFactForTest({ ...resolved, formatId });
+        if (!picked?.record) {
+          $('gen-status').className = 'result err';
+          $('gen-status').textContent = $('cat').value === 'random'
+            ? 'Não há factos no repositório para estas categorias. Importa fontes no painel admin.'
+            : `Não há factos no repositório para ${cat.n}. ${cat.name} (${ageBandKey}). Importa fontes no painel admin.`;
+          renderRepoFactBox(null);
+          return null;
+        }
+        repoRecord = picked.record;
+        cat = picked.cat;
+        resolved.cat = cat;
+        formatId = formatFromRepoRecord(repoRecord, formatId, cat.n, ageBandKey, answerMode);
+        resolved.formatId = formatId;
+        resolved.repositoryRecord = repoRecord;
+        resolved.factSource = 'repo';
+        resolved.subtopic = repoRecord.subtopic || repoRecord.topic || subtopic;
+        subtopic = resolved.subtopic;
+        lastResolved = resolved;
+        renderRepoFactBox(repoRecord);
+      } else {
+        renderRepoFactBox(null);
+      }
+
+      const isTrueFalse = formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO
+        || formatId === QE.FORMAT_IDS.CURIOSIDADE;
       const isMC = answerMode === 'mc' || isTrueFalse || formatId === QE.FORMAT_IDS.ESCOLHA_MULTIPLA;
       const persistent = QE.getPersistentSlice(ageBandKey);
       const maxAttempts = QE.ENGINE_CONFIG?.MAX_RETRIES || 5;
@@ -2144,46 +2306,61 @@
             : ' Inclui "a" e "distractors" (3 erradas).'))
         : (formatId === QE.FORMAT_IDS.ADIVINHA ? ' Inclui "clues" (2–5 pistas).' : '');
       const knowledgeHint = QE.KNOWLEDGE_JSON_HINT || '';
+      const expectedA = repoRecord && QE.getRepositoryExpectedAnswer
+        ? QE.getRepositoryExpectedAnswer(repoRecord, formatId)
+        : '';
+      const expectedAJson = JSON.stringify(expectedA || (isTrueFalse ? 'Verdadeiro' : '...')).slice(1, -1);
       const jsonFormat = isMC
-        ? (isTrueFalse ? `{"q":"... Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]${knowledgeHint}`
+        ? (isTrueFalse ? `{"q":"... Verdadeiro ou Falso?","a":"${expectedAJson}","options":["Verdadeiro","Falso"]${knowledgeHint}`
           : (formatId === QE.FORMAT_IDS.ADIVINHA
-            ? `{"q":"...","a":"...","clues":["pista 1","pista 2"],"distractors":["...","...","..."]${knowledgeHint}`
-            : `{"q":"...","a":"...","distractors":["...","...","..."]${knowledgeHint}`))
+            ? `{"q":"...","a":"${expectedAJson}","clues":["pista 1","pista 2"],"distractors":["...","...","..."]${knowledgeHint}`
+            : `{"q":"...","a":"${expectedAJson}","distractors":["...","...","..."]${knowledgeHint}`))
         : (formatId === QE.FORMAT_IDS.ADIVINHA
-          ? `{"q":"...","a":"...","clues":["pista 1","pista 2"]${knowledgeHint}`
-          : `{"q":"...","a":"..."${knowledgeHint}}`);
+          ? `{"q":"...","a":"${expectedAJson}","clues":["pista 1","pista 2"]${knowledgeHint}`
+          : `{"q":"...","a":"${expectedAJson}"${knowledgeHint}}`);
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         if (stopBatch) return null;
-        if (attempt > 1 && QE.shouldRotateSubtopicForRetry(lastIssueDetails, attempt)) {
+        if (!repoRecord && attempt > 1 && QE.shouldRotateSubtopicForRetry(lastIssueDetails, attempt)) {
           subtopic = QE.chooseSubtopic(cat.n, [...session.usedSubtopics, subtopic]);
           resolved.subtopic = subtopic;
         }
         $('gen-status').className = 'result run';
-        $('gen-status').textContent = `A gerar… tentativa ${attempt}/${maxAttempts} (${QE.FORMAT_LABELS[formatId]})`;
+        $('gen-status').textContent = repoRecord
+          ? `A formular a partir do repositório… tentativa ${attempt}/${maxAttempts} (${QE.FORMAT_LABELS[formatId]})`
+          : `A gerar… tentativa ${attempt}/${maxAttempts} (${QE.FORMAT_LABELS[formatId]})`;
 
         const retryHint = attempt > 1
           ? [QE.buildAdaptiveRetryHint(lastIssues, formatId, ageBandKey, attempt, { issueDetails: lastIssueDetails }), getFeedbackHints()].filter(Boolean).join('\n')
           : getFeedbackHints();
 
-        const prompt = QE.buildPrompt({
-          category: cat, ageBandKey,
-          ageBandPromptText: AGE_PROMPT[ageBandKey],
-          formatId, archetypeId, ptPtRules: PT_PT_RULES,
-          isMC, isTrueFalse, difficulty, subtopic,
-          recentDifficulties: session.usedDifficulties,
-          recentSubtopics: session.usedSubtopics,
-          usedQuestions: session.usedQuestions,
-          usedFormats: session.usedFormats,
-          usedArchetypes: session.usedArchetypes,
-          usedAnswers: session.usedAnswers,
-          usedKnowledgeKeys: session.usedKnowledgeKeys,
-          persistentQuestions: persistent.questions,
-          persistentAnswers: persistent.answers,
-          persistentKnowledgeKeys: persistent.knowledgeKeys,
-          openModeExtra: !isMC ? 'Resposta curta.' : '',
-          mcInstruction, jsonFormat, retryHint,
-        }).slice(0, 11000);
+        const prompt = (repoRecord && QE.buildPromptFromFact
+          ? QE.buildPromptFromFact(repoRecord, {
+            category: cat, ageBandKey,
+            ageBandPromptText: AGE_PROMPT[ageBandKey],
+            formatId, ptPtRules: PT_PT_RULES,
+            isMC, isTrueFalse, difficulty,
+            openModeExtra: !isMC ? 'Resposta curta.' : '',
+            mcInstruction, jsonFormat, retryHint,
+          })
+          : QE.buildPrompt({
+            category: cat, ageBandKey,
+            ageBandPromptText: AGE_PROMPT[ageBandKey],
+            formatId, archetypeId, ptPtRules: PT_PT_RULES,
+            isMC, isTrueFalse, difficulty, subtopic,
+            recentDifficulties: session.usedDifficulties,
+            recentSubtopics: session.usedSubtopics,
+            usedQuestions: session.usedQuestions,
+            usedFormats: session.usedFormats,
+            usedArchetypes: session.usedArchetypes,
+            usedAnswers: session.usedAnswers,
+            usedKnowledgeKeys: session.usedKnowledgeKeys,
+            persistentQuestions: persistent.questions,
+            persistentAnswers: persistent.answers,
+            persistentKnowledgeKeys: persistent.knowledgeKeys,
+            openModeExtra: !isMC ? 'Resposta curta.' : '',
+            mcInstruction, jsonFormat, retryHint,
+          })).slice(0, 11000);
 
         generateAbort = new AbortController();
         let response;
@@ -2237,7 +2414,11 @@
           parsed.options = ['Verdadeiro', 'Falso'];
         }
 
-        const ctx = buildValidationCtx({ formatId, isMC, difficulty });
+        const ctx = buildValidationCtx({
+          formatId, isMC, difficulty,
+          categoryNumber: cat.n,
+          repositoryRecord: repoRecord,
+        });
         const result = validateParsed(parsed, ctx);
         lastParsed = parsed;
         lastResult = result;
@@ -2257,12 +2438,20 @@
             attempt,
             score: result.score,
             aiUsage,
+            knowledgeId: repoRecord?.knowledgeId,
+            source: repoRecord ? 'repo-ai' : 'ai',
           });
           presentForReview(result, parsed, resolved, aiUsage);
-          rememberAccepted(parsed, result, { formatId, archetypeId, difficulty, subtopic });
+          rememberAccepted(parsed, result, {
+            formatId, archetypeId, difficulty, subtopic,
+            knowledgeId: repoRecord?.knowledgeId,
+          });
           addLogEntry(parsed, result, resolved, aiUsage);
           QE.persistQuestion(ageBandKey, parsed.q, parsed.a, normalizeQ, {
             category: cat.n, format: formatId, knowledgeKey: result.knowledgeKey, difficulty, subtopic,
+            knowledgeId: repoRecord?.knowledgeId,
+            source: repoRecord ? 'repository' : 'test-page',
+            sourceId: repoRecord?.sourceId,
           });
           $('gen-status').textContent += ' · Avalia agora para o motor aprender.';
           return { parsed, result, resolved };
@@ -2282,6 +2471,8 @@
           score: result.score,
           aiUsage,
           parsed,
+          knowledgeId: repoRecord?.knowledgeId,
+          source: repoRecord ? 'repo-ai' : 'ai',
         });
       }
 
@@ -2289,6 +2480,9 @@
       $('gen-status').className = 'result err';
       $('gen-status').textContent = `Rejeitada após ${maxAttempts} tentativas.${aiUsageSuffix(lastAttemptUsage)} · Avalia agora para o motor aprender.`;
       if (lastParsed && lastResult) {
+        if (repoRecord?.knowledgeId && !session.usedKnowledgeIds.includes(repoRecord.knowledgeId)) {
+          session.usedKnowledgeIds.push(repoRecord.knowledgeId);
+        }
         presentForReview(lastResult, lastParsed, resolved, lastAttemptUsage);
         addLogEntry(lastParsed, lastResult, resolved, lastAttemptUsage);
       }
@@ -2514,6 +2708,7 @@
     $('cat').addEventListener('change', onConfigChange);
     $('age').addEventListener('change', onConfigChange);
     $('answerMode').addEventListener('change', onConfigChange);
+    $('fact-source')?.addEventListener('change', onConfigChange);
     $('btn-generate').addEventListener('click', () => runGenerate());
     $('btn-stop').addEventListener('click', () => { stopEverything(); });
     $('btn-validate-manual').addEventListener('click', async () => {
@@ -2677,6 +2872,6 @@
     ReinoAdminAuth.initGate({ appEl: document.getElementById('adminApp') });
   })();
   </script>
-  <script src="/app-update.js?v=20260909-145800" defer></script>
+  <script src="/app-update.js?v=20260911-133745" defer></script>
 </body>
 </html>
