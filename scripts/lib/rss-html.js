@@ -3,25 +3,29 @@
 const USER_AGENT = 'ReinoMagicoDoSaber/1.0 (knowledge-import; educational quiz)';
 const DEFAULT_TIMEOUT_MS = 12000;
 
-const SKIP_TITLE_RE = /confer[eê]ncia|painel\s+\d|estamos a contratar|inscri[cç][oõ]es|bilheteira|voluntariado|manifesto de lisboa|pr[eé]mio atg|f[oó]rum nacional|clubes ci[eê]ncia viva|declara[cç][aã]o sobre|grande pr[eé]mio|apps? de rastreio|covid-?19|sars-cov|\b(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+20\d{2}\b/i;
+const SKIP_TITLE_RE = /confer[eê]ncia|painel\s+\d|estamos a contratar|inscri[cç][oõ]es|bilheteira|voluntariado|manifesto de lisboa|pr[eé]mio atg|f[oó]rum nacional|clubes ci[eê]ncia viva|declara[cç][aã]o sobre|grande pr[eé]mio|apps? de rastreio|covid-?19|sars-cov|desambigua[cç][aã]o|p[aá]gina inicial|\b(janeiro|fevereiro|mar[cç]o|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+20\d{2}\b/i;
 const UNSAFE_TITLE_RE = /morte|cova|caix[aã]o|escrav|abuso|viol[eê]ncia|suic[ií]d|porn|estupro|aborto|droga/i;
 const NEWSY_LEAD_RE = /^(estudo|investiga[cç][aã]o|um estudo|uma equipa|um grupo|uma recente|artigo|not[ií]cia|investigadores|cientistas|financiamento|agora lan[cç]ados|guia para|podendo|recorrendo a dados)\b/i;
 const PRESS_RELEASE_RE = /foi publicado|revista do grupo|conceituada revista|estudo liderado|estudo internacional publicado|f[oó]rum nacional|clubes ci[eê]ncia viva na escola|em tempos de pandemia|picos da pandemia|universidade de \w+ (descobriu|est[aá] a desenvolver)|apresentou no dia|lan[cç]ados em formato|financiamento beneficia|declara[cç][aã]o sobre|vencedor do grande pr|apps de rastreio|h[aá] j[aá] um ano que o mundo|n[aã]o vamos falar|elefante na sala|limpe os olhos|projecte o olhar/i;
 const PT_ACCENT_RE = /[áàâãéêíóôõúç]/i;
 const HEADLINE_ANSWER_RE = /\b(para ajudar|descoberto novo|inauguram|solu[cç][aã]o para|comportamento escondido|horizonte infinito)\b/i;
 
+const HTML_ENTITIES = {
+  nbsp: ' ', amp: '&', quot: '"', apos: "'", lt: '<', gt: '>',
+  aacute: 'á', eacute: 'é', iacute: 'í', oacute: 'ó', uacute: 'ú',
+  agrave: 'à', egrave: 'è', acirc: 'â', ecirc: 'ê', ocirc: 'ô',
+  atilde: 'ã', otilde: 'õ', auml: 'ä', ccedil: 'ç', ntilde: 'ñ',
+  Aacute: 'Á', Eacute: 'É', Iacute: 'Í', Oacute: 'Ó', Uacute: 'Ú',
+  Agrave: 'À', Atild: 'Ã', Atilde: 'Ã', Otilde: 'Õ', Ccedil: 'Ç',
+  ndash: '–', mdash: '—', hellip: '…',
+};
+
 function decodeXml(text) {
   return String(text || '')
     .replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1')
-    .replace(/&nbsp;/gi, ' ')
     .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)))
     .replace(/&#x([0-9a-f]+);/gi, (_, n) => String.fromCharCode(parseInt(n, 16)))
-    .replace(/&amp;/g, '&')
-    .replace(/&quot;/g, '"')
-    .replace(/&apos;/g, "'")
-    .replace(/&lt;/g, '<')
-    .replace(/&gt;/g, '>')
-    .replace(/&#0*39;/g, "'");
+    .replace(/&([a-z]+);/gi, (_, name) => HTML_ENTITIES[name] || `&${name};`);
 }
 
 function tidyText(text) {
@@ -123,6 +127,13 @@ function isQuizLead(text) {
   return /\b(é|são|tem|fica|produz|gera|chama-se|pertence|ajuda|regula)\b/i.test(lead);
 }
 
+function isArchiveLead(text) {
+  const lead = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!isUsableLead(lead)) return false;
+  if (PRESS_RELEASE_RE.test(lead)) return false;
+  return /\b(é|foi|são|era|nasceu|fica|situa-se|chama-se|é um|é uma|foi o|foi a)\b/i.test(lead);
+}
+
 function matchesWords(haystack, words) {
   const list = (Array.isArray(words) ? words : []).map((w) => normalizeKey(w)).filter((w) => w.length >= 2);
   if (!list.length) return true;
@@ -132,6 +143,8 @@ function matchesWords(haystack, words) {
 
 function answerFromTitle(title) {
   const text = String(title || '').replace(/\s+/g, ' ').trim();
+  const beforeDash = text.split(/\s+[–—]\s+/)[0].trim();
+  if (beforeDash.length >= 2 && beforeDash.length <= 32 && beforeDash !== text) return beforeDash;
   const beforeColon = text.split(':')[0].trim();
   if (beforeColon.length >= 2 && beforeColon.length <= 32 && beforeColon !== text) return beforeColon;
   const beforeComma = text.split(',')[0].trim();
@@ -288,6 +301,18 @@ async function fetchText(url, { fetchFn = fetch, timeoutMs = DEFAULT_TIMEOUT_MS,
   }
 }
 
+async function fetchJson(url, opts = {}) {
+  const text = await fetchText(url, {
+    ...opts,
+    accept: opts.accept || 'application/json,text/json;q=0.9,*/*;q=0.8',
+  });
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error(`JSON inválido em ${url}`);
+  }
+}
+
 async function mapPool(items, limit, mapper) {
   const out = [];
   let index = 0;
@@ -315,6 +340,7 @@ module.exports = {
   isUsableTitle,
   isUsableLead,
   isQuizLead,
+  isArchiveLead,
   matchesWords,
   answerFromTitle,
   isShortNounAnswer,
@@ -325,5 +351,6 @@ module.exports = {
   quizAnswerFromArticle,
   decodeBytes,
   fetchText,
+  fetchJson,
   mapPool,
 };

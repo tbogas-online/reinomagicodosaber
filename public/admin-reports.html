@@ -3838,7 +3838,7 @@
           <div class="row" style="justify-content:space-between; margin-bottom:12px; width:100%; align-items:flex-start;">
             <div>
               <h2 class="charts-title" style="margin:0;">Importar fontes</h2>
-              <p class="chart-filter-note" style="margin:6px 0 0">Curadoria de <strong>factos</strong> verificados — o Question Engine é que formula as perguntas. Lotes A/B/C: Git. Wikidata, RTP Ensina e Ciência Viva: preenche o <strong>briefing</strong>, simula, aceita ou rejeita. As rejeições ficam memorizadas.</p>
+              <p class="chart-filter-note" style="margin:6px 0 0">Curadoria de <strong>factos</strong> verificados — o Question Engine é que formula as perguntas. Lotes A/B/C: Git. Wikidata, RTP Ensina, Ciência Viva, Arquivo.pt e Biblioteca Nacional: preenche o <strong>briefing</strong>, simula, aceita ou rejeita. As rejeições ficam memorizadas.</p>
             </div>
           </div>
           <div class="bulk-bar" style="flex-wrap:wrap; gap:8px; align-items:center;">
@@ -3851,6 +3851,8 @@
               <option value="wikidata" data-kind="wikidata">Wikidata — briefing de curadoria</option>
               <option value="rtp" data-kind="rtp">RTP Ensina — briefing de curadoria</option>
               <option value="ciencia-viva" data-kind="ciencia-viva">Ciência Viva — briefing de curadoria</option>
+              <option value="arquivo-pt" data-kind="arquivo-pt">Arquivo.pt — briefing de curadoria</option>
+              <option value="bnp" data-kind="bnp">Biblioteca Nacional — briefing de curadoria</option>
             </select>
             <button type="button" class="secondary" id="knowledgeSourceDryRunBtn" title="Listar candidatos Wikidata para validar, sem gravar">🧪 Simular</button>
             <button type="button" class="primary" id="knowledgeSourceImportBtn" title="Confirmar aceites e rejeitados">📥 Importar</button>
@@ -14780,6 +14782,8 @@
       Wikidata: '#0ea5e9',
       'RTP Ensina': '#e11d48',
       'Ciência Viva': '#16a34a',
+      'Arquivo.pt': '#0f766e',
+      'Biblioteca Nacional': '#1d4ed8',
       manual: '#f59e0b',
       'MemóriaMedia': '#a78bfa',
       'Ditos.pt': '#34d399',
@@ -15806,7 +15810,7 @@
 
     function formatKnowledgeImportResult(data) {
       if (data?.action === 'import-source') {
-        if (!data.dryRun && (data.source === 'wikidata' || data.source === 'rtp' || data.source === 'ciencia-viva')) {
+        if (!data.dryRun && (data.source === 'wikidata' || data.source === 'rtp' || data.source === 'ciencia-viva' || data.source === 'arquivo-pt' || data.source === 'bnp')) {
           const imported = Number(data.imported) || 0;
           const rejected = Number(data.rejected) || 0;
           const skipped = Number(data.skipped) || 0;
@@ -15878,7 +15882,7 @@
 
     function isBriefingSourceSelected() {
       const kind = selectedImportKind();
-      return kind === 'wikidata' || kind === 'rtp' || kind === 'ciencia-viva';
+      return kind === 'wikidata' || kind === 'rtp' || kind === 'ciencia-viva' || kind === 'arquivo-pt' || kind === 'bnp';
     }
 
     function isWikidataSourceSelected() {
@@ -16062,7 +16066,7 @@
           ? 'Clica num <strong>subtema</strong> e depois num <strong>tópico</strong> — as palavras de pesquisa aparecem a seguir (máx. 4).'
           : 'Clica num <strong>subtema</strong> para ver as sugestões certas, depois escolhe até 4 palavras.';
         const extra = selectedImportKind() !== 'wikidata'
-          ? ' Na RTP Ensina e na Ciência Viva as palavras são opcionais: sem elas vêm os mais recentes da categoria.'
+          ? ' Na RTP Ensina, Ciência Viva, Arquivo.pt e Biblioteca Nacional as palavras são opcionais: sem elas usa-se um tema da categoria.'
           : '';
         helpEl.innerHTML = base + extra;
       }
@@ -16182,7 +16186,7 @@
       panel.classList.toggle('hidden', !show);
       const intro = panel.querySelector('.knowledge-briefing > .sub');
       if (intro) {
-        const label = kind === 'rtp' ? 'RTP Ensina' : (kind === 'ciencia-viva' ? 'Ciência Viva' : 'Wikidata');
+        const label = kind === 'rtp' ? 'RTP Ensina' : (kind === 'ciencia-viva' ? 'Ciência Viva' : (kind === 'arquivo-pt' ? 'Arquivo.pt' : (kind === 'bnp' ? 'Biblioteca Nacional' : 'Wikidata')));
         intro.textContent = `Briefing de curadoria — define o que o colector ${label} deve ir buscar. Não gera perguntas.`;
       }
       if (show) {
@@ -16552,7 +16556,7 @@
       const source = sel?.selectedOptions?.[0]?.dataset?.kind || 'curiosidades-batch';
       const dryBtn = document.getElementById('knowledgeSourceDryRunBtn');
       const importBtn = document.getElementById('knowledgeSourceImportBtn');
-      const briefingSource = source === 'wikidata' || source === 'rtp' || source === 'ciencia-viva';
+      const briefingSource = source === 'wikidata' || source === 'rtp' || source === 'ciencia-viva' || source === 'arquivo-pt' || source === 'bnp';
       if (briefingSource) {
         if (dryRun && wikidataPreviewIsReady()) rememberWikidataPreviewIds();
         if (dryRun || !wikidataPreviewIsReady()) harvestWikidataInput();

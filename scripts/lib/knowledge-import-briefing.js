@@ -38,8 +38,8 @@ const COLLECTORS = [
   },
   { id: 'rtp', status: 'active', usesBriefing: true, label: 'RTP / RTP Ensina' },
   { id: 'ciencia-viva', status: 'active', usesBriefing: true, label: 'Ciência Viva' },
-  { id: 'bnp', status: 'unavailable', usesBriefing: true, label: 'Biblioteca Nacional' },
-  { id: 'arquivo-pt', status: 'unavailable', usesBriefing: true, label: 'Arquivo.pt' },
+  { id: 'bnp', status: 'active', usesBriefing: true, label: 'Biblioteca Nacional' },
+  { id: 'arquivo-pt', status: 'active', usesBriefing: true, label: 'Arquivo.pt' },
 ];
 
 function listCollectors() {
@@ -54,7 +54,7 @@ function getCollector(source) {
 function requireCollector(source) {
   const collector = getCollector(source);
   if (!collector) {
-    const err = new Error('Fonte de importação desconhecida. Usa «curiosidades-batch», «wikidata», «rtp» ou «ciencia-viva».');
+    const err = new Error('Fonte de importação desconhecida. Usa «curiosidades-batch», «wikidata», «rtp», «ciencia-viva», «arquivo-pt» ou «bnp».');
     err.code = 'INVALID_SOURCE';
     throw err;
   }

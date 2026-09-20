@@ -3,6 +3,8 @@
 const { parseBriefing, MAX_LIMIT } = require('./knowledge-import-briefing');
 const { collectRtpRecords, listRtpImportSources } = require('./rtp-ensina-collect');
 const { collectCienciaVivaRecords, listCienciaVivaImportSources } = require('./ciencia-viva-collect');
+const { collectArquivoRecords, listArquivoImportSources } = require('./arquivo-pt-collect');
+const { collectBnpRecords, listBnpImportSources } = require('./bnp-collect');
 const { persistWikidataRecords } = require('./wikidata-curiosidades-import');
 const {
   applyKnowledgeIdFilter,
@@ -10,7 +12,15 @@ const {
 } = require('./wikidata-keyword-search');
 
 function listWebImportSources() {
-  return [...listRtpImportSources(), ...listCienciaVivaImportSources()];
+  return [...listRtpImportSources(), ...listCienciaVivaImportSources(), ...listArquivoImportSources(), ...listBnpImportSources()];
+}
+
+function labelForWebSource(kind) {
+  if (kind === 'rtp') return 'RTP Ensina';
+  if (kind === 'ciencia-viva') return 'Ciência Viva';
+  if (kind === 'arquivo-pt') return 'Arquivo.pt';
+  if (kind === 'bnp') return 'Biblioteca Nacional';
+  return 'fonte web';
 }
 
 function collectorUnavailableError(err, label) {
@@ -50,7 +60,7 @@ async function importWebSourceFromOptions(cfg, {
     categoryN: briefing?.categoryN ?? categoryN,
     words: briefing?.words ?? words,
   });
-  const labels = kind === 'rtp' ? 'RTP Ensina' : 'Ciência Viva';
+  const labels = labelForWebSource(kind);
   const fromPreview = applyKnowledgeIdFilter(
     coerceImportRecords(Array.isArray(records) ? records : []),
     knowledgeIds,
@@ -62,6 +72,20 @@ async function importWebSourceFromOptions(cfg, {
       raw = fromPreview;
     } else if (kind === 'rtp') {
       raw = await collectRtpRecords({
+        categoryN: parsed.briefing.categoryN,
+        words: parsed.briefing.words,
+        limit: parsed.briefing.limit || MAX_LIMIT,
+        fetchFn,
+      });
+    } else if (kind === 'arquivo-pt') {
+      raw = await collectArquivoRecords({
+        categoryN: parsed.briefing.categoryN,
+        words: parsed.briefing.words,
+        limit: parsed.briefing.limit || MAX_LIMIT,
+        fetchFn,
+      });
+    } else if (kind === 'bnp') {
+      raw = await collectBnpRecords({
         categoryN: parsed.briefing.categoryN,
         words: parsed.briefing.words,
         limit: parsed.briefing.limit || MAX_LIMIT,

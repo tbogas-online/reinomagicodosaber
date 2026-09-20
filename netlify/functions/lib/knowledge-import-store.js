@@ -94,7 +94,7 @@ async function importSource(_event, { source, batch, dryRun, categoryN, words, p
     }
     return importWikidataCuriosidades(requireAdmin(), { dryRun, materializeQuestions: false, knowledgeIds });
   }
-  if (kind === 'rtp' || kind === 'ciencia-viva') {
+  if (kind === 'rtp' || kind === 'ciencia-viva' || kind === 'arquivo-pt' || kind === 'bnp') {
     const nested = briefing && typeof briefing === 'object' ? briefing : {};
     const parsed = parseBriefing({
       ...nested,

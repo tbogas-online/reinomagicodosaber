@@ -35,6 +35,7 @@
       'wikidata',
       'academia',
       'bnp',
+      'biblioteca nacional',
       'folclore',
       'pumpkin',
       'santander',

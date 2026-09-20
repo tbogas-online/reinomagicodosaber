@@ -33,14 +33,12 @@ assert('Wikidata activo', getCollector('wikidata')?.status === 'active' && getCo
 assert('lotes sem briefing', getCollector('curiosidades-batch')?.usesBriefing === false);
 assert('RTP activo', getCollector('rtp')?.status === 'active' && getCollector('rtp').usesBriefing);
 assert('Ciência Viva activo', getCollector('ciencia-viva')?.status === 'active');
+assert('Arquivo.pt activo', getCollector('arquivo-pt')?.status === 'active' && getCollector('arquivo-pt').usesBriefing);
+assert('BNP activo', getCollector('bnp')?.status === 'active' && getCollector('bnp').usesBriefing);
 assert('require Wikidata ok', requireCollector('wikidata').id === 'wikidata');
 assert('require RTP ok', requireCollector('rtp').id === 'rtp');
-try {
-  requireCollector('bnp');
-  assert('require BNP falha', false);
-} catch (err) {
-  assert('require BNP falha', err.code === 'COLLECTOR_UNAVAILABLE');
-}
+assert('require Arquivo.pt ok', requireCollector('arquivo-pt').id === 'arquivo-pt');
+assert('require BNP ok', requireCollector('bnp').id === 'bnp');
 try {
   requireCollector('nasa');
   assert('fonte desconhecida falha', false);

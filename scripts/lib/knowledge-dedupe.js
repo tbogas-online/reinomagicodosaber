@@ -14,6 +14,8 @@ const SOURCE_RANK = {
   Wikidata: 45,
   'RTP Ensina': 68,
   'Ciência Viva': 70,
+  'Arquivo.pt': 58,
+  'Biblioteca Nacional': 74,
   'Quero Bolsa': 40,
   sample: 10,
 };
@@ -37,6 +39,8 @@ function idTier(knowledgeId) {
   if (/-cur-wd-/.test(id)) return 62;
   if (/-rtp-/.test(id)) return 64;
   if (/-cv-/.test(id)) return 66;
+  if (/-arq-/.test(id)) return 60;
+  if (/-bnp-/.test(id)) return 68;
   if (/-mm-/.test(id)) return 85;
   if (/-web-/.test(id)) return 50;
   if (/-adv-daily-/.test(id)) return 45;
