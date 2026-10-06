@@ -9,3 +9,6 @@
 # Dependências
 node_modules/
 
+# Gerado pelo Netlify Dev (bundler de Edge Functions)
+deno.lock
+
