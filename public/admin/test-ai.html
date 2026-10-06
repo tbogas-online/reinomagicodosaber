@@ -3,31 +3,45 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20261006-115722">
+  <meta name="app-build" content="20261006-123529">
   <title>Teste de IA — Reino Mágico do Saber</title>
   <link rel="icon" href="/favicon.ico">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+  <script>
+    try { if (localStorage.getItem('reino_magico_theme') === 'day') document.documentElement.setAttribute('data-theme', 'day'); } catch (e) {}
+  </script>
   <style>
     :root {
-      --night: #0f1f18;
-      --night-2: #162820;
+      --night: #0e1c15;
+      --night-2: #1b3327;
       --gold: #c9a227;
       --gold-bright: #eecb6b;
-      --parchment: #f3ead8;
-      --parchment-dim: #c8bda8;
+      --parchment: #f2e6c4;
+      --parchment-dim: #e4d3a6;
+      --teal: #2f9e78;
+      --violet: #7d5bc4;
+      --ember: #c0632f;
       --ok: #3ecf72;
       --err: #f4a6a8;
       --warn: #f0c674;
       --quota-ok: #86efac;
       --quota-warn: #fde68a;
       --quota-err: #fca5a5;
+      --bg-glow-a: rgba(125,91,196,0.14);
+      --bg-glow-b: rgba(47,158,120,0.18);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100dvh;
-      font-family: Georgia, "Times New Roman", serif;
+      font-family: 'EB Garamond', Georgia, "Times New Roman", serif;
       color: var(--parchment);
-      background: linear-gradient(180deg, var(--night), var(--night-2));
+      background:
+        radial-gradient(ellipse at 20% 15%, var(--bg-glow-a), transparent 55%),
+        radial-gradient(ellipse at 85% 80%, var(--bg-glow-b), transparent 50%),
+        linear-gradient(180deg, var(--night), var(--night-2));
       padding: 24px 16px 40px;
     }
     .wrap {
@@ -35,6 +49,7 @@
       margin: 0 auto;
     }
     h1 {
+      font-family: Cinzel, Georgia, serif;
       font-size: clamp(1.4rem, 4vw, 1.9rem);
       color: var(--gold-bright);
       margin: 0 0 6px;
@@ -252,7 +267,7 @@
     .quota-bar > span{
       display:block;
       height:100%;
-      background:linear-gradient(90deg, #3ecf72, #eecb6b);
+      background:linear-gradient(90deg, var(--teal), var(--gold-bright));
       border-radius:999px;
     }
     .quota-bar.warn > span{ background:linear-gradient(90deg, #f0c674, #f97316); }
@@ -290,11 +305,16 @@
       --parchment-dim:#4a4636;
       --gold:#9a7218;
       --gold-bright:#7a5a0f;
+      --teal:#146b52;
+      --violet:#5f3f9e;
+      --ember:#9a4518;
       --quota-ok:#166534;
       --quota-warn:#a16207;
       --quota-err:#b91c1c;
       --err:#b91c1c;
       --warn:#a16207;
+      --bg-glow-a: rgba(154,114,24,0.10);
+      --bg-glow-b: rgba(20,107,82,0.08);
     }
     :root[data-theme="day"] .card{
       background:rgba(255,255,255,0.88);
@@ -466,15 +486,16 @@
       <label for="model">Modelo (opcional)</label>
       <select id="model">
         <option value="auto">Automático (servidor)</option>
-        <optgroup label="Groq">
-          <option value="qwen/qwen3.6-27b">Qwen 3.6 27B</option>
+        <optgroup label="Groq" id="groq-model-group">
+          <option value="qwen/qwen3.8-27b">Qwen 3.8 27B</option>
           <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
           <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
         </optgroup>
-        <optgroup label="Anthropic">
-          <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+        <optgroup label="Anthropic" id="anthropic-model-group">
+          <option value="claude-haiku-4-5">Claude Haiku 4.5</option>
+          <option value="claude-sonnet-5">Claude Sonnet 5</option>
         </optgroup>
-        <optgroup label="OpenAI">
+        <optgroup label="OpenAI" id="openai-model-group">
           <option value="gpt-4o-mini">GPT-4o mini</option>
           <option value="gpt-4.1-mini">GPT-4.1 mini</option>
           <option value="gpt-4o">GPT-4o</option>
@@ -509,7 +530,7 @@
         <li><strong>OpenAI sem créditos</strong> — a conta precisa de saldo em <a href="https://platform.openai.com/settings/organization/billing" target="_blank" rel="noopener">platform.openai.com</a> (o backend já está actualizado).</li>
         <li><strong>Backend desatualizado / Groq quando escolheste OpenAI</strong> — o zip manual no Netlify <strong>não atualiza as Functions</strong>. Usa <code>.\scripts\deploy-netlify.ps1</code> ou liga o Git (ver LEIA-ME.md).</li>
         <li><strong>429 Demasiados pedidos</strong> — limite da <em>app</em> (não da Groq/OpenAI). Espera cerca de 1 minuto. O selo OK nas quotas dos servidores pode continuar verde.</li>
-        <li><strong>502 / 429 Groq</strong> — quota diária esgotada <em>ou</em> modelo gpt-oss sem tokens de saída suficientes (raciocínio interno). Tenta <code>qwen/qwen3.6-27b</code>, espera o reset, ou adiciona <code>OPENAI_API_KEY</code>.</li>
+        <li><strong>502 / 429 Groq</strong> — quota diária esgotada <em>ou</em> modelo gpt-oss sem tokens de saída suficientes (raciocínio interno). Tenta o Qwen actual da lista, espera o reset, ou adiciona <code>OPENAI_API_KEY</code>.</li>
         <li><strong>500 sem chave</strong> — falta <code>GROQ_API_KEY</code> (ou outra) em Environment variables.</li>
         <li><strong>404</strong> — deploy sem <code>netlify/functions</code> ou sem redirect para <code>/api/generate</code>.</li>
       </ul>
@@ -521,7 +542,7 @@
     </div>
   </div>
 
-  <script src="/admin-auth.js?v=20261006-115722"></script>
+  <script src="/admin-auth.js?v=20261006-123529"></script>
   <script>
     function adminApiHeaders(extra = {}) {
       return window.ReinoAdminAuth?.headers({ 'Content-Type': 'application/json', ...extra })
@@ -567,8 +588,9 @@
 
     function isProviderQuotaBlocked(summary) {
       if (!summary) return false;
-      if (summary.usable === false) return true;
-      return summary.availability === 'limited' || summary.availability === 'billing';
+      if (summary.availability === 'error') return false;
+      if (summary.availability === 'billing' || summary.availability === 'limited') return true;
+      return false;
     }
 
     function isProviderAvailableForSelection(id, quota) {
@@ -696,19 +718,29 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
       }
     }
 
+    function firstLiveModel(groupId, fallback) {
+      const opt = document.getElementById(groupId)?.querySelector('option');
+      return opt?.value || fallback;
+    }
+
     function syncModelToProvider() {
       const prov = document.getElementById('provider').value;
       const modelEl = document.getElementById('model');
-      if (prov === 'openai') modelEl.value = 'gpt-4o-mini';
-      else if (prov === 'anthropic') modelEl.value = 'claude-haiku-4-5-20251001';
+      if (prov === 'openai') modelEl.value = firstLiveModel('openai-model-group', 'gpt-4o-mini');
+      else if (prov === 'anthropic') modelEl.value = firstLiveModel('anthropic-model-group', 'claude-haiku-4-5');
       else if (prov === 'groq') modelEl.value = 'auto';
       else modelEl.value = 'auto';
     }
     const MODEL_LABELS = {
       'openai/gpt-oss-20b': 'GPT-OSS 20B',
       'openai/gpt-oss-120b': 'GPT-OSS 120B',
+      'qwen/qwen3.8-27b': 'Qwen 3.8 27B',
       'qwen/qwen3.6-27b': 'Qwen 3.6 27B',
+      'claude-haiku-4-5': 'Claude Haiku 4.5',
       'claude-haiku-4-5-20251001': 'Claude Haiku 4.5',
+      'claude-sonnet-5': 'Claude Sonnet 5',
+      'claude-sonnet-4-5-20250929': 'Claude Sonnet 4.5',
+      'claude-3-5-haiku-20241022': 'Claude 3.5 Haiku',
       'gpt-4o-mini': 'GPT-4o mini',
       'gpt-4.1-mini': 'GPT-4.1 mini',
       'gpt-4o': 'GPT-4o',
@@ -724,7 +756,16 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
     }
 
     function modelLabel(modelId) {
-      return MODEL_LABELS[modelId] || modelId || '—';
+      if (MODEL_LABELS[modelId]) return MODEL_LABELS[modelId];
+      const m = String(modelId || '');
+      if (/^gpt-4o-mini/i.test(m)) return 'GPT-4o mini';
+      if (/^gpt-4\.1-mini/i.test(m)) return 'GPT-4.1 mini';
+      if (/^gpt-4o/i.test(m)) return 'GPT-4o';
+      if (/haiku/i.test(m)) return 'Claude Haiku';
+      if (/sonnet/i.test(m)) return 'Claude Sonnet';
+      const qwen = m.match(/^qwen\/qwen([\d.]+)-(\d+b)$/i);
+      if (qwen) return `Qwen ${qwen[1]} ${qwen[2].toUpperCase()}`;
+      return m || '—';
     }
 
     function extractModelFromError(data) {
@@ -1174,14 +1215,14 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
     }
 
     function availabilityMeta(summary) {
-      if (summary?.usable === false || summary?.availability === 'limited') {
-        return { label: 'Aguardar reset', cls: 'limited' };
-      }
       switch (summary?.availability) {
         case 'ok': return { label: 'OK', cls: 'ok' };
         case 'billing': return { label: 'Sem créditos', cls: 'billing' };
         case 'error': return { label: 'Erro', cls: 'error' };
-        default: return { label: 'Sem dados', cls: 'unknown' };
+        case 'limited': return { label: 'Aguardar reset', cls: 'limited' };
+        default:
+          if (summary?.usable === false) return { label: 'Aguardar reset', cls: 'limited' };
+          return { label: 'Sem dados', cls: 'unknown' };
       }
     }
 
@@ -1215,7 +1256,7 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
       const message = summary.message
         ? `<div class="usage-row"><span class="usage-key">Nota</span><span class="usage-val">${escapeHtml(summary.message.slice(0, 180))}</span></div>`
         : '';
-      const statusHint = summary.usable === false
+      const statusHint = summary.availability === 'limited'
         ? `<div class="usage-row"><span class="usage-key">Aviso</span><span class="usage-val quota-status-hint ${meta.cls}">Não enviar pedidos até ao reset</span></div>`
         : '';
       const latencyLine = summary.latency_ms != null
@@ -1249,6 +1290,55 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;');
+    }
+
+    function familyOfModel(provider, id) {
+      const m = String(id || '');
+      if (provider === 'groq') {
+        if (/^qwen\//i.test(m)) return 'qwen';
+        if (/^openai\/gpt-oss-20b/i.test(m)) return 'gpt-oss-20b';
+        if (/^openai\/gpt-oss-120b/i.test(m)) return 'gpt-oss-120b';
+        return '';
+      }
+      if (provider === 'openai') {
+        if (/^gpt-4o-mini/i.test(m)) return 'gpt-4o-mini';
+        if (/^gpt-4\.1-mini/i.test(m)) return 'gpt-4.1-mini';
+        if (/^gpt-4o/i.test(m)) return 'gpt-4o';
+        return '';
+      }
+      if (provider === 'anthropic') {
+        if (/haiku/i.test(m)) return 'haiku';
+        if (/sonnet/i.test(m)) return 'sonnet';
+      }
+      return '';
+    }
+
+    function applyLiveProviderCatalog(data, provider, groupId) {
+      const live = data?.catalog?.[provider];
+      if (!Array.isArray(live) || !live.length) return;
+      const group = document.getElementById(groupId);
+      if (!group) return;
+      const current = document.getElementById('model')?.value;
+      group.innerHTML = live.map((row) => (
+        `<option value="${escapeHtml(row.id)}">${escapeHtml(row.label || row.id)}</option>`
+      )).join('');
+      live.forEach((row) => { MODEL_LABELS[row.id] = row.label || row.id; });
+      const modelEl = document.getElementById('model');
+      if (!modelEl || !current || current === 'auto') return;
+      const ids = new Set(live.map((row) => row.id));
+      if (ids.has(current)) return;
+      if (inferProviderFromModel(current) !== provider) return;
+      const family = familyOfModel(provider, current);
+      const match = family
+        ? live.find((row) => familyOfModel(provider, row.id) === family)
+        : live[0];
+      if (match) modelEl.value = match.id;
+    }
+
+    function applyLiveAiCatalogs(data) {
+      applyLiveProviderCatalog(data, 'groq', 'groq-model-group');
+      applyLiveProviderCatalog(data, 'openai', 'openai-model-group');
+      applyLiveProviderCatalog(data, 'anthropic', 'anthropic-model-group');
     }
 
     function renderServerQuotas(data) {
@@ -1304,6 +1394,7 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
         const c = data.configured || {};
         renderServerKeys(c);
         updateProviderSelectAvailability(data);
+        applyLiveAiCatalogs(data);
         renderServerQuotas(data);
         startQuotaCountdown();
       } catch {
@@ -1332,6 +1423,6 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
 
     ReinoAdminAuth.initGate({ appEl: document.getElementById('adminApp') });
   </script>
-  <script src="/app-update.js?v=20261006-115722" defer></script>
+  <script src="/app-update.js?v=20261006-123529" defer></script>
 </body>
 </html>

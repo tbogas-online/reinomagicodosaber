@@ -1,20 +1,19 @@
 // Verifica quotas/limites de tokens por modelo (pedido mínimo a cada API).
 // GET /api/ai-status
 
-const GROQ_MODEL_ALIASES = {};
 const { isProviderEnabled, getActiveModelsSnapshot } = require('../../netlify/functions/lib/ai-model-config.js');
-
-const PROBE_MODELS = {
-  groq: ['qwen/qwen3.6-27b', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
-  openai: ['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini'],
-  anthropic: ['claude-haiku-4-5-20251001', 'claude-sonnet-4-5-20250929', 'claude-3-5-haiku-20241022'],
-};
+const {
+  isMissingModelMessage,
+  rebuildFallbackOrder,
+  catalogOptions,
+  fetchProviderCatalog,
+} = require('../../netlify/functions/lib/ai-model-catalog.js');
 
 const PROVIDER_LABELS = { groq: 'Groq', openai: 'OpenAI', anthropic: 'Anthropic' };
 const PRIMARY_MODELS = {
   groq: 'openai/gpt-oss-120b',
   openai: 'gpt-4o-mini',
-  anthropic: 'claude-haiku-4-5-20251001',
+  anthropic: 'claude-haiku-4-5',
 };
 
 exports.handler = async (event) => {
@@ -28,12 +27,16 @@ exports.handler = async (event) => {
   const anthropicKey = (process.env.ANTHROPIC_API_KEY || '').trim();
 
   const providers = {};
+  const catalog = { groq: [], openai: [], anthropic: [] };
 
   if (groqKey && isProviderEnabled('groq')) {
     providers.groq = { label: PROVIDER_LABELS.groq, models: [] };
-    const accountLimits = await probeGroqAccountLimits(groqKey);
+    const groqCatalog = await fetchProviderCatalog('groq', groqKey);
+    const accountLimits = await probeGroqAccountLimitsFromCatalog(groqCatalog);
     if (accountLimits) providers.groq.models.push(accountLimits);
-    for (const model of PROBE_MODELS.groq) {
+    catalog.groq = catalogOptions('groq', groqCatalog.ids || []);
+    const probeIds = rebuildFallbackOrder('groq', null, groqCatalog.ids || []);
+    for (const model of probeIds) {
       providers.groq.models.push(await probeGroqModel(groqKey, model));
     }
     providers.groq.summary = summarizeProvider('groq', providers.groq.models);
@@ -41,7 +44,10 @@ exports.handler = async (event) => {
 
   if (openaiKey && isProviderEnabled('openai')) {
     providers.openai = { label: PROVIDER_LABELS.openai, models: [] };
-    for (const model of PROBE_MODELS.openai) {
+    const openaiCatalog = await fetchProviderCatalog('openai', openaiKey);
+    catalog.openai = catalogOptions('openai', openaiCatalog.ids || []);
+    const probeIds = rebuildFallbackOrder('openai', null, openaiCatalog.ids || []);
+    for (const model of probeIds) {
       providers.openai.models.push(await probeOpenAiModel(openaiKey, model));
     }
     providers.openai.summary = summarizeProvider('openai', providers.openai.models);
@@ -49,7 +55,10 @@ exports.handler = async (event) => {
 
   if (anthropicKey && isProviderEnabled('anthropic')) {
     providers.anthropic = { label: PROVIDER_LABELS.anthropic, models: [] };
-    for (const model of PROBE_MODELS.anthropic) {
+    const anthropicCatalog = await fetchProviderCatalog('anthropic', anthropicKey);
+    catalog.anthropic = catalogOptions('anthropic', anthropicCatalog.ids || []);
+    const probeIds = rebuildFallbackOrder('anthropic', null, anthropicCatalog.ids || []);
+    for (const model of probeIds) {
       providers.anthropic.models.push(await probeAnthropicModel(anthropicKey, model));
     }
     providers.anthropic.summary = summarizeProvider('anthropic', providers.anthropic.models);
@@ -61,6 +70,7 @@ exports.handler = async (event) => {
     configured: configuredProvidersMeta(),
     active_models: getActiveModelsSnapshot(process.env),
     providers,
+    catalog,
     note: 'Valores estimados a partir dos cabeçalhos de rate limit ou da última resposta de cada modelo.',
   });
 };
@@ -75,6 +85,21 @@ function configuredProvidersMeta() {
 
 function elapsedMs(started) {
   return Math.max(0, Math.round(Date.now() - started));
+}
+
+async function probeGroqAccountLimitsFromCatalog(catalog) {
+  if (!catalog) return null;
+  return buildModelStatus({
+    provider: 'groq',
+    model: PRIMARY_MODELS.groq,
+    resolved: PRIMARY_MODELS.groq,
+    status: catalog.ok ? 'ok' : (catalog.status === 429 ? 'limited' : (catalog.message ? 'error' : 'ok')),
+    http_status: catalog.status || null,
+    message: catalog.ok ? null : localizeAiErrorText(catalog.message || ''),
+    headers: catalog.headers ? readOpenAiStyleHeaders(catalog.headers) : {},
+    fromBody: parseLimitFromBody(catalog.message || ''),
+    latency_ms: catalog.latencyMs || null,
+  });
 }
 
 async function probeGroqAccountLimits(apiKey) {
@@ -105,12 +130,11 @@ async function probeGroqAccountLimits(apiKey) {
 }
 
 async function probeGroqModel(apiKey, model) {
-  const resolved = GROQ_MODEL_ALIASES[model] || model;
   return probeOpenAiCompatible({
     endpoint: 'https://api.groq.com/openai/v1/chat/completions',
     apiKey,
     model,
-    resolved,
+    resolved: model,
     provider: 'groq',
   });
 }
@@ -376,15 +400,22 @@ function pickDisplayWindow(dayTokens, minuteTokens, dayRequests, blockers, messa
 
 function summarizeProvider(providerId, models) {
   if (!models?.length) return null;
-  const model = pickSummaryModel(providerId, models);
+  const live = models.filter((m) => !isMissingModelMessage(m.message, m.http_status));
+  const model = pickSummaryModel(providerId, live.length ? live : models);
   const billing = models.some((m) => /sem créditos|no credits remaining|insufficient_quota/i.test(m.message || ''))
     || /sem créditos|no credits remaining|insufficient_quota/i.test(model.message || '');
-  const anyLimited = models.some((m) => m.usable === false || m.status === 'limited');
+  const healthy = live.filter((m) => m.status === 'ok' && m.usable !== false);
+  const anyLimited = live.some((m) => m.status === 'limited'
+    || m.blocking_window
+    || m.tokens_remaining === 0
+    || m.tokens_day_remaining === 0
+    || m.requests_remaining === 0);
   let availability = 'unknown';
   if (billing) availability = 'billing';
+  else if (anyLimited && !healthy.length) availability = 'limited';
+  else if (healthy.length) availability = 'ok';
+  else if (model.status === 'error' || isMissingModelMessage(model.message, model.http_status)) availability = 'error';
   else if (anyLimited) availability = 'limited';
-  else if (model.status === 'ok') availability = 'ok';
-  else if (model.status === 'error') availability = 'error';
 
   return {
     provider: providerId,
@@ -425,7 +456,8 @@ function pickSummaryModel(providerId, models) {
   const score = (model) => {
     let value = 0;
     if (model.id === primaryId) value += 40;
-    if (model.usable === false) value += 120;
+    if (isMissingModelMessage(model.message, model.http_status)) value -= 250;
+    if (model.usable === false && !isMissingModelMessage(model.message, model.http_status)) value += 120;
     if (model.status === 'limited') value += 100;
     if (model.blocking_window === 'day') value += 90;
     if (model.limit_window === 'day') value += 80;
@@ -585,6 +617,8 @@ function formatResetAtLabel(iso) {
 
 function localizeAiErrorText(text) {
   return String(text || '')
+    .replace(/model `.+?` does not exist or you do not have access to it/gi, 'modelo indisponível nesta conta — o servidor escolhe outro da mesma família')
+    .replace(/does not exist or you do not have access/gi, 'não existe ou não tens acesso')
     .replace(/rate limit reached/gi, 'Limite de pedidos atingido')
     .replace(/\bfor model\b/gi, 'para o modelo')
     .replace(/\bin organization\b/gi, 'na organização')

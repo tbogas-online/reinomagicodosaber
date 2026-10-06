@@ -13,6 +13,13 @@ const {
   getActiveModelsSnapshot,
   isProviderEnabled,
 } = require('./lib/ai-model-config');
+const {
+  applyAlias,
+  resolveProviderModelId,
+  rebuildFallbackOrder,
+  expandAllowedSet,
+  fetchProviderCatalogIds,
+} = require('./lib/ai-model-catalog');
 
 function trackAiUsage(ok, enabled, meta = {}) {
   if (!enabled) return;
@@ -66,7 +73,7 @@ function parseModelsAttemptedTail(modelsAttempted = []) {
   const [provider, ...modelParts] = String(last).split(':');
   return { provider: provider || '', model: modelParts.join(':') || '' };
 }
-const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
+const ANTHROPIC_MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5';
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-4o-mini';
 const ANTHROPIC_VERSION = '2023-06-01';
 
@@ -80,23 +87,30 @@ const ALLOWED_PROVIDERS = ['groq', 'anthropic', 'openai'];
 const ANTHROPIC_JSON_SYSTEM = 'Responde apenas com json válido, sem markdown nem texto antes ou depois.';
 const GROQ_JSON_SYSTEM = ANTHROPIC_JSON_SYSTEM;
 const OPENAI_JSON_SYSTEM = ANTHROPIC_JSON_SYSTEM;
-const GROQ_MODEL_ALIASES = {};
-const GROQ_REASONING_MODELS = new Set(['openai/gpt-oss-120b', 'openai/gpt-oss-20b']);
 const GROQ_QWEN_MODEL_PATTERN = /^qwen\//i;
 const ALLOWED_MODELS = {
   groq: new Set([
     'openai/gpt-oss-120b',
     'openai/gpt-oss-20b',
+    'qwen/qwen3.8-27b',
     'qwen/qwen3.6-27b',
   ]),
-  anthropic: new Set(['claude-haiku-4-5-20251001', 'claude-sonnet-4-5-20250929', 'claude-3-5-haiku-20241022']),
-  openai: new Set(['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini']),
+  anthropic: new Set([
+    'claude-haiku-4-5',
+    'claude-haiku-4-5-20251001',
+    'claude-sonnet-5',
+    'claude-sonnet-5-5',
+    'claude-sonnet-4-5-20250929',
+    'claude-3-5-haiku-20241022',
+    'claude-3-5-haiku',
+  ]),
+  openai: new Set(['gpt-4o-mini', 'gpt-4o', 'gpt-4.1-mini', 'gpt-5-mini']),
 };
-// Em modo "auto", tenta estes modelos por fornecedor antes de saltar para o próximo.
+// Em modo "auto", tenta estas famílias por fornecedor; o catálogo vivo actualiza o ID.
 const MODEL_FALLBACK_ORDER = {
-  groq: ['qwen/qwen3.6-27b', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
+  groq: ['qwen/qwen3.8-27b', 'openai/gpt-oss-20b', 'openai/gpt-oss-120b'],
   openai: ['gpt-4o-mini', 'gpt-4.1-mini', 'gpt-4o'],
-  anthropic: ['claude-haiku-4-5-20251001', 'claude-3-5-haiku-20241022', 'claude-sonnet-4-5-20250929'],
+  anthropic: ['claude-haiku-4-5', 'claude-sonnet-5'],
 };
 
 // Best-effort per-instance protection. Serverless instances are ephemeral, so this
@@ -215,10 +229,11 @@ exports.handler = async (event) => {
     if (priorityProvider) {
       providerList = reorderProviderList(providerList, priorityProvider);
     }
+    const catalogs = await fetchLiveCatalogs(process.env);
     const activeModels = getActiveModelsSnapshot(process.env);
     if (activeModels.configured) {
       providerList = providerList.filter((provider) => (
-        resolveModelsForProvider(provider.name, 'auto', process.env).length > 0
+        resolveModelsForProvider(provider.name, 'auto', process.env, catalogs).length > 0
       ));
       if (!providerList.length) {
         trackAiUsage(false, trackUsage);
@@ -239,7 +254,7 @@ exports.handler = async (event) => {
       quotaConserve,
       priorityProvider,
       circuitBreaker,
-      resolveModels: (providerName) => resolveModelsForProvider(providerName, requestedModel, process.env),
+      resolveModels: (providerName) => resolveModelsForProvider(providerName, requestedModel, process.env, catalogs),
       callAttempt: async (provider, model) => {
         const maxTokens = effectiveMaxTokens(provider.name, model, requestedTokens);
         const started = Date.now();
@@ -397,45 +412,94 @@ function reorderProviderList(list, priorityName) {
   return [list[idx], ...list.filter((_, i) => i !== idx)];
 }
 
-function normalizeGroqModel(model, env) {
-  const raw = String(model || env.GROQ_MODEL || GROQ_MODEL).trim();
-  return GROQ_MODEL_ALIASES[raw] || raw;
+function isGroqGptOssModel(model) {
+  return /^openai\/gpt-oss-/i.test(String(model || ''));
 }
 
-function defaultModelFor(provider, env) {
+function normalizeCatalogs(catalogs) {
+  if (Array.isArray(catalogs)) return { groq: catalogs, openai: [], anthropic: [] };
+  return catalogs || { groq: [], openai: [], anthropic: [] };
+}
+
+async function fetchLiveCatalogs(envLike) {
+  const groqKey = (envLike.GROQ_API_KEY || '').trim();
+  const openaiKey = (envLike.OPENAI_API_KEY || '').trim();
+  const anthropicKey = (envLike.ANTHROPIC_API_KEY || '').trim();
+  const [groq, openai, anthropic] = await Promise.all([
+    groqKey ? fetchProviderCatalogIds('groq', groqKey) : Promise.resolve([]),
+    openaiKey ? fetchProviderCatalogIds('openai', openaiKey) : Promise.resolve([]),
+    anthropicKey ? fetchProviderCatalogIds('anthropic', anthropicKey) : Promise.resolve([]),
+  ]);
+  return { groq, openai, anthropic };
+}
+
+function idsForProvider(catalogs, provider) {
+  return normalizeCatalogs(catalogs)[provider] || [];
+}
+
+function rebuiltOrder(provider, catalogs) {
+  const ids = idsForProvider(catalogs, provider);
+  const order = rebuildFallbackOrder(provider, null, ids);
+  if (order.length) return order;
+  return (MODEL_FALLBACK_ORDER[provider] || []).map((id) => applyAlias(provider, id));
+}
+
+function normalizeModelId(provider, model, env, catalogs = {}) {
+  const ids = idsForProvider(catalogs, provider);
+  const fallback = rawDefaultModel(provider, env);
+  const raw = String(model || fallback).trim();
+  return resolveProviderModelId(provider, raw, ids) || applyAlias(provider, raw);
+}
+
+function rawDefaultModel(provider, env) {
   if (provider === 'anthropic') return env.ANTHROPIC_MODEL || ANTHROPIC_MODEL;
   if (provider === 'openai') return env.OPENAI_MODEL || OPENAI_MODEL;
-  return normalizeGroqModel(env.GROQ_MODEL || GROQ_MODEL, env);
+  return env.GROQ_MODEL || GROQ_MODEL;
 }
 
-function resolveModelForProvider(provider, requestedModel, env) {
-  const models = resolveModelsForProvider(provider, requestedModel, env);
+function defaultModelFor(provider, env, catalogs = {}) {
+  return normalizeModelId(provider, rawDefaultModel(provider, env), env, catalogs);
+}
+
+function resolveModelForProvider(provider, requestedModel, env, catalogs = {}) {
+  const models = resolveModelsForProvider(provider, requestedModel, env, catalogs);
   return models[0];
 }
 
-function resolveModelsForProvider(provider, requestedModel, env) {
+function resolveModelsForProvider(provider, requestedModel, env, catalogs = {}) {
+  const catalogsObj = normalizeCatalogs(catalogs);
   return resolveActiveModelsForProvider(provider, requestedModel, env, {
-    allowedModels: ALLOWED_MODELS,
-    defaultOrder: MODEL_FALLBACK_ORDER,
-    normalizeGroqModel,
-    defaultModelFor,
-    resolveModelForProviderSingle,
+    allowedModels: {
+      groq: expandAllowedSet('groq', ALLOWED_MODELS.groq, catalogsObj.groq),
+      openai: expandAllowedSet('openai', ALLOWED_MODELS.openai, catalogsObj.openai),
+      anthropic: expandAllowedSet('anthropic', ALLOWED_MODELS.anthropic, catalogsObj.anthropic),
+    },
+    defaultOrder: {
+      groq: rebuiltOrder('groq', catalogsObj),
+      openai: rebuiltOrder('openai', catalogsObj),
+      anthropic: rebuiltOrder('anthropic', catalogsObj),
+    },
+    normalizeModel: (p, id, e) => normalizeModelId(p, id, e, catalogsObj),
+    defaultModelFor: (p, e) => defaultModelFor(p, e, catalogsObj),
+    resolveModelForProviderSingle: (p, m, e) => resolveModelForProviderSingle(p, m, e, catalogsObj),
   });
 }
 
-function resolveModelForProviderSingle(provider, requestedModel, env) {
+function resolveModelForProviderSingle(provider, requestedModel, env, catalogs = {}) {
+  const catalogsObj = normalizeCatalogs(catalogs);
   const model = String(requestedModel || '').trim();
-  if (!model || model === 'auto') return defaultModelFor(provider, env);
-  const allowed = ALLOWED_MODELS[provider];
-  if (allowed && allowed.has(model)) {
-    return provider === 'groq' ? normalizeGroqModel(model, env) : model;
+  if (!model || model === 'auto') return defaultModelFor(provider, env, catalogsObj);
+  const allowed = expandAllowedSet(provider, ALLOWED_MODELS[provider], idsForProvider(catalogsObj, provider));
+  const resolved = normalizeModelId(provider, model, env, catalogsObj);
+  if (allowed && (allowed.has(model) || allowed.has(resolved))) {
+    return resolved;
   }
-  return defaultModelFor(provider, env);
+  return defaultModelFor(provider, env, catalogsObj);
 }
 
 function effectiveMaxTokens(provider, model, requested) {
   const base = Math.min(Math.max(Number(requested) || 300, 50), MAX_OUTPUT_TOKENS);
-  if (provider === 'groq' && GROQ_REASONING_MODELS.has(model)) {
+  if (provider === 'groq' && isGroqGptOssModel(model)) {
     // Modelos gpt-oss gastam tokens em raciocínio interno; probes curtos mantêm o pedido pequeno.
     if (base <= REASONING_PROBE_MAX_TOKENS) return base;
     return Math.min(Math.max(base, 800), MAX_REASONING_OUTPUT_TOKENS);
@@ -481,7 +545,7 @@ function isEmptyLengthError(err) {
 async function callOpenAICompatible({ endpoint, apiKey, model, messages, maxTokens, providerLabel, providerName }){
   const isGroq = providerLabel === 'Groq';
   const tokenAttempts = [maxTokens];
-  if (isGroq && GROQ_REASONING_MODELS.has(model) && maxTokens < MAX_REASONING_OUTPUT_TOKENS) {
+  if (isGroq && isGroqGptOssModel(model) && maxTokens < MAX_REASONING_OUTPUT_TOKENS) {
     tokenAttempts.push(MAX_REASONING_OUTPUT_TOKENS);
   }
 
@@ -533,7 +597,7 @@ async function callOpenAICompatibleOnce({ endpoint, apiKey, model, messages, max
     requestBody.reasoning_effort = 'none';
     if (useJsonFormat) requestBody.reasoning_format = 'hidden';
   }
-  if (isGroq && GROQ_REASONING_MODELS.has(model)) {
+  if (isGroq && isGroqGptOssModel(model)) {
     requestBody.reasoning_effort = 'low';
     requestBody.include_reasoning = false;
   }
@@ -760,7 +824,7 @@ function formatProviderFailure(errors, attempted = [], opts = {}) {
       : '';
     return json(429, {
       error: 'Limite de tokens de saída atingido neste pedido.',
-      detail: `${detail}${reasoningHint} Tenta outro modelo (ex.: qwen/qwen3.6-27b) ou reduz o tamanho do pedido.`,
+      detail: `${detail}${reasoningHint} Tenta outro modelo (ex.: Qwen actual na Groq) ou reduz o tamanho do pedido.`,
       ...meta,
     });
   }
