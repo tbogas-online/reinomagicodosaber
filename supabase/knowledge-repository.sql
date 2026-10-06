@@ -30,6 +30,7 @@ CREATE TABLE IF NOT EXISTS public.knowledge_records (
   verified_at       DATE,
   verified_by       TEXT,
   is_active         BOOLEAN NOT NULL DEFAULT true,
+  disabled_reason   TEXT,
   superseded_by     TEXT,
   usage_count       INT NOT NULL DEFAULT 0,
   metadata          JSONB NOT NULL DEFAULT '{}'::jsonb,
@@ -202,72 +203,78 @@ BEGIN
       CONTINUE;
     END IF;
 
-    INSERT INTO public.knowledge_records (
-      knowledge_id, category_n, topic, subtopic, fact, answer, clues,
-      statement, is_true, source, source_id, source_url, license,
-      confidence, priority_pt, age_bands, allowed_formats, tags,
-      verified_at, verified_by, metadata
-    ) VALUES (
-      item->>'knowledge_id',
-      (item->>'category_n')::INT,
-      item->>'topic',
-      NULLIF(item->>'subtopic', ''),
-      item->>'fact',
-      item->>'answer',
-      COALESCE(item->'clues', '[]'::jsonb),
-      NULLIF(item->>'statement', ''),
-      CASE WHEN item ? 'is_true' THEN (item->>'is_true')::BOOLEAN ELSE NULL END,
-      item->>'source',
-      item->>'source_id',
-      NULLIF(item->>'source_url', ''),
-      NULLIF(item->>'license', ''),
-      COALESCE((item->>'confidence')::NUMERIC, 0.900),
-      CASE WHEN item ? 'priority_pt' THEN (item->>'priority_pt')::INT ELSE NULL END,
-      COALESCE(
-        ARRAY(SELECT jsonb_array_elements_text(COALESCE(item->'age_bands', '["6-9","10-15","15+"]'::jsonb))),
-        ARRAY['6-9', '10-15', '15+']::TEXT[]
-      ),
-      COALESCE(
-        ARRAY(SELECT jsonb_array_elements_text(COALESCE(item->'allowed_formats', '["RESPOSTA_DIRETA"]'::jsonb))),
-        ARRAY['RESPOSTA_DIRETA']::TEXT[]
-      ),
-      COALESCE(
-        ARRAY(SELECT jsonb_array_elements_text(COALESCE(item->'tags', '[]'::jsonb))),
-        '{}'::TEXT[]
-      ),
-      CASE WHEN item->>'verified_at' IS NOT NULL THEN (item->>'verified_at')::DATE ELSE NULL END,
-      NULLIF(item->>'verified_by', ''),
-      COALESCE(item->'metadata', '{}'::jsonb)
-    )
-    ON CONFLICT (knowledge_id) DO UPDATE SET
-      category_n = EXCLUDED.category_n,
-      topic = EXCLUDED.topic,
-      subtopic = EXCLUDED.subtopic,
-      fact = EXCLUDED.fact,
-      answer = EXCLUDED.answer,
-      clues = EXCLUDED.clues,
-      statement = EXCLUDED.statement,
-      is_true = EXCLUDED.is_true,
-      source = EXCLUDED.source,
-      source_id = EXCLUDED.source_id,
-      source_url = EXCLUDED.source_url,
-      license = EXCLUDED.license,
-      confidence = EXCLUDED.confidence,
-      priority_pt = EXCLUDED.priority_pt,
-      age_bands = EXCLUDED.age_bands,
-      allowed_formats = EXCLUDED.allowed_formats,
-      tags = EXCLUDED.tags,
-      verified_at = EXCLUDED.verified_at,
-      verified_by = EXCLUDED.verified_by,
-      metadata = EXCLUDED.metadata,
-      updated_at = now();
+    BEGIN
+      INSERT INTO public.knowledge_records (
+        knowledge_id, category_n, topic, subtopic, fact, answer, clues,
+        statement, is_true, source, source_id, source_url, license,
+        confidence, priority_pt, age_bands, allowed_formats, tags,
+        verified_at, verified_by, metadata
+      ) VALUES (
+        item->>'knowledge_id',
+        (item->>'category_n')::INT,
+        item->>'topic',
+        NULLIF(item->>'subtopic', ''),
+        item->>'fact',
+        item->>'answer',
+        COALESCE(item->'clues', '[]'::jsonb),
+        NULLIF(item->>'statement', ''),
+        CASE WHEN item ? 'is_true' THEN (item->>'is_true')::BOOLEAN ELSE NULL END,
+        item->>'source',
+        item->>'source_id',
+        NULLIF(item->>'source_url', ''),
+        NULLIF(item->>'license', ''),
+        COALESCE((item->>'confidence')::NUMERIC, 0.900),
+        CASE WHEN item ? 'priority_pt' THEN (item->>'priority_pt')::INT ELSE NULL END,
+        COALESCE(
+          ARRAY(SELECT jsonb_array_elements_text(COALESCE(item->'age_bands', '["6-9","10-15","15+"]'::jsonb))),
+          ARRAY['6-9', '10-15', '15+']::TEXT[]
+        ),
+        COALESCE(
+          ARRAY(SELECT jsonb_array_elements_text(COALESCE(item->'allowed_formats', '["RESPOSTA_DIRETA"]'::jsonb))),
+          ARRAY['RESPOSTA_DIRETA']::TEXT[]
+        ),
+        COALESCE(
+          ARRAY(SELECT jsonb_array_elements_text(COALESCE(item->'tags', '[]'::jsonb))),
+          '{}'::TEXT[]
+        ),
+        CASE WHEN item->>'verified_at' IS NOT NULL THEN (item->>'verified_at')::DATE ELSE NULL END,
+        NULLIF(item->>'verified_by', ''),
+        COALESCE(item->'metadata', '{}'::jsonb)
+      )
+      ON CONFLICT (knowledge_id) DO UPDATE SET
+        category_n = EXCLUDED.category_n,
+        topic = EXCLUDED.topic,
+        subtopic = EXCLUDED.subtopic,
+        fact = EXCLUDED.fact,
+        answer = EXCLUDED.answer,
+        clues = EXCLUDED.clues,
+        statement = EXCLUDED.statement,
+        is_true = EXCLUDED.is_true,
+        source = EXCLUDED.source,
+        source_id = EXCLUDED.source_id,
+        source_url = EXCLUDED.source_url,
+        license = EXCLUDED.license,
+        confidence = EXCLUDED.confidence,
+        priority_pt = EXCLUDED.priority_pt,
+        age_bands = EXCLUDED.age_bands,
+        allowed_formats = EXCLUDED.allowed_formats,
+        tags = EXCLUDED.tags,
+        verified_at = EXCLUDED.verified_at,
+        verified_by = EXCLUDED.verified_by,
+        metadata = EXCLUDED.metadata,
+        updated_at = now();
 
-    GET DIAGNOSTICS v_rows = ROW_COUNT;
-    IF v_rows > 0 THEN
-      v_upserted := v_upserted + 1;
-    ELSE
-      v_skipped := v_skipped + 1;
-    END IF;
+      GET DIAGNOSTICS v_rows = ROW_COUNT;
+      IF v_rows > 0 THEN
+        v_upserted := v_upserted + 1;
+      ELSE
+        v_skipped := v_skipped + 1;
+      END IF;
+    EXCEPTION
+      WHEN unique_violation THEN
+        -- UNIQUE (source, source_id) com knowledge_id diferente: não sobrescrever o facto já gravado.
+        v_skipped := v_skipped + 1;
+    END;
   END LOOP;
 
   RETURN jsonb_build_object('ok', true, 'upserted', v_upserted, 'skipped', v_skipped);
@@ -275,24 +282,87 @@ END;
 $$;
 
 -- ---------------------------------------------------------------------------
--- RPC: desactivar registo (ex.: após reporte)
+-- RPC: desactivar registo (ex.: após reporte) com justificação
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.disable_knowledge_record(p_knowledge_id TEXT)
+DROP FUNCTION IF EXISTS public.disable_knowledge_record(TEXT);
+
+CREATE OR REPLACE FUNCTION public.disable_knowledge_record(
+  p_knowledge_id TEXT,
+  p_reason TEXT DEFAULT NULL
+)
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public
 AS $$
+DECLARE
+  v_reason TEXT;
 BEGIN
   IF p_knowledge_id IS NULL OR p_knowledge_id = '' THEN
     RETURN jsonb_build_object('ok', false);
   END IF;
 
-  UPDATE public.knowledge_records
-  SET is_active = false, updated_at = now()
-  WHERE knowledge_id = p_knowledge_id AND is_active = true;
+  v_reason := NULLIF(left(trim(COALESCE(p_reason, '')), 400), '');
 
-  RETURN jsonb_build_object('ok', FOUND);
+  UPDATE public.knowledge_records
+  SET
+    is_active = false,
+    disabled_reason = COALESCE(v_reason, disabled_reason),
+    updated_at = now()
+  WHERE knowledge_id = p_knowledge_id;
+
+  RETURN jsonb_build_object('ok', FOUND, 'reason', v_reason);
+END;
+$$;
+
+-- ---------------------------------------------------------------------------
+-- RPC: apagar factos (admin) para permitir reimportação
+-- Remove o facto, perguntas do banco com o mesmo knowledge_id e eventos de reuso.
+-- ---------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.delete_knowledge_records(p_knowledge_ids TEXT[])
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_ids TEXT[];
+  v_deleted INT := 0;
+  v_bank INT := 0;
+  v_reuse INT := 0;
+BEGIN
+  SELECT COALESCE(array_agg(DISTINCT trimmed), '{}'::TEXT[])
+    INTO v_ids
+  FROM (
+    SELECT trim(id) AS trimmed
+    FROM unnest(COALESCE(p_knowledge_ids, '{}'::TEXT[])) AS id
+    WHERE trim(id) <> ''
+  ) s;
+
+  IF v_ids IS NULL OR cardinality(v_ids) = 0 THEN
+    RETURN jsonb_build_object('ok', false, 'deleted', 0, 'bankDeleted', 0, 'reuseDeleted', 0);
+  END IF;
+
+  IF to_regclass('public.question_reuse_events') IS NOT NULL THEN
+    DELETE FROM public.question_reuse_events
+    WHERE knowledge_id = ANY(v_ids);
+    GET DIAGNOSTICS v_reuse = ROW_COUNT;
+  END IF;
+
+  DELETE FROM public.question_bank
+  WHERE knowledge_id = ANY(v_ids);
+  GET DIAGNOSTICS v_bank = ROW_COUNT;
+
+  DELETE FROM public.knowledge_records
+  WHERE knowledge_id = ANY(v_ids);
+  GET DIAGNOSTICS v_deleted = ROW_COUNT;
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'deleted', v_deleted,
+    'bankDeleted', v_bank,
+    'reuseDeleted', v_reuse
+  );
 END;
 $$;
 
@@ -308,11 +378,19 @@ AS $$
 DECLARE
   v_total INT;
   v_active INT;
+  v_inactive INT;
   v_by_category JSONB;
   v_by_source JSONB;
+  v_by_source_topic JSONB;
+  v_by_day JSONB;
+  v_by_hour JSONB;
+  v_by_minute JSONB;
+  v_bank_linked JSONB;
+  v_bank_by_knowledge_source JSONB;
 BEGIN
   SELECT COUNT(*) INTO v_total FROM public.knowledge_records;
   SELECT COUNT(*) INTO v_active FROM public.knowledge_records WHERE is_active = true;
+  v_inactive := COALESCE(v_total, 0) - COALESCE(v_active, 0);
 
   SELECT COALESCE(jsonb_agg(
     jsonb_build_object('category_n', t.category_n, 'topic', t.topic, 'count', t.cnt)
@@ -327,21 +405,145 @@ BEGIN
   ) t;
 
   SELECT COALESCE(jsonb_agg(
-    jsonb_build_object('source', t.source, 'count', t.cnt) ORDER BY t.cnt DESC, t.source
+    jsonb_build_object(
+      'source', t.source,
+      'count', t.active,
+      'active', t.active,
+      'inactive', t.inactive,
+      'total', t.total
+    ) ORDER BY t.active DESC, t.source
   ), '[]'::jsonb)
   INTO v_by_source
   FROM (
-    SELECT source, COUNT(*)::INT AS cnt
+    SELECT
+      source,
+      COUNT(*) FILTER (WHERE is_active)::INT AS active,
+      COUNT(*) FILTER (WHERE NOT is_active)::INT AS inactive,
+      COUNT(*)::INT AS total
     FROM public.knowledge_records
-    WHERE is_active = true
     GROUP BY source
+  ) t;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'source', t.source,
+      'category_n', t.category_n,
+      'topic', t.topic,
+      'active', t.active,
+      'inactive', t.inactive,
+      'total', t.total
+    ) ORDER BY t.active DESC, t.source, t.topic
+  ), '[]'::jsonb)
+  INTO v_by_source_topic
+  FROM (
+    SELECT
+      source,
+      category_n,
+      topic,
+      COUNT(*) FILTER (WHERE is_active)::INT AS active,
+      COUNT(*) FILTER (WHERE NOT is_active)::INT AS inactive,
+      COUNT(*)::INT AS total
+    FROM public.knowledge_records
+    GROUP BY source, category_n, topic
+  ) t;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'day', to_char(t.day, 'YYYY-MM-DD'),
+      'source', t.source,
+      'count', t.cnt
+    ) ORDER BY t.day, t.source
+  ), '[]'::jsonb)
+  INTO v_by_day
+  FROM (
+    SELECT
+      (created_at AT TIME ZONE 'Europe/Lisbon')::date AS day,
+      source,
+      COUNT(*)::INT AS cnt
+    FROM public.knowledge_records
+    GROUP BY 1, 2
+  ) t;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'hour', t.hour_key,
+      'source', t.source,
+      'count', t.cnt
+    ) ORDER BY t.hour_key, t.source
+  ), '[]'::jsonb)
+  INTO v_by_hour
+  FROM (
+    SELECT
+      to_char(
+        date_trunc('hour', created_at AT TIME ZONE 'Europe/Lisbon'),
+        'YYYY-MM-DD"T"HH24'
+      ) AS hour_key,
+      source,
+      COUNT(*)::INT AS cnt
+    FROM public.knowledge_records
+    WHERE created_at >= now() - interval '24 hours'
+    GROUP BY 1, 2
+  ) t;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object(
+      'minute', t.minute_key,
+      'source', t.source,
+      'count', t.cnt
+    ) ORDER BY t.minute_key, t.source
+  ), '[]'::jsonb)
+  INTO v_by_minute
+  FROM (
+    SELECT
+      to_char(
+        date_bin(
+          interval '5 minutes',
+          created_at AT TIME ZONE 'Europe/Lisbon',
+          timestamp '2000-01-01'
+        ),
+        'YYYY-MM-DD"T"HH24:MI'
+      ) AS minute_key,
+      source,
+      COUNT(*)::INT AS cnt
+    FROM public.knowledge_records
+    WHERE created_at >= now() - interval '6 hours'
+    GROUP BY 1, 2
+  ) t;
+
+  SELECT jsonb_build_object(
+    'total', COUNT(*)::INT,
+    'withKnowledgeId', COUNT(*) FILTER (
+      WHERE knowledge_id IS NOT NULL AND btrim(knowledge_id) <> ''
+    )::INT
+  )
+  INTO v_bank_linked
+  FROM public.question_bank;
+
+  SELECT COALESCE(jsonb_agg(
+    jsonb_build_object('source', t.source, 'count', t.cnt)
+    ORDER BY t.cnt DESC, t.source
+  ), '[]'::jsonb)
+  INTO v_bank_by_knowledge_source
+  FROM (
+    SELECT COALESCE(kr.source, '(facto removido)') AS source, COUNT(*)::INT AS cnt
+    FROM public.question_bank qb
+    LEFT JOIN public.knowledge_records kr ON kr.knowledge_id = qb.knowledge_id
+    WHERE qb.knowledge_id IS NOT NULL AND btrim(qb.knowledge_id) <> ''
+    GROUP BY 1
   ) t;
 
   RETURN jsonb_build_object(
     'total', v_total,
     'active', v_active,
+    'inactive', v_inactive,
     'byCategoryTopic', v_by_category,
-    'bySource', v_by_source
+    'bySource', v_by_source,
+    'bySourceTopic', v_by_source_topic,
+    'byDay', v_by_day,
+    'byHour', v_by_hour,
+    'byMinute', v_by_minute,
+    'bankLinked', v_bank_linked,
+    'bankByKnowledgeSource', v_bank_by_knowledge_source
   );
 END;
 $$;
@@ -430,8 +632,11 @@ GRANT EXECUTE ON FUNCTION public.pick_knowledge_record(INT, TEXT, TEXT, TEXT, TE
 REVOKE ALL ON FUNCTION public.import_knowledge_batch(JSONB) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.import_knowledge_batch(JSONB) TO service_role;
 
-REVOKE ALL ON FUNCTION public.disable_knowledge_record(TEXT) FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.disable_knowledge_record(TEXT) TO service_role;
+REVOKE ALL ON FUNCTION public.disable_knowledge_record(TEXT, TEXT) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.disable_knowledge_record(TEXT, TEXT) TO service_role;
+
+REVOKE ALL ON FUNCTION public.delete_knowledge_records(TEXT[]) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.delete_knowledge_records(TEXT[]) TO service_role;
 
 REVOKE ALL ON FUNCTION public.get_knowledge_repository_stats() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.get_knowledge_repository_stats() TO service_role;

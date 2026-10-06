@@ -17,16 +17,18 @@ function normalizeRecord(raw) {
     fact: r.fact,
     answer: r.answer,
     clues: Array.isArray(r.clues) ? r.clues : [],
+    statement: r.statement,
+    topic: r.topic,
   });
   return {
     knowledge_id: String(r.knowledge_id || r.knowledgeId || '').trim(),
     category_n: Number(r.category_n ?? r.category ?? 0),
-    topic: String(r.topic || '').trim(),
+    topic: pt.topic || String(r.topic || '').trim(),
     subtopic: r.subtopic ? String(r.subtopic).trim() : null,
     fact: pt.fact || String(r.fact || '').trim(),
     answer: pt.answer || String(r.answer || '').trim(),
     clues: pt.clues.length ? pt.clues : (Array.isArray(r.clues) ? r.clues.map(String) : []),
-    statement: r.statement ? String(r.statement) : null,
+    statement: pt.statement || (r.statement ? String(r.statement) : null),
     is_true: r.is_true ?? r.isTrue ?? null,
     source: String(r.source || '').trim(),
     source_id: String(r.source_id || r.sourceId || '').trim(),
@@ -109,7 +111,22 @@ function pickItemsForToday(items) {
   return picked;
 }
 
+function dedupeBySourceKey(records) {
+  const seen = new Set();
+  const out = [];
+  for (const rec of records || []) {
+    const source = String(rec?.source || '').trim();
+    const sourceId = String(rec?.source_id || rec?.sourceId || '').trim();
+    const key = `${source}\0${sourceId}`;
+    if (!source || !sourceId || seen.has(key)) continue;
+    seen.add(key);
+    out.push(rec);
+  }
+  return out;
+}
+
 async function importBatch(supabaseUrl, serviceKey, records) {
+  const payload = dedupeBySourceKey(records);
   const url = `${supabaseUrl.replace(/\/$/, '')}/rest/v1/rpc/import_knowledge_batch`;
   const response = await fetch(url, {
     method: 'POST',
@@ -118,7 +135,7 @@ async function importBatch(supabaseUrl, serviceKey, records) {
       apikey: serviceKey,
       Authorization: `Bearer ${serviceKey}`,
     },
-    body: JSON.stringify({ p_items: records }),
+    body: JSON.stringify({ p_items: payload }),
   });
 
   const data = await response.json().catch(() => ({}));
@@ -144,5 +161,6 @@ module.exports = {
   mergeQueueWithOverrides,
   pickItemsForToday,
   importBatch,
+  dedupeBySourceKey,
   summarizeQueue,
 };

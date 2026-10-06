@@ -23,10 +23,14 @@ const {
 } = require('./review-sync');
 
 const MAX_EVENTS = 10000;
+const STATS_REVIEWABLE_EVENT_LIMIT = 2500;
 const TABLE = 'gen_telemetry_events';
 
 const VALID_OUTCOMES = new Set(['accepted', 'rejected', 'parse_error', 'api_error', 'unknown']);
 const VALID_GAME_MODES = new Set(['local', 'multiplayer', 'test']);
+
+const TELEMETRY_ROW_BASE_SELECT = 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options,provider,model,attempt';
+const TELEMETRY_ROW_STATS_LIGHT_SELECT = 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,provider,model,attempt,bank_validated_at,bank_question_hash,bank_validated_edited,dismissed_at';
 
 function clip(value, max) {
   return String(value || '').trim().slice(0, max);
@@ -142,9 +146,16 @@ function isMissingExtendedTelemetryColumnError(msg) {
     || isMissingBankValidatedEditedColumnError(msg);
 }
 
-const TELEMETRY_ROW_BASE_SELECT = 'id,event_ts,outcome,category,format_id,age_band_key,difficulty,game_mode,source,issue_codes,issue_messages,question_text,answer_text,question_options,provider,model,attempt';
-
-function buildTelemetryRowSelectVariants({ requireDismissedColumn = false } = {}) {
+function buildTelemetryRowSelectVariants({ requireDismissedColumn = false, statsLight = false } = {}) {
+  if (statsLight) {
+    const lightBase = TELEMETRY_ROW_STATS_LIGHT_SELECT.split(',bank_validated_at')[0];
+    const light = [
+      TELEMETRY_ROW_STATS_LIGHT_SELECT,
+      `${lightBase},bank_validated_at,bank_question_hash`,
+      lightBase,
+    ];
+    return requireDismissedColumn ? light : light;
+  }
   const base = TELEMETRY_ROW_BASE_SELECT;
   const withDismissed = [
     `${base},bank_validated_at,bank_question_hash,bank_validated_edited,dismissed_at`,
@@ -166,12 +177,16 @@ function isRecoverableTelemetrySelectError(msg) {
     || text.includes('42703');
 }
 
-async function fetchTelemetryRowsWithSelectFallback(params, { requireDismissedFilter = false, requireDismissedColumn = false } = {}) {
+async function fetchTelemetryRowsWithSelectFallback(params, {
+  requireDismissedFilter = false,
+  requireDismissedColumn = false,
+  statsLight = false,
+} = {}) {
   const query = new URLSearchParams(params);
   let wantsDismissedFilter = query.has('dismissed_at');
   let wantsBankValidatedFilter = query.has('bank_validated_at');
   let lastErr;
-  const selectVariants = buildTelemetryRowSelectVariants({ requireDismissedColumn });
+  const selectVariants = buildTelemetryRowSelectVariants({ requireDismissedColumn, statsLight });
   for (const select of selectVariants) {
     query.set('select', select);
     const selectHasDismissed = select.includes('dismissed_at');
@@ -251,23 +266,33 @@ async function fetchExistingBankHashes(hashes) {
   if (!list.length) return new Set();
   const found = new Set();
   const chunkSize = 80;
-  for (let i = 0; i < list.length; i += chunkSize) {
-    const chunk = list.slice(i, i + chunkSize);
+  const parallelChunks = 4;
+  const fetchChunk = async (chunk) => {
     const params = new URLSearchParams({
       select: 'question_hash',
       question_hash: `in.(${chunk.map((h) => encodeURIComponent(h)).join(',')})`,
       limit: String(chunk.length),
     });
-    try {
-      const rows = await supabaseRequest(`/question_bank?${params.toString()}`);
-      (Array.isArray(rows) ? rows : []).forEach((row) => {
-        const hash = String(row.question_hash || '').trim();
-        if (hash) found.add(hash);
-      });
-    } catch (err) {
-      console.warn('[gen-telemetry-store] fetch bank hashes:', err?.message || err);
-      break;
+    const rows = await supabaseRequest(`/question_bank?${params.toString()}`);
+    (Array.isArray(rows) ? rows : []).forEach((row) => {
+      const hash = String(row.question_hash || '').trim();
+      if (hash) found.add(hash);
+    });
+  };
+  for (let i = 0; i < list.length; i += chunkSize * parallelChunks) {
+    const batch = [];
+    for (let j = 0; j < parallelChunks; j += 1) {
+      const start = i + j * chunkSize;
+      if (start >= list.length) break;
+      const chunk = list.slice(start, start + chunkSize);
+      if (!chunk.length) continue;
+      batch.push(
+        fetchChunk(chunk).catch((err) => {
+          console.warn('[gen-telemetry-store] fetchExistingBankHashes chunk failed:', err?.message || err);
+        }),
+      );
     }
+    await Promise.all(batch);
   }
   return found;
 }
@@ -296,14 +321,21 @@ async function backfillBankValidatedRows(entries) {
   return { marked };
 }
 
-async function enrichItemsWithBankValidation(items) {
+async function enrichItemsWithBankValidation(items, { maxPending = Infinity } = {}) {
   const list = Array.isArray(items) ? items : [];
-  const pending = list.filter((ev) => ev.outcome === 'rejected'
+  let pending = list.filter((ev) => ev.outcome === 'rejected'
     && !ev.bankValidatedAt
     && !ev.dismissedAt
     && ev.questionSnapshot?.q
     && ev.questionSnapshot?.a);
   if (!pending.length) return list;
+
+  if (Number.isFinite(maxPending) && maxPending > 0 && pending.length > maxPending) {
+    pending = pending
+      .slice()
+      .sort((a, b) => (Number(b.ts) || 0) - (Number(a.ts) || 0))
+      .slice(0, maxPending);
+  }
 
   const hashByEventId = new Map();
   const hashSet = new Set();
@@ -403,6 +435,7 @@ function isOpenIssueOccurrence(occ, pendingReviewHashes = null) {
     outcome: occ?.outcome,
     dismissedAt: occ?.dismissedAt,
     bankValidatedAt: occ?.bankValidatedAt,
+    questionHash: occ?.bankQuestionHash,
     questionSnapshot: occ?.questionSnapshot,
     question_text: occ?.questionSnapshot?.q,
     answer_text: occ?.questionSnapshot?.a,
@@ -897,6 +930,35 @@ async function fetchEventItems(filters = {}) {
   return rows.map(rowToItem);
 }
 
+async function fetchEventItemsForStats(filters = {}) {
+  const gameMode = filters.gameMode && VALID_GAME_MODES.has(String(filters.gameMode))
+    ? String(filters.gameMode)
+    : '';
+  const shared = {
+    order: 'created_at.desc',
+  };
+  if (gameMode) shared.game_mode = `eq.${gameMode}`;
+
+  const [acceptedRows, reviewableRows] = await Promise.all([
+    fetchTelemetryRowsWithSelectFallback({
+      ...shared,
+      outcome: 'eq.accepted',
+      limit: String(MAX_EVENTS),
+    }, { requireDismissedColumn: true, statsLight: true }),
+    fetchTelemetryRowsWithSelectFallback({
+      ...shared,
+      outcome: REVIEWABLE_TELEMETRY_OUTCOME_FILTER,
+      limit: String(STATS_REVIEWABLE_EVENT_LIMIT),
+    }, { requireDismissedColumn: true }),
+  ]);
+
+  const merged = new Map();
+  [...acceptedRows, ...reviewableRows].forEach((row) => {
+    if (row?.id) merged.set(row.id, row);
+  });
+  return [...merged.values()].map(rowToItem);
+}
+
 async function dismissTelemetryEvent({ eventId, skipQueueSync = false } = {}) {
   const id = String(eventId || '').trim();
   if (!id) {
@@ -1296,12 +1358,15 @@ async function markTelemetryBankValidated({
 }
 
 async function getStats(_event, filters = {}) {
-  const items = await enrichItemsWithBankValidation(await fetchEventItems(filters));
-  const pendingReviewHashes = await loadPendingReviewHashSet();
+  const [rawItems, pendingReviewHashes] = await Promise.all([
+    fetchEventItemsForStats(filters),
+    loadPendingReviewHashSet(),
+  ]);
+  const items = rawItems;
   return {
     ...computeSummaryFromItems(items, { pendingReviewHashes }),
     ...computeTimelineFromItems(items),
-    ...buildReviewTimelineBundles(items),
+    ...buildReviewTimelineBundles(items, { includeByFilter: false }),
   };
 }
 

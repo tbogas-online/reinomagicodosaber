@@ -406,6 +406,19 @@
 
   async function registerServiceWorker() {
     if (!('serviceWorker' in navigator)) return;
+    const host = String(location.hostname || '');
+    const isLocal = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+    if (isLocal) {
+      try {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map((reg) => reg.unregister()));
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
     try {
       registration = await navigator.serviceWorker.register('/sw.js?v=' + encodeURIComponent(metaBuild), {
         scope: '/',

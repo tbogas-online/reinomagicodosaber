@@ -3,156 +3,415 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20260904-181057">
+  <meta name="app-build" content="20260911-133745">
   <title>Teste de Perguntas — Reino Mágico do Saber</title>
   <link rel="icon" href="/favicon.ico">
   <style>
     :root {
-      --night: #0f1f18; --night-2: #162820; --gold: #c9a227; --gold-bright: #eecb6b;
-      --parchment: #f3ead8; --parchment-dim: #c8bda8; --ok: #3ecf72; --err: #f4a6a8;
-      --warn: #f0c674; --link: #7dd3fc;
+      color-scheme: light dark;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --ok: #10b981;
+      --border: #334155;
+      --input: #0b1220;
+      --link: #60a5fa;
+      --warn: #fbbf24;
     }
     * { box-sizing: border-box; }
     body {
-      margin: 0; min-height: 100dvh; font-family: Georgia, "Times New Roman", serif;
-      color: var(--parchment); background: linear-gradient(180deg, var(--night), var(--night-2));
-      padding: 20px 14px 48px;
+      margin: 0;
+      min-height: 100dvh;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.45;
+      padding: 20px 24px 48px;
     }
-    .wrap { max-width: 720px; margin: 0 auto; }
-    h1 { font-size: clamp(1.3rem, 4vw, 1.75rem); color: var(--gold-bright); margin: 0 0 6px; }
-    .sub { color: var(--parchment-dim); margin: 0 0 16px; line-height: 1.5; font-size: 0.95rem; }
-    .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; font-size: 0.85rem; color: var(--parchment-dim); }
-    .stats span { background: rgba(255,255,255,0.05); padding: 4px 11px; border-radius: 999px; }
-    .stats strong { color: var(--gold-bright); }
+    .wrap { max-width: 880px; margin: 0 auto; }
+    h1 { font-size: 1.5rem; color: var(--text); margin: 0 0 6px; }
+    .sub { color: var(--muted); margin: 0 0 16px; line-height: 1.5; font-size: 0.95rem; }
+    .stats { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; font-size: 0.85rem; color: var(--muted); }
+    .stats span { background: var(--card); border: 1px solid var(--border); padding: 4px 11px; border-radius: 8px; }
+    .stats strong { color: var(--accent); }
     .card {
-      background: rgba(255,255,255,0.04); border: 1px solid rgba(201,162,39,0.35);
-      border-radius: 14px; padding: 16px 18px; margin-bottom: 12px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 16px; margin-bottom: 16px;
     }
-    .card h2 { margin: 0 0 12px; font-size: 1rem; color: var(--gold-bright); }
+    .card h2 { margin: 0 0 12px; font-size: 1rem; color: var(--text); }
     label {
-      display: block; font-size: 0.72rem; letter-spacing: 0.05em;
-      text-transform: uppercase; color: var(--gold); margin-bottom: 4px;
+      display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px;
     }
-    select, textarea, input[type="text"], input[type="number"] {
-      width: 100%; background: rgba(0,0,0,0.25); color: var(--parchment);
-      border: 1px solid rgba(255,255,255,0.15); border-radius: 10px;
-      padding: 10px 12px; margin-bottom: 0; font: inherit;
+    select, textarea, input[type="text"], input[type="number"], input[type="password"] {
+      width: 100%; background: var(--input); color: var(--text);
+      border: 1px solid var(--border); border-radius: 8px;
+      padding: 8px 10px; margin-bottom: 0; font: inherit;
     }
     select { margin-bottom: 0; cursor: pointer; }
     textarea { min-height: 64px; resize: vertical; margin-top: 4px; }
     .config-grid {
       display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 14px; margin-bottom: 16px;
     }
-    @media (min-width: 560px) { .config-grid { grid-template-columns: repeat(4, 1fr); } }
+    @media (min-width: 720px) { .config-grid { grid-template-columns: repeat(3, 1fr); } }
+    .config-grid .span-2 { grid-column: span 2; }
+    @media (max-width: 719px) { .config-grid .span-2 { grid-column: span 1; } }
+    .scenario-list { display: flex; flex-wrap: wrap; gap: 6px; }
+    .scenario-btn {
+      font-size: 0.78rem; padding: 7px 11px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--input);
+      color: var(--text); text-align: left;
+    }
+    .scenario-btn.active {
+      border-color: #3b82f6; background: rgba(29, 78, 216, 0.35); color: #93c5fd;
+    }
+    .check-box {
+      margin: 10px 0 0; padding: 10px 12px; border-radius: 10px;
+      background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.35);
+      font-size: 0.88rem; color: var(--link); line-height: 1.45;
+    }
+    .check-box.pulse {
+      animation: evalPulse 1.2s ease 2;
+    }
+    @keyframes evalPulse {
+      0%, 100% { border-color: rgba(59, 130, 246, 0.35); }
+      50% { border-color: var(--accent); background: rgba(245, 158, 11, 0.14); }
+    }
+    .coverage { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+    .cov-chip {
+      font-size: 0.75rem; padding: 3px 8px; border-radius: 999px;
+      border: 1px solid var(--border); color: var(--muted);
+    }
+    .cov-chip.done { border-color: #047857; color: #34d399; background: rgba(16, 185, 129, 0.12); }
+    .fit-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
     .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
     button {
-      cursor: pointer; border: 1px solid rgba(201,162,39,0.55);
-      background: linear-gradient(180deg, rgba(201,162,39,0.28), rgba(201,162,39,0.12));
-      color: var(--gold-bright); border-radius: 999px; padding: 10px 18px; font: inherit;
+      cursor: pointer; font: inherit; border-radius: 8px;
+      border: 1px solid #1d4ed8; background: #1d4ed8; color: #fff;
+      padding: 8px 14px;
     }
-    button:hover { filter: brightness(1.08); }
-    button:disabled { opacity: 0.5; cursor: wait; }
-    button.secondary { background: transparent; color: var(--parchment-dim); border-color: rgba(255,255,255,0.2); font-size: 0.9rem; padding: 8px 14px; }
-    button.primary { font-size: 1.08rem; padding: 12px 24px; width: 100%; }
+    button:hover { background: #2563eb; border-color: #60a5fa; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    button.secondary {
+      background: transparent; border-color: var(--border); color: var(--text);
+      font-size: 0.9rem;
+    }
+    button.secondary:hover { background: #334155; border-color: #64748b; }
+    button.primary { font-size: 1rem; padding: 10px 18px; width: 100%; }
     @media (min-width: 480px) { button.primary { width: auto; } }
-    .result { border-radius: 12px; padding: 14px; line-height: 1.5; margin-top: 12px; }
-    .result.idle { background: rgba(255,255,255,0.04); color: var(--parchment-dim); }
-    .result.ok { background: rgba(62,207,114,0.12); border: 1px solid rgba(62,207,114,0.4); }
-    .result.err { background: rgba(229,72,77,0.12); border: 1px solid rgba(229,72,77,0.4); }
-    .result.run { background: rgba(240,198,116,0.12); border: 1px solid rgba(240,198,116,0.4); color: var(--warn); }
+    .result { border-radius: 10px; padding: 14px; line-height: 1.5; margin-top: 12px; }
+    .result.idle { background: var(--input); color: var(--muted); border: 1px solid var(--border); }
+    .result.ok { background: rgba(16, 185, 129, 0.12); border: 1px solid #047857; }
+    .result.err { background: rgba(239, 68, 68, 0.12); border: 1px solid #991b1b; }
+    .result.run { background: rgba(245, 158, 11, 0.12); border: 1px solid #b45309; color: var(--warn); }
     .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 0.8rem; font-weight: bold; margin-right: 6px; }
-    .badge.ok { background: rgba(62,207,114,0.25); color: #b8f5cd; }
-    .badge.err { background: rgba(229,72,77,0.25); color: var(--err); }
-    .score-big { font-size: 1.4rem; color: var(--gold-bright); }
-    .resolved { font-size: 0.88rem; color: var(--parchment-dim); margin: 8px 0 4px; }
-    .resolved strong { color: var(--gold-bright); }
-    .layers { display: grid; gap: 4px; margin: 10px 0; font-size: 0.84rem; }
-    .layer-row { display: grid; grid-template-columns: 90px 1fr 32px; gap: 6px; align-items: center; }
-    .layer-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; }
-    .layer-bar > span { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--ok)); }
-    .layer-bar.zero > span { background: var(--err); width: 0 !important; }
-    ul.issues { margin: 8px 0 0; padding-left: 1.1rem; color: var(--err); font-size: 0.9rem; }
-    pre { margin: 8px 0 0; padding: 10px; border-radius: 8px; background: rgba(0,0,0,0.35); font-size: 0.76rem; white-space: pre-wrap; }
-    .hint { font-size: 0.84rem; color: var(--parchment-dim); margin: 0 0 8px; }
+    .badge.ok { background: rgba(16, 185, 129, 0.22); color: #34d399; }
+    .badge.err { background: rgba(239, 68, 68, 0.22); color: #fca5a5; }
+    .score-big { font-size: 1.4rem; color: var(--accent); }
+    .resolved { font-size: 0.82rem; color: var(--muted); margin: 8px 0 4px; }
+    .resolved strong { color: var(--text); }
+    .result-context {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin: 0 0 12px;
+    }
+    .ctx-chip {
+      flex: 1 1 140px;
+      min-width: 140px;
+      background: var(--input);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px 12px;
+    }
+    .ctx-chip span {
+      display: block;
+      font-size: 11px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 2px;
+    }
+    .ctx-chip strong {
+      display: block;
+      font-size: 1.05rem;
+      line-height: 1.25;
+      color: var(--text);
+    }
+    .ctx-chip.cat {
+      border-color: #1d4ed8;
+      background: linear-gradient(180deg, rgba(59, 130, 246, 0.18) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.cat strong { color: #93c5fd; }
+    .ctx-chip.age {
+      border-color: #b45309;
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.18) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.age strong { color: #fbbf24; }
+    .ctx-chip.diff {
+      border-color: #0d9488;
+      background: linear-gradient(180deg, rgba(20, 184, 166, 0.16) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.diff strong { color: #5eead4; }
+    .ctx-chip.diff-est {
+      border-color: #64748b;
+      background: linear-gradient(180deg, rgba(100, 116, 139, 0.16) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.diff-est strong { color: #cbd5e1; }
+    .ctx-chip.mismatch {
+      border-color: #b45309;
+      background: linear-gradient(180deg, rgba(245, 158, 11, 0.2) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.mismatch strong { color: #fbbf24; }
+    .ctx-chip.mismatch span::after { content: ' · divergente'; }
+    .ctx-chip.diff-corr {
+      border-color: #7c3aed;
+      background: linear-gradient(180deg, rgba(139, 92, 246, 0.2) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip select.ctx-select {
+      width: 100%;
+      margin: 0;
+      padding: 4px 2px 2px;
+      font-size: 0.95rem;
+      font-weight: 700;
+      line-height: 1.25;
+      background: transparent;
+      border: 0;
+      color: inherit;
+      cursor: pointer;
+    }
+    .ctx-chip.cat select.ctx-select { color: #93c5fd; }
+    .ctx-chip.diff-corr select.ctx-select { color: #ddd6fe; }
+    .ctx-extra { margin: 0 0 10px; }
+    .repo-fact {
+      margin: 0 0 12px;
+      padding: 10px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      background: rgba(16, 185, 129, 0.08);
+      font-size: 0.88rem;
+      line-height: 1.45;
+    }
+    .repo-fact strong { color: #34d399; }
+    .repo-fact .meta { color: var(--muted); font-size: 0.8rem; margin-top: 4px; word-break: break-all; }
+    .layers { display: grid; gap: 8px; margin: 10px 0; font-size: 0.84rem; }
+    .layer-card {
+      background: var(--input); border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 10px;
+    }
+    .layer-card.fail { border-color: #991b1b; }
+    .layer-card.ok { border-color: #047857; }
+    .layer-head { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: center; }
+    .layer-head strong { font-size: 0.88rem; }
+    .layer-pts { font-variant-numeric: tabular-nums; color: var(--muted); }
+    .layer-card.ok .layer-pts { color: #34d399; }
+    .layer-card.fail .layer-pts { color: #fca5a5; }
+    .layer-bar { height: 6px; border-radius: 3px; background: rgba(255,255,255,0.08); overflow: hidden; margin: 6px 0; }
+    .layer-bar > span { display: block; height: 100%; background: linear-gradient(90deg, #3b82f6, var(--ok)); }
+    .layer-bar.zero > span { background: var(--danger); width: 0 !important; }
+    .layer-desc { margin: 0; color: var(--muted); font-size: 0.78rem; line-height: 1.4; }
+    .layer-desc em { color: var(--text); font-style: normal; }
+    .layer-hits { margin: 6px 0 0; padding-left: 1.1rem; color: #fca5a5; font-size: 0.78rem; }
+    .layer-adjust {
+      display: grid; gap: 8px;
+      margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border);
+    }
+    .layer-score-edit, .layer-extra {
+      display: flex; flex-wrap: wrap; gap: 6px 8px; align-items: center;
+    }
+    .layer-score-edit > span, .layer-extra > span {
+      font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .layer-score-edit input.layer-score {
+      width: 4.2rem; margin: 0; padding: 4px 6px; font-size: 0.95rem; font-weight: 700;
+      text-align: center; background: var(--card); color: var(--text);
+      border: 1px solid var(--border); border-radius: 6px;
+    }
+    .layer-score-edit.changed input.layer-score { border-color: #d97706; color: #fbbf24; }
+    .layer-score-max { font-variant-numeric: tabular-nums; color: var(--muted); font-weight: 600; }
+    .layer-score-motor { font-size: 0.75rem; color: #fbbf24; }
+    .layer-extra .hint { flex-basis: 100%; margin: 0; }
+    .verdict-help {
+      margin: 8px 0 12px; padding: 10px 12px;
+      border-radius: 8px; background: var(--input); border: 1px solid var(--border);
+      font-size: 0.8rem; color: var(--muted); line-height: 1.4;
+    }
+    .verdict-help dt { color: var(--text); font-weight: 600; margin-top: 8px; }
+    .verdict-help dt:first-child { margin-top: 0; }
+    .verdict-help dd { margin: 2px 0 0; }
+    .layer-extra select.layer-set-diff {
+      margin: 0; padding: 4px 8px; font-size: 0.8rem; font-weight: 600;
+      background: var(--card); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
+    }
+    .ctx-chip.format {
+      border-color: #0369a1;
+      background: linear-gradient(180deg, rgba(14, 165, 233, 0.18) 0%, rgba(11, 18, 32, 0.95) 100%);
+    }
+    .ctx-chip.format select.ctx-select { color: #7dd3fc; }
+    .mc-review { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: var(--input); }
+    .mc-review h3 { margin: 0 0 6px; font-size: 0.9rem; }
+    .mc-opt-list { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+    .mc-opt-list li {
+      padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border);
+      display: flex; justify-content: space-between; gap: 8px; align-items: center;
+    }
+    .mc-opt-list li.correct { border-color: #047857; background: rgba(16, 185, 129, 0.12); }
+    .mc-opt-list li.missing { border-color: #991b1b; color: #fca5a5; }
+    .mc-opt-tag { font-size: 0.72rem; color: var(--muted); white-space: nowrap; }
+    .edit-box { margin: 12px 0; padding-top: 12px; border-top: 1px solid var(--border); }
+    .edit-box h3 { margin: 0 0 6px; font-size: 0.92rem; }
+    .mc-edit-list { margin: 8px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+    .mc-edit-list li { display: grid; grid-template-columns: 22px 1fr; gap: 8px; align-items: center; }
+    .mc-edit-list li span { color: var(--muted); font-size: 0.8rem; }
+    ul.issues { margin: 8px 0 0; padding-left: 1.1rem; color: #fca5a5; font-size: 0.9rem; }
+    pre { margin: 8px 0 0; padding: 10px; border-radius: 8px; background: var(--input); font-size: 0.76rem; white-space: pre-wrap; }
+    .hint { font-size: 0.84rem; color: var(--muted); margin: 0 0 8px; }
     details {
-      background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 12px; margin-bottom: 10px; padding: 0 14px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; margin-bottom: 16px; padding: 0 16px;
     }
     details summary {
-      cursor: pointer; padding: 12px 0; color: var(--parchment-dim); font-size: 0.92rem; list-style: none;
+      cursor: pointer; padding: 12px 0; color: var(--muted); font-size: 0.92rem; list-style: none;
     }
     details summary::-webkit-details-marker { display: none; }
-    details summary::before { content: '▸ '; color: var(--gold); }
+    details summary::before { content: '▸ '; color: var(--accent); }
     details[open] summary::before { content: '▾ '; }
     details .inner { padding-bottom: 14px; }
-    .feedback-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(201,162,39,0.2); }
-    .feedback-box h3 { margin: 0 0 8px; font-size: 0.92rem; color: var(--gold); }
+    .feedback-box { margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border); }
+    .feedback-box h3 { margin: 0 0 8px; font-size: 0.92rem; color: var(--text); }
     .verdict-btns { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
     .verdict-btns button { font-size: 0.82rem; padding: 6px 11px; }
-    .verdict-btns button.selected { border-color: var(--gold-bright); background: rgba(201,162,39,0.28); }
-    .chip-group { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+    .verdict-btns button.selected { border-color: #3b82f6; background: rgba(29, 78, 216, 0.45); color: #fff; }
+    .chip-group { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 4px; }
+    .issue-groups { display: grid; gap: 10px; margin: 8px 0 12px; }
+    .issue-group h4 {
+      margin: 0 0 4px; font-size: 0.75rem; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.04em;
+    }
+    .layer-matrix {
+      width: 100%; border-collapse: collapse; font-size: 0.78rem; margin: 8px 0 12px;
+    }
+    .layer-matrix th, .layer-matrix td {
+      padding: 5px 8px; border-bottom: 1px solid var(--border); text-align: left;
+    }
+    .layer-matrix th { color: var(--muted); font-weight: 600; }
     .chip {
       font-size: 0.8rem; padding: 4px 9px; border-radius: 999px;
-      border: 1px solid rgba(255,255,255,0.15); cursor: pointer;
+      border: 1px solid var(--border); cursor: pointer; background: var(--input);
     }
-    .chip:has(input:checked) { border-color: var(--gold); background: rgba(201,162,39,0.15); color: var(--gold-bright); }
+    .chip:has(input:checked) { border-color: #3b82f6; background: rgba(29, 78, 216, 0.28); color: #93c5fd; }
     .chip input { margin-right: 4px; }
     .log-item {
       padding: 8px 10px; margin-bottom: 5px; border-radius: 8px; font-size: 0.84rem;
-      background: rgba(0,0,0,0.2); border-left: 3px solid rgba(255,255,255,0.15); cursor: pointer;
+      background: var(--input); border-left: 3px solid var(--border); cursor: pointer;
     }
     .log-item.accepted { border-left-color: var(--ok); }
-    .log-item.rejected { border-left-color: var(--err); }
-    .log-item .meta { color: var(--parchment-dim); font-size: 0.76rem; margin-top: 2px; }
-    .feedback-entry { padding: 10px; margin-bottom: 6px; border-radius: 8px; background: rgba(0,0,0,0.2); font-size: 0.84rem; }
-    .feedback-entry .fb-meta { color: var(--parchment-dim); font-size: 0.76rem; }
-    code { background: rgba(0,0,0,0.3); padding: 1px 4px; border-radius: 3px; font-size: 0.86em; }
-    .q-preview { font-size: 1.05rem; margin: 8px 0 4px; line-height: 1.45; }
-    .a-preview { color: var(--gold-bright); margin-bottom: 6px; }
-    .opts-preview { font-size: 0.88rem; color: var(--parchment-dim); }
-    .ai-usage-line {
-      font-size: 0.86rem; color: var(--parchment-dim); margin: 0 0 10px;
-      padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(201,162,39,0.2);
+    .log-item.rejected { border-left-color: var(--danger); }
+    .log-item .meta { color: var(--muted); font-size: 0.76rem; margin-top: 2px; }
+    .feedback-entry { padding: 10px; margin-bottom: 6px; border-radius: 8px; background: var(--input); font-size: 0.84rem; }
+    .feedback-entry .fb-meta { color: var(--muted); font-size: 0.76rem; }
+    .rules-group { margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: var(--input); }
+    .rules-group h3 { margin: 0 0 6px; font-size: 0.88rem; }
+    .rules-group ul { margin: 0; padding-left: 1.1rem; }
+    .rules-group li { margin: 0 0 4px; font-size: 0.84rem; }
+    .rules-meta { color: var(--muted); font-size: 0.75rem; }
+    code { background: var(--input); padding: 1px 4px; border-radius: 3px; font-size: 0.86em; }
+    .q-preview {
+      font-size: 1.22rem;
+      font-weight: 600;
+      margin: 10px 0 6px;
+      line-height: 1.45;
     }
-    .ai-usage-line strong { color: var(--gold-bright); }
+    .a-preview { color: var(--accent); margin-bottom: 6px; }
+    .opts-preview { font-size: 0.88rem; color: var(--muted); }
+    .ai-usage-line {
+      font-size: 0.86rem; color: var(--muted); margin: 0 0 10px;
+      padding: 6px 10px; border-radius: 8px; background: var(--input);
+      border: 1px solid var(--border);
+    }
+    .ai-usage-line strong { color: var(--accent); }
     .admin-login-card {
       max-width: 420px; margin: 40px auto; padding: 20px;
-      border: 1px solid rgba(201,162,39,0.35); border-radius: 14px;
-      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); border-radius: 12px;
+      background: var(--card);
     }
-    .admin-login-card label { display: block; font-size: 0.75rem; color: var(--gold); margin: 10px 0 4px; }
+    .admin-login-card label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
     .admin-login-card input {
-      width: 100%; padding: 10px 12px; border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.25); color: var(--parchment);
+      width: 100%; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--input); color: var(--text);
     }
     .admin-login-status { font-size: 0.9rem; margin: 10px 0 0; min-height: 1.2em; }
-    .admin-login-status.err { color: var(--err); }
+    .admin-login-status.err { color: var(--danger); }
     .admin-nav {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 14px;
+      margin-bottom: 20px;
+      align-items: center;
     }
     .admin-nav a {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       padding: 8px 14px;
-      border-radius: 10px;
-      border: 1px solid rgba(201,162,39,0.5);
-      background: rgba(201,162,39,0.18);
-      color: var(--gold-bright);
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--card);
+      color: var(--text);
       text-decoration: none;
-      font-size: 0.88rem;
+      font-size: 0.9rem;
       font-weight: 600;
+      line-height: 1.2;
     }
-    .admin-nav a:hover { background: rgba(201,162,39,0.32); }
+    .admin-nav a:hover { background: #334155; border-color: #64748b; }
+    .page-head {
+      display: flex; flex-wrap: wrap; justify-content: space-between;
+      align-items: flex-start; gap: 10px 16px; margin-bottom: 6px;
+    }
+    .page-head h1 { margin: 0; }
+    .version-badge {
+      font-size: 0.82rem; color: var(--muted); background: var(--card);
+      border: 1px solid var(--border); padding: 8px 12px; border-radius: 8px;
+      min-width: 180px;
+    }
+    .version-badge strong { color: var(--accent); display: block; font-size: 0.95rem; }
+    .ponder-kpis {
+      display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 12px;
+    }
+    @media (min-width: 640px) { .ponder-kpis { grid-template-columns: repeat(4, 1fr); } }
+    .ponder-kpi {
+      background: var(--input); border: 1px solid var(--border);
+      border-radius: 10px; padding: 10px 12px;
+    }
+    .ponder-kpi strong { display: block; font-size: 1.25rem; line-height: 1.2; color: var(--accent); }
+    .ponder-kpi span { color: var(--muted); font-size: 11px; }
+    .ponder-kpi.good strong { color: #34d399; }
+    .ponder-kpi.mid strong { color: #fbbf24; }
+    .ponder-kpi.bad strong { color: #f87171; }
+    .ponder-table-wrap { overflow-x: auto; margin-top: 10px; }
+    .ponder-table { width: 100%; border-collapse: collapse; font-size: 0.82rem; }
+    .ponder-table th, .ponder-table td {
+      text-align: left; padding: 8px 8px; border-bottom: 1px solid var(--border); vertical-align: top;
+    }
+    .ponder-table th { color: var(--muted); font-weight: 600; font-size: 11px; }
+    .ponder-table .q-cell { max-width: 260px; }
+    .rate-btns { display: flex; flex-wrap: wrap; gap: 4px; }
+    .rate-btns button { font-size: 0.75rem; padding: 4px 8px; }
+    .rate-btns button.selected { background: #047857; border-color: #047857; color: #fff; }
+    #result-rate { margin-bottom: 10px; }
+    #result-rate button { font-size: 0.82rem; padding: 6px 10px; }
+    .breakdown { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 8px; }
+    .breakdown span {
+      font-size: 0.75rem; padding: 3px 8px; border-radius: 999px;
+      border: 1px solid var(--border); color: var(--muted); background: var(--input);
+    }
   </style>
 </head>
 <body>
   <section class="admin-login-card" id="adminLoginGate">
-    <h1 style="margin:0 0 8px; font-size:1.3rem; color:var(--gold-bright);">🧪 Teste de perguntas</h1>
-    <p class="sub" style="margin:0 0 12px;">Acesso reservado — mesmas credenciais do painel admin.</p>
+    <h1 style="margin:0 0 8px; font-size:1.3rem;">🧪 Teste de perguntas</h1>
+    <p class="sub" style="margin:0 0 8px;">Acesso reservado — mesmas credenciais do painel admin.</p>
+    <p class="version-badge" id="loginVersionBadge" style="margin:0 0 12px;">A carregar versão…</p>
     <label for="adminUser">Utilizador</label>
     <input id="adminUser" type="text" autocomplete="username">
     <label for="adminPass">Palavra-passe</label>
@@ -170,14 +429,18 @@
       <a href="/admin-reports.html">Painel admin</a>
       <a href="/admin/test-ai.html">Teste de IA</a>
     </nav>
-    <h1>🧪 Teste de Perguntas</h1>
-    <p class="sub">Ferramenta interna (admin): gera com IA, valida com o motor e dá feedback. Chamadas à API usam credenciais admin.</p>
+    <div class="page-head">
+      <h1>🧪 Teste de Perguntas</h1>
+      <div class="version-badge" id="pageVersionBadge">A carregar versão…</div>
+    </div>
+    <p class="sub">Pipeline de qualidade: a IA gera, o motor valida, tu avalias a pergunta e o motor em separado. O comentário é contexto; os problemas e correcções viram regras persistentes — não copies da pergunta anterior.</p>
 
     <div class="stats">
       <span><strong id="stat-total">0</strong> geradas</span>
       <span>✅ <strong id="stat-ok">0</strong></span>
       <span>❌ <strong id="stat-fail">0</strong></span>
       <span>💬 <strong id="stat-fb">0</strong> feedbacks</span>
+      <span>📘 <strong id="stat-rules">0</strong> regras</span>
       <span>🤖 <strong id="stat-ai-label" title="Último fornecedor/modelo usado">—</strong></span>
     </div>
 
@@ -216,54 +479,148 @@
             <option value="5">5 — especialista</option>
           </select>
         </div>
+        <div>
+          <label for="fact-source">Origem do facto</label>
+          <select id="fact-source">
+            <option value="ai" selected>IA livre (inventa o facto)</option>
+            <option value="repo">Repositório (IA só formula)</option>
+          </select>
+        </div>
       </div>
+      <p class="hint" id="fact-source-hint">A IA inventa o conteúdo. Escolhe «Repositório» para a pergunta nascer de um facto já importado.</p>
 
       <div class="row">
-        <button type="button" class="primary" id="btn-generate">▶ Gerar e validar</button>
-        <button type="button" class="secondary" id="btn-generate-5">×5</button>
-        <button type="button" class="secondary" id="btn-stop" disabled>Parar</button>
+        <button type="button" class="primary" id="btn-generate">▶ Gerar pergunta</button>
+        <button type="button" class="secondary" id="btn-stop" title="Para a geração, cancela o pedido à IA e liberta o bloqueio de avaliação">Parar</button>
       </div>
-      <div id="gen-status" class="result idle">Escolhe as opções (ou deixa Aleatório) e clica em Gerar.</div>
+      <div id="gen-status" class="result idle">Gera uma pergunta, avalia-a (veredito + nota 1–5) e só depois pede a seguinte.</div>
     </div>
 
     <!-- Resultado -->
     <div class="card" id="result-card" hidden>
-      <h2>Resultado</h2>
+      <h2>1. Resultado</h2>
+      <div class="result-context" id="result-context">
+        <div class="ctx-chip cat">
+          <span>Categoria</span>
+          <select id="eval-cat" class="ctx-select" aria-label="Categoria principal"></select>
+        </div>
+        <div class="ctx-chip format">
+          <span>Formato</span>
+          <select id="eval-format" class="ctx-select" aria-label="Formato correcto"></select>
+        </div>
+        <div class="ctx-chip age"><span>Faixa etária</span><strong id="ctx-age">—</strong></div>
+        <div class="ctx-chip diff"><span>Dificuldade pedida</span><strong id="ctx-diff-req">—</strong></div>
+        <div class="ctx-chip diff-est" id="ctx-diff-est-chip"><span>Dificuldade estimada</span><strong id="ctx-diff-est">—</strong></div>
+        <div class="ctx-chip diff-corr">
+          <span>Dificuldade correcta (nível real)</span>
+          <select id="eval-diff" class="ctx-select" aria-label="Dificuldade correcta — o nível real desta pergunta">
+            <option value="1">1 — muito fácil</option>
+            <option value="2">2 — fácil</option>
+            <option value="3">3 — médio</option>
+            <option value="4">4 — difícil</option>
+            <option value="5">5 — especialista</option>
+          </select>
+        </div>
+      </div>
+      <p class="hint ctx-extra" id="ctx-extra" hidden></p>
       <div id="ai-usage-line" class="ai-usage-line" hidden></div>
       <div id="resolved-line" class="resolved"></div>
+      <div id="repo-fact-box" class="repo-fact" hidden></div>
       <div id="q-preview" class="q-preview"></div>
       <div id="a-preview" class="a-preview"></div>
-      <div id="opts-preview" class="opts-preview"></div>
+      <div id="mc-review" class="mc-review" hidden></div>
+      <div id="opts-preview" class="opts-preview" hidden></div>
       <div id="result" class="result idle"></div>
 
       <div class="feedback-box" id="feedback-form" hidden>
-        <h3>💬 Feedback ao motor</h3>
-        <p class="hint">O motor acertou nesta validação?</p>
+        <h3>2. Ajustar e avaliar</h3>
+        <p class="check-box" id="eval-gate">Primeiro a qualidade da pergunta (nota + problemas). Depois se o motor acertou. Nota 1–2 exige pelo menos um problema.</p>
+
+        <div class="edit-box">
+          <p class="hint">Categoria e formato na barra. Em cada camada podes mudar o valor e, na Idade/Dificuldade/Categoria, onde a pergunta se aplica. Aqui: enunciado e opções.</p>
+          <label for="q">Pergunta</label>
+          <textarea id="q" rows="2" placeholder="Enunciado completo"></textarea>
+          <label for="a">Resposta correcta</label>
+          <input type="text" id="a" placeholder="Tem de coincidir com uma das opções">
+          <div id="mc-edit-wrap">
+            <label>Opções MC</label>
+            <ol class="mc-edit-list" id="mc-edit-list">
+              <li><span>A</span><input type="text" id="mc-opt-0" autocomplete="off"></li>
+              <li><span>B</span><input type="text" id="mc-opt-1" autocomplete="off"></li>
+              <li><span>C</span><input type="text" id="mc-opt-2" autocomplete="off"></li>
+              <li><span>D</span><input type="text" id="mc-opt-3" autocomplete="off"></li>
+            </ol>
+          </div>
+          <textarea id="options" hidden></textarea>
+          <div class="row" style="margin-top:10px;">
+            <button type="button" class="secondary" id="btn-apply-edits">Aplicar ajustes e revalidar</button>
+          </div>
+          <p class="hint" id="edit-status" hidden></p>
+        </div>
+
+        <p class="hint">Qualidade da pergunta para o jogo (independente do motor)</p>
+        <div class="rate-btns" id="result-rate">
+          <button type="button" class="secondary" data-rate="5">5 Excelente</button>
+          <button type="button" class="secondary" data-rate="4">4 Boa</button>
+          <button type="button" class="secondary" data-rate="3">3 Aceitável</button>
+          <button type="button" class="secondary" data-rate="2">2 Fraca</button>
+          <button type="button" class="secondary" data-rate="1">1 Má</button>
+        </div>
+        <p class="hint">Problemas estruturados (obrigatório se a nota for 1 ou 2)</p>
+        <div class="issue-groups" id="issue-chips"></div>
+        <p class="hint">O motor de validação acertou? (não é a qualidade da pergunta)</p>
         <div class="verdict-btns" id="verdict-btns">
-          <button type="button" data-verdict="motor-ok" class="secondary">✅ Correcto</button>
-          <button type="button" data-verdict="false-positive" class="secondary">Devia aceitar</button>
-          <button type="button" data-verdict="false-negative" class="secondary">Devia rejeitar</button>
-          <button type="button" data-verdict="ia-bad" class="secondary">Culpa da IA</button>
+          <button type="button" data-verdict="motor-ok" class="secondary" title="O motor aceitou ou rejeitou como devia">✅ Motor correcto</button>
+          <button type="button" data-verdict="false-negative" class="secondary" title="O motor rejeitou, mas a pergunta era válida">❌ False negative</button>
+          <button type="button" data-verdict="false-positive" class="secondary" title="O motor aceitou, mas a pergunta devia ser rejeitada">❌ False positive</button>
+          <button type="button" data-verdict="ia-gen-error" class="secondary" title="A pergunta é má; a falha é da geração, não do validador">🤖 Erro de geração IA</button>
         </div>
-        <div class="chip-group" id="issue-chips">
-          <label class="chip"><input type="checkbox" value="repeticao"> Repetição</label>
-          <label class="chip"><input type="checkbox" value="idade"> Idade</label>
-          <label class="chip"><input type="checkbox" value="categoria"> Categoria</label>
-          <label class="chip"><input type="checkbox" value="pt-pt"> PT-PT</label>
-          <label class="chip"><input type="checkbox" value="factual"> Factual</label>
-          <label class="chip"><input type="checkbox" value="mc"> MC</label>
-          <label class="chip"><input type="checkbox" value="outro"> Outro</label>
-        </div>
-        <label for="fb-comment">Comentário</label>
-        <textarea id="fb-comment" rows="2" placeholder="O que devia mudar?"></textarea>
+        <dl class="verdict-help">
+          <dt>✅ Motor correcto</dt>
+          <dd>O motor fez o juízo certo: aceitou uma pergunta boa ou rejeitou uma má. Independente da nota 1–5.</dd>
+          <dt>❌ False negative</dt>
+          <dd>O motor <strong>rejeitou</strong> uma pergunta que <strong>devia ter aceite</strong>. A pergunta serve para o jogo; o validador foi demasiado rígido.</dd>
+          <dt>❌ False positive</dt>
+          <dd>O motor <strong>aceitou</strong> uma pergunta que <strong>devia ter rejeitado</strong>. Passou uma pergunta inválida, ambígua, factualmente errada, etc.</dd>
+          <dt>🤖 Erro de geração IA</dt>
+          <dd>A pergunta é má na origem (facto, idade, distractores…). O motor até pode ter detectado o problema; a falha é da IA que gerou, não do validador.</dd>
+        </dl>
+        <label for="fb-comment">Comentário (contexto, não substitui os problemas)</label>
+        <textarea id="fb-comment" rows="2" placeholder="Ex.: demasiado difícil para 8 anos."></textarea>
         <div class="row">
-          <button type="button" id="btn-save-feedback">Guardar feedback</button>
-          <button type="button" class="secondary" id="btn-next-after-fb">Guardar e seguinte →</button>
+          <button type="button" id="btn-save-feedback">Guardar avaliação</button>
+          <button type="button" class="primary" id="btn-next-after-fb">Guardar e gerar seguinte →</button>
         </div>
+        <p class="hint" id="eval-saved-note" hidden>Avaliação guardada — padrões da sessão e regras persistentes entram no próximo prompt.</p>
       </div>
     </div>
 
-    <!-- Avançado -->
+    <div class="card" id="rules-card">
+      <h2>Regras aprendidas por categoria</h2>
+      <p class="hint">Só entram no gerador regras concretas (problemas, dificuldade, categoria, formato). «O motor subvaloriza…» fica em calibração e não vai para o prompt. Frases genéricas do tipo «perguntas fracas» deixam de ser criadas.</p>
+      <div id="rules-summary"><p class="hint">A carregar…</p></div>
+      <div class="row" style="margin-top:10px;">
+        <button type="button" class="secondary" id="btn-refresh-rules">Actualizar</button>
+        <button type="button" class="secondary" id="btn-copy-rules">Copiar resumo</button>
+      </div>
+    </div>
+
+    <div class="card" id="ponder-card">
+      <h2>Ponderação da sessão</h2>
+      <p class="hint">Métrica da sessão (50% motor + 50% humana). Não é isto que o gerador aprende — aprende das regras extraídas das avaliações.</p>
+      <div class="ponder-kpis" id="ponder-kpis"></div>
+      <div class="breakdown" id="ponder-breakdown"></div>
+      <div class="ponder-table-wrap" id="ponder-table"></div>
+      <div class="row" style="margin-top:10px;">
+        <button type="button" class="secondary" id="btn-copy-ponder">Copiar resumo</button>
+        <button type="button" class="secondary" id="btn-export-ponder">Exportar JSON</button>
+      </div>
+    </div>
+
+    <details>
+      <summary>Como o motor classifica (camadas e pontos)</summary>
+      <div class="inner" id="layer-guide-static"></div>
+    </details>
     <details id="advanced-options">
       <summary>Opções avançadas</summary>
       <div class="inner">
@@ -278,16 +635,10 @@
           </div>
         </div>
         <label style="margin-top:10px;"><input type="checkbox" id="accumulate-history" checked> Acumular histórico na sessão</label><br>
-        <label><input type="checkbox" id="use-feedback-hints" checked> Usar feedback nos retries</label>
+        <label><input type="checkbox" id="use-feedback-hints" checked> Usar padrões desta sessão no próximo prompt (não o texto das perguntas)</label>
         <div class="row" style="margin-top:12px;">
           <button type="button" class="secondary" id="btn-validate-manual">Revalidar pergunta actual</button>
         </div>
-        <label for="q" style="margin-top:10px;">Pergunta (editar)</label>
-        <textarea id="q" rows="2"></textarea>
-        <label for="a">Resposta</label>
-        <input type="text" id="a">
-        <label for="options">Opções MC</label>
-        <textarea id="options" rows="2"></textarea>
       </div>
     </details>
 
@@ -312,50 +663,56 @@
     </details>
   </div>
 
-  <script src="/admin-auth.js?v=20260904-181057"></script>
+  <script src="/admin-auth.js?v=20260911-133745"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
-  <script src="/supabase-config.js?v=20260904-181057"></script>
-  <script src="/supabase-client.js?v=20260904-181057"></script>
-  <script src="/knowledge-repository.js?v=20260904-181057"></script>
-  <script src="/question-bank.js?v=20260904-181057"></script>
-  <script src="/question-engine/engine-config.js?v=20260904-181057"></script>
-  <script src="/question-engine/issue-codes.js?v=20260904-181057"></script>
-  <script src="/question-engine/knowledge-key.js?v=20260904-181057"></script>
-  <script src="/question-engine/retry-strategy.js?v=20260904-181057"></script>
-  <script src="/question-engine/telemetry.js?v=20260904-181057"></script>
-  <script src="/question-engine/known-facts.js?v=20260904-181057"></script>
-  <script src="/question-engine/factual-verify.js?v=20260904-181057"></script>
-  <script src="/question-engine/adivinha-verify.js?v=20260904-181057"></script>
-  <script src="/question-engine/adivinha-answer-pool.js?v=20260904-181057"></script>
-  <script src="/question-engine/content-safety-data.js?v=20260904-181057"></script>
-  <script src="/question-engine/content-safety.js?v=20260904-181057"></script>
-  <script src="/question-engine/adivinha-distractors.js?v=20260904-181057"></script>
-  <script src="/question-engine/difficulty-estimate.js?v=20260904-181057"></script>
-  <script src="/question-engine/pt-pt-validators.js?v=20260904-181057"></script>
-  <script src="/question-engine/format-validators.js?v=20260904-181057"></script>
-  <script src="/question-engine/mc-validators.js?v=20260904-181057"></script>
-  <script src="/question-engine/age-validators.js?v=20260904-181057"></script>
-  <script src="/question-engine/category-validators.js?v=20260904-181057"></script>
-  <script src="/question-engine/semantic-validators.js?v=20260904-181057"></script>
-  <script src="/question-engine/reported-content.js?v=20260904-181057"></script>
-  <script src="/question-engine/repetition-validators.js?v=20260904-181057"></script>
-  <script src="/question-engine/knowledge-key-compute.js?v=20260904-181057"></script>
-  <script src="/question-engine/persistent-history.js?v=20260904-181057"></script>
-  <script src="/question-engine/prompt-builder.js?v=20260904-181057"></script>
-  <script src="/question-engine/mc-assembly.js?v=20260904-181057"></script>
-  <script src="/question-engine/question-scoring.js?v=20260904-181057"></script>
-  <script src="/question-engine.js?v=20260904-181057"></script>
+  <script src="/supabase-config.js?v=20260911-133745"></script>
+  <script src="/supabase-client.js?v=20260911-133745"></script>
+  <script src="/knowledge-repository.js?v=20260911-133745"></script>
+  <script src="/question-bank.js?v=20260911-133745"></script>
+  <script src="/question-engine/engine-config.js?v=20260911-133745"></script>
+  <script src="/question-engine/issue-codes.js?v=20260911-133745"></script>
+  <script src="/question-engine/knowledge-key.js?v=20260911-133745"></script>
+  <script src="/question-engine/retry-strategy.js?v=20260911-133745"></script>
+  <script src="/question-engine/telemetry.js?v=20260911-133745"></script>
+  <script src="/question-engine/known-facts.js?v=20260911-133745"></script>
+  <script src="/question-engine/factual-verify.js?v=20260911-133745"></script>
+  <script src="/question-engine/wikidata-verify.js?v=20260911-133745"></script>
+  <script src="/question-engine/adivinha-verify.js?v=20260911-133745"></script>
+  <script src="/question-engine/adivinha-answer-pool.js?v=20260911-133745"></script>
+  <script src="/question-engine/content-safety-data.js?v=20260911-133745"></script>
+  <script src="/question-engine/content-safety.js?v=20260911-133745"></script>
+  <script src="/question-engine/adivinha-distractors.js?v=20260911-133745"></script>
+  <script src="/question-engine/difficulty-estimate.js?v=20260911-133745"></script>
+  <script src="/question-engine/pt-pt-place-names.js?v=20260911-133745"></script>
+  <script src="/question-engine/pt-pt-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/format-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/mc-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/mc-distractor-quality.js?v=20260911-133745"></script>
+  <script src="/question-engine/age-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/category-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/semantic-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/reported-content.js?v=20260911-133745"></script>
+  <script src="/question-engine/repetition-validators.js?v=20260911-133745"></script>
+  <script src="/question-engine/knowledge-key-compute.js?v=20260911-133745"></script>
+  <script src="/question-engine/persistent-history.js?v=20260911-133745"></script>
+  <script src="/question-engine/question-archetypes.js?v=20260911-133745"></script>
+  <script src="/question-engine/learning-engine.js?v=20260911-133745"></script>
+  <script src="/question-engine/prompt-builder.js?v=20260911-133745"></script>
+  <script src="/question-engine/mc-assembly.js?v=20260911-133745"></script>
+  <script src="/question-engine/question-scoring.js?v=20260911-133745"></script>
+  <script src="/question-engine.js?v=20260911-133745"></script>
   <script>
   (function () {
     'use strict';
     const QE = window.QuestionEngine;
+    const Learning = window.QuestionEngineLearning;
     const FEEDBACK_KEY = 'reino_magico_engine_feedback';
     const AGES = ['6-9', '10-15', '15+'];
     const MODES = ['mc'];
     const MODE_LABELS = { mc: 'Escolha múltipla' };
 
     if (!QE) {
-      document.body.innerHTML = '<p style="color:#f4a6a8;padding:24px;">question-engine.js não carregou.</p>';
+      document.body.innerHTML = '<p style="color:#ef4444;padding:24px;">question-engine.js não carregou.</p>';
       return;
     }
 
@@ -387,12 +744,9 @@
       '10-15': 'jovens dos 10 aos 15 anos — linguagem clara e intermédia',
       '15+': 'jovens e adultos 15+ — cultura geral exigente',
     };
-    const PT_PT_RULES = 'Português de Portugal (PT-PT). Evita brasileirismos.';
-    const LAYER_LABELS = {
-      structural: 'Estrutural', format: 'Formato', age: 'Idade', difficulty: 'Dificuldade',
-      category: 'Categoria', ptPt: 'PT-PT', semantic: 'Semântica', repetition: 'Repetição',
-      mcOptions: 'MC', factual: 'Factual',
-    };
+    const PT_PT_RULES = 'Português de Portugal (PT-PT). Evita brasileirismos. Países e cidades: grafia PT-PT (Bagdade, não Bagdá) e a mesma forma na pergunta e na resposta.';
+    const LAYER_GUIDE = QE.LAYER_GUIDE || {};
+    const LAYER_ORDER = Object.keys(QE.LAYER_WEIGHTS || LAYER_GUIDE);
     const AI_PROVIDER_LABELS = {
       groq: 'Groq',
       openai: 'OpenAI',
@@ -416,12 +770,126 @@
     let currentEntry = null;
     let lastResolved = null;
     let lastAiUsage = null;
+    let generating = false;
+    let generateAbort = null;
+    let applyingEdits = false;
 
     const session = {
-      usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedFormats: [],
-      usedDifficulties: [], usedSubtopics: [], recentMcPositions: [], log: [],
+      usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedKnowledgeIds: [], usedFormats: [],
+      usedArchetypes: [], usedDifficulties: [], usedSubtopics: [], usedAges: [], recentMcPositions: [], log: [],
       stats: { total: 0, ok: 0, fail: 0 },
+      pendingReview: false,
+      testSessionId: `ts-${Date.now()}`,
+      startedAt: new Date().toISOString(),
+      gameVersion: document.querySelector('meta[name="app-build"]')?.getAttribute('content') || '',
+      gameUpdatedAt: '',
     };
+    const RATE_LABELS = { 5: 'Excelente', 4: 'Boa', 3: 'Aceitável', 2: 'Fraca', 1: 'Má' };
+    const VERDICT_LABELS = Learning?.VERDICT_LABELS || {
+      'motor-ok': 'Motor correcto',
+      'false-negative': 'False negative',
+      'false-positive': 'False positive',
+      'ia-gen-error': 'Erro de geração IA',
+      'ia-bad': 'Erro de geração IA',
+    };
+    function selectedIssues() {
+      return [...document.querySelectorAll('#issue-chips input:checked')].map((c) => c.value);
+    }
+
+    function renderIssueChips() {
+      const el = $('issue-chips');
+      if (!el) return;
+      const groups = Learning?.ISSUE_GROUPS || [];
+      el.innerHTML = groups.map((group) => `
+        <div class="issue-group">
+          <h4>${escapeHtml(group.label)}</h4>
+          <div class="chip-group">
+            ${(group.items || []).map((item) =>
+              `<label class="chip"><input type="checkbox" value="${escapeHtml(item.id)}"> ${escapeHtml(item.label)}</label>`
+            ).join('')}
+          </div>
+        </div>`).join('');
+    }
+
+    function renderLayerMatrix(layers) {
+      if (!layers || !Learning?.buildLayerMatrix) return '';
+      const tester = currentEntry?.layerScores || layers;
+      const matrix = Learning.buildLayerMatrix(layers, tester);
+      const rows = Object.entries(matrix);
+      if (!rows.length) return '';
+      const mark = (result) => (result === 'ok' ? '✅' : result === 'warn' ? '⚠️' : '❌');
+      return `<table class="layer-matrix">
+        <thead><tr><th>Camada</th><th>Motor</th><th>Tester</th><th></th></tr></thead>
+        <tbody>${rows.map(([key, cell]) => `
+          <tr>
+            <td>${escapeHtml(Learning.LAYER_LABELS[key] || key)}</td>
+            <td>${cell.motor ?? '—'}/${cell.max}</td>
+            <td>${cell.tester ?? '—'}/${cell.max}</td>
+            <td>${mark(cell.result)}</td>
+          </tr>`).join('')}</tbody>
+      </table>`;
+    }
+
+    function isAbortError(err) {
+      return err?.name === 'AbortError' || /aborted|abortado/i.test(String(err?.message || ''));
+    }
+
+    function stopEverything() {
+      stopBatch = true;
+      try { generateAbort?.abort(); } catch { /* ignore */ }
+      session.pendingReview = false;
+      updateGenerateLock();
+      const status = $('gen-status');
+      if (status) {
+        status.className = 'result idle';
+        status.textContent = generating
+          ? 'A parar…'
+          : 'Parado. Podes gerar outra pergunta ou continuar a avaliar a actual.';
+      }
+    }
+
+    function updateGenerateLock() {
+      const gen = $('btn-generate');
+      if (!gen) return;
+      const locked = generating || session.pendingReview;
+      gen.disabled = locked;
+      gen.textContent = session.log.length ? '▶ Gerar seguinte' : '▶ Gerar pergunta';
+      gen.title = session.pendingReview
+        ? 'Avalia primeiro esta pergunta (veredito do motor + nota 1–5), ou carrega em Parar para libertar.'
+        : '';
+      const stop = $('btn-stop');
+      if (stop) {
+        stop.disabled = false;
+        stop.title = 'Para a geração, cancela o pedido à IA e liberta o bloqueio de avaliação';
+      }
+      const saved = $('eval-saved-note');
+      if (saved) saved.hidden = session.pendingReview || !session.log.length;
+    }
+
+    function formatVersionBadge(info) {
+      const version = info?.version || session.gameVersion || '—';
+      const when = info?.updatedAtPortugal || session.gameUpdatedAt || '';
+      const env = info?.environment && info.environment !== 'production' ? ` · ${info.environment}` : '';
+      return `<strong>${escapeHtml(version)}</strong>Versão do jogo${when ? ` · ${escapeHtml(when)} (PT)` : ''}${escapeHtml(env)}`;
+    }
+
+    function applyVersionInfo(info) {
+      if (info?.version) session.gameVersion = info.version;
+      if (info?.updatedAtPortugal) session.gameUpdatedAt = info.updatedAtPortugal;
+      const html = formatVersionBadge(info || { version: session.gameVersion, updatedAtPortugal: session.gameUpdatedAt });
+      const page = $('pageVersionBadge');
+      const login = $('loginVersionBadge');
+      if (page) page.innerHTML = html;
+      if (login) login.innerHTML = html;
+    }
+
+    function loadGameVersion() {
+      applyVersionInfo({ version: session.gameVersion });
+      fetch('/version.json?t=' + Date.now(), { cache: 'no-store' })
+        .then((r) => (r.ok ? r.json() : Promise.reject(new Error('version.json'))))
+        .then(applyVersionInfo)
+        .catch(() => applyVersionInfo({ version: session.gameVersion }));
+    }
 
     function stripTags(s) { return String(s || '').replace(/<[^>]*>/g, '').trim(); }
     function normalizeQ(s) { return stripTags(s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
@@ -539,7 +1007,7 @@
       return `${s}. Verdadeiro ou Falso?`;
     }
 
-    /** Resolve aleatórios; prioriza categoria/faixa com menos perguntas no Supabase */
+    /** Resolve aleatórios: faixa sorteada (não fica presa em 6-9); categoria favorece células vazias nessa faixa. */
     async function resolveConfig() {
       const catVal = $('cat').value;
       const ageVal = $('age').value;
@@ -557,6 +1025,8 @@
           ? await window.QuestionBank.pickSparseTarget(CATEGORIES, {
             fixedCategoryN: catRandom ? null : Number(catVal),
             fixedAgeBand: ageRandom ? null : ageVal,
+            balanceAges: ageRandom,
+            recentAgeBands: ageRandom ? session.usedAges : [],
           })
           : null;
         if (sparse) {
@@ -564,10 +1034,16 @@
           ageBandKey = sparse.ageBand;
           sparseNote = ` · banco: ${sparse.count} nesta célula`;
         } else {
-          ageBandKey = ageRandom ? pickRandom(AGES) : ageVal;
+          const lastAge = session.usedAges[session.usedAges.length - 1];
+          const agePool = ageRandom && lastAge ? AGES.filter((a) => a !== lastAge) : AGES;
+          ageBandKey = ageRandom ? pickRandom(agePool.length ? agePool : AGES) : ageVal;
           cat = catRandom
             ? pickRandom(CATEGORIES)
             : (CATEGORIES.find((c) => c.n === Number(catVal)) || CATEGORIES[0]);
+        }
+        if (ageRandom && ageBandKey) {
+          session.usedAges.push(ageBandKey);
+          while (session.usedAges.length > 8) session.usedAges.shift();
         }
       } else {
         ageBandKey = ageVal;
@@ -586,9 +1062,9 @@
       return { cat, ageBandKey, answerMode, difficulty, sparseNote };
     }
 
-    function resolveFormat(catN, ageBandKey, answerMode) {
+    function resolveFormat(catN, ageBandKey, answerMode, archetypeId) {
       if ($('format').value !== 'random') return $('format').value;
-      return QE.chooseFormat(catN, ageBandKey, answerMode, session.usedFormats);
+      return QE.chooseFormat(catN, ageBandKey, answerMode, session.usedFormats, archetypeId ? { archetypeId } : undefined);
     }
 
     function populateCategorySelect() {
@@ -597,6 +1073,185 @@
       sel.innerHTML = '<option value="random">🎲 Aleatório</option>'
         + CATEGORIES.map((c) => `<option value="${c.n}">${c.n}. ${c.name}</option>`).join('');
       if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+    }
+
+    function populateEvalAdjusts() {
+      const sel = $('eval-cat');
+      if (sel && !sel.options.length) {
+        sel.innerHTML = CATEGORIES.map((c) => `<option value="${c.n}">${c.n}. ${c.name}</option>`).join('');
+      }
+      const extra = $('eval-cat-extra');
+      if (extra && !extra.children.length) {
+        extra.innerHTML = CATEGORIES.map((c) =>
+          `<label class="chip"><input type="checkbox" value="${c.n}"> ${c.n}. ${c.name}</label>`
+        ).join('');
+      }
+    }
+
+    function populateEvalFormat(resolved) {
+      const sel = $('eval-format');
+      if (!sel) return;
+      const catN = Number($('eval-cat')?.value || resolved?.cat?.n || 1);
+      const ageBandKey = resolved?.ageBandKey || lastResolved?.ageBandKey || AGES[0];
+      const answerMode = resolved?.answerMode || lastResolved?.answerMode || 'mc';
+      const formats = QE.getAllowedFormats(catN, ageBandKey, answerMode, {
+        archetypeId: resolved?.archetypeId || lastResolved?.archetypeId,
+      }) || [];
+      const keep = sel.value || resolved?.formatId || lastResolved?.formatId || '';
+      const all = formats.slice();
+      if (keep && !all.includes(keep)) all.unshift(keep);
+      sel.innerHTML = all.map((f) => `<option value="${f}">${QE.FORMAT_LABELS[f] || f}</option>`).join('');
+      if (keep && [...sel.options].some((o) => o.value === keep)) sel.value = keep;
+    }
+
+    function diffLabel(n) {
+      const labels = QE.DIFFICULTY_LABELS || {};
+      const v = Number(n);
+      return Number.isFinite(v) ? `${v} — ${labels[v] || ''}`.replace(/\s—\s$/, '') : '—';
+    }
+
+    function readMcEditOptions() {
+      const fromInputs = [0, 1, 2, 3].map((i) => ($('mc-opt-' + i)?.value || '').trim()).filter(Boolean);
+      if (fromInputs.length) return fromInputs;
+      return linesToArray($('options')?.value);
+    }
+
+    function fillMcEditOptions(options) {
+      const list = Array.isArray(options) ? options.slice(0, 4) : [];
+      for (let i = 0; i < 4; i += 1) {
+        const el = $('mc-opt-' + i);
+        if (el) el.value = list[i] || '';
+      }
+      if ($('options')) $('options').value = list.join('\n');
+    }
+
+    function syncExtraCatChips(primaryN) {
+      document.querySelectorAll('#eval-cat-extra input').forEach((box) => {
+        const n = Number(box.value);
+        box.disabled = n === Number(primaryN);
+        if (box.disabled) box.checked = false;
+        const label = box.closest('label');
+        if (label) label.style.opacity = box.disabled ? '0.4' : '';
+      });
+    }
+
+    function readExtraCategories(primaryN) {
+      return [...document.querySelectorAll('#eval-cat-extra input:checked, #result input.layer-extra-cat:checked')]
+        .map((box) => Number(box.value))
+        .filter((n) => n && n !== Number(primaryN))
+        .filter((n, i, arr) => arr.indexOf(n) === i)
+        .map((n) => CATEGORIES.find((c) => c.n === n))
+        .filter(Boolean);
+    }
+
+    function cloneParsed(parsed) {
+      return {
+        ...(parsed || {}),
+        options: Array.isArray(parsed?.options) ? parsed.options.slice() : parsed?.options,
+      };
+    }
+
+    function isMcResolved(resolved) {
+      return resolved?.answerMode === 'mc'
+        || resolved?.formatId === QE.FORMAT_IDS?.ESCOLHA_MULTIPLA
+        || resolved?.formatId === QE.FORMAT_IDS?.VERDADEIRO_FALSO;
+    }
+
+    function setExtraCatChecks(extras) {
+      const wanted = new Set((extras || []).map((c) => Number(c.n || c)));
+      document.querySelectorAll('#eval-cat-extra input').forEach((box) => {
+        if (box.disabled) return;
+        box.checked = wanted.has(Number(box.value));
+      });
+    }
+
+    function renderExtraContext(resolved, extras, originalResolved) {
+      const el = $('ctx-extra');
+      if (!el) return;
+      const bits = [];
+      const origCat = originalResolved?.cat;
+      if (origCat?.n && resolved?.cat?.n && origCat.n !== resolved.cat.n) {
+        bits.push(`categoria original: ${origCat.n}. ${origCat.name}`);
+      }
+      const extraNames = (extras || []).map((c) => `${c.n}. ${c.name}`);
+      if (extraNames.length) bits.push('também cabe em: ' + extraNames.join(', '));
+      const req = Number(resolved?.requestedDifficulty ?? originalResolved?.requestedDifficulty);
+      const corr = Number(resolved?.difficulty);
+      if (Number.isFinite(req) && Number.isFinite(corr) && req !== corr) {
+        bits.push(`dificuldade correcta (tester): ${diffLabel(corr)}`);
+      }
+      if (!bits.length) {
+        el.hidden = true;
+        el.textContent = '';
+        return;
+      }
+      el.hidden = false;
+      el.textContent = bits.join(' · ');
+    }
+
+    function estimateForParsed(parsed, ageBandKey) {
+      if (!QE.estimateDifficulty || !parsed?.q) return { estimatedDifficulty: null, difficultyConfidence: null };
+      return QE.estimateDifficulty(parsed.q, parsed.a, { ageBandKey }) || {};
+    }
+
+    function fillDifficultyChips(parsed, resolved) {
+      const requested = Number(resolved?.requestedDifficulty ?? resolved?.difficulty);
+      const est = estimateForParsed(parsed, resolved?.ageBandKey);
+      const estimated = Number(est.estimatedDifficulty);
+      const confidence = Number(est.difficultyConfidence);
+      const reqEl = $('ctx-diff-req');
+      const estEl = $('ctx-diff-est');
+      const chip = $('ctx-diff-est-chip');
+      if (reqEl) reqEl.textContent = Number.isFinite(requested) ? diffLabel(requested) : '—';
+      if (estEl) {
+        if (Number.isFinite(estimated)) {
+          const conf = Number.isFinite(confidence) ? ` · ${Math.round(confidence * 100)}%` : '';
+          estEl.textContent = diffLabel(estimated) + conf;
+        } else {
+          estEl.textContent = '—';
+        }
+      }
+      if (chip) {
+        chip.classList.toggle(
+          'mismatch',
+          Number.isFinite(requested) && Number.isFinite(estimated) && requested !== estimated,
+        );
+      }
+      const corrChip = document.querySelector('.ctx-chip.diff-corr');
+      const corrected = Number(resolved?.difficulty);
+      if (corrChip) {
+        corrChip.classList.toggle(
+          'mismatch',
+          Number.isFinite(requested) && Number.isFinite(corrected) && requested !== corrected,
+        );
+      }
+      if (resolved) {
+        resolved.estimatedDifficulty = Number.isFinite(estimated) ? estimated : null;
+        resolved.difficultyConfidence = Number.isFinite(confidence) ? confidence : null;
+      }
+      return { requested, estimated, confidence };
+    }
+
+    function fillEditorFromParsed(parsed, resolved, { keepEval } = {}) {
+      populateEvalAdjusts();
+      populateEvalFormat(resolved);
+      if ($('q')) $('q').value = parsed?.q || '';
+      if ($('a')) $('a').value = parsed?.a || '';
+      fillMcEditOptions(parsed?.options);
+      const wrap = $('mc-edit-wrap');
+      if (wrap) wrap.hidden = !isMcResolved(resolved);
+      const catN = resolved?.cat?.n;
+      if (!keepEval) {
+        if ($('eval-cat') && catN) $('eval-cat').value = String(catN);
+        const diffVal = Number(resolved?.difficulty);
+        if ($('eval-diff') && Number.isFinite(diffVal)) $('eval-diff').value = String(diffVal);
+        if ($('eval-format') && resolved?.formatId) $('eval-format').value = resolved.formatId;
+        populateEvalFormat(resolved);
+        syncExtraCatChips(catN);
+        setExtraCatChecks([]);
+      } else {
+        syncExtraCatChips($('eval-cat')?.value || catN);
+      }
     }
 
     function populateFormatSelect(catN, ageBandKey, answerMode) {
@@ -614,6 +1269,12 @@
       const catN = catVal === 'random' ? (CATEGORIES[0]?.n || 1) : Number(catVal);
       const ageBandKey = ageVal === 'random' ? AGES[0] : ageVal;
       populateFormatSelect(catN, ageBandKey, 'mc');
+      const hint = $('fact-source-hint');
+      if (hint) {
+        hint.textContent = $('fact-source')?.value === 'repo'
+          ? 'A IA só formula a pergunta a partir de um facto já importado no repositório. Não inventa dados novos.'
+          : 'A IA inventa o conteúdo. Escolhe «Repositório» para a pergunta nascer de um facto já importado.';
+      }
     }
 
     function applyReportUrlParams() {
@@ -690,18 +1351,378 @@
       $('stat-ok').textContent = session.stats.ok;
       $('stat-fail').textContent = session.stats.fail;
       $('stat-fb').textContent = loadFeedback().length;
+      const rulesEl = $('stat-rules');
+      if (rulesEl) rulesEl.textContent = String(Learning?.getCachedRules?.()?.length || 0);
       $('log-count').textContent = session.log.length;
       $('fb-count').textContent = loadFeedback().length;
+      renderPonderacao();
     }
 
-    function renderLayers(layers) {
+    function computePonderacao() {
+      const log = session.log;
+      const rated = log.filter((e) => e.humanRating >= 1);
+      const motorAvg = log.length
+        ? Math.round(log.reduce((s, e) => s + (Number(e.score) || 0), 0) / log.length)
+        : 0;
+      const acceptPct = log.length ? Math.round((session.stats.ok / log.length) * 100) : 0;
+      const humanAvg = rated.length
+        ? rated.reduce((s, e) => s + e.humanRating, 0) / rated.length
+        : null;
+      const human100 = humanAvg != null ? Math.round(humanAvg * 20) : null;
+      const sessionNote = log.length
+        ? (human100 != null ? Math.round(motorAvg * 0.5 + human100 * 0.5) : motorAvg)
+        : null;
+      const byCat = {};
+      const byArch = {};
+      log.forEach((e) => {
+        const cat = e.resolved?.cat?.name || '—';
+        const arch = QE.ARCHETYPE_LABELS?.[e.resolved?.archetypeId] || e.resolved?.archetypeId || '—';
+        byCat[cat] = (byCat[cat] || 0) + 1;
+        byArch[arch] = (byArch[arch] || 0) + 1;
+      });
+      return { log, rated, motorAvg, acceptPct, humanAvg, human100, sessionNote, byCat, byArch };
+    }
+
+    function kpiTone(value, good, mid) {
+      if (value == null) return '';
+      if (value >= good) return 'good';
+      if (value >= mid) return 'mid';
+      return 'bad';
+    }
+
+    function renderPonderacao() {
+      const kpis = $('ponder-kpis');
+      const table = $('ponder-table');
+      const breakdown = $('ponder-breakdown');
+      if (!kpis || !table) return;
+      const p = computePonderacao();
+      if (!p.log.length) {
+        kpis.innerHTML = '<p class="hint" style="grid-column:1/-1;margin:0;">Gera perguntas para ver a nota da sessão.</p>';
+        table.innerHTML = '';
+        if (breakdown) breakdown.innerHTML = '';
+        return;
+      }
+      kpis.innerHTML = `
+        <div class="ponder-kpi ${kpiTone(p.acceptPct, 80, 50)}"><strong>${p.acceptPct}%</strong><span>aceites pelo motor</span></div>
+        <div class="ponder-kpi ${kpiTone(p.motorAvg, 85, 65)}"><strong>${p.motorAvg}</strong><span>score médio motor</span></div>
+        <div class="ponder-kpi ${p.humanAvg == null ? '' : kpiTone(p.human100, 80, 60)}"><strong>${p.humanAvg == null ? '—' : p.humanAvg.toFixed(1) + '/5'}</strong><span>nota humana (${p.rated.length}/${p.log.length})</span></div>
+        <div class="ponder-kpi ${p.sessionNote == null ? '' : kpiTone(p.sessionNote, 85, 65)}"><strong>${p.sessionNote == null ? '—' : p.sessionNote}</strong><span>nota ponderada /100</span></div>`;
+      if (breakdown) {
+        const cats = Object.entries(p.byCat).map(([k, n]) => `<span>${escapeHtml(k)} · ${n}</span>`).join('');
+        const archs = Object.entries(p.byArch).map(([k, n]) => `<span>${escapeHtml(k)} · ${n}</span>`).join('');
+        breakdown.innerHTML = cats + archs;
+      }
+      table.innerHTML = `<table class="ponder-table">
+        <thead><tr><th>Pergunta</th><th>Contexto</th><th>Motor</th><th>Nota</th></tr></thead>
+        <tbody>${p.log.map((e) => {
+          const arch = QE.ARCHETYPE_LABELS?.[e.resolved?.archetypeId] || e.resolved?.archetypeId || '';
+          const fmt = QE.FORMAT_LABELS?.[e.resolved?.formatId] || e.resolved?.formatId || '';
+          return `<tr data-id="${escapeHtml(e.id)}">
+            <td class="q-cell">${escapeHtml((e.q || '').slice(0, 120))}</td>
+            <td>${escapeHtml(e.resolved?.cat?.name || '')}<br><span class="hint" style="margin:0;">${escapeHtml(e.resolved?.ageBandKey || '')} · ${escapeHtml(arch)} · ${escapeHtml(fmt)}</span></td>
+            <td>${e.ok ? '✅' : '❌'} ${e.score ?? '—'}</td>
+            <td>
+              <div class="rate-btns">${[5,4,3,2,1].map((n) =>
+                `<button type="button" class="secondary${e.humanRating === n ? ' selected' : ''}" data-rate="${n}" data-id="${escapeHtml(e.id)}">${n}</button>`
+              ).join('')}</div>
+              ${e.humanRating ? `<div class="hint" style="margin:4px 0 0;">${RATE_LABELS[e.humanRating]}</div>` : ''}
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+      table.querySelectorAll('button[data-rate]').forEach((btn) => {
+        btn.addEventListener('click', (ev) => {
+          ev.stopPropagation();
+          setHumanRating(btn.dataset.id, Number(btn.dataset.rate));
+        });
+      });
+      table.querySelectorAll('tr[data-id]').forEach((row) => {
+        row.style.cursor = 'pointer';
+        row.addEventListener('click', () => {
+          const e = session.log.find((x) => x.id === row.dataset.id);
+          if (!e) return;
+          lastResolved = e.resolved;
+          $('q').value = e.q || '';
+          $('a').value = e.a || '';
+          const ctx = buildValidationCtx();
+          const { parsed, isMC } = buildParsedFromForm();
+          ctx.isMC = isMC;
+          rememberAiUsage(e.aiUsage);
+          showResult(validateParsed(parsed, ctx), parsed, e.resolved, e.aiUsage);
+          currentEntry.id = e.id;
+          currentEntry.humanRating = e.humanRating;
+          syncResultRateButtons(e.humanRating);
+          $('result-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      });
+    }
+
+    function setHumanRating(logId, rating) {
+      const entry = session.log.find((x) => x.id === logId);
+      if (entry) entry.humanRating = rating;
+      if (currentEntry?.id === logId) currentEntry.humanRating = rating;
+      syncResultRateButtons(currentEntry?.id === logId ? rating : currentEntry?.humanRating);
+      renderPonderacao();
+    }
+
+    function syncResultRateButtons(rating) {
+      document.querySelectorAll('#result-rate button').forEach((b) => {
+        b.classList.toggle('selected', Number(b.dataset.rate) === Number(rating));
+      });
+    }
+
+    function formatPonderText() {
+      const p = computePonderacao();
+      const lines = [
+        `Versão do jogo: ${session.gameVersion || '—'}`,
+        session.gameUpdatedAt ? `Actualizado: ${session.gameUpdatedAt} (PT)` : '',
+        `Geradas: ${p.log.length} · Aceites: ${session.stats.ok} (${p.acceptPct}%) · Score médio: ${p.motorAvg}`,
+        `Nota humana: ${p.humanAvg == null ? '—' : p.humanAvg.toFixed(1) + '/5'} (${p.rated.length} classificadas)`,
+        `Nota ponderada: ${p.sessionNote == null ? '—' : p.sessionNote + '/100'}`,
+        '',
+      ].filter((line, i, arr) => line !== '' || arr[i - 1] !== '');
+      p.log.forEach((e, i) => {
+        const arch = QE.ARCHETYPE_LABELS?.[e.resolved?.archetypeId] || e.resolved?.archetypeId || '';
+        lines.push(
+          `[${i + 1}] ${e.ok ? 'ACEITE' : 'REJEITADA'} ${e.score}/100 · nota ${e.humanRating || '—'} · ${e.resolved?.cat?.name || ''} · ${e.resolved?.ageBandKey || ''} · ${arch}`
+        );
+        lines.push(`    ${e.q || ''}`);
+      });
+      return lines.join('\n');
+    }
+
+    function renderLayerGuideStatic() {
+      const el = $('layer-guide-static');
+      if (!el) return;
+      const weights = QE.LAYER_WEIGHTS || {};
+      const total = Object.values(weights).reduce((s, n) => s + Number(n || 0), 0);
+      el.innerHTML = `<p class="hint">O score /100 é a soma das camadas. Qualquer issue reprova a pergunta (gate binário), mesmo com score alto. As opções MC entram na camada «Opções MC» (${weights.mcOptions || 12} pts).</p>`
+        + LAYER_ORDER.map((key) => {
+          const g = LAYER_GUIDE[key] || {};
+          return `<div class="layer-card" style="margin-bottom:8px;">
+            <div class="layer-head"><strong>${escapeHtml(g.label || key)}</strong><span class="layer-pts">${g.points ?? weights[key] ?? '—'} pts</span></div>
+            <p class="layer-desc">${escapeHtml(g.reflects || '')}</p>
+            <p class="layer-desc"><em>Sobe:</em> ${escapeHtml(g.up || '')}</p>
+            <p class="layer-desc"><em>Desce:</em> ${escapeHtml(g.down || '')}</p>
+          </div>`;
+        }).join('')
+        + `<p class="hint">Total das camadas: ${total}/100.</p>`;
+    }
+
+    function issuesByLayer(issueDetails) {
+      const map = {};
+      (issueDetails || []).forEach((item) => {
+        const layer = item?.layer || 'unknown';
+        const msg = typeof item === 'string' ? item : (item.message || item.code || '');
+        if (!msg) return;
+        (map[layer] ||= []).push(msg);
+      });
+      return map;
+    }
+
+    function layerMax(key) {
+      return Number((LAYER_GUIDE[key] || {}).points ?? (QE.LAYER_WEIGHTS || {})[key] ?? 10);
+    }
+
+    function motorLayerPts(key) {
+      return Number(currentEntry?.motorLayers?.[key] ?? currentEntry?.result?.layers?.[key] ?? 0);
+    }
+
+    function testerLayerPts(key, motorPts) {
+      const scores = currentEntry?.layerScores;
+      if (scores && scores[key] != null && scores[key] !== '') return Number(scores[key]);
+      return Number(motorPts ?? 0);
+    }
+
+    function defaultLayerScores(layers) {
+      const out = {};
+      LAYER_ORDER.forEach((key) => {
+        if (layers && key in layers) out[key] = Number(layers[key] ?? 0);
+      });
+      return out;
+    }
+
+    function testerTotalScore() {
+      return LAYER_ORDER.reduce((sum, key) => {
+        const max = layerMax(key);
+        const motor = motorLayerPts(key);
+        const pts = testerLayerPts(key, motor);
+        const n = Number.isFinite(pts) ? Math.min(max, Math.max(0, pts)) : 0;
+        return sum + n;
+      }, 0);
+    }
+
+    function layerDiffOptions(selected) {
+      const labels = QE.DIFFICULTY_LABELS || {};
+      return [1, 2, 3, 4, 5].map((n) =>
+        `<option value="${n}"${Number(selected) === n ? ' selected' : ''}>${n} — ${escapeHtml(labels[n] || String(n))}</option>`
+      ).join('');
+    }
+
+    function difficultyTypeLabel(n) {
+      const labels = QE.DIFFICULTY_LABELS || {};
+      const num = Number(n);
+      if (!Number.isFinite(num)) return '';
+      return labels[num] || String(num);
+    }
+
+    function renderLayerScoreInput(key, motorPts, max) {
+      const val = testerLayerPts(key, motorPts);
+      const changed = Number(val) !== Number(motorPts);
+      return `<div class="layer-score-edit${changed ? ' changed' : ''}">
+        <span>Valor</span>
+        <input type="number" class="layer-score" data-layer="${escapeHtml(key)}" min="0" max="${max}" step="1" value="${val}">
+        <span class="layer-score-max">/ ${max}</span>
+        ${changed ? `<span class="layer-score-motor">motor ${motorPts}</span>` : ''}
+      </div>`;
+    }
+
+    function renderLayerExtras(key) {
+      if (key === 'age') {
+        const selected = new Set(currentEntry?.applicableAges?.length
+          ? currentEntry.applicableAges
+          : [lastResolved?.ageBandKey].filter(Boolean));
+        return `<div class="layer-extra">
+          <span>Aplicável em</span>
+          <div class="chip-group">${AGES.map((a) =>
+            `<label class="chip"><input type="checkbox" class="layer-age" value="${escapeHtml(a)}"${selected.has(a) ? ' checked' : ''}> ${a === '15+' ? '15+ anos' : `${a} anos`}</label>`
+          ).join('')}</div>
+        </div>`;
+      }
+      if (key === 'difficulty') {
+        const req = Number(currentEntry?.requestedDifficulty ?? lastResolved?.requestedDifficulty ?? lastResolved?.difficulty ?? 3);
+        const est = Number(currentEntry?.estimatedDifficulty ?? lastResolved?.estimatedDifficulty);
+        const corr = Number($('eval-diff')?.value || lastResolved?.difficulty || req);
+        const reqLabel = difficultyTypeLabel(req);
+        const estLabel = difficultyTypeLabel(est);
+        const estBtn = Number.isFinite(est) && est !== req
+          ? `<button type="button" class="secondary" data-accept-diff="${est}" title="A pergunta é ${estLabel}, não o nível pedido">Usar estimada D${est} — ${escapeHtml(estLabel)}</button>`
+          : '';
+        return `<div class="layer-extra">
+          <span>Nível real desta pergunta</span>
+          <p class="hint"><strong>Pedida</strong> = o que pediste à IA. <strong>Estimada</strong> = palpite do motor. <strong>Correcta</strong> = o nível que esta pergunta realmente tem (ground truth). «Aceitar pedida» diz que a pergunta é mesmo ${escapeHtml(reqLabel)} (D${req}).</p>
+          <button type="button" class="secondary" data-accept-diff="${req}" title="A pergunta está no nível pedido: D${req} ${reqLabel}">Aceitar pedida D${req} — ${escapeHtml(reqLabel)}</button>
+          ${estBtn}
+          <select class="layer-set-diff" aria-label="Definir dificuldade correcta">${layerDiffOptions(corr)}</select>
+        </div>`;
+      }
+      if (key === 'category') {
+        const primary = Number($('eval-cat')?.value || lastResolved?.cat?.n);
+        const extras = new Set((currentEntry?.extraCategories || []).map((c) => Number(c.n || c)));
+        return `<div class="layer-extra">
+          <span>Também aplicável em</span>
+          <div class="chip-group">${CATEGORIES.map((c) => {
+            const disabled = c.n === primary;
+            const checked = extras.has(c.n) && !disabled;
+            return `<label class="chip"${disabled ? ' style="opacity:0.4"' : ''}><input type="checkbox" class="layer-extra-cat" value="${c.n}"${disabled ? ' disabled' : ''}${checked ? ' checked' : ''}> ${c.n}. ${escapeHtml(c.name)}</label>`;
+          }).join('')}</div>
+        </div>`;
+      }
+      if (key === 'format') {
+        return `<p class="hint" style="margin:0;">Se o tipo estiver errado, muda o formato na barra acima.</p>`;
+      }
+      if (key === 'mcOptions') {
+        return `<p class="hint" style="margin:0;">Avalia as opções: baixa o valor se os distractores não calharem com o nível.</p>`;
+      }
+      if (key === 'ptPt') {
+        return `<p class="hint" style="margin:0;">Avalia o português de Portugal e ajusta o valor se houver brasileirismos ou erros.</p>`;
+      }
+      return '';
+    }
+
+    function renderLayerAdjust(key, motorPts, max) {
+      return `<div class="layer-adjust" data-layer="${escapeHtml(key)}">
+        ${renderLayerScoreInput(key, motorPts, max)}
+        ${renderLayerExtras(key)}
+      </div>`;
+    }
+
+    function updateLayerScoreDisplay(input, layer, n) {
+      const card = input.closest('.layer-card');
+      const max = layerMax(layer);
+      const motor = motorLayerPts(layer);
+      const ptsEl = card?.querySelector('.layer-pts');
+      if (ptsEl) ptsEl.textContent = `${n}/${max}`;
+      const bar = card?.querySelector('.layer-bar > span');
+      if (bar) bar.style.width = `${max ? Math.round((n / max) * 100) : 0}%`;
+      card?.classList.toggle('fail', n === 0 && max > 0);
+      card?.classList.toggle('ok', !(n === 0 && max > 0));
+      const wrap = input.closest('.layer-score-edit');
+      wrap?.classList.toggle('changed', n !== motor);
+      let motorEl = wrap?.querySelector('.layer-score-motor');
+      if (n !== motor) {
+        if (!motorEl && wrap) {
+          motorEl = document.createElement('span');
+          motorEl.className = 'layer-score-motor';
+          wrap.appendChild(motorEl);
+        }
+        if (motorEl) motorEl.textContent = `motor ${motor}`;
+      } else if (motorEl) {
+        motorEl.remove();
+      }
+      const totalEl = $('tester-total');
+      if (totalEl) totalEl.textContent = String(testerTotalScore());
+    }
+
+    function renderLayers(layers, issueDetails) {
       if (!layers) return '';
-      const maxPts = { structural:15, format:15, age:15, difficulty:10, category:10, ptPt:10, semantic:15, repetition:10, mcOptions:10, factual:10 };
-      return Object.entries(layers).map(([k, pts]) => {
-        const max = maxPts[k] || 10;
+      const hits = issuesByLayer(issueDetails);
+      const weights = QE.LAYER_WEIGHTS || {};
+      return LAYER_ORDER.map((key) => {
+        if (!(key in layers) && weights[key] == null) return '';
+        const g = LAYER_GUIDE[key] || {};
+        const max = Number(g.points ?? weights[key] ?? 10);
+        const motorPts = Number(layers[key] ?? 0);
+        const pts = testerLayerPts(key, motorPts);
         const pct = max ? Math.round((pts / max) * 100) : 0;
-        return `<div class="layer-row"><span>${LAYER_LABELS[k]||k}</span><div class="layer-bar${pts===0?' zero':''}"><span style="width:${pct}%"></span></div><span>${pts}</span></div>`;
+        const failed = pts === 0 && max > 0;
+        const layerHits = hits[key] || [];
+        const changed = Number(pts) !== Number(motorPts);
+        return `<div class="layer-card ${failed ? 'fail' : 'ok'}">
+          <div class="layer-head"><strong>${escapeHtml(g.label || key)}</strong><span class="layer-pts">${pts}/${max}${changed ? ` · motor ${motorPts}` : ''}</span></div>
+          <div class="layer-bar${failed ? ' zero' : ''}"><span style="width:${pct}%"></span></div>
+          <p class="layer-desc">${escapeHtml(g.reflects || '')}</p>
+          ${layerHits.length ? `<ul class="layer-hits">${layerHits.map((m) => `<li>${escapeHtml(m)}</li>`).join('')}</ul>` : ''}
+          ${renderLayerAdjust(key, motorPts, max)}
+        </div>`;
       }).join('');
+    }
+
+    function renderMcReview(parsed, result, resolved) {
+      const el = $('mc-review');
+      const optsEl = $('opts-preview');
+      if (!el) return;
+      const options = Array.isArray(parsed?.options) ? parsed.options : [];
+      const isVF = resolved?.formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO;
+      const answer = String(parsed?.a || '').trim();
+      const target = !isVF && QE.describeMcDistractorTarget
+        ? QE.describeMcDistractorTarget(resolved?.difficulty)
+        : '';
+      const mcIssues = (result?.issueDetails || []).filter((d) => d?.layer === 'mcOptions');
+      if (!options.length) {
+        el.hidden = false;
+        el.innerHTML = `<h3>Opções MC</h3>
+          <p class="hint">O motor valida a pergunta <strong>e</strong> as 4 opções. Faltam opções — a camada «Opções MC» reprova.</p>`;
+        if (optsEl) optsEl.hidden = true;
+        return;
+      }
+      const norm = (s) => String(s || '').trim().toLowerCase();
+      el.hidden = false;
+      el.innerHTML = `<h3>Opções MC</h3>
+        <p class="hint">${escapeHtml(target || 'Uma correcta + três erradas da mesma classe.')} O motor valida enunciado e opções.</p>
+        <ol class="mc-opt-list">${options.map((opt) => {
+          const correct = norm(opt) === norm(answer);
+          return `<li class="${correct ? 'correct' : ''}">
+            <span>${escapeHtml(opt)}</span>
+            <span class="mc-opt-tag">${correct ? 'correcta' : 'distractora'}</span>
+          </li>`;
+        }).join('')}</ol>
+        ${mcIssues.length ? `<ul class="layer-hits">${mcIssues.map((i) => `<li>${escapeHtml(i.message || i)}</li>`).join('')}</ul>` : ''}
+        ${options.length < 4 && !isVF ? '<p class="hint">Devem existir 4 opções distintas.</p>' : ''}`;
+      if (optsEl) {
+        optsEl.hidden = true;
+        optsEl.textContent = '';
+      }
     }
 
     function buildParsedFromForm() {
@@ -713,7 +1734,8 @@
         || formatId === QE.FORMAT_IDS.ESCOLHA_MULTIPLA
         || formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO;
       const parsed = { q, a };
-      const options = linesToArray($('options').value);
+      const options = readMcEditOptions();
+      if ($('options')) $('options').value = options.join('\n');
       if (isMC && options.length >= 2) parsed.options = options;
       return { parsed, isMC };
     }
@@ -733,12 +1755,14 @@
         formatId,
         ageBandKey,
         categoryNumber: cat.n,
-        difficulty: r?.difficulty || Number($('difficulty').value) || 3,
+        difficulty: r?.difficulty || Number($('eval-diff')?.value) || Number($('difficulty').value) || 3,
         minQualityScore: 0,
         usedQuestions: useSession ? session.usedQuestions : [],
         usedAnswers: useSession ? session.usedAnswers : [],
         usedKnowledgeKeys: useSession ? session.usedKnowledgeKeys : [],
+        usedKnowledgeIds: useSession ? session.usedKnowledgeIds : [],
         persistentKnowledgeKeys: QE.getPersistentSlice(ageBandKey).knowledgeKeys || [],
+        repositoryRecord: overrides.repositoryRecord || r?.repositoryRecord || null,
         isMC: overrides.isMC ?? isMC,
         stripTags, normalizeFn: normalizeQ,
         helpers: { stripTags, validateTrueFalseQuestion, ageBandKey },
@@ -764,6 +1788,8 @@
         outcome: fields.outcome || 'unknown',
         category: fields.category,
         formatId: fields.formatId,
+        archetypeId: fields.archetypeId || '',
+        cognitiveLevel: fields.cognitiveLevel || '',
         ageBandKey: fields.ageBandKey,
         difficulty: fields.difficulty,
         attempt: fields.attempt,
@@ -772,55 +1798,156 @@
         score: fields.score ?? null,
         provider: usage.provider || '',
         model: usage.model || '',
-        source: 'ai',
+        source: fields.source || (fields.knowledgeId ? 'repo-ai' : 'ai'),
         gameMode: 'test',
         parsed: fields.parsed,
+        knowledgeId: fields.knowledgeId || '',
       });
     }
 
-    function showResult(result, parsed, resolved, aiUsage = null) {
+    function applyEditsAndRevalidate({ silent } = {}) {
+      if (applyingEdits) return false;
+      if (!lastResolved && !currentEntry) {
+        if (!silent) {
+          const st = $('edit-status');
+          if (st) { st.hidden = false; st.textContent = 'Gera uma pergunta primeiro.'; }
+        }
+        return false;
+      }
+      applyingEdits = true;
+      try {
+        populateEvalAdjusts();
+        const catN = Number($('eval-cat')?.value);
+        const cat = CATEGORIES.find((c) => c.n === catN) || lastResolved?.cat || currentEntry?.resolved?.cat;
+        const difficulty = Number($('eval-diff')?.value) || lastResolved?.difficulty;
+        const extras = readExtraCategories(cat?.n);
+        const prev = currentEntry;
+        const formatId = $('eval-format')?.value || lastResolved?.formatId || prev?.resolved?.formatId;
+        const requestedDifficulty = prev?.requestedDifficulty
+          ?? lastResolved?.requestedDifficulty
+          ?? lastResolved?.difficulty
+          ?? difficulty;
+        const resolved = {
+          ...(lastResolved || prev?.resolved || {}),
+          cat,
+          difficulty,
+          requestedDifficulty,
+          formatId,
+        };
+        lastResolved = resolved;
+        const { parsed, isMC } = buildParsedFromForm();
+        if (!parsed.q || !parsed.a) {
+          if (!silent) {
+            const st = $('edit-status');
+            if (st) { st.hidden = false; st.textContent = 'Preenche pergunta e resposta.'; }
+          }
+          return false;
+        }
+        const ctx = buildValidationCtx({
+          isMC,
+          categoryNumber: cat.n,
+          difficulty,
+          formatId,
+        });
+        lastResolved = resolved;
+        const result = validateParsed(parsed, ctx);
+        showResult(result, parsed, resolved, prev?.aiUsage, { keepEval: true });
+        if (currentEntry) currentEntry.extraCategories = extras;
+        setExtraCatChecks(extras);
+        renderExtraContext(resolved, extras, currentEntry?.originalResolved);
+        const st = $('edit-status');
+        if (st && !silent) {
+          st.hidden = false;
+          const extraNote = extras.length ? ` · também ${extras.map((c) => c.n).join(', ')}` : '';
+          st.textContent = result.ok
+            ? `Revalidado: aceite (${result.score}/100). ${cat.n}. ${cat.name}, D${difficulty}${extraNote}.`
+            : `Revalidado: rejeitada (${result.score}/100). Os ajustes da barra entram na próxima geração.`;
+        }
+        return true;
+      } finally {
+        applyingEdits = false;
+      }
+    }
+
+    function showResult(result, parsed, resolved, aiUsage = null, opts = {}) {
+      const keepEval = !!opts.keepEval;
       $('result-card').hidden = false;
+      if (resolved && resolved.requestedDifficulty == null && resolved.difficulty != null) {
+        resolved.requestedDifficulty = resolved.difficulty;
+      }
       lastResolved = resolved;
       renderAiUsageLine(aiUsage || lastAiUsage);
 
+      const diffs = fillDifficultyChips(parsed, resolved);
+      const ageEl = $('ctx-age');
+      if (ageEl) ageEl.textContent = resolved.ageBandKey === '15+'
+        ? '15+ anos'
+        : (resolved.ageBandKey ? `${resolved.ageBandKey} anos` : '—');
+
       const modeLabel = MODE_LABELS[resolved.answerMode] || resolved.answerMode;
-      $('resolved-line').innerHTML = `<strong>${escapeHtml(resolved.cat.name)}</strong> · ${resolved.ageBandKey} · ${modeLabel} · dif. ${resolved.difficulty} · <em>${escapeHtml(QE.FORMAT_LABELS[resolved.formatId] || resolved.formatId)}</em>${escapeHtml(resolved.sparseNote || '')}`;
+      const reqN = Number.isFinite(diffs.requested) ? diffs.requested : '—';
+      const estN = Number.isFinite(diffs.estimated) ? diffs.estimated : '—';
+      $('resolved-line').innerHTML = `${modeLabel} · pedida D${reqN} · estimada D${estN} · correcta D${resolved.difficulty ?? '—'} · <em>${escapeHtml(QE.ARCHETYPE_LABELS?.[resolved.archetypeId] || resolved.archetypeId || '')}</em> · <em>${escapeHtml(QE.FORMAT_LABELS[resolved.formatId] || resolved.formatId)}</em>${escapeHtml(resolved.sparseNote || '')}`;
+      renderRepoFactBox(resolved.repositoryRecord);
 
       $('q-preview').textContent = parsed.q || '';
       $('a-preview').textContent = parsed.a ? `→ ${parsed.a}` : '';
-      $('opts-preview').textContent = parsed.options?.length ? parsed.options.join(' · ') : '';
+      renderMcReview(parsed, result, resolved);
+      fillEditorFromParsed(parsed, resolved, { keepEval });
 
-      $('q').value = parsed.q || '';
-      $('a').value = parsed.a || '';
-      $('options').value = parsed.options?.join('\n') || '';
-
-      const el = $('result');
-      const minScore = Number($('minScore').value) || 75;
+      const prev = keepEval ? currentEntry : null;
+      const existingId = prev?.id
+        || (currentEntry?.parsed?.q === parsed.q && currentEntry?.id ? currentEntry.id : '');
+      const logMatch = session.log.find((x) => x.q === parsed.q && x.a === parsed.a);
       currentEntry = {
-        parsed: { ...parsed },
+        id: existingId || logMatch?.id || `log-${Date.now()}`,
+        parsed: cloneParsed(parsed),
         result: { ...result },
         resolved: { ...resolved },
-        aiUsage: aiUsage || lastAiUsage,
-        ts: Date.now(),
+        originalParsed: prev?.originalParsed || cloneParsed(parsed),
+        originalResolved: prev?.originalResolved || { ...resolved },
+        extraCategories: prev?.extraCategories || [],
+        requestedDifficulty: prev?.requestedDifficulty ?? resolved.requestedDifficulty,
+        estimatedDifficulty: resolved.estimatedDifficulty,
+        motorLayers: { ...(result.layers || {}) },
+        layerScores: keepEval
+          ? { ...(prev?.layerScores || defaultLayerScores(result.layers)) }
+          : defaultLayerScores(result.layers),
+        applicableAges: keepEval
+          ? (prev?.applicableAges || [resolved.ageBandKey].filter(Boolean))
+          : [resolved.ageBandKey].filter(Boolean),
+        aiUsage: aiUsage || lastAiUsage || prev?.aiUsage,
+        humanRating: keepEval ? (prev?.humanRating || null) : (logMatch?.humanRating || null),
+        ts: prev?.ts || Date.now(),
       };
+      if (keepEval) setExtraCatChecks(currentEntry.extraCategories);
+      renderExtraContext(resolved, currentEntry.extraCategories, currentEntry.originalResolved);
 
+      const el = $('result');
+      const testerScore = testerTotalScore();
+      const testerNote = ` · tester <span id="tester-total">${testerScore}</span>/100`;
       if (result.ok) {
         el.className = 'result ok';
-        el.innerHTML = `<span class="badge ok">ACEITE</span> <span class="score-big">${result.score}/100</span>
+        el.innerHTML = `<span class="badge ok">ACEITE</span> <span class="score-big">${result.score}/100</span>${testerNote}
           <div style="font-size:0.85rem;margin-top:6px;">knowledgeKey: <code>${escapeHtml(result.knowledgeKey)}</code></div>
-          <div class="layers">${renderLayers(result.layers)}</div>`;
+          <div class="layers">${renderLayerMatrix(result.layers)}${renderLayers(result.layers, result.issueDetails)}</div>`;
       } else {
         const issues = (result.issues || []).map((i) => `<li>${escapeHtml(i)}</li>`).join('');
         const hint = result.issues?.length ? QE.buildRetryHint(result.issues, resolved.formatId, resolved.ageBandKey) : '';
         el.className = 'result err';
-        el.innerHTML = `<span class="badge err">REJEITADA</span> <span class="score-big">${result.score}/100</span>
+        el.innerHTML = `<span class="badge err">REJEITADA</span> <span class="score-big">${result.score}/100</span>${testerNote}
           <div style="font-size:0.85rem;margin-top:6px;">knowledgeKey: <code>${escapeHtml(result.knowledgeKey)}</code></div>
-          <div class="layers">${renderLayers(result.layers)}</div>
+          <div class="layers">${renderLayerMatrix(result.layers)}${renderLayers(result.layers, result.issueDetails)}</div>
           ${issues ? `<ul class="issues">${issues}</ul>` : ''}
           ${hint ? `<pre>${escapeHtml(hint)}</pre>` : ''}`;
       }
       $('feedback-form').hidden = false;
-      resetFeedbackForm();
+      if (!keepEval) {
+        resetFeedbackForm();
+        const st = $('edit-status');
+        if (st) { st.hidden = true; st.textContent = ''; }
+      }
+      syncResultRateButtons(currentEntry.humanRating);
     }
 
     function resetFeedbackForm() {
@@ -838,11 +1965,15 @@
       session.usedQuestions.push(parsed.q);
       if (parsed.a && !/^(verdadeiro|falso)$/i.test(normalizeQ(parsed.a))) session.usedAnswers.push(parsed.a);
       if (result.knowledgeKey) session.usedKnowledgeKeys.push(result.knowledgeKey);
+      if (meta?.knowledgeId && !session.usedKnowledgeIds.includes(meta.knowledgeId)) {
+        session.usedKnowledgeIds.push(meta.knowledgeId);
+      }
       if (meta?.formatId) session.usedFormats.push(meta.formatId);
+      if (meta?.archetypeId) session.usedArchetypes.push(meta.archetypeId);
       if (meta?.difficulty) session.usedDifficulties.push(meta.difficulty);
       if (meta?.subtopic) session.usedSubtopics.push(meta.subtopic);
-      ['usedQuestions','usedAnswers','usedKnowledgeKeys','usedFormats'].forEach((k, i) => {
-        const max = [80, 80, 60, 40][i];
+      ['usedQuestions','usedAnswers','usedKnowledgeKeys','usedKnowledgeIds','usedFormats','usedArchetypes'].forEach((k, i) => {
+        const max = [80, 80, 60, 80, 40, 40][i];
         while (session[k].length > max) session[k].shift();
       });
     }
@@ -850,11 +1981,17 @@
     function addLogEntry(parsed, result, resolved, aiUsage = null) {
       session.stats.total += 1;
       if (result.ok) session.stats.ok += 1; else session.stats.fail += 1;
+      const id = currentEntry?.id || `log-${Date.now()}`;
+      if (currentEntry) currentEntry.id = id;
       session.log.unshift({
-        id: `log-${Date.now()}`, ok: result.ok,
+        id, ok: result.ok,
         q: parsed.q, a: parsed.a, score: result.score,
         knowledgeKey: result.knowledgeKey, resolved,
+        issues: result.issues || [],
+        evaluated: false,
+        humanRating: currentEntry?.humanRating || null,
         aiUsage: aiUsage || lastAiUsage,
+        gameVersion: session.gameVersion,
       });
       if (session.log.length > 40) session.log.pop();
       renderSessionLog();
@@ -886,11 +2023,105 @@
     }
 
     function getFeedbackHints() {
-      if (!$('use-feedback-hints').checked) return '';
-      return loadFeedback().slice(-4).map((f) => {
-        const p = [f.verdict, f.comment].filter(Boolean).join(' — ');
-        return p ? `FEEDBACK: ${p}` : '';
-      }).filter(Boolean).join('\n');
+      if (!$('use-feedback-hints')?.checked) return '';
+      const recent = loadFeedback().slice(-8);
+      if (!recent.length || !Learning?.formatSessionHints) return '';
+      return Learning.formatSessionHints(recent);
+    }
+
+    function scrollToNewQuestion() {
+      const el = $('result-card');
+      if (!el) return;
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+
+    function presentForReview(result, parsed, resolved, aiUsage) {
+      showResult(result, parsed, resolved, aiUsage);
+      session.pendingReview = true;
+      updateGenerateLock();
+      const gate = $('eval-gate');
+      if (gate) {
+        gate.hidden = false;
+        gate.classList.remove('pulse');
+        void gate.offsetWidth;
+        gate.classList.add('pulse');
+      }
+      const saved = $('eval-saved-note');
+      if (saved) saved.hidden = true;
+      scrollToNewQuestion();
+    }
+
+    function evaluationReady() {
+      if (!currentEntry) {
+        alert('Não há pergunta para avaliar.');
+        return false;
+      }
+      if (!currentEntry.humanRating) {
+        alert('Dá uma nota 1–5 à qualidade da pergunta.');
+        return false;
+      }
+      const issues = selectedIssues();
+      if (currentEntry.humanRating <= 2 && !issues.length) {
+        alert('Nota 1 ou 2: indica pelo menos um problema estruturado.');
+        return false;
+      }
+      if (!selectedVerdict) {
+        alert('Escolhe se o motor acertou nesta validação.');
+        return false;
+      }
+      return true;
+    }
+
+    async function submitEvaluation({ generateNext }) {
+      if (!evaluationReady()) return false;
+      applyEditsAndRevalidate({ silent: true });
+      const entry = buildFeedbackEntry();
+      if (!entry) return false;
+      const logItem = session.log.find((x) => x.id === currentEntry.id);
+      if (!logItem?.evaluated) saveFeedbackEntry(entry);
+      if (logItem) {
+        logItem.evaluated = true;
+        logItem.humanRating = currentEntry.humanRating;
+        logItem.verdict = selectedVerdict;
+        logItem.comment = entry.human?.comment || '';
+        logItem.tags = entry.human?.issues || [];
+      }
+      session.pendingReview = false;
+      updateGenerateLock();
+      renderPonderacao();
+      const persisted = await persistTestResult(entry);
+      const saved = $('eval-saved-note');
+      if (saved) {
+        saved.hidden = false;
+        const dbNote = persisted?.ok
+          ? ` · ${persisted.rules?.length || 0} regras na base de dados`
+          : (persisted?.error ? ` · local (BD: ${persisted.error})` : ' · local');
+        saved.textContent = generateNext
+          ? `Avaliação guardada${dbNote}. A gerar a seguinte…`
+          : `Avaliação guardada${dbNote}. A próxima geração usa padrões desta sessão e regras persistentes.`;
+      }
+      const gate = $('eval-gate');
+      if (gate) gate.classList.remove('pulse');
+
+      const rating = currentEntry.humanRating;
+      const shouldBank = currentEntry.result?.ok && selectedVerdict === 'motor-ok' && rating >= 4;
+      if (shouldBank) {
+        const r = currentEntry.resolved || {};
+        const bankSave = await saveAcceptedToBank(
+          currentEntry.parsed, r, r.formatId, currentEntry.result.knowledgeKey,
+        );
+        const status = $('gen-status');
+        if (status && (bankSave?.ok || bankSave?.reason === 'exists')) {
+          status.textContent += bankSave.reason === 'exists' ? ' · Já no banco.' : ' · Guardada no banco após avaliação.';
+        }
+      }
+      if (generateNext) {
+        if (stopBatch) return true;
+        await runGenerate();
+      }
+      return true;
     }
 
     async function saveAcceptedToBank(parsed, resolved, formatId, knowledgeKey) {
@@ -905,8 +2136,9 @@
           options: parsed.options,
           format: formatId,
           knowledgeKey,
+          knowledgeId: resolved.repositoryRecord?.knowledgeId || '',
           questionHash: QB.questionHash(parsed.q, parsed.a),
-          source: 'test-page',
+          source: resolved.repositoryRecord ? 'repository' : 'test-page',
         });
       } catch (err) {
         console.warn('[test-questions] save bank falhou:', err);
@@ -914,15 +2146,150 @@
       }
     }
 
+    const REPO_ADIVINHA_TOPIC = 'adivinha tradicional';
+    const REPO_CURIOSIDADE_TOPIC = 'curiosidade surpreendente';
+
+    function usesRepoFact() {
+      return $('fact-source')?.value === 'repo';
+    }
+
+    function renderRepoFactBox(record) {
+      const el = $('repo-fact-box');
+      if (!el) return;
+      if (!record?.fact) {
+        el.hidden = true;
+        el.innerHTML = '';
+        return;
+      }
+      const answer = QE.getRepositoryExpectedAnswer
+        ? QE.getRepositoryExpectedAnswer(record, lastResolved?.formatId)
+        : (record.answer || '');
+      const src = [record.source, record.sourceId].filter(Boolean).join(' · ');
+      el.hidden = false;
+      el.innerHTML = `<strong>Facto do repositório</strong> — a IA só formulou a pergunta.<br>${escapeHtml(record.fact)}`
+        + (answer ? `<div class="meta">Resposta obrigatória: ${escapeHtml(answer)}</div>` : '')
+        + `<div class="meta">${escapeHtml(record.knowledgeId || '')}${src ? ` · ${escapeHtml(src)}` : ''}</div>`;
+    }
+
+    function formatFromRepoRecord(record, preferredFormatId, catN, ageBandKey, answerMode) {
+      const allowed = (record?.allowedFormats || []).map((f) => String(f || '').toUpperCase());
+      const engineAllowed = QE.getAllowedFormats(catN, ageBandKey, answerMode) || [];
+      const preferred = String(preferredFormatId || '').toUpperCase();
+      const overlap = engineAllowed.filter((f) => !allowed.length || allowed.includes(f));
+      const pool = overlap.length ? overlap : engineAllowed;
+      if (preferred && pool.includes(preferred)) return preferred;
+      const vfAnswer = /^(verdadeiro|falso)$/i.test(String(record?.answer || ''));
+      const rank = vfAnswer
+        ? ['VERDADEIRO_FALSO', 'CURIOSIDADE', 'ESCOLHA_MULTIPLA']
+        : ['ESCOLHA_MULTIPLA', 'ONDE_FICA', 'QUEM_E', 'O_QUE_E', 'RESPOSTA_DIRETA', 'VERDADEIRO_FALSO'];
+      return rank.find((f) => pool.includes(f)) || pool[0] || preferred || QE.FORMAT_IDS.ESCOLHA_MULTIPLA;
+    }
+
+    function repoPickTopic(catN, formatId) {
+      if (Number(catN) !== 20) return null;
+      if (formatId === QE.FORMAT_IDS.ADIVINHA) return REPO_ADIVINHA_TOPIC;
+      if (formatId === QE.FORMAT_IDS.CURIOSIDADE || formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO) {
+        return REPO_CURIOSIDADE_TOPIC;
+      }
+      return null;
+    }
+
+    async function pickOneRepoRecord(categoryN, ageBandKey, { formatId, topic } = {}) {
+      const KR = window.ReinoKnowledgeRepository;
+      const exclude = session.usedKnowledgeIds || [];
+      const tryPick = (opts) => KR.pickRecord(categoryN, ageBandKey, {
+        excludeKnowledgeIds: exclude,
+        minConfidence: 0.85,
+        ...opts,
+      });
+      let record = await tryPick({ topic: topic || null, formatId: formatId || null });
+      if (!record && (topic || formatId)) {
+        record = await tryPick({});
+      }
+      if (!record && KR.loadRecords) {
+        const rows = await KR.loadRecords(categoryN, {
+          ageBand: ageBandKey,
+          limit: 50,
+          minConfidence: 0.85,
+        });
+        record = (rows || []).find((row) => {
+          if (!row?.knowledgeId || exclude.includes(row.knowledgeId)) return false;
+          if (!KR.evaluateRecordPolicy) return true;
+          return KR.evaluateRecordPolicy(row, { categoryN, formatId }).ok;
+        }) || null;
+      }
+      return record;
+    }
+
+    async function pickRepoFactForTest(resolved) {
+      const KR = window.ReinoKnowledgeRepository;
+      if (!KR?.isConfigured?.()) {
+        throw new Error('Repositório não configurado (Supabase). Verifica supabase-config.js.');
+      }
+      const catRandom = $('cat').value === 'random';
+      const startN = resolved.cat.n;
+      const order = catRandom
+        ? [...new Set([startN, 2, 20, 5, 1, ...CATEGORIES.map((c) => c.n)])]
+        : [startN];
+      const formatHint = resolved.formatId || '';
+      for (const n of order) {
+        const record = await pickOneRepoRecord(n, resolved.ageBandKey, {
+          formatId: n === 20 ? formatHint : '',
+          topic: repoPickTopic(n, formatHint),
+        });
+        if (!record) continue;
+        const cat = CATEGORIES.find((c) => c.n === n) || resolved.cat;
+        return { record, cat };
+      }
+      return null;
+    }
+
     async function generateOne() {
+      if (stopBatch) return null;
       const resolved = await resolveConfig();
-      const { cat, ageBandKey, answerMode, difficulty } = resolved;
-      const formatId = resolveFormat(cat.n, ageBandKey, answerMode);
+      if (stopBatch) return null;
+      let { cat, ageBandKey, answerMode, difficulty } = resolved;
+      resolved.requestedDifficulty = difficulty;
+      const archetypeId = QE.chooseArchetype
+        ? QE.chooseArchetype(cat.n, ageBandKey, answerMode, session.usedArchetypes)
+        : '';
+      let formatId = resolveFormat(cat.n, ageBandKey, answerMode, archetypeId);
       resolved.formatId = formatId;
+      resolved.archetypeId = archetypeId;
+      resolved.cognitiveLevel = QE.getArchetype?.(archetypeId)?.cognitiveLevel || '';
       let subtopic = QE.chooseSubtopic(cat.n, session.usedSubtopics);
       resolved.subtopic = subtopic;
+      let repoRecord = null;
 
-      const isTrueFalse = formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO;
+      if (usesRepoFact()) {
+        $('gen-status').className = 'result run';
+        $('gen-status').textContent = 'A obter facto do repositório…';
+        const picked = await pickRepoFactForTest({ ...resolved, formatId });
+        if (!picked?.record) {
+          $('gen-status').className = 'result err';
+          $('gen-status').textContent = $('cat').value === 'random'
+            ? 'Não há factos no repositório para estas categorias. Importa fontes no painel admin.'
+            : `Não há factos no repositório para ${cat.n}. ${cat.name} (${ageBandKey}). Importa fontes no painel admin.`;
+          renderRepoFactBox(null);
+          return null;
+        }
+        repoRecord = picked.record;
+        cat = picked.cat;
+        resolved.cat = cat;
+        formatId = formatFromRepoRecord(repoRecord, formatId, cat.n, ageBandKey, answerMode);
+        resolved.formatId = formatId;
+        resolved.repositoryRecord = repoRecord;
+        resolved.factSource = 'repo';
+        resolved.subtopic = repoRecord.subtopic || repoRecord.topic || subtopic;
+        subtopic = resolved.subtopic;
+        lastResolved = resolved;
+        renderRepoFactBox(repoRecord);
+      } else {
+        renderRepoFactBox(null);
+      }
+
+      const isTrueFalse = formatId === QE.FORMAT_IDS.VERDADEIRO_FALSO
+        || formatId === QE.FORMAT_IDS.CURIOSIDADE;
       const isMC = answerMode === 'mc' || isTrueFalse || formatId === QE.FORMAT_IDS.ESCOLHA_MULTIPLA;
       const persistent = QE.getPersistentSlice(ageBandKey);
       const maxAttempts = QE.ENGINE_CONFIG?.MAX_RETRIES || 5;
@@ -939,53 +2306,83 @@
             : ' Inclui "a" e "distractors" (3 erradas).'))
         : (formatId === QE.FORMAT_IDS.ADIVINHA ? ' Inclui "clues" (2–5 pistas).' : '');
       const knowledgeHint = QE.KNOWLEDGE_JSON_HINT || '';
+      const expectedA = repoRecord && QE.getRepositoryExpectedAnswer
+        ? QE.getRepositoryExpectedAnswer(repoRecord, formatId)
+        : '';
+      const expectedAJson = JSON.stringify(expectedA || (isTrueFalse ? 'Verdadeiro' : '...')).slice(1, -1);
       const jsonFormat = isMC
-        ? (isTrueFalse ? `{"q":"... Verdadeiro ou Falso?","a":"Verdadeiro","options":["Verdadeiro","Falso"]${knowledgeHint}`
+        ? (isTrueFalse ? `{"q":"... Verdadeiro ou Falso?","a":"${expectedAJson}","options":["Verdadeiro","Falso"]${knowledgeHint}`
           : (formatId === QE.FORMAT_IDS.ADIVINHA
-            ? `{"q":"...","a":"...","clues":["pista 1","pista 2"],"distractors":["...","...","..."]${knowledgeHint}`
-            : `{"q":"...","a":"...","distractors":["...","...","..."]${knowledgeHint}`))
+            ? `{"q":"...","a":"${expectedAJson}","clues":["pista 1","pista 2"],"distractors":["...","...","..."]${knowledgeHint}`
+            : `{"q":"...","a":"${expectedAJson}","distractors":["...","...","..."]${knowledgeHint}`))
         : (formatId === QE.FORMAT_IDS.ADIVINHA
-          ? `{"q":"...","a":"...","clues":["pista 1","pista 2"]${knowledgeHint}`
-          : `{"q":"...","a":"..."${knowledgeHint}}`);
+          ? `{"q":"...","a":"${expectedAJson}","clues":["pista 1","pista 2"]${knowledgeHint}`
+          : `{"q":"...","a":"${expectedAJson}"${knowledgeHint}}`);
 
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-        if (attempt > 1 && QE.shouldRotateSubtopicForRetry(lastIssueDetails, attempt)) {
+        if (stopBatch) return null;
+        if (!repoRecord && attempt > 1 && QE.shouldRotateSubtopicForRetry(lastIssueDetails, attempt)) {
           subtopic = QE.chooseSubtopic(cat.n, [...session.usedSubtopics, subtopic]);
           resolved.subtopic = subtopic;
         }
         $('gen-status').className = 'result run';
-        $('gen-status').textContent = `A gerar… tentativa ${attempt}/${maxAttempts} (${QE.FORMAT_LABELS[formatId]})`;
+        $('gen-status').textContent = repoRecord
+          ? `A formular a partir do repositório… tentativa ${attempt}/${maxAttempts} (${QE.FORMAT_LABELS[formatId]})`
+          : `A gerar… tentativa ${attempt}/${maxAttempts} (${QE.FORMAT_LABELS[formatId]})`;
 
         const retryHint = attempt > 1
           ? [QE.buildAdaptiveRetryHint(lastIssues, formatId, ageBandKey, attempt, { issueDetails: lastIssueDetails }), getFeedbackHints()].filter(Boolean).join('\n')
           : getFeedbackHints();
 
-        const prompt = QE.buildPrompt({
-          category: cat, ageBandKey,
-          ageBandPromptText: AGE_PROMPT[ageBandKey],
-          formatId, ptPtRules: PT_PT_RULES,
-          isMC, isTrueFalse, difficulty, subtopic,
-          recentDifficulties: session.usedDifficulties,
-          recentSubtopics: session.usedSubtopics,
-          usedQuestions: session.usedQuestions,
-          usedFormats: session.usedFormats,
-          usedAnswers: session.usedAnswers,
-          usedKnowledgeKeys: session.usedKnowledgeKeys,
-          persistentQuestions: persistent.questions,
-          persistentAnswers: persistent.answers,
-          persistentKnowledgeKeys: persistent.knowledgeKeys,
-          openModeExtra: !isMC ? 'Resposta curta.' : '',
-          mcInstruction, jsonFormat, retryHint,
-        }).slice(0, 11000);
+        const prompt = (repoRecord && QE.buildPromptFromFact
+          ? QE.buildPromptFromFact(repoRecord, {
+            category: cat, ageBandKey,
+            ageBandPromptText: AGE_PROMPT[ageBandKey],
+            formatId, ptPtRules: PT_PT_RULES,
+            isMC, isTrueFalse, difficulty,
+            openModeExtra: !isMC ? 'Resposta curta.' : '',
+            mcInstruction, jsonFormat, retryHint,
+          })
+          : QE.buildPrompt({
+            category: cat, ageBandKey,
+            ageBandPromptText: AGE_PROMPT[ageBandKey],
+            formatId, archetypeId, ptPtRules: PT_PT_RULES,
+            isMC, isTrueFalse, difficulty, subtopic,
+            recentDifficulties: session.usedDifficulties,
+            recentSubtopics: session.usedSubtopics,
+            usedQuestions: session.usedQuestions,
+            usedFormats: session.usedFormats,
+            usedArchetypes: session.usedArchetypes,
+            usedAnswers: session.usedAnswers,
+            usedKnowledgeKeys: session.usedKnowledgeKeys,
+            persistentQuestions: persistent.questions,
+            persistentAnswers: persistent.answers,
+            persistentKnowledgeKeys: persistent.knowledgeKeys,
+            openModeExtra: !isMC ? 'Resposta curta.' : '',
+            mcInstruction, jsonFormat, retryHint,
+          })).slice(0, 11000);
 
-        const response = await fetch('/api/generate', {
-          method: 'POST',
-          headers: window.ReinoAdminAuth?.headers({ 'Content-Type': 'application/json' })
-            || { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], max_tokens: isMC ? 340 : 220 }),
-        });
-        if (!response.ok) throw new Error(`API ${response.status}`);
-        const data = await response.json();
+        generateAbort = new AbortController();
+        let response;
+        try {
+          response = await fetch('/api/generate', {
+            method: 'POST',
+            headers: window.ReinoAdminAuth?.headers({ 'Content-Type': 'application/json' })
+              || { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messages: [{ role: 'user', content: prompt }], max_tokens: isMC ? 340 : 220 }),
+            signal: generateAbort.signal,
+          });
+        } catch (err) {
+          if (isAbortError(err) || stopBatch) return null;
+          throw err;
+        }
+        if (stopBatch) return null;
+        const data = await response.json().catch(() => ({}));
+        if (stopBatch) return null;
+        if (!response.ok) {
+          const msg = [data.error, data.detail].filter(Boolean).join(' — ') || `API ${response.status}`;
+          throw new Error(msg);
+        }
         const aiUsage = resolveAiUsage(data);
         lastAttemptUsage = aiUsage;
         rememberAiUsage(aiUsage);
@@ -996,6 +2393,8 @@
             outcome: 'parse_error',
             category: cat.n,
             formatId,
+            archetypeId,
+            cognitiveLevel: resolved.cognitiveLevel,
             ageBandKey,
             difficulty,
             attempt,
@@ -1015,34 +2414,46 @@
           parsed.options = ['Verdadeiro', 'Falso'];
         }
 
-        const ctx = buildValidationCtx({ formatId, isMC, difficulty });
+        const ctx = buildValidationCtx({
+          formatId, isMC, difficulty,
+          categoryNumber: cat.n,
+          repositoryRecord: repoRecord,
+        });
         const result = validateParsed(parsed, ctx);
         lastParsed = parsed;
         lastResult = result;
 
         if (result.ok) {
+          if (stopBatch) return null;
           $('gen-status').className = 'result ok';
           $('gen-status').textContent = `Aceite na tentativa ${attempt}.${aiUsageSuffix(aiUsage)}`;
           recordTestTelemetry({
             outcome: 'accepted',
             category: cat.n,
             formatId,
+            archetypeId,
+            cognitiveLevel: resolved.cognitiveLevel,
             ageBandKey,
             difficulty,
             attempt,
             score: result.score,
             aiUsage,
+            knowledgeId: repoRecord?.knowledgeId,
+            source: repoRecord ? 'repo-ai' : 'ai',
           });
-          showResult(result, parsed, resolved, aiUsage);
-          rememberAccepted(parsed, result, { formatId, difficulty, subtopic });
+          presentForReview(result, parsed, resolved, aiUsage);
+          rememberAccepted(parsed, result, {
+            formatId, archetypeId, difficulty, subtopic,
+            knowledgeId: repoRecord?.knowledgeId,
+          });
           addLogEntry(parsed, result, resolved, aiUsage);
-          const bankSave = await saveAcceptedToBank(parsed, resolved, formatId, result.knowledgeKey);
           QE.persistQuestion(ageBandKey, parsed.q, parsed.a, normalizeQ, {
             category: cat.n, format: formatId, knowledgeKey: result.knowledgeKey, difficulty, subtopic,
+            knowledgeId: repoRecord?.knowledgeId,
+            source: repoRecord ? 'repository' : 'test-page',
+            sourceId: repoRecord?.sourceId,
           });
-          if (bankSave?.ok || bankSave?.reason === 'exists') {
-            $('gen-status').textContent += bankSave.reason === 'exists' ? ' · Já no banco Supabase.' : ' · Guardada no banco Supabase.';
-          }
+          $('gen-status').textContent += ' · Avalia agora para o motor aprender.';
           return { parsed, result, resolved };
         }
         lastIssues = result.issues || ['validação falhou'];
@@ -1051,6 +2462,8 @@
           outcome: 'rejected',
           category: cat.n,
           formatId,
+          archetypeId,
+          cognitiveLevel: resolved.cognitiveLevel,
           ageBandKey,
           difficulty,
           attempt,
@@ -1058,32 +2471,67 @@
           score: result.score,
           aiUsage,
           parsed,
+          knowledgeId: repoRecord?.knowledgeId,
+          source: repoRecord ? 'repo-ai' : 'ai',
         });
-        showResult(result, parsed, resolved, aiUsage);
       }
 
+      if (stopBatch) return null;
       $('gen-status').className = 'result err';
-      $('gen-status').textContent = `Rejeitada após ${maxAttempts} tentativas.${aiUsageSuffix(lastAttemptUsage)}`;
-      if (lastParsed && lastResult) addLogEntry(lastParsed, lastResult, resolved, lastAttemptUsage);
+      $('gen-status').textContent = `Rejeitada após ${maxAttempts} tentativas.${aiUsageSuffix(lastAttemptUsage)} · Avalia agora para o motor aprender.`;
+      if (lastParsed && lastResult) {
+        if (repoRecord?.knowledgeId && !session.usedKnowledgeIds.includes(repoRecord.knowledgeId)) {
+          session.usedKnowledgeIds.push(repoRecord.knowledgeId);
+        }
+        presentForReview(lastResult, lastParsed, resolved, lastAttemptUsage);
+        addLogEntry(lastParsed, lastResult, resolved, lastAttemptUsage);
+      }
       return null;
     }
 
-    async function runBatch(n) {
-      stopBatch = false;
-      $('btn-generate').disabled = true;
-      $('btn-generate-5').disabled = true;
-      $('btn-stop').disabled = false;
-      for (let i = 0; i < n && !stopBatch; i += 1) {
-        try { await generateOne(); } catch (err) {
-          $('gen-status').className = 'result err';
-          $('gen-status').textContent = `Erro: ${err.message}`;
-          break;
+    async function runGenerate() {
+      if (stopBatch && !session.pendingReview && !generating) stopBatch = false;
+      if (session.pendingReview) {
+        $('result-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        const gate = $('eval-gate');
+        if (gate) {
+          gate.classList.remove('pulse');
+          void gate.offsetWidth;
+          gate.classList.add('pulse');
         }
-        if (i < n - 1) await new Promise((r) => setTimeout(r, 500));
+        $('gen-status').className = 'result run';
+        $('gen-status').textContent = 'Avalia primeiro esta pergunta (veredito + nota 1–5) para o motor usar o teu input.';
+        return;
       }
-      $('btn-generate').disabled = false;
-      $('btn-generate-5').disabled = false;
-      $('btn-stop').disabled = true;
+      stopBatch = false;
+      generating = true;
+      updateGenerateLock();
+      try {
+        await generateOne();
+      } catch (err) {
+        if (isAbortError(err) || stopBatch) {
+          const status = $('gen-status');
+          if (status) {
+            status.className = 'result idle';
+            status.textContent = 'Parado. Podes gerar outra pergunta ou continuar a avaliar a actual.';
+          }
+          return;
+        }
+        $('gen-status').className = 'result err';
+        $('gen-status').textContent = `Erro: ${err.message}`;
+        session.pendingReview = false;
+      } finally {
+        generating = false;
+        generateAbort = null;
+        if (stopBatch) {
+          const status = $('gen-status');
+          if (status && /A parar/.test(status.textContent || '')) {
+            status.className = 'result idle';
+            status.textContent = 'Parado. Podes gerar outra pergunta ou continuar a avaliar a actual.';
+          }
+        }
+        updateGenerateLock();
+      }
     }
 
     function loadFeedback() {
@@ -1097,22 +2545,151 @@
       renderFeedbackList();
       updateStats();
     }
+
+    async function persistTestResult(result) {
+      try {
+        const response = await fetch('/api/test-eval', {
+          method: 'POST',
+          headers: window.ReinoAdminAuth?.headers({ 'Content-Type': 'application/json' })
+            || { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ result }),
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) return { ok: false, error: data.error || `HTTP ${response.status}` };
+        if (data.rules) Learning?.setCachedRules?.(data.rules);
+        renderRulesSummary();
+        return { ok: true, rules: data.rules || [] };
+      } catch (err) {
+        return { ok: false, error: err.message };
+      }
+    }
+
+    async function loadPersistentRules({ rebuild } = {}) {
+      try {
+        if (rebuild) {
+          const response = await fetch('/api/test-eval', {
+            method: 'POST',
+            headers: window.ReinoAdminAuth?.headers({ 'Content-Type': 'application/json' })
+              || { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ rebuild: true }),
+          });
+          const data = await response.json().catch(() => ({}));
+          if (response.ok && Array.isArray(data.rules)) {
+            Learning?.setCachedRules?.(data.rules);
+            renderRulesSummary();
+            return;
+          }
+        }
+        const response = await fetch('/api/test-eval?t=' + Date.now(), { cache: 'no-store' });
+        const data = await response.json().catch(() => ({}));
+        if (data.rules) Learning?.setCachedRules?.(data.rules);
+      } catch { /* ignore */ }
+      renderRulesSummary();
+    }
+
+    function renderRulesSummary() {
+      const el = $('rules-summary');
+      if (!el) return;
+      const rules = Learning?.getCachedRules?.() || [];
+      const summary = Learning?.summarizeRulesByCategory
+        ? Learning.summarizeRulesByCategory(rules)
+        : { total: rules.length, groups: [] };
+      if ($('stat-rules')) $('stat-rules').textContent = String(summary.total || 0);
+      if (!summary.total) {
+        el.innerHTML = '<p class="hint">Ainda não há regras persistentes. Precisas de correr o SQL no Supabase e de ~3 avaliações com o mesmo padrão (idade, categoria ou problema).</p>';
+        return;
+      }
+      el.innerHTML = summary.groups.map((group) => `
+        <div class="rules-group">
+          <h3>${escapeHtml(group.label)} <span class="rules-meta">· ${group.count}</span></h3>
+          <ul>${group.rules.map((r) => {
+            const conf = r.level === 'high' ? 'alta' : 'média';
+            const bits = (r.scopeBits || []).join(' · ');
+            return `<li>${escapeHtml(r.rule)} <span class="rules-meta">${escapeHtml(conf)} · ${r.evidence} evid.${bits ? ` · ${escapeHtml(bits)}` : ''}</span></li>`;
+          }).join('')}</ul>
+        </div>`).join('');
+    }
+
+    function feedbackQuestion(f) {
+      return f.generated?.question || f.question || '';
+    }
+    function feedbackVerdict(f) {
+      return f.human?.verdict || f.verdict || '';
+    }
+    function feedbackRating(f) {
+      return f.human?.rating || f.humanRating || null;
+    }
+    function feedbackComment(f) {
+      return f.human?.comment || f.comment || '';
+    }
     function buildFeedbackEntry() {
       if (!currentEntry) return null;
-      const tags = [...document.querySelectorAll('#issue-chips input:checked')].map((c) => c.value);
+      const issues = selectedIssues();
       const r = currentEntry.resolved || {};
+      const orig = currentEntry.originalResolved || {};
+      const origP = currentEntry.originalParsed || {};
+      const extras = (currentEntry.extraCategories || []).map((c) => c.name || c).filter(Boolean);
+      const origCat = orig.cat?.name || '';
+      const corrCat = r.cat?.name || '';
+      const requested = currentEntry.requestedDifficulty ?? orig.requestedDifficulty ?? orig.difficulty;
+      const corrected = r.difficulty;
+      const origFormat = orig.formatId || '';
+      const corrFormat = r.formatId || '';
+      const { corrections, fieldErrors } = Learning?.buildCorrections
+        ? Learning.buildCorrections(
+          {
+            category: origCat || undefined,
+            difficulty: requested,
+            format: origFormat || undefined,
+            age: orig.ageBandKey,
+            question: origP.q,
+            answer: origP.a,
+          },
+          {
+            category: corrCat || undefined,
+            difficulty: corrected,
+            format: corrFormat || undefined,
+            age: r.ageBandKey,
+            question: currentEntry.parsed.q,
+            answer: currentEntry.parsed.a,
+          },
+        )
+        : { corrections: {}, fieldErrors: [] };
       return {
-        id: `fb-${Date.now()}`, ts: new Date().toISOString(),
-        verdict: selectedVerdict, tags, comment: $('fb-comment').value.trim(),
-        motorAccepted: currentEntry.result.ok,
-        question: currentEntry.parsed.q, answer: currentEntry.parsed.a,
-        options: currentEntry.parsed.options,
-        score: currentEntry.result.score, issues: currentEntry.result.issues,
-        knowledgeKey: currentEntry.result.knowledgeKey,
-        category: r.cat?.name, age: r.ageBandKey, format: r.formatId,
-        difficulty: r.difficulty, answerMode: r.answerMode,
-        aiProvider: currentEntry.aiUsage?.provider || '',
-        aiModel: currentEntry.aiUsage?.model || '',
+        schemaVersion: Learning?.SCHEMA_VERSION || 2,
+        id: currentEntry.id || `q-${Date.now()}`,
+        evaluatedAt: new Date().toISOString(),
+        sessionId: session.testSessionId,
+        engineVersion: session.gameVersion,
+        input: {
+          category: origCat || corrCat || '',
+          age: orig.ageBandKey || r.ageBandKey || '',
+          difficulty: requested ?? null,
+          format: origFormat || corrFormat || '',
+          archetype: orig.archetypeId || r.archetypeId || '',
+        },
+        generated: {
+          question: origP.q || currentEntry.parsed.q || '',
+          answer: origP.a || currentEntry.parsed.a || '',
+          options: origP.options || currentEntry.parsed.options || [],
+        },
+        engine: {
+          accepted: !!currentEntry.result?.ok,
+          score: currentEntry.result?.score ?? null,
+          layers: currentEntry.motorLayers || currentEntry.result?.layers || {},
+          issues: currentEntry.result?.issues || [],
+        },
+        human: {
+          verdict: selectedVerdict,
+          rating: currentEntry.humanRating || null,
+          issues,
+          corrections,
+          fieldErrors,
+          layerScores: currentEntry.layerScores || {},
+          applicableAges: currentEntry.applicableAges || [],
+          extraCategories: extras,
+          comment: $('fb-comment').value.trim(),
+        },
       };
     }
     function renderFeedbackList() {
@@ -1121,9 +2698,9 @@
       if (!list.length) { el.innerHTML = '<p class="hint">Nenhum feedback.</p>'; return; }
       el.innerHTML = list.map((f) => `
         <div class="feedback-entry">
-          <div class="fb-meta">${new Date(f.ts).toLocaleString('pt-PT')} · ${escapeHtml(f.verdict||'—')} · motor ${f.motorAccepted?'aceitou':'rejeitou'}</div>
-          <div>${escapeHtml(f.question)}</div>
-          ${f.comment ? `<div class="hint">${escapeHtml(f.comment)}</div>` : ''}
+          <div class="fb-meta">${new Date(f.evaluatedAt || f.ts).toLocaleString('pt-PT')} · ${escapeHtml(VERDICT_LABELS[feedbackVerdict(f)] || feedbackVerdict(f) || '—')} · ${f.engine?.accepted || f.motorAccepted ? 'motor aceitou' : 'motor rejeitou'}${feedbackRating(f) ? ` · nota ${feedbackRating(f)}/5` : ''}${f.input?.category || f.category ? ` · ${escapeHtml(f.input?.category || f.category)}` : ''}</div>
+          <div>${escapeHtml(feedbackQuestion(f))}</div>
+          ${feedbackComment(f) ? `<div class="hint">${escapeHtml(feedbackComment(f))}</div>` : ''}
         </div>`).join('');
     }
 
@@ -1131,14 +2708,63 @@
     $('cat').addEventListener('change', onConfigChange);
     $('age').addEventListener('change', onConfigChange);
     $('answerMode').addEventListener('change', onConfigChange);
-    $('btn-generate').addEventListener('click', () => runBatch(1));
-    $('btn-generate-5').addEventListener('click', () => runBatch(5));
-    $('btn-stop').addEventListener('click', () => { stopBatch = true; });
+    $('fact-source')?.addEventListener('change', onConfigChange);
+    $('btn-generate').addEventListener('click', () => runGenerate());
+    $('btn-stop').addEventListener('click', () => { stopEverything(); });
     $('btn-validate-manual').addEventListener('click', async () => {
+      if (lastResolved || currentEntry) {
+        applyEditsAndRevalidate();
+        return;
+      }
       const { parsed, isMC } = buildParsedFromForm();
       const ctx = buildValidationCtx({ isMC });
-      const resolved = lastResolved || await resolveConfig();
+      const resolved = await resolveConfig();
       showResult(validateParsed(parsed, ctx), parsed, resolved);
+    });
+    $('btn-apply-edits')?.addEventListener('click', () => applyEditsAndRevalidate());
+    $('eval-cat')?.addEventListener('change', () => applyEditsAndRevalidate({ silent: true }));
+    $('eval-diff')?.addEventListener('change', () => applyEditsAndRevalidate({ silent: true }));
+    $('eval-format')?.addEventListener('change', () => applyEditsAndRevalidate({ silent: true }));
+    $('eval-cat-extra')?.addEventListener('change', () => {
+      if (!currentEntry) return;
+      currentEntry.extraCategories = readExtraCategories(Number($('eval-cat')?.value));
+      renderExtraContext(lastResolved || currentEntry.resolved, currentEntry.extraCategories, currentEntry.originalResolved);
+    });
+    $('result-card')?.addEventListener('click', (ev) => {
+      const accept = ev.target.closest('[data-accept-diff]');
+      if (!accept || !currentEntry) return;
+      const d = Number(accept.dataset.acceptDiff);
+      if (!Number.isFinite(d)) return;
+      if ($('eval-diff')) $('eval-diff').value = String(d);
+      applyEditsAndRevalidate({ silent: true });
+    });
+    $('result-card')?.addEventListener('input', (ev) => {
+      const score = ev.target.closest('input.layer-score');
+      if (!score || !currentEntry) return;
+      const layer = score.dataset.layer;
+      const max = layerMax(layer);
+      let n = Number(score.value);
+      if (!layer || !Number.isFinite(n)) return;
+      n = Math.min(max, Math.max(0, Math.round(n)));
+      currentEntry.layerScores = { ...(currentEntry.layerScores || {}), [layer]: n };
+      updateLayerScoreDisplay(score, layer, n);
+    });
+    $('result-card')?.addEventListener('change', (ev) => {
+      if (!currentEntry) return;
+      if (ev.target.classList.contains('layer-age')) {
+        currentEntry.applicableAges = [...document.querySelectorAll('#result input.layer-age:checked')].map((i) => i.value);
+        return;
+      }
+      if (ev.target.classList.contains('layer-extra-cat')) {
+        currentEntry.extraCategories = readExtraCategories(Number($('eval-cat')?.value));
+        renderExtraContext(lastResolved || currentEntry.resolved, currentEntry.extraCategories, currentEntry.originalResolved);
+        return;
+      }
+      const setDiff = ev.target.closest('select.layer-set-diff');
+      if (setDiff && $('eval-diff')) {
+        $('eval-diff').value = setDiff.value;
+        applyEditsAndRevalidate({ silent: true });
+      }
     });
     document.querySelectorAll('#verdict-btns button').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -1147,46 +2773,105 @@
         btn.classList.add('selected');
       });
     });
+    document.querySelectorAll('#result-rate button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const rating = Number(btn.dataset.rate);
+        if (!currentEntry) return;
+        if (!currentEntry.id) currentEntry.id = `log-${Date.now()}`;
+        currentEntry.humanRating = rating;
+        const existing = session.log.find((x) => x.id === currentEntry.id);
+        if (existing) existing.humanRating = rating;
+        syncResultRateButtons(rating);
+        renderPonderacao();
+      });
+    });
+    $('btn-copy-ponder').addEventListener('click', () => {
+      navigator.clipboard.writeText(formatPonderText());
+      alert('Resumo copiado.');
+    });
+    $('btn-export-ponder').addEventListener('click', () => {
+      const p = computePonderacao();
+      const blob = new Blob([JSON.stringify({
+        testSession: {
+          version: session.gameVersion,
+          startedAt: session.startedAt,
+          engineVersion: session.gameVersion,
+          totalQuestions: session.log.length,
+        },
+        stats: session.stats,
+        motorAvg: p.motorAvg,
+        acceptPct: p.acceptPct,
+        humanAvg: p.humanAvg,
+        sessionNote: p.sessionNote,
+        results: loadFeedback(),
+      }, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `teste-perguntas-${session.gameVersion || 'sessao'}-${new Date().toISOString().slice(0,10)}.json`;
+      a.click();
+    });
     $('btn-save-feedback').addEventListener('click', () => {
-      if (!selectedVerdict) { alert('Escolhe um veredito.'); return; }
-      saveFeedbackEntry(buildFeedbackEntry());
-      alert('Guardado.');
+      submitEvaluation({ generateNext: false });
     });
     $('btn-next-after-fb').addEventListener('click', () => {
-      if (selectedVerdict) saveFeedbackEntry(buildFeedbackEntry());
-      runBatch(1);
+      submitEvaluation({ generateNext: true });
     });
     $('btn-clear-session').addEventListener('click', () => {
       Object.assign(session, {
         usedQuestions: [], usedAnswers: [], usedKnowledgeKeys: [], usedFormats: [],
-        usedDifficulties: [], usedSubtopics: [], recentMcPositions: [], log: [],
+        usedArchetypes: [], usedDifficulties: [], usedSubtopics: [], usedAges: [], recentMcPositions: [], log: [],
         stats: { total: 0, ok: 0, fail: 0 },
+        pendingReview: false,
       });
-      renderSessionLog(); updateStats();
+      renderSessionLog(); updateStats(); renderPonderacao(); updateGenerateLock();
     });
     $('btn-export-json').addEventListener('click', () => {
-      const blob = new Blob([JSON.stringify(loadFeedback(), null, 2)], { type: 'application/json' });
+      const payload = {
+        testSession: {
+          version: session.gameVersion,
+          startedAt: session.startedAt,
+          engineVersion: session.gameVersion,
+          totalQuestions: loadFeedback().length,
+        },
+        results: loadFeedback(),
+      };
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = `engine-feedback-${new Date().toISOString().slice(0,10)}.json`;
       a.click();
     });
     $('btn-copy-feedback').addEventListener('click', () => {
-      const text = loadFeedback().map((f, i) => `[${i+1}] ${f.verdict} | ${f.question} | ${f.comment||''}`).join('\n');
+      const text = loadFeedback().map((f, i) => `[${i+1}] ${feedbackVerdict(f)} | ${feedbackQuestion(f)} | ${feedbackComment(f)}`).join('\n');
       navigator.clipboard.writeText(text || 'Sem feedbacks.');
       alert('Copiado.');
     });
     $('btn-clear-feedback').addEventListener('click', () => {
       if (confirm('Apagar feedbacks?')) { localStorage.removeItem(FEEDBACK_KEY); renderFeedbackList(); updateStats(); }
     });
+    $('btn-refresh-rules')?.addEventListener('click', () => loadPersistentRules({ rebuild: true }));
+    $('btn-copy-rules')?.addEventListener('click', () => {
+      const rules = Learning?.getCachedRules?.() || [];
+      const text = Learning?.formatRulesSummaryText
+        ? Learning.formatRulesSummaryText(rules)
+        : 'Sem regras persistentes.';
+      navigator.clipboard.writeText(text);
+      alert(text === 'Sem regras persistentes.' ? 'Ainda não há regras.' : 'Resumo das regras copiado.');
+    });
 
     populateCategorySelect();
+    populateEvalAdjusts();
+    renderIssueChips();
     applyReportUrlParams();
     renderFeedbackList();
+    renderLayerGuideStatic();
+    loadGameVersion();
+    loadPersistentRules();
     updateStats();
+    updateGenerateLock();
     ReinoAdminAuth.initGate({ appEl: document.getElementById('adminApp') });
   })();
   </script>
-  <script src="/app-update.js?v=20260904-181057" defer></script>
+  <script src="/app-update.js?v=20260911-133745" defer></script>
 </body>
 </html>

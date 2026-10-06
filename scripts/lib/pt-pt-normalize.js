@@ -3,7 +3,10 @@
 /**
  * Normalização PT-PT para import (KR-1.1).
  * Heurísticas AO1990 + variantes comuns em fontes folclóricas — sem API Priberam.
+ * Topónimos: Priberam/Infopédia via question-engine/pt-pt-place-names.js.
  */
+
+const { canonicalizePlaceText } = require('../../public/question-engine/pt-pt-place-names.js');
 
 function applyCase(template, sample) {
   const t = String(template || '');
@@ -55,14 +58,20 @@ function normalizePtPtText(text) {
   for (const [pattern, replacer] of WORD_REPLACEMENTS) {
     out = out.replace(pattern, replacer);
   }
+  if (typeof canonicalizePlaceText === 'function') {
+    out = canonicalizePlaceText(out);
+  }
   return out;
 }
 
 function normalizePtPtRecord(fields) {
   const src = fields || {};
+  const hasStatement = src.statement != null && String(src.statement).trim() !== '';
   return {
     fact: normalizePtPtText(src.fact),
     answer: normalizePtPtText(src.answer),
+    topic: src.topic != null ? normalizePtPtText(src.topic) : '',
+    statement: hasStatement ? normalizePtPtText(src.statement) : '',
     clues: Array.isArray(src.clues)
       ? src.clues.map((c) => normalizePtPtText(c)).filter(Boolean)
       : [],

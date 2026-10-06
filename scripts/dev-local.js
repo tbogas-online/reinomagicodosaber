@@ -10,6 +10,22 @@ const envPath = path.join(root, '.env.local');
 
 loadEnvLocal();
 
+function nodeSupportsSystemCa() {
+  const [maj, min] = String(process.versions.node || '0.0').split('.').map((n) => Number(n) || 0);
+  return maj >= 24 || (maj === 23 && min >= 8) || (maj === 22 && min >= 15);
+}
+
+/** Proxy/inspeção SSL da empresa: o Node ignora o armazém de certificados do Windows sem esta flag. */
+function withSystemCaEnv(env) {
+  if (!nodeSupportsSystemCa()) return { ...env };
+  const next = { ...env };
+  const current = String(next.NODE_OPTIONS || '').trim();
+  if (!current.includes('--use-system-ca')) {
+    next.NODE_OPTIONS = current ? `${current} --use-system-ca` : '--use-system-ca';
+  }
+  return next;
+}
+
 process.env.DEV_LOCAL = '1';
 process.env.NETLIFY_DEV = 'true';
 
@@ -53,6 +69,8 @@ if (useOffline) {
   npxArgs.push('--context', 'production');
 }
 
+const childEnv = withSystemCaEnv(process.env);
+
 console.log('');
 console.log('=== Reino Mágico — desenvolvimento local ===');
 console.log(`  Jogo:      http://localhost:${port}/`);
@@ -67,11 +85,14 @@ if (useOffline) {
   console.log('  Modo:      live (--context production; requer netlify link).');
 }
 console.log('  Parar:     Ctrl+C');
+if (nodeSupportsSystemCa()) {
+  console.log('  TLS:       --use-system-ca (certificados do sistema / proxy da empresa)');
+}
 console.log('');
 
 const child = spawn('npx', npxArgs, {
   cwd: root,
-  env: process.env,
+  env: childEnv,
   stdio: 'inherit',
   shell: true,
 });

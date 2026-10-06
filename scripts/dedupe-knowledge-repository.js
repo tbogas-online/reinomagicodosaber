@@ -12,7 +12,7 @@
 
 require('./load-env').loadEnvLocal();
 
-const { buildDedupePlan } = require('./lib/knowledge-dedupe');
+const { buildDedupePlan, formatDisabledReason } = require('./lib/knowledge-dedupe');
 
 function parseArgs(argv) {
   return {
@@ -58,7 +58,7 @@ async function fetchRecords(cfg) {
   return all;
 }
 
-async function disableRecord(cfg, knowledgeId) {
+async function disableRecord(cfg, knowledgeId, reason) {
   const response = await fetch(`${cfg.url}/rest/v1/rpc/disable_knowledge_record`, {
     method: 'POST',
     headers: {
@@ -66,7 +66,10 @@ async function disableRecord(cfg, knowledgeId) {
       apikey: cfg.key,
       Authorization: `Bearer ${cfg.key}`,
     },
-    body: JSON.stringify({ p_knowledge_id: knowledgeId }),
+    body: JSON.stringify({
+      p_knowledge_id: knowledgeId,
+      p_reason: reason || null,
+    }),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
@@ -117,7 +120,7 @@ async function main() {
   let fail = 0;
   for (const entry of plan.toDisable) {
     try {
-      const result = await disableRecord(cfg, entry.knowledge_id);
+      const result = await disableRecord(cfg, entry.knowledge_id, formatDisabledReason(entry));
       if (result?.ok) ok += 1;
       else fail += 1;
     } catch (err) {

@@ -1214,6 +1214,34 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('111. MC_WRONG_CLASS Versalhes', !r.ok && r.issueDetails?.some((i) => i.code === 'MC_WRONG_CLASS'), r.issues?.join(', '));
 }
 {
+  const golden = {
+    q: 'Quem é o engenheiro que ajudou a construir a ponte Golden Gate Bridge, na Califórnia',
+    a: 'Joseph Strauss',
+    options: ['Joseph Strauss', 'SpaceX', 'De Havilland', 'Biocombustível'],
+  };
+  const r = QE.validateQuestion(golden, baseCtx({
+    isMC: true,
+    formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA,
+    categoryNumber: 19,
+    ageBandKey: '15+',
+  }));
+  assert('111b. Golden Gate distractores incoerentes', !r.ok && r.issueDetails?.some((i) => i.code === 'MC_WRONG_CLASS'), r.issues?.join(', '));
+}
+{
+  const goldenOk = {
+    q: 'Quem é o engenheiro que ajudou a construir a ponte Golden Gate, na Califórnia?',
+    a: 'Joseph Strauss',
+    options: ['Joseph Strauss', 'John A. Roebling', 'Gustave Eiffel', 'Apolodoro de Damasco'],
+  };
+  const r = QE.validateQuestion(goldenOk, baseCtx({
+    isMC: true,
+    formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA,
+    categoryNumber: 19,
+    ageBandKey: '15+',
+  }));
+  assert('111c. Golden Gate engenheiros aceite', r.ok, r.issues?.join(', '));
+}
+{
   const congelamento = { q: 'Completa: O processo de solidificação da água é chamado de ___.', a: 'Congelamento' };
   const r = QE.validateQuestion(congelamento, baseCtx({ formatId: QE.FORMAT_IDS.COMPLETA, categoryNumber: 5, ageBandKey: '15+' }));
   assert('112. CATEGORY_MISMATCH congelamento', !r.ok && r.issueDetails?.some((i) => i.code === 'CATEGORY_MISMATCH'), r.issues?.join(', '));
@@ -1333,6 +1361,8 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 {
   const est = QE.estimateDifficulty('Qual é o planeta onde vivemos?', 'Terra', { ageBandKey: '15+' });
   assert('126. estimateDifficulty trivial', est.estimatedDifficulty <= 2 && est.difficultyConfidence >= 0.7);
+  const generic = QE.estimateDifficulty('Qual é a capital de Espanha?', 'Madrid', { ageBandKey: '10-15' });
+  assert('126b. default estimado D2', generic.estimatedDifficulty === 2);
 }
 {
   const parsed = { q: 'Qual é o planeta onde vivemos?', a: 'Terra' };
@@ -1467,6 +1497,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   const PB = sandbox.globalThis.QuestionEnginePromptBuilder;
   const globalRules = PB.buildGlobalRules();
   assert('140. prompt-builder global rules', globalRules.includes('REGRAS GLOBAIS') && globalRules.includes('PT-PT'));
+  assert('140c. prompt-builder topónimos PT-PT', globalRules.includes('Bagdade') && globalRules.includes('MESMA grafia'));
   const fmtRules = PB.buildFormatRules('QUEM_E', { ageBandKey: '10-15', isMC: false, isTrueFalse: false });
   assert('140b. prompt-builder format rules', fmtRules.includes('QUEM_E'));
   const cat = QE.CATEGORIES[2];
@@ -1526,6 +1557,7 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('148. validateFactualConsistency', Array.isArray(woody));
   const manifest = manifestSandbox.globalThis.QuestionEngineManifest;
   assert('149. manifest ordem', manifest.ENGINE_SCRIPT_PATHS[0].endsWith('engine-config.js')
+    && manifest.ENGINE_SCRIPT_PATHS.includes('question-engine/learning-engine.js')
     && manifest.ENGINE_SCRIPT_PATHS.at(-1) === 'question-engine.js');
 }
 {
@@ -1588,6 +1620,17 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('152. repository answer mismatch', !badRepo.ok && badRepo.issues.some((i) => /repositório/i.test(i)));
 }
 
+{
+  const geo = {
+    knowledgeId: 'knw-geo-sucre',
+    answer: 'Sucre',
+    isTrue: true,
+    fact: 'A capital constitucional da Bolívia é Sucre.',
+  };
+  assert('152b. geo MC usa a capital', QE.getRepositoryExpectedAnswer(geo, 'ESCOLHA_MULTIPLA') === 'Sucre');
+  assert('152c. geo V/F usa Verdadeiro', QE.getRepositoryExpectedAnswer(geo, 'VERDADEIRO_FALSO') === 'Verdadeiro');
+}
+
 // 153–154. CURIOSIDADE — só Verdadeiro/Falso
 {
   const ostra = {
@@ -1638,8 +1681,8 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
 
 // 156–158. KR-2 — curiosidades a partir do repositório
 {
-  assert('156. getRepositoryExpectedAnswer isTrue', QE.getRepositoryExpectedAnswer({ isTrue: true, answer: 'X' }) === 'Verdadeiro');
-  assert('157. getRepositoryExpectedAnswer isFalse', QE.getRepositoryExpectedAnswer({ isTrue: false, answer: 'X' }) === 'Falso');
+  assert('156. getRepositoryExpectedAnswer isTrue', QE.getRepositoryExpectedAnswer({ isTrue: true, answer: 'X' }, 'CURIOSIDADE') === 'Verdadeiro');
+  assert('157. getRepositoryExpectedAnswer isFalse', QE.getRepositoryExpectedAnswer({ isTrue: false, answer: 'X' }, 'VERDADEIRO_FALSO') === 'Falso');
   const curRecord = {
     knowledgeId: 'knw-cur-test',
     fact: 'Um polvo tem três corações e sangue azul.',
@@ -2072,5 +2115,353 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
   assert('219. bad_options gelo preview válido', hockeyBad?.correctionPreview?.ok === true, hockeyBad?.correctionPreview?.issues?.join(', '));
 }
 
-console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
-process.exit(failed > 0 ? 1 : 0);
+// 220–226. Question Archetypes
+{
+  assert('220. catálogo de archetypes nas 20 categorias',
+    Object.keys(QE.CATEGORY_ARCHETYPES).length === 20
+    && Object.values(QE.CATEGORY_ARCHETYPES).every((ids) => Array.isArray(ids) && ids.length > 0));
+  assert('220b. PISTAS só ADIVINHA', QE.chooseFormat(20, '10-15', 'mc', [], { archetypeId: 'PISTAS' }) === QE.FORMAT_IDS.ADIVINHA);
+  assert('220c. CURIOSIDADE_FACTUAL cat.20 → CURIOSIDADE',
+    QE.chooseFormat(20, '10-15', 'mc', [], { archetypeId: 'CURIOSIDADE_FACTUAL' }) === QE.FORMAT_IDS.CURIOSIDADE);
+
+  const recentArch = ['TEMPORAL', 'TEMPORAL'];
+  let temporalNext = 0;
+  for (let i = 0; i < 40; i += 1) {
+    if (QE.chooseArchetype(3, '10-15', 'mc', recentArch) === 'TEMPORAL') temporalNext += 1;
+  }
+  assert('221. anti-repetição de archetype', temporalNext < 12, `TEMPORAL ${temporalNext}/40`);
+
+  let previsaoCount = 0;
+  for (let i = 0; i < 80; i += 1) {
+    if (QE.chooseArchetype(4, '6-9', 'mc', []) === 'PREVISAO') previsaoCount += 1;
+  }
+  assert('222. PREVISAO excluído aos 6–9', previsaoCount === 0, `PREVISAO ${previsaoCount}/80`);
+
+  const plan = QE.planQuestion(2, '10-15', 'mc', {});
+  const geoArch = QE.CATEGORY_ARCHETYPES[2] || QE.CATEGORY_ARCHETYPES['2'];
+  const allowedFmt = QE.getAllowedFormats(2, '10-15', 'mc', { archetypeId: plan.archetypeId });
+  assert('223. planQuestion geografia', geoArch.includes(plan.archetypeId) && allowedFmt.includes(plan.formatId) && !!plan.cognitiveLevel);
+
+  const archPrompt = QE.buildPrompt({
+    category: QE.CATEGORIES[3],
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: 'ESCOLHA_MULTIPLA',
+    archetypeId: 'CAUSA_EFEITO',
+    ptPtRules: '',
+    isMC: true,
+    isTrueFalse: false,
+    jsonFormat: '{"q":"","a":""}',
+    normalizeFn: (s) => String(s || '').trim().toLowerCase(),
+  });
+  assert('224. buildPrompt inclui archetype', /CAUSA_EFEITO/.test(archPrompt) && /ARCHETYPE OBRIGATÓRIO/.test(archPrompt));
+
+  QE.clearGenerationTelemetry();
+  QE.recordGenerationTelemetry({
+    outcome: 'accepted',
+    category: 3,
+    formatId: 'ESCOLHA_MULTIPLA',
+    archetypeId: 'COMPARACAO',
+    cognitiveLevel: 'L4_ANALISAR',
+  });
+  const archSummary = QE.getGenerationTelemetrySummary();
+  assert('225. telemetria byArchetype', archSummary.byArchetype?.COMPARACAO?.total === 1);
+  assert('226. telemetria byCognitiveLevel', archSummary.byCognitiveLevel?.L4_ANALISAR?.total === 1);
+}
+
+{
+  const weights = QE.LAYER_WEIGHTS || {};
+  const sum = Object.values(weights).reduce((s, n) => s + Number(n || 0), 0);
+  assert('227. LAYER_WEIGHTS somam 100', sum === 100, `soma=${sum}`);
+  assert('228. LAYER_GUIDE cobre as camadas', Object.keys(weights).every((k) => QE.LAYER_GUIDE?.[k]?.reflects));
+
+  const far = {
+    q: 'Em que ano foi a Restauração da Independência?',
+    a: '1640',
+    options: ['1640', '1800', '1900', '2000'],
+  };
+  const rFar = QE.validateQuestion(far, baseCtx({
+    isMC: true, formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA, categoryNumber: 3, difficulty: 5, ageBandKey: '15+',
+  }));
+  assert('229. D5 anos afastados reprova MC', !rFar.ok && /próxim|afastad/i.test((rFar.issues || []).join(' ')), rFar.issues?.join(', '));
+
+  const closeNames = {
+    q: 'Qual é a capital de Portugal?',
+    a: 'Lisboa',
+    options: ['Lisboa', 'Lisbosa', 'Porto', 'Coimbra'],
+  };
+  const rClose = QE.validateQuestion(closeNames, baseCtx({
+    isMC: true, formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA, categoryNumber: 2, difficulty: 1, ageBandKey: '6-9',
+  }));
+  assert('230. D1 nomes quase iguais reprova MC', !rClose.ok, rClose.issues?.join(', '));
+
+  const nearYears = {
+    q: 'Em que ano foi a Restauração da Independência?',
+    a: '1640',
+    options: ['1640', '1641', '1638', '1648'],
+  };
+  const rNear = QE.validateQuestion(nearYears, baseCtx({
+    isMC: true, formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA, categoryNumber: 3, difficulty: 5, ageBandKey: '15+',
+  }));
+  const nearMcFail = (rNear.issueDetails || []).some((d) => d.code === 'MC_DISTRACTORS_TOO_FAR');
+  assert('231. D5 anos próximos não disparam TOO_FAR', !nearMcFail, rNear.issues?.join(', '));
+
+  const planets = {
+    q: 'Qual é o planeta mais próximo do Sol?',
+    a: 'Mercúrio',
+    options: ['Mercúrio', 'Vénus', 'Terra', 'Marte'],
+  };
+  const rPlanets = QE.validateQuestion(planets, baseCtx({
+    isMC: true, formatId: QE.FORMAT_IDS.ESCOLHA_MULTIPLA, categoryNumber: 6, difficulty: 3,
+  }));
+  assert('232. MC planetas nível 3 aceite nas opções', !(rPlanets.issueDetails || []).some((d) => d.layer === 'mcOptions'), rPlanets.issues?.join(', '));
+
+  const prompt = QE.buildPrompt({
+    category: QE.CATEGORIES[2],
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: 'ESCOLHA_MULTIPLA',
+    ptPtRules: '',
+    isMC: true,
+    isTrueFalse: false,
+    difficulty: 5,
+    jsonFormat: '{"q":"","a":""}',
+    normalizeFn: (s) => String(s || '').trim().toLowerCase(),
+  });
+  assert('233. prompt calibra distractores à dificuldade', /OPÇÕES MC CALIBRADAS À DIFICULDADE 5/.test(prompt));
+}
+
+{
+  const Learning = sandbox.globalThis.QuestionEngineLearning;
+  assert('234. learning engine carregado', !!(Learning && QE.Learning));
+  const sample = (n) => ({
+    id: `q-${n}`,
+    schemaVersion: 2,
+    input: { category: 'História', age: '6-9', difficulty: 4, format: 'ESCOLHA_MULTIPLA' },
+    generated: { question: `Pergunta secreta número ${n} sobre a batalha de Aljubarrota`, answer: '1385' },
+    engine: { accepted: true, score: 90, layers: { mcOptions: 12, age: 12, difficulty: 8 } },
+    human: {
+      verdict: 'false-positive',
+      rating: 2,
+      issues: ['too-hard', 'obvious-distractor'],
+      fieldErrors: [
+        { field: 'difficulty', ai_value: 4, human_value: 2, error: true },
+        { field: 'category', ai_value: 'História', human_value: 'Geografia', error: true },
+      ],
+      corrections: { difficulty: 2, category: 'Geografia' },
+      layerScores: { mcOptions: 5, age: 4, difficulty: 3 },
+      comment: 'Demasiado difícil para 8 anos.',
+    },
+  });
+  const rules = Learning.deriveRules([sample(1), sample(2), sample(3)]);
+  assert('235. deriva regra de dificuldade 6-9', rules.some((r) => /6-9/.test(r.rule) && /dificuldade/i.test(r.rule)));
+  assert('236. deriva regra de distractores', rules.some((r) => /distractor/i.test(r.rule)));
+  assert('237. deriva correcção História→Geografia', rules.some((r) => /História/.test(r.rule) && /Geografia/.test(r.rule)));
+  assert('238. deriva sobrevalorização MC', rules.some((r) => /sobrevaloriza/i.test(r.rule) && /MC/.test(r.rule)));
+  const hints = Learning.formatSessionHints([sample(1)]);
+  assert('239. hints de sessão sem texto da pergunta', hints.includes('too-hard') === false && !hints.includes('Aljubarrota') && hints.includes('6-9'));
+  assert('240. hints usam problemas estruturados', /demasiado difícil/.test(hints) && /False positive/.test(hints));
+  Learning.setCachedRules(rules);
+  const learnedPrompt = QE.buildPrompt({
+    category: QE.CATEGORIES[3],
+    ageBandKey: '6-9',
+    ageBandPromptText: '6 a 9 anos',
+    formatId: 'ESCOLHA_MULTIPLA',
+    ptPtRules: '',
+    isMC: true,
+    isTrueFalse: false,
+    difficulty: 3,
+    jsonFormat: '{"q":"","a":""}',
+    normalizeFn: (s) => String(s || '').trim().toLowerCase(),
+  });
+  assert('241. prompt inclui regras persistentes', /REGRAS APRENDIDAS/.test(learnedPrompt));
+  assert('242. prompt persistente não copia a pergunta', !learnedPrompt.includes('Aljubarrota'));
+  const grouped = Learning.summarizeRulesByCategory(rules);
+  assert('243. resumo tem grupo História', grouped.groups.some((g) => g.key === 'História' && g.rules.some((r) => /Geografia/.test(r.rule))));
+  assert('244. resumo tem regras gerais', grouped.groups.some((g) => g.key === '*' && g.count > 0));
+  const summaryText = Learning.formatRulesSummaryText(grouped);
+  assert('245. texto do resumo por categoria', /História/.test(summaryText) && /Regras aprendidas/.test(summaryText));
+  assert('246. não gera regra genérica de qualidade', !rules.some((r) => r.type === 'quality' || /perguntas fracas/.test(r.rule)));
+  assert('247. prompt não inclui calibração do motor', !/sobrevaloriza|subvaloriza/i.test(learnedPrompt));
+  assert('248. problemas gerais não duplicam por formato', rules.filter((r) => /too-hard/.test(r.rule_key) || /demasiado especializadas/.test(r.rule)).length <= 1);
+  assert('249. distractores MC ficam no formato', rules.some((r) => r.rule_key.includes('ESCOLHA_MULTIPLA') && /distractor/i.test(r.rule)));
+  const motorGroup = grouped.groups.find((g) => g.key === 'motor');
+  assert('250. calibração do motor à parte', !!(motorGroup && motorGroup.rules.some((r) => /sobrevaloriza/i.test(r.rule))));
+  Learning.setCachedRules([]);
+}
+
+{
+  const bankSandbox = { globalThis: {}, window: {}, console };
+  bankSandbox.window = bankSandbox.globalThis;
+  vm.createContext(bankSandbox);
+  vm.runInContext(fs.readFileSync(path.join(publicDir, 'question-bank.js'), 'utf8'), bankSandbox);
+  const QB = bankSandbox.globalThis.QuestionBank;
+  assert('251. QuestionBank.pickSparseCandidate', typeof QB?.pickSparseCandidate === 'function');
+  const sparseCells = [
+    { categoryN: 1, ageBand: '6-9', count: 0 },
+    { categoryN: 1, ageBand: '10-15', count: 40 },
+    { categoryN: 1, ageBand: '15+', count: 30 },
+    { categoryN: 2, ageBand: '6-9', count: 1 },
+    { categoryN: 2, ageBand: '10-15', count: 20 },
+    { categoryN: 2, ageBand: '15+', count: 18 },
+  ];
+  const greedy = QB.pickSparseCandidate(sparseCells, { random: () => 0 });
+  assert('252. sem balanceAges escolhe a célula mais vazia (6-9)', greedy?.ageBand === '6-9' && greedy?.categoryN === 1);
+  const ages = new Set();
+  for (let i = 0; i < 90; i += 1) {
+    const pick = QB.pickSparseCandidate(sparseCells, { balanceAges: true });
+    if (pick?.ageBand) ages.add(pick.ageBand);
+  }
+  assert('253. faixa aleatória não fica presa em 6-9', ages.has('6-9') && ages.has('10-15') && ages.has('15+'));
+  const after69 = QB.pickSparseCandidate(sparseCells, {
+    balanceAges: true,
+    recentAgeBands: ['6-9'],
+    random: () => 0,
+  });
+  assert('254. evita repetir a última faixa', after69?.ageBand !== '6-9');
+}
+
+(async () => {
+  assert('255. Wikidata skip adivinha', !QE.shouldRequestWikidataVerify(
+    { source: 'Wikidata', sourceId: 'Q45', answer: 'Lisboa' },
+    { categoryNumber: 20, formatId: 'ADIVINHA' },
+  ));
+  assert('256. Wikidata pede curiosidade com Q-id', QE.shouldRequestWikidataVerify(
+    { source: 'Wikidata', sourceId: 'Q45', answer: 'Lisboa', category: 20 },
+    { categoryNumber: 20, formatId: 'CURIOSIDADE' },
+  ));
+  assert('256b. Wikidata pede geografia cat. 2', QE.shouldRequestWikidataVerify(
+    { source: 'Wikidata', sourceId: 'Q45', answer: 'Lisboa' },
+    { categoryNumber: 2, formatId: 'RESPOSTA_DIRETA' },
+  ));
+  const lisbon = {
+    id: 'Q597',
+    labels: { pt: { value: 'Lisboa' }, en: { value: 'Lisbon' } },
+    aliases: { pt: [{ value: 'Lisboa cidade' }] },
+    descriptions: { pt: { value: 'capital de Portugal' } },
+  };
+  const madrid = {
+    id: 'Q2807',
+    labels: { pt: { value: 'Madrid' }, en: { value: 'Madrid' } },
+    descriptions: { es: { value: 'capital de España' } },
+  };
+  const ok = QE.evaluateWikidataSupport({ answer: 'Lisboa' }, lisbon);
+  const bad = QE.evaluateWikidataSupport({ answer: 'Lisboa' }, madrid);
+  assert('257. Wikidata confirma Lisboa', ok.ok === true && ok.matched === true);
+  assert('258. Wikidata rejeita Lisboa vs Madrid', bad.ok === false && /Lisboa/.test(bad.issues?.[0] || ''));
+
+  const skippedNet = await QE.verifyCuriosityAgainstWikidata(
+    { source: 'Wikidata', sourceId: 'Q45', answer: 'Lisboa', category: 20 },
+    {
+      categoryNumber: 20,
+      formatId: 'CURIOSIDADE',
+      fetch: async () => { throw new Error('offline'); },
+    },
+  );
+  assert('259. Wikidata rede falhou não bloqueia', skippedNet.ok === true && skippedNet.skipped === true);
+
+  const restLisbon = {
+    id: 'Q597',
+    labels: { pt: 'Lisboa', en: 'Lisbon' },
+    descriptions: { pt: 'capital de Portugal' },
+    aliases: { pt: ['Olissipo'] },
+  };
+  assert('260. REST labels string confirma Lisboa', QE.evaluateWikidataSupport({ answer: 'Lisboa' }, restLisbon).matched === true);
+
+  let fetchedUrl = '';
+  const restOk = await QE.verifyAgainstWikidata(
+    { source: 'Wikidata', sourceId: 'Q597', answer: 'Lisboa' },
+    {
+      categoryNumber: 2,
+      formatId: 'RESPOSTA_DIRETA',
+      fetch: async (url) => {
+        fetchedUrl = String(url);
+        return { ok: true, json: async () => restLisbon };
+      },
+    },
+  );
+  assert('261. verify usa REST v1', /rest\.php\/wikibase\/v1\/entities\/items\/Q597/.test(fetchedUrl) && restOk.matched === true);
+
+  const geoPrompt = QE.buildPromptFromFact({
+    fact: 'A capital de Portugal é Lisboa.',
+    answer: 'Lisboa',
+    source: 'Wikidata',
+    sourceId: 'Q45',
+    metadata: { restDescription: 'país da Europa Ocidental' },
+  }, {
+    category: QE.CATEGORIES[2],
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: QE.FORMAT_IDS.RESPOSTA_DIRETA,
+    ptPtRules: '',
+    isMC: false,
+    isTrueFalse: false,
+    jsonFormat: '{"q":"","a":""}',
+  });
+  assert('262. prompt geografia a partir do facto', geoPrompt.includes('Lisboa') && geoPrompt.includes('NÃO inventes') && geoPrompt.includes('país da Europa Ocidental'));
+  const verified = QE.buildVerifiedAiInput(
+    { fact: 'A capital de Portugal é Lisboa.', answer: 'Lisboa', sourceId: 'Q45' },
+    restLisbon,
+  );
+  assert('263. input verificado para a IA', verified.qid === 'Q45' && verified.label === 'Lisboa' && /NÃO inventes/.test(verified.instruction));
+
+  const bagdadRejected = QE.validateQuestion(
+    { q: 'Qual é a capital do Iraque?', a: 'Bagdá' },
+    baseCtx({ categoryNumber: 2 }),
+  );
+  assert(
+    '264. Bagdá rejeitado',
+    !bagdadRejected.ok && bagdadRejected.issueDetails?.some((i) => i.code === 'PT_COUNTRY_NAME'),
+    bagdadRejected.issues?.join(', '),
+  );
+  const bagdadeOk = QE.validateQuestion(
+    { q: 'Qual é a capital do Iraque?', a: 'Bagdade' },
+    baseCtx({ categoryNumber: 2 }),
+  );
+  assert('265. Bagdade aceite', bagdadeOk.ok, bagdadeOk.issues?.join(', '));
+  const mismatch = sandbox.globalThis.QuestionEnginePtPt.collectPtPtIssues(
+    'Bagdá é a capital de que país?',
+    'Bagdade',
+    [],
+    '10-15',
+  );
+  assert(
+    '266. grafias diferentes na pergunta e na resposta',
+    mismatch.some((i) => i.code === 'PT_COUNTRY_NAME'),
+    mismatch.map((i) => i.message).join(', '),
+  );
+  assert(
+    '267. repositório Bagdá pede Bagdade',
+    QE.getRepositoryExpectedAnswer({ answer: 'Bagdá' }, 'RESPOSTA_DIRETA') === 'Bagdade',
+  );
+  const bagdadPrompt = QE.buildPromptFromFact({
+    fact: 'A capital do Iraque é Bagdá.',
+    answer: 'Bagdá',
+    source: 'Wikidata',
+    sourceId: 'Q796',
+  }, {
+    category: QE.CATEGORIES[2],
+    ageBandKey: '10-15',
+    ageBandPromptText: '10 a 15 anos',
+    formatId: QE.FORMAT_IDS.RESPOSTA_DIRETA,
+    ptPtRules: '',
+    isMC: false,
+    isTrueFalse: false,
+    jsonFormat: '{"q":"","a":""}',
+  });
+  assert(
+    '268. prompt canoniza Bagdá',
+    bagdadPrompt.includes('A capital do Iraque é Bagdade.')
+      && bagdadPrompt.includes('campo "a": Bagdade'),
+  );
+  const wdBagdad = QE.evaluateWikidataSupport(
+    { answer: 'Bagdade' },
+    { id: 'Q1530', labels: { pt: 'Bagdá', en: 'Baghdad' }, descriptions: { pt: 'capital do Iraque' } },
+  );
+  assert('269. Wikidata Bagdá confirma Bagdade', wdBagdad.ok === true && wdBagdad.matched === true);
+  console.log(`\nResultado: ${passed} passaram, ${failed} falharam`);
+  process.exit(failed > 0 ? 1 : 0);
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

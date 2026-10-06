@@ -235,5 +235,6 @@ module.exports = {
   countPlayableBankQuestions,
   fetchUnmaterializedKnowledge,
   buildBankItems,
+  importQuestionBatch: importBatch,
   replenishBankFromKnowledge,
 };

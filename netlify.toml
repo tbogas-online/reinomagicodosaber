@@ -39,8 +39,12 @@
 
 [functions."gen-telemetry-admin"]
   node_bundler = "esbuild"
+  timeout = 26
 
 [functions."validation-overrides"]
+  node_bundler = "esbuild"
+
+[functions."test-eval"]
   node_bundler = "esbuild"
 
 [functions."game-stats-admin"]
@@ -48,6 +52,7 @@
 
 [functions."knowledge-import-admin"]
   node_bundler = "esbuild"
+  timeout = 26
   included_files = ["./data/knowledge-import-queue.json"]
 
 [functions."quarantine-admin"]
@@ -102,6 +107,11 @@
 [[redirects]]
   from = "/api/validation-overrides"
   to = "/.netlify/functions/validation-overrides"
+  status = 200
+
+[[redirects]]
+  from = "/api/test-eval"
+  to = "/.netlify/functions/test-eval"
   status = 200
 
 [[redirects]]

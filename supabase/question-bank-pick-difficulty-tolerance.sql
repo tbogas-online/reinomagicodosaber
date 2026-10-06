@@ -1,4 +1,4 @@
--- Tolerância de dificuldade (±1) ao escolher pergunta do banco.
+-- Tolerância de dificuldade (±2) ao escolher pergunta do banco; depois qualquer pergunta válida.
 -- Executar no SQL Editor do Supabase após question-bank-difficulty.sql
 -- e question-bank-difficulty-by-age.sql.
 -- Depois: NOTIFY pgrst, 'reload schema';
@@ -16,7 +16,8 @@ STABLE
 AS $$
   SELECT COALESCE(
     NULLIF(TRIM(p_row.difficulty_by_age_band ->> p_age_band), '')::INT,
-    p_row.difficulty
+    p_row.difficulty,
+    p_row.estimated_difficulty
   );
 $$;
 
@@ -105,7 +106,7 @@ BEGIN
           OR NOT public.reino_recently_played_knowledge(qb.knowledge_id)
         )
         AND public.reino_has_valid_mc_options(qb.options, qb.format, qb.correct_answer)
-        AND public.reino_bank_effective_difficulty(qb, p_age_band) BETWEEN GREATEST(1, v_req - 1) AND LEAST(5, v_req + 1)
+        AND public.reino_bank_effective_difficulty(qb, p_age_band) BETWEEN GREATEST(1, v_req - 2) AND LEAST(5, v_req + 2)
       ORDER BY ABS(public.reino_bank_effective_difficulty(qb, p_age_band) - v_req), random()
       LIMIT 1;
     END IF;

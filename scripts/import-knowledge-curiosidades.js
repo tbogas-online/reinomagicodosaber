@@ -6,16 +6,19 @@ require('./load-env').loadEnvLocal();
 const fs = require('fs');
 const path = require('path');
 const { normalizeRecord, validateRecord, importBatch } = require('./lib/knowledge-import-core');
-const { buildBatch50Records } = require('./lib/curiosidades-batch-50-build');
-const { buildBatch50BRecords } = require('./lib/curiosidades-batch-50-b-build');
-const { buildBatch50CRecords } = require('./lib/curiosidades-batch-50-c-build');
 const { filterNewRecords } = require('./lib/knowledge-dedupe');
+const {
+  buildRecords,
+  fetchExistingCuriosidades,
+  importCuriosidadesBatches,
+} = require('./lib/curiosidades-batch-import');
 
-const BATCH_LOADERS = [
-  { flag: '--batch-50-c', build: buildBatch50CRecords, label: 'batch-50-c' },
-  { flag: '--batch-50-b', build: buildBatch50BRecords, label: 'batch-50-b' },
-  { flag: '--batch-50', build: buildBatch50Records, label: 'batch-50' },
-];
+function batchFromArgv(argv) {
+  if (argv.includes('--batch-50-c')) return 'c';
+  if (argv.includes('--batch-50-b')) return 'b';
+  if (argv.includes('--batch-50')) return 'a';
+  return null;
+}
 
 function loadQueueRecords() {
   const queuePath = path.join(__dirname, '..', 'data', 'knowledge-import-queue.json');
@@ -23,17 +26,6 @@ function loadQueueRecords() {
   return queue.items
     .filter((item) => item.record?.topic === 'curiosidade surpreendente')
     .map((item) => normalizeRecord(item.record));
-}
-
-function loadBatchRecords(argv) {
-  const batch = BATCH_LOADERS.find((entry) => argv.includes(entry.flag));
-  if (batch) return batch.build();
-  return loadQueueRecords();
-}
-
-function exportLabel(argv) {
-  const batch = BATCH_LOADERS.find((entry) => argv.includes(entry.flag));
-  return batch ? batch.label : 'fila';
 }
 
 function writeExport(records, label) {
@@ -47,28 +39,30 @@ function writeExport(records, label) {
   return exportPath;
 }
 
-async function fetchExisting(cfg) {
-  const pageSize = 1000;
-  let offset = 0;
-  const all = [];
-  while (true) {
-    const response = await fetch(
-      `${cfg.url.replace(/\/$/, '')}/rest/v1/knowledge_records?select=knowledge_id,topic,fact,answer,is_active&category_n=eq.20&topic=eq.curiosidade+surpreendente&is_active=eq.true`,
-      {
-        headers: {
-          apikey: cfg.key,
-          Authorization: `Bearer ${cfg.key}`,
-          Range: `${offset}-${offset + pageSize - 1}`,
-        },
-      },
-    );
-    if (!response.ok) throw new Error(`knowledge_records: HTTP ${response.status}`);
-    const rows = await response.json();
-    all.push(...rows);
-    if (rows.length < pageSize) break;
-    offset += pageSize;
+async function importQueue({ url, key, dryRun }) {
+  const records = loadQueueRecords();
+  const invalid = records.filter((r) => validateRecord(r).length);
+  if (invalid.length) {
+    console.error(`${invalid.length} registos inválidos`);
+    invalid.slice(0, 3).forEach((r) => {
+      console.error(`  ${r.knowledge_id}:`, validateRecord(r));
+    });
+    process.exit(1);
   }
-  return all;
+
+  const existing = await fetchExistingCuriosidades({ url, key });
+  const { accepted, skipped } = filterNewRecords(records, existing);
+  console.log(`Curiosidades (fila): ${records.length} no lote, ${skipped.length} duplicado(s), ${accepted.length} novo(s).`);
+
+  if (dryRun) {
+    console.log({ ok: true, dryRun: true, import: accepted.length, skipped: skipped.length });
+    return;
+  }
+  if (!accepted.length) {
+    console.log('Nada a importar.');
+    return;
+  }
+  console.log(await importBatch(url, key, accepted));
 }
 
 async function main() {
@@ -81,46 +75,23 @@ async function main() {
   }
 
   const dryRun = argv.includes('--dry-run');
-  const label = exportLabel(argv);
-  const records = loadBatchRecords(argv).map((record) => normalizeRecord(record));
+  const batch = batchFromArgv(argv);
 
-  const invalid = records.filter((r) => validateRecord(r).length);
-  if (invalid.length) {
-    console.error(`${invalid.length} registos inválidos`);
-    invalid.slice(0, 3).forEach((r) => {
-      console.error(`  ${r.knowledge_id}:`, validateRecord(r));
-    });
-    process.exit(1);
-  }
-
-  if (label.startsWith('batch')) {
-    console.log(`Export: ${writeExport(records, label)}`);
-  }
-
-  const existing = await fetchExisting({ url, key });
-  const { accepted, skipped } = filterNewRecords(records, existing);
-
-  console.log(`Curiosidades (${label}): ${records.length} no lote, ${skipped.length} duplicado(s), ${accepted.length} novo(s).`);
-
-  if (skipped.length) {
-    skipped.slice(0, 5).forEach((s) => {
-      console.log(`  ignorado ${s.record.knowledge_id} (${s.reason}) — já existe ${s.of}`);
-    });
-    if (skipped.length > 5) console.log(`  … +${skipped.length - 5} ignorado(s)`);
-  }
-
-  if (dryRun) {
-    console.log({ ok: true, dryRun: true, import: accepted.length, skipped: skipped.length });
+  if (batch) {
+    const records = buildRecords(batch);
+    const exportName = batch === 'a' ? 'batch-50' : batch === 'b' ? 'batch-50-b' : 'batch-50-c';
+    console.log(`Export: ${writeExport(records, exportName)}`);
+    const summary = await importCuriosidadesBatches({ url, key }, { batch, dryRun });
+    console.log(summary.message);
+    if (summary.skippedPreview?.length) {
+      summary.skippedPreview.slice(0, 5).forEach((row) => {
+        console.log(`  ignorado ${row.knowledgeId} (${row.reason}) — já existe ${row.of}`);
+      });
+    }
     return;
   }
 
-  if (!accepted.length) {
-    console.log('Nada a importar.');
-    return;
-  }
-
-  const result = await importBatch(url, key, accepted);
-  console.log(result);
+  await importQueue({ url, key, dryRun });
 }
 
 main().catch((err) => {

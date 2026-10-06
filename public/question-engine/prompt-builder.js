@@ -12,6 +12,7 @@
     TRUE_FALSE_CHANCE,
     TRUE_FALSE_MIN_GAP,
     FORMAT_MAX_CONSECUTIVE,
+    ENGINE_CONFIG,
     FORMAT_IDS,
     FORMAT_LABELS,
     DIFFICULTY_RANGE,
@@ -22,6 +23,22 @@
     defaultFormatForAnswerMode,
     filterKnowledgeAnswers,
   } = Config;
+  const Archetypes = global.QuestionEngineArchetypes;
+  if (!Archetypes) {
+    throw new Error('prompt-builder: carrega question-archetypes.js antes deste módulo');
+  }
+  const ARCHETYPE_MAX_CONSECUTIVE = ENGINE_CONFIG.ARCHETYPE_MAX_CONSECUTIVE || FORMAT_MAX_CONSECUTIVE;
+
+  function canonicalizePlace(text) {
+    const fn = global.QuestionEnginePtPtPlaces?.canonicalizePlaceText;
+    return typeof fn === 'function' ? fn(String(text || '')) : String(text || '');
+  }
+  const McQuality = global.QuestionEngineMcDistractorQuality;
+
+  function buildMcDifficultyRules(difficulty, ageBandKey, formatId, isMC, isTrueFalse) {
+    if (!isMC || isTrueFalse || !McQuality?.buildMcDistractorRules) return '';
+    return McQuality.buildMcDistractorRules(difficulty, ageBandKey, formatId);
+  }
 
   const MUSIC_FOCUS_AREAS = [
     'uma BANDA ou GRUPO musical (nacional ou internacional)',
@@ -79,7 +96,7 @@ ${contentSafetyRules ? `\n${contentSafetyRules}\n` : ''}- Não repitas o mesmo c
 - COMPLETA: frase curta com a lacuna "___" só no FINAL — fácil de ler em voz alta.
 - Texto 100% em caracteres latinos portugueses — nunca chinês, japonês, coreano nem outro alfabeto misturado.
 - Respostas e opções em português de Portugal — nunca só em inglês (ex.: "Summer" → "Verão"; "Water" → "Água"). Nomes próprios internacionais (The Beatles, Taylor Swift) são aceites.
-- Nomes de países em PT-PT: "Irão" (nunca "Irã" nem "Iran"), "Catar" (nunca "Qatar"), "Cabo Verde", "Chéquia", "Coreia do Sul", "Estados Unidos", "Reino Unido".
+- Nomes de países e cidades em PT-PT: "Irão" (nunca "Irã" nem "Iran"), "Catar" (nunca "Qatar"), "Egipto" (nunca "Egito"), "Bagdade" (nunca "Bagdá", "Bagdad" nem "Baguedade"), "Moscovo" (nunca "Moscou"). Usa a MESMA grafia na pergunta, na resposta e nas opções.
 - Ortografia correcta: "a voar" (nunca "avoando"), "a andar", "a correr" — verbo auxiliar separado.
 - Situações de física do quotidiano: especifica o referencial ("em relação a ti", "dentro do avião"). Evita "para onde cai?" sem contexto — a resposta muda conforme o observador.`;
   }
@@ -146,9 +163,15 @@ ${ageRulesText}`;
     const parts = [];
     const {
       usedQuestions, usedFormats, usedAnswers, persistentQuestions, persistentAnswers,
-      usedKnowledgeKeys, persistentKnowledgeKeys, normalizeFn,
+      usedKnowledgeKeys, persistentKnowledgeKeys, usedArchetypes, normalizeFn,
     } = ctx;
 
+    if (usedArchetypes?.length) {
+      const lastArch = usedArchetypes[usedArchetypes.length - 1];
+      const consecArch = countConsecutiveFormat(usedArchetypes, lastArch);
+      const archLabel = Archetypes.ARCHETYPE_LABELS[lastArch] || lastArch;
+      parts.push(`Último tipo de pergunta (archetype): ${archLabel}${consecArch >= ARCHETYPE_MAX_CONSECUTIVE ? ' (já repetido — escolhe outro tipo)' : ''}. Alterna a INTENÇÃO da pergunta, não só o formato.`);
+    }
     if (usedFormats?.length) {
       const last = usedFormats[usedFormats.length - 1];
       const consec = countConsecutiveFormat(usedFormats, last);
@@ -210,8 +233,13 @@ ${ageRulesText}`;
     return pickFrom[Math.floor(Math.random() * pickFrom.length)];
   }
 
-  function getAllowedFormats(categoryNumber, ageBandKey, answerMode) {
-    const primary = filterFormatsForContext(getCategoryDef(categoryNumber).formats.slice(), ageBandKey, answerMode);
+  function getAllowedFormats(categoryNumber, ageBandKey, answerMode, opts = {}) {
+    let primary = filterFormatsForContext(getCategoryDef(categoryNumber).formats.slice(), ageBandKey, answerMode);
+    const archetypeId = opts.archetypeId || opts.archetype;
+    if (archetypeId) {
+      const filtered = Archetypes.filterFormatsForArchetype(primary, archetypeId);
+      if (filtered.length) primary = filtered;
+    }
     if (primary.length) return primary;
     return filterFormatsForContext(getCategoryDef(1).formats.slice(), ageBandKey, answerMode);
   }
@@ -226,8 +254,50 @@ ${ageRulesText}`;
     return items[items.length - 1];
   }
 
-  function chooseFormat(categoryNumber, ageBandKey, answerMode, recentFormats) {
-    const allowed = getAllowedFormats(categoryNumber, ageBandKey, answerMode);
+  function pickFromRecentPool(allowed, recent, maxConsecutive) {
+    let pool = allowed.filter((id) => countConsecutiveFormat(recent, id) < maxConsecutive);
+    if (!pool.length) {
+      pool = allowed.filter((id) => countConsecutiveFormat(recent, id) < maxConsecutive + 1);
+    }
+    if (!pool.length) pool = allowed.slice();
+
+    const last = recent[recent.length - 1];
+    if (last) {
+      const withoutLast = pool.filter((id) => id !== last);
+      if (withoutLast.length) pool = withoutLast;
+    }
+    if (pool.length > 1 && recent.length >= 2) {
+      const prev2 = new Set(recent.slice(-2));
+      const withoutPrev2 = pool.filter((id) => !prev2.has(id));
+      if (withoutPrev2.length) pool = withoutPrev2;
+    }
+    return pool;
+  }
+
+  function chooseArchetype(categoryNumber, ageBandKey, answerMode, recentArchetypes) {
+    const allowed = Archetypes.getAllowedArchetypes(categoryNumber, ageBandKey, answerMode);
+    if (!allowed.length) return Archetypes.ARCHETYPE_IDS.IDENTIFICACAO;
+
+    const recent = recentArchetypes || [];
+    const mix = getCategoryDef(categoryNumber).archetypeMix;
+    let pool = pickFromRecentPool(allowed, recent, ARCHETYPE_MAX_CONSECUTIVE);
+
+    if (mix) {
+      const mixPool = pool.filter((id) => (mix[id] || 0) > 0);
+      const pickFrom = mixPool.length ? mixPool : pool;
+      const weights = pickFrom.map((id) => mix[id] || 0);
+      return weightedPick(pickFrom, weights);
+    }
+
+    const weights = pool.map((id) => {
+      const recentCount = recent.filter((r) => r === id).length;
+      return 1 / (1 + recentCount * 0.4);
+    });
+    return weightedPick(pool, weights);
+  }
+
+  function chooseFormat(categoryNumber, ageBandKey, answerMode, recentFormats, opts = {}) {
+    const allowed = getAllowedFormats(categoryNumber, ageBandKey, answerMode, opts);
     if (!allowed.length) return defaultFormatForAnswerMode(answerMode);
 
     const formatMix = getCategoryDef(categoryNumber).formatMix;
@@ -274,45 +344,75 @@ ${ageRulesText}`;
     return weightedPick(pool, weights);
   }
 
+  function planQuestion(categoryNumber, ageBandKey, answerMode, ctx = {}) {
+    const difficulty = ctx.difficulty || chooseDifficulty(ageBandKey, ctx.recentDifficulties);
+    const subtopic = ctx.subtopic || chooseSubtopic(categoryNumber, ctx.recentSubtopics);
+    const archetypeId = ctx.archetypeId
+      || chooseArchetype(categoryNumber, ageBandKey, answerMode, ctx.recentArchetypes);
+    const formatId = ctx.formatId
+      || chooseFormat(categoryNumber, ageBandKey, answerMode, ctx.recentFormats, { archetypeId });
+    const arch = Archetypes.getArchetype(archetypeId);
+    return {
+      difficulty,
+      subtopic,
+      archetypeId,
+      formatId,
+      cognitiveLevel: arch?.cognitiveLevel || '',
+    };
+  }
+
   function buildPrompt(ctx) {
     const {
       category, ageBandKey, ageBandPromptText, formatId, ptPtRules, isMC, isTrueFalse,
       usedQuestions, usedFormats, usedAnswers, persistentQuestions, persistentAnswers,
-      usedKnowledgeKeys, persistentKnowledgeKeys,
+      usedKnowledgeKeys, persistentKnowledgeKeys, usedArchetypes,
       ageDifficultyExtra, openModeExtra, mcInstruction, jsonFormat,
-      difficulty, subtopic, retryHint,
+      difficulty, subtopic, retryHint, archetypeId,
     } = ctx;
 
     const formatLabel = FORMAT_LABELS[formatId] || formatId;
     const diff = difficulty || chooseDifficulty(ageBandKey, ctx.recentDifficulties);
     const diffLabel = DIFFICULTY_LABELS[diff] || 'médio';
     const sub = subtopic || chooseSubtopic(category?.n || 1, ctx.recentSubtopics);
+    const archId = archetypeId || null;
+    const arch = archId ? Archetypes.getArchetype(archId) : null;
+    const Learning = global.QuestionEngineLearning;
+    const learningBlock = ctx.learningRulesText
+      || (typeof Learning?.getPersistentPromptBlock === 'function' ? Learning.getPersistentPromptBlock() : '');
     const retryBlock = (retryHint || ctx.formatRetryHint)
       ? `\n${retryHint || ctx.formatRetryHint}\n`
       : '';
-    const musicFocusBlock = ctx.category?.n === 12
+    const learnedBlock = learningBlock ? `\n${learningBlock}\n` : '';
+    const archetypeBlock = arch
+      ? `\n${Archetypes.buildArchetypeRules(arch.id)}\n`
+      : '';
+    const musicFocusBlock = (!archId && ctx.category?.n === 12)
       ? `\nFOCO DESTA RODADA (Música): ${pickMusicFocus()}. Alterna entre bandas, canções, álbuns, artistas, instrumentos e géneros — não repitas sempre o mesmo tipo.\n`
       : '';
-    const techFocusBlock = ctx.category?.n === 17
+    const techFocusBlock = (!archId && ctx.category?.n === 17)
       ? `\nFOCO DESTA RODADA (Tecnologia): ${pickTechFocus()}. NÃO faças a pergunta sobre computadores, programação, RAM, HTML ou sistemas operativos a menos que o foco desta ronda seja o digital.\n`
       : '';
     const lim = getAgeLimits(ageBandKey);
     const diffExtra = (lim.promptDiffExtraHard && diff >= 4)
       ? lim.promptDiffExtraHard
       : (lim.promptDiffExtraEasy && diff <= 2 ? lim.promptDiffExtraEasy : '');
+    const cogLabel = arch
+      ? (Archetypes.COGNITIVE_LEVEL_LABELS[arch.cognitiveLevel] || arch.cognitiveLevel)
+      : '';
 
     return `Cria UMA pergunta de trivia EXCLUSIVAMENTE sobre a categoria "${category.name}" (${category.desc}), para ${ageBandPromptText}.
 
 FORMATO OBRIGATÓRIO DESTA RODADA: ${formatLabel} (${formatId}) — não uses outro tipo de pergunta.
 SUBTÓPICO DESTA RODADA: ${sub} — a pergunta deve reflectir este subtipo dentro da categoria.
-DIFICULDADE: ${diff}/5 (${diffLabel}) — adequada à faixa etária.
-${retryBlock}${musicFocusBlock}${techFocusBlock}${diffExtra}
+${arch ? `TIPO DE PERGUNTA (ARCHETYPE): ${arch.label} (${arch.id}) — testa ${cogLabel.toLowerCase()}, não outra intenção.\n` : ''}DIFICULDADE: ${diff}/5 (${diffLabel}) — adequada à faixa etária.
+${retryBlock}${learnedBlock}${archetypeBlock}${musicFocusBlock}${techFocusBlock}${diffExtra}
 ${buildGlobalRules()}
 
 REGRAS DA CATEGORIA:
 ${getCategoryDef(category.n).rules}
 
 ${buildFormatRules(formatId, { ageBandKey, isMC, isTrueFalse })}
+${buildMcDifficultyRules(diff, ageBandKey, formatId, isMC, isTrueFalse)}
 
 ${buildAgeRules(ageBandKey, ageBandPromptText)}
 ${ageDifficultyExtra || ''}
@@ -322,7 +422,7 @@ ${ptPtRules}
 
 ${buildHistoryRules({
   usedQuestions, usedFormats, usedAnswers, persistentQuestions, persistentAnswers,
-  usedKnowledgeKeys, persistentKnowledgeKeys, normalizeFn: ctx.normalizeFn,
+  usedKnowledgeKeys, persistentKnowledgeKeys, usedArchetypes, normalizeFn: ctx.normalizeFn,
 })}
 
 ${openModeExtra || ''}
@@ -334,11 +434,15 @@ Só json válido, sem markdown: ${jsonFormat}`;
   /**
    * Resposta esperada para validação — curiosidades V/F usam isTrue; adivinhas usam answer.
    */
-  function getRepositoryExpectedAnswer(record) {
+  function getRepositoryExpectedAnswer(record, formatId) {
     if (!record) return '';
-    if (record.isTrue === false) return 'Falso';
-    if (record.isTrue === true) return 'Verdadeiro';
-    return String(record.answer || '');
+    const fmt = String(formatId || '').toUpperCase();
+    const useTruth = fmt === FORMAT_IDS.CURIOSIDADE || fmt === FORMAT_IDS.VERDADEIRO_FALSO;
+    if (useTruth) {
+      if (record.isTrue === false) return 'Falso';
+      if (record.isTrue === true) return 'Verdadeiro';
+    }
+    return canonicalizePlace(String(record.answer || ''));
   }
 
   /**
@@ -356,25 +460,36 @@ Só json válido, sem markdown: ${jsonFormat}`;
     }
 
     const formatLabel = FORMAT_LABELS[formatId] || formatId;
+    const Learning = global.QuestionEngineLearning;
+    const learningBlock = ctx.learningRulesText
+      || (typeof Learning?.getPersistentPromptBlock === 'function' ? Learning.getPersistentPromptBlock() : '');
     const retryBlock = retryHint ? `\n${retryHint}\n` : '';
+    const learnedBlock = learningBlock ? `\n${learningBlock}\n` : '';
     const sourceLine = record.sourceId
       ? `${record.source} · ${record.sourceId}`
       : String(record.source || 'repositório');
-    const expectedAnswer = getRepositoryExpectedAnswer(record);
+    const expectedAnswer = getRepositoryExpectedAnswer(record, formatId);
+    const fact = canonicalizePlace(record.fact);
+    const statement = record.statement ? canonicalizePlace(record.statement) : '';
+    const restDescription = record.metadata?.restDescription
+      ? canonicalizePlace(record.metadata.restDescription)
+      : '';
 
     if (formatId === FORMAT_IDS.ADIVINHA) {
       if (!record.answer) throw new Error('buildPromptFromFact: adivinha sem resposta');
-      const cluesJson = JSON.stringify(Array.isArray(record.clues) ? record.clues : []);
+      const cluesJson = JSON.stringify(
+        (Array.isArray(record.clues) ? record.clues : []).map((clue) => canonicalizePlace(clue)),
+      );
       return `Formulas UMA adivinha em português de Portugal a partir do FACTO VERIFICADO abaixo.
 NÃO inventes factos, respostas nem pistas novas — usa apenas o material fornecido.
 
 FACTO VERIFICADO (fonte: ${sourceLine}):
-- Resposta correcta OBRIGATÓRIA no campo "a": ${record.answer}
-- Base/facto: ${record.fact}
+- Resposta correcta OBRIGATÓRIA no campo "a": ${expectedAnswer}
+- Base/facto: ${fact}
 - Pistas oficiais (podes reordenar em "clues", sem inventar nem alterar o sentido): ${cluesJson}
 
 REGRAS DO REPOSITÓRIO (obrigatórias):
-- O campo "a" tem de ser EXACTAMENTE "${record.answer}" — sem sinónimos nem variantes.
+- O campo "a" tem de ser EXACTAMENTE "${expectedAnswer}" — sem sinónimos nem variantes.
 - Reformula apenas "q" como adivinha natural em PT-PT; podes reordenar as pistas oficiais em "clues" (2–5 entradas).
 - NÃO mudes a resposta nem o significado do facto.
 - NÃO cries curiosidades factuais nem perguntas directas de cultura geral.
@@ -382,7 +497,7 @@ REGRAS DO REPOSITÓRIO (obrigatórias):
 CATEGORIA: ${category.name} (${category.desc})
 FORMATO: ${formatLabel} (${formatId})
 IDADE: ${ageBandPromptText}
-${retryBlock}
+${retryBlock}${learnedBlock}
 ${buildGlobalRules()}
 
 ${buildFormatRules(formatId, { ageBandKey, isMC, isTrueFalse })}
@@ -398,19 +513,23 @@ Só json válido, sem markdown: ${jsonFormat}`;
     }
 
     if (formatId === FORMAT_IDS.CURIOSIDADE || formatId === FORMAT_IDS.VERDADEIRO_FALSO) {
-      const statementHint = record.statement
-        ? `- Afirmação de referência (podes adaptar ligeiramente em "q"): ${record.statement}`
+      const statementHint = statement
+        ? `- Afirmação de referência (podes adaptar ligeiramente em "q"): ${statement}`
         : '';
       const presentation = formatId === FORMAT_IDS.VERDADEIRO_FALSO
         ? 'afirmação factual directa terminada em "Verdadeiro ou Falso?"'
         : 'curiosidade surpreendente com "Sabias que…" ou "É verdade que…" e "Verdadeiro ou Falso?" no final';
+      const restHint = restDescription
+        ? `- Descrição Wikidata (contexto; não inventes a partir disto): ${restDescription}`
+        : '';
       return `Formulas UMA curiosidade em português de Portugal a partir do FACTO VERIFICADO abaixo.
 NÃO inventes factos nem alteres a verdade do registo — só reformula em PT-PT natural.
 
 FACTO VERIFICADO (fonte: ${sourceLine}):
 - Resposta correcta OBRIGATÓRIA no campo "a": ${expectedAnswer}
-- Facto/base: ${record.fact}
+- Facto/base: ${fact}
 ${statementHint}
+${restHint}
 
 REGRAS DO REPOSITÓRIO (obrigatórias):
 - O campo "a" tem de ser EXACTAMENTE "${expectedAnswer}" — só "Verdadeiro" ou "Falso".
@@ -421,7 +540,7 @@ REGRAS DO REPOSITÓRIO (obrigatórias):
 CATEGORIA: ${category.name} (${category.desc})
 FORMATO: ${formatLabel} (${formatId})
 IDADE: ${ageBandPromptText}
-${retryBlock}
+${retryBlock}${learnedBlock}
 ${buildGlobalRules()}
 
 ${buildFormatRules(formatId === FORMAT_IDS.VERDADEIRO_FALSO ? FORMAT_IDS.CURIOSIDADE : formatId, { ageBandKey, isMC, isTrueFalse: true })}
@@ -436,7 +555,38 @@ ${mcInstruction || ''}
 Só json válido, sem markdown: ${jsonFormat}`;
     }
 
-    throw new Error(`buildPromptFromFact: formato não suportado (${formatId})`);
+    const restHint = restDescription
+      ? `- Descrição Wikidata (contexto; não inventes a partir disto): ${restDescription}`
+      : '';
+    return `Formulas UMA pergunta em português de Portugal a partir do FACTO VERIFICADO abaixo.
+NÃO inventes factos, datas, nomes nem números — só reformula em PT-PT natural.
+
+FACTO VERIFICADO (fonte: ${sourceLine}):
+- Resposta correcta OBRIGATÓRIA no campo "a": ${expectedAnswer}
+- Facto/base: ${fact}
+${restHint}
+
+REGRAS DO REPOSITÓRIO (obrigatórias):
+- O campo "a" tem de ser EXACTAMENTE "${expectedAnswer}".
+- NÃO inventes dados novos nem contradigas o facto verificado.
+- NÃO mudes o sentido do facto (a pergunta tem de ser sobre este facto).
+
+CATEGORIA: ${category.name} (${category.desc})
+FORMATO: ${formatLabel} (${formatId})
+IDADE: ${ageBandPromptText}
+${retryBlock}${learnedBlock}
+${buildGlobalRules()}
+
+${buildFormatRules(formatId, { ageBandKey, isMC, isTrueFalse })}
+
+${buildAgeRules(ageBandKey, ageBandPromptText)}
+${ageDifficultyExtra || ''}
+
+${ptPtRules || ''}
+${openModeExtra || ''}
+${mcInstruction || ''}
+
+Só json válido, sem markdown: ${jsonFormat}`;
   }
 
   global.QuestionEnginePromptBuilder = {
@@ -450,6 +600,9 @@ Só json válido, sem markdown: ${jsonFormat}`;
     chooseSubtopic,
     getAllowedFormats,
     chooseFormat,
+    chooseArchetype,
+    planQuestion,
+    buildMcDifficultyRules,
     buildPrompt,
     buildPromptFromFact,
     getRepositoryExpectedAnswer,

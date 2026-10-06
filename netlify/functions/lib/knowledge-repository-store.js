@@ -1,5 +1,6 @@
 const { getSupabaseAdmin } = require('./rooms-store');
-const { buildDedupePlan } = require('./knowledge-dedupe');
+const { buildDedupePlan, formatDisabledReason } = require('./knowledge-dedupe');
+const { lisbonCreatedFromIso, lisbonCreatedToExclusiveIso } = require('../../../scripts/lib/lisbon-time');
 
 const KNOWLEDGE_SELECT = [
   'knowledge_id',
@@ -12,6 +13,7 @@ const KNOWLEDGE_SELECT = [
   'source_id',
   'confidence',
   'is_active',
+  'disabled_reason',
   'age_bands',
   'allowed_formats',
   'usage_count',
@@ -103,20 +105,28 @@ async function searchKnowledgeRecords(options = {}) {
     topic = '',
     source = '',
     activeFilter = 'all',
+    createdFrom = '',
+    createdTo = '',
     limit = 50,
     offset = 0,
   } = options;
 
+  const pageSize = Math.min(Math.max(Number(limit) || 50, 1), 500);
+  const pageOffset = Math.max(Number(offset) || 0, 0);
   const params = new URLSearchParams();
   params.set('select', KNOWLEDGE_SELECT);
-  params.set('order', 'updated_at.desc');
-  params.set('limit', String(Math.min(Math.max(Number(limit) || 50, 1), 200)));
-  params.set('offset', String(Math.max(Number(offset) || 0, 0)));
+  params.set('order', 'created_at.desc,knowledge_id.desc');
+  params.set('limit', String(pageSize));
+  params.set('offset', String(pageOffset));
 
   const kid = String(knowledgeId || '').trim();
   const q = escapePostgrestFilter(query);
   const topicTrim = escapePostgrestFilter(topic);
   const sourceTrim = escapePostgrestFilter(source);
+  const fromRaw = String(createdFrom || '').trim();
+  const toRaw = String(createdTo || '').trim();
+  const fromIso = lisbonCreatedFromIso(fromRaw);
+  const toExclusiveIso = lisbonCreatedToExclusiveIso(toRaw);
 
   if (kid) {
     params.set('knowledge_id', `eq.${kid}`);
@@ -133,37 +143,72 @@ async function searchKnowledgeRecords(options = {}) {
   if (activeFilter === 'active') params.set('is_active', 'eq.true');
   if (activeFilter === 'inactive') params.set('is_active', 'eq.false');
 
-  if (!kid && !q && !(cat >= 1 && cat <= 20) && !topicTrim && !sourceTrim) {
+  const createdFilters = [];
+  if (fromIso) createdFilters.push(`created_at.gte."${fromIso}"`);
+  if (toExclusiveIso) createdFilters.push(`created_at.lt."${toExclusiveIso}"`);
+  if (createdFilters.length) params.set('and', `(${createdFilters.join(',')})`);
+
+  if (!kid && !q && !(cat >= 1 && cat <= 20) && !topicTrim && !sourceTrim && !fromIso && !toExclusiveIso) {
     return { rows: [], total: 0 };
   }
 
   const rows = await supabaseRequest(`/knowledge_records?${params.toString()}`);
+  const list = Array.isArray(rows) ? rows : [];
+  const quarantined = await getQuarantinedKnowledgeIds(list.map((row) => row.knowledge_id));
   return {
-    rows: Array.isArray(rows) ? rows : [],
-    total: Array.isArray(rows) ? rows.length : 0,
+    rows: list.map((row) => ({ ...row, in_quarantine: quarantined.has(row.knowledge_id) })),
+    total: list.length,
   };
 }
 
-async function disableKnowledgeRecord(knowledgeId) {
+async function getQuarantinedKnowledgeIds(ids, days = 30) {
+  const unique = [...new Set((ids || []).map((id) => String(id || '').trim()).filter(Boolean))];
+  if (!unique.length) return new Set();
+
+  const cutoff = new Date(Date.now() - Math.max(Number(days) || 30, 1) * 24 * 60 * 60 * 1000).toISOString();
+  const quoted = unique.map((id) => `"${id.replace(/"/g, '')}"`).join(',');
+  const params = new URLSearchParams();
+  params.set('select', 'knowledge_id');
+  params.set('knowledge_id', `in.(${quoted})`);
+  params.set('played_at', `gte.${cutoff}`);
+
+  try {
+    const rows = await supabaseRequest(`/question_reuse_events?${params.toString()}`);
+    return new Set((Array.isArray(rows) ? rows : []).map((r) => r.knowledge_id).filter(Boolean));
+  } catch {
+    return new Set();
+  }
+}
+
+function clipDisabledReason(reason) {
+  return String(reason || '').trim().slice(0, 400);
+}
+
+async function disableKnowledgeRecord(knowledgeId, reason) {
   const kid = String(knowledgeId || '').trim();
   if (!kid) return { ok: false, disabled: 0 };
 
-  const data = await supabaseRpc('disable_knowledge_record', { p_knowledge_id: kid });
+  const data = await supabaseRpc('disable_knowledge_record', {
+    p_knowledge_id: kid,
+    p_reason: clipDisabledReason(reason) || null,
+  });
   return {
     ok: !!data?.ok,
     disabled: data?.ok ? 1 : 0,
     knowledgeId: kid,
+    reason: clipDisabledReason(reason),
   };
 }
 
-async function disableKnowledgeRecords(knowledgeIds) {
+async function disableKnowledgeRecords(knowledgeIds, { reason } = {}) {
   const unique = [...new Set((knowledgeIds || []).map((id) => String(id || '').trim()).filter(Boolean))];
   let disabled = 0;
   const failed = [];
+  const clipped = clipDisabledReason(reason);
 
   for (const knowledgeId of unique) {
     try {
-      const result = await disableKnowledgeRecord(knowledgeId);
+      const result = await disableKnowledgeRecord(knowledgeId, clipped);
       if (result.ok) disabled += 1;
       else failed.push(knowledgeId);
     } catch {
@@ -171,7 +216,23 @@ async function disableKnowledgeRecords(knowledgeIds) {
     }
   }
 
-  return { ok: true, disabled, failed, knowledgeIds: unique };
+  return { ok: true, disabled, failed, knowledgeIds: unique, reason: clipped };
+}
+
+async function deleteKnowledgeRecords(knowledgeIds) {
+  const unique = [...new Set((knowledgeIds || []).map((id) => String(id || '').trim()).filter(Boolean))];
+  if (!unique.length) {
+    return { ok: false, deleted: 0, bankDeleted: 0, reuseDeleted: 0, knowledgeIds: [] };
+  }
+
+  const data = await supabaseRpc('delete_knowledge_records', { p_knowledge_ids: unique });
+  return {
+    ok: data?.ok !== false,
+    deleted: Number(data?.deleted) || 0,
+    bankDeleted: Number(data?.bankDeleted) || 0,
+    reuseDeleted: Number(data?.reuseDeleted) || 0,
+    knowledgeIds: unique,
+  };
 }
 
 const DEDUPE_SELECT = 'knowledge_id,category_n,topic,fact,answer,source,source_id,is_active,priority_pt';
@@ -232,15 +293,26 @@ async function applyKnowledgeDedupe(options = {}) {
     };
   }
 
-  const result = await disableKnowledgeRecords(ids);
+  let disabled = 0;
+  const failed = [];
+  for (const entry of audit.toDisable) {
+    try {
+      const result = await disableKnowledgeRecord(entry.knowledge_id, formatDisabledReason(entry));
+      if (result.ok) disabled += 1;
+      else failed.push(entry.knowledge_id);
+    } catch {
+      failed.push(entry.knowledge_id);
+    }
+  }
+
   return {
     ok: true,
     applied: true,
-    message: `Desactivados ${result.disabled} duplicado(s).`,
+    message: `Desactivados ${disabled} duplicado(s).`,
     analyzed: audit.analyzed,
     stats: audit.stats,
-    disabled: result.disabled,
-    failed: result.failed,
+    disabled,
+    failed,
     toDisable: audit.toDisable,
   };
 }
@@ -249,6 +321,7 @@ module.exports = {
   searchKnowledgeRecords,
   disableKnowledgeRecord,
   disableKnowledgeRecords,
+  deleteKnowledgeRecords,
   auditKnowledgeDuplicates,
   applyKnowledgeDedupe,
 };

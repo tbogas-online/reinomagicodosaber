@@ -697,6 +697,13 @@ function formatProviderFailure(errors, attempted = [], env = {}, opts = {}) {
       ...meta,
     });
   }
+  if (/UNABLE_TO_GET_ISSUER_CERT|CERT_HAS_EXPIRED|self-signed certificate|unable to verify the first certificate/i.test(detail)) {
+    return json(502, {
+      error: 'Falha de certificado TLS ao contactar a IA.',
+      detail: `${detail} Em local, para o servidor (Ctrl+C) e corre de novo \`npm run dev\` — o script passa a usar os certificados do sistema (proxy da empresa).`,
+      ...meta,
+    });
+  }
   return json(502, {
     error: 'Falha ao contactar o serviço de IA.',
     detail,

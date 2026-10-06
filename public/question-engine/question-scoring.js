@@ -129,11 +129,14 @@
       };
     }
 
-    if (ctx.repositoryRecord?.answer) {
+    if (ctx.repositoryRecord?.answer || ctx.repositoryRecord?.isTrue === true || ctx.repositoryRecord?.isTrue === false) {
       const norm = normalizeFn || ((s) => String(s || '').toLowerCase());
-      const expected = norm(stripTags(ctx.repositoryRecord.answer));
+      const expectedRaw = global.QuestionEnginePromptBuilder?.getRepositoryExpectedAnswer
+        ? global.QuestionEnginePromptBuilder.getRepositoryExpectedAnswer(ctx.repositoryRecord, formatId)
+        : ctx.repositoryRecord.answer;
+      const expected = norm(stripTags(expectedRaw));
       const got = norm(stripTags(a));
-      if (expected !== got) {
+      if (expected && expected !== got) {
         pushIssue(
           issues,
           'REPOSITORY_ANSWER_MISMATCH',

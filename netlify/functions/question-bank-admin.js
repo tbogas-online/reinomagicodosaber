@@ -11,6 +11,7 @@ const {
   deleteQuestionsFromBank,
   deleteQuestionsByCategory,
   applyReportCorrectionToBank,
+  saveManualQuestionToBank,
 } = require('./lib/question-bank-store');
 const {
   listPendingReview,
@@ -239,6 +240,23 @@ exports.handler = async (event) => {
             return json(503, { error: 'Tabela question_pending_review em falta — executa supabase/question-pending-review.sql no Supabase.' });
           }
           return json(503, { error: 'Não foi possível listar a fila de revisão.' });
+        }
+      }
+
+      if (body.action === 'save-manual-question') {
+        const correction = body.correction && typeof body.correction === 'object' ? body.correction : {};
+        const meta = body.meta && typeof body.meta === 'object' ? body.meta : {};
+        try {
+          const result = await saveManualQuestionToBank(correction, meta);
+          return json(200, { ok: true, ...result });
+        } catch (err) {
+          console.error('[question-bank-admin] save-manual-question failed:', err);
+          if (err.code === 'MISSING_CONTENT' || err.code === 'MISSING_OPTIONS'
+            || err.code === 'INVALID_OPTIONS' || err.code === 'MISSING_META'
+            || err.code === 'EMPTY_PATCH' || err.code === 'MISSING_HASH') {
+            return json(400, { error: err.message });
+          }
+          return json(503, { error: 'Não foi possível guardar a pergunta no banco.' });
         }
       }
 

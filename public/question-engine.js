@@ -11,6 +11,7 @@
   const Telemetry = global.QuestionEngineTelemetry;
   const KnownFacts = global.QuestionEngineKnownFacts;
   const FactualVerify = global.QuestionEngineFactualVerify;
+  const WikidataVerify = global.QuestionEngineWikidataVerify;
   const AdivinhaVerify = global.QuestionEngineAdivinhaVerify;
   const ContentSafety = global.QuestionEngineContentSafety;
   const AdivinhaDistractors = global.QuestionEngineAdivinhaDistractors;
@@ -21,12 +22,13 @@
   const PersistentHistory = global.QuestionEnginePersistentHistory;
   const ReportedContent = global.QuestionEngineReportedContent;
   const PromptBuilder = global.QuestionEnginePromptBuilder;
+  const Archetypes = global.QuestionEngineArchetypes;
   const McAssembly = global.QuestionEngineMcAssembly;
   const QuestionScoring = global.QuestionEngineQuestionScoring;
 
   if (!Issues || !KnowledgeKey || !KnowledgeKeyCompute || !Retry || !Telemetry || !KnownFacts
-    || !FactualVerify || !AdivinhaVerify || !AdivinhaDistractors || !ContentSafety || !DifficultyEstimate || !Config || !FormatValidators
-    || !AgeValidators || !PersistentHistory || !ReportedContent || !PromptBuilder || !McAssembly || !QuestionScoring) {
+    || !FactualVerify || !WikidataVerify || !AdivinhaVerify || !AdivinhaDistractors || !ContentSafety || !DifficultyEstimate || !Config || !FormatValidators
+    || !AgeValidators || !PersistentHistory || !ReportedContent || !PromptBuilder || !Archetypes || !McAssembly || !QuestionScoring) {
     throw new Error('QuestionEngine: carrega todos os módulos question-engine/*.js antes de question-engine.js');
   }
 
@@ -36,6 +38,7 @@
   const {
     ENGINE_CONFIG,
     LAYER_WEIGHTS,
+    LAYER_GUIDE,
     TRUE_FALSE_CHANCE,
     TRUE_FALSE_MIN_GAP,
     FORMAT_MAX_CONSECUTIVE,
@@ -60,6 +63,8 @@
     chooseSubtopic,
     getAllowedFormats,
     chooseFormat,
+    chooseArchetype,
+    planQuestion,
     buildPrompt,
     buildPromptFromFact,
     getRepositoryExpectedAnswer,
@@ -100,6 +105,7 @@
   global.QuestionEngine = {
     ENGINE_CONFIG,
     LAYER_WEIGHTS,
+    LAYER_GUIDE,
     FORMAT_IDS: Object.freeze({ ...FORMAT_IDS }),
     FORMAT_LABELS: Object.freeze({ ...FORMAT_LABELS }),
     CATEGORIES,
@@ -118,6 +124,14 @@
     CATEGORY_WEIGHT_BOOST: Object.freeze(Object.fromEntries(
       Object.entries(CATEGORIES).filter(([, def]) => def.weightBoost).map(([n, def]) => [n, def.weightBoost]),
     )),
+    CATEGORY_ARCHETYPES: Object.freeze(Object.fromEntries(
+      Object.entries(CATEGORIES).map(([n, def]) => [n, def.archetypes || []]),
+    )),
+    ARCHETYPE_IDS: Object.freeze({ ...Archetypes.ARCHETYPE_IDS }),
+    ARCHETYPE_LABELS: Object.freeze({ ...Archetypes.ARCHETYPE_LABELS }),
+    COGNITIVE_LEVEL_LABELS: Object.freeze({ ...Archetypes.COGNITIVE_LEVEL_LABELS }),
+    getArchetype: Archetypes.getArchetype,
+    buildArchetypeRules: Archetypes.buildArchetypeRules,
     DIFFICULTY_RANGE: Object.freeze({ ...DIFFICULTY_RANGE }),
     DIFFICULTY_LABELS: Object.freeze({ ...DIFFICULTY_LABELS }),
     TRUE_FALSE_CHANCE,
@@ -127,6 +141,8 @@
     filterFormatsForContext,
     defaultFormatForAnswerMode,
     chooseFormat,
+    chooseArchetype,
+    planQuestion,
     chooseDifficulty,
     chooseSubtopic,
     buildPrompt,
@@ -149,6 +165,14 @@
     shouldRequestFactualVerify: FactualVerify.shouldRequestFactualVerify,
     buildFactualVerifyPrompt: FactualVerify.buildFactualVerifyPrompt,
     parseFactualVerifyResponse: FactualVerify.parseFactualVerifyResponse,
+    shouldRequestWikidataVerify: WikidataVerify.shouldRequestWikidataVerify,
+    isWikidataSource: WikidataVerify.isWikidataSource,
+    evaluateWikidataSupport: WikidataVerify.evaluateWikidataSupport,
+    verifyCuriosityAgainstWikidata: WikidataVerify.verifyCuriosityAgainstWikidata,
+    verifyAgainstWikidata: WikidataVerify.verifyAgainstWikidata,
+    fetchWikidataItem: WikidataVerify.fetchItem,
+    buildVerifiedAiInput: WikidataVerify.buildVerifiedAiInput,
+    WIKIDATA_REST_BASE: WikidataVerify.REST_BASE,
     shouldRequestAdivinhaVerify: AdivinhaVerify.shouldRequestAdivinhaVerify,
     buildAdivinhaVerifyPrompt: AdivinhaVerify.buildAdivinhaVerifyPrompt,
     parseAdivinhaVerifyResponse: AdivinhaVerify.parseAdivinhaVerifyResponse,
@@ -185,6 +209,10 @@
     shuffleMcOptions,
     recordMcAnswerPosition,
     resetMcPositions,
+    buildMcDifficultyRules: PromptBuilder.buildMcDifficultyRules,
+    getMcDistractorProfile: global.QuestionEngineMcDistractorQuality?.getMcDistractorProfile,
+    describeMcDistractorTarget: global.QuestionEngineMcDistractorQuality?.describeMcDistractorTarget,
+    validateMcDistractorProximity: global.QuestionEngineMcDistractorQuality?.validateMcDistractorProximity,
     getPersistentSlice,
     getAntiReuseSnapshot,
     persistQuestion,
@@ -203,5 +231,6 @@
     mkIssue,
     issueMessage,
     issueCode,
+    Learning: global.QuestionEngineLearning || null,
   };
 })(typeof window !== 'undefined' ? window : globalThis);

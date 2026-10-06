@@ -35,6 +35,7 @@ const SOURCE_ALLOWLIST_BY_CATEGORY = {
     'wikidata',
     'academia',
     'bnp',
+    'biblioteca nacional',
     'folclore',
     'pumpkin',
     'santander',

@@ -8,6 +8,19 @@
 Fonte confiável → facto → IA → pergunta → validação → jogador
 ```
 
+Pipeline Wikidata (curiosidades e outras categorias):
+
+```
+SPARQL/WDQS  →  conjunto de Q-ids / factos
+        ↓
+REST v1      →  detalhe do item (labels, descrições, statements)
+        ↓
+facto validado  →  template / IA (só formulação)  →  pergunta  →  validação  →  question_bank
+```
+
+- SPARQL: `https://query.wikidata.org/sparql` — queries por categoria (`wikidata-category-queries.js`)
+- REST: `https://www.wikidata.org/w/rest.php/wikibase/v1` — `GET /entities/items/{Qid}` no motor (`wikidata-verify.js`) e no import CLI
+
 **Nunca:** `IA → facto → pergunta`
 
 ---
@@ -261,6 +274,8 @@ Cada pergunta gerada (depois da IA + validação):
 - [x] Seed de amostra (`seed-knowledge-cat20-sample.sql`, fila `knowledge-import-queue.json`)
 - [x] Lote A: 50 curiosidades (`--batch-50`) + lote B (`--batch-50-b`) + lote C (`--batch-50-c`, 48) com filtro anti-duplicado no import
 - [x] Meta: **≥ 150 curiosidades** MVP *(importar lote C após dedupe)*
+- [x] Admin: importar lotes A/B/C a partir do painel Repositório (`action: import-source`)
+- [x] Wikidata SPARQL (UNESCO PT, património imaterial PT) → factos validados no repositório; template V/F + `question_bank` no CLI (`import:wikidata`); no jogo, template/IA formula e grava no banco. Não usar P2109 (potência nominal) como «nº de corações».
 
 ### KR-2.2 Alternância 50/50
 
@@ -270,12 +285,14 @@ Cada pergunta gerada (depois da IA + validação):
 ### KR-2.3 Validação reforçada
 
 - [x] `validateQuestion` + `repositoryRecord` — resposta tem de coincidir com `isTrue` / `answer`
-- [ ] Opcional: factual-verify só como **último recurso** para curiosidades Wikidata
+- [x] Opcional: Wikidata REST v1 confirma um Q-id (`wikidata-verify.js`); falha de rede não bloqueia
+- [x] Catálogo SPARQL por categoria (`wikidata-category-queries.js`: cat. 20 + capitais cat. 2); REST hidrata o item no CLI
 
 ### KR-2.4 Jogo (só curiosidades)
 
-- [x] Em `category.n === 20` + formato `CURIOSIDADE`: **só** `pickRecord` do repositório
-- [x] Fallback: banco local — **não** LLM livre
+- [x] Em `category.n === 20` + formato `CURIOSIDADE`: `pickRecord` do repositório (IA formula se online; template se offline)
+- [x] Fallback: banco de curiosidades; **LLM livre só no limite** (sem stock de repo/banco)
+- [x] Adivinhas (mesmo cat. 20): **banco primeiro**; repositório só se o banco estiver vazio; **nunca** LLM livre
 
 ---
 
@@ -285,7 +302,7 @@ Cada pergunta gerada (depois da IA + validação):
 
 ```
 1. pickRecord(category, ageBand, format, history)
-2. if (!record) → fallback banco / mensagem «sem stock» (NÃO LLM livre em cat. 20)
+2. if (!record) → fallback banco; curiosidades: LLM livre só no limite; adivinhas: sem stock (nunca LLM livre)
 3. prompt = buildPromptFromFact(record, …)
 4. parsed = await callAI(prompt)
 5. assertAnswerMatchesRecord(parsed, record)
@@ -360,7 +377,7 @@ Para cada categoria **1–19**, repetir mini-roadmap:
 | Cat. | Nome                 | Fontes (a definir) | Prioridade PT | Stock MVP |
 | ---- | -------------------- | ------------------ | ------------- | --------- |
 | 1    | Conhecimentos Gerais |                    |               |           |
-| 2    | Geografia            | Wikidata, …        |               |           |
+| 2    | Geografia            | Wikidata SPARQL (capitais) + REST v1 |               |           |
 | …    | …                    |                    |               |           |
 | 19   | Transportes          |                    |               |           |
 
@@ -392,7 +409,5 @@ Para cada categoria **1–19**, repetir mini-roadmap:
 
 ## Próximo passo imediato
 
-1. **KR-2.3** — verificação factual opcional (Wikidata) para curiosidades
-2. **KR-7+** — expandir para Geografia (cat. 2) ou outra categoria com fontes definidas
-3. Validar em produção após deploy: painel Repositório → **Cat. 20 sem IA (≥95%)**
+1. **KR-7+** — expandir para Geografia (cat. 2) ou outra categoria com fontes definidas
 

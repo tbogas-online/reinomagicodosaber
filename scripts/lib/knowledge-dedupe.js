@@ -11,6 +11,11 @@ const SOURCE_RANK = {
   'Pumpkin.pt': 60,
   'Brinca Comigo': 55,
   'Santander Salto': 50,
+  Wikidata: 45,
+  'RTP Ensina': 68,
+  'Ciência Viva': 70,
+  'Arquivo.pt': 58,
+  'Biblioteca Nacional': 74,
   'Quero Bolsa': 40,
   sample: 10,
 };
@@ -31,12 +36,35 @@ function jaccard(a, b) {
 function idTier(knowledgeId) {
   const id = String(knowledgeId || '');
   if (/-cur-b5[0-9]-/.test(id)) return 90;
+  if (/-cur-wd-/.test(id)) return 62;
+  if (/-rtp-/.test(id)) return 64;
+  if (/-cv-/.test(id)) return 66;
+  if (/-arq-/.test(id)) return 60;
+  if (/-bnp-/.test(id)) return 68;
   if (/-mm-/.test(id)) return 85;
   if (/-web-/.test(id)) return 50;
   if (/-adv-daily-/.test(id)) return 45;
   if (/-cur-daily-/.test(id)) return 35;
   if (/-sample-/.test(id)) return 10;
   return 30;
+}
+
+function wikidataQid(row) {
+  const blob = [
+    row?.source_id,
+    row?.sourceId,
+    row?.source_url,
+    row?.sourceUrl,
+    row?.metadata?.qid,
+  ].map((part) => String(part || '')).join(' ');
+  const match = blob.match(/\bQ\d+\b/i);
+  return match ? match[0].toUpperCase() : '';
+}
+
+function distinctWikidataEntities(a, b) {
+  const qa = wikidataQid(a);
+  const qb = wikidataQid(b);
+  return !!(qa && qb && qa !== qb);
 }
 
 function scoreRecord(row) {
@@ -74,6 +102,7 @@ function buildJaccardClusters(records, textField = 'fact') {
     used.add(i);
     for (let j = i + 1; j < records.length; j += 1) {
       if (used.has(j)) continue;
+      if (distinctWikidataEntities(records[i], records[j])) continue;
       const sim = jaccard(records[i][textField] || '', records[j][textField] || '');
       if (sim >= JACCARD_THRESHOLD) {
         cluster.push(records[j]);
@@ -83,6 +112,48 @@ function buildJaccardClusters(records, textField = 'fact') {
     if (cluster.length > 1) clusters.push(cluster);
   }
   return clusters;
+}
+
+const DEDUPE_REASON_LABELS = {
+  exact_fact: 'mesmo texto',
+  similar_fact: 'texto parecido',
+  exact_answer: 'mesma resposta',
+  similar_answer: 'resposta parecida',
+  exact_answer_fact: 'mesma resposta e mesmo texto',
+  similar_answer_fact: 'mesma resposta e texto parecido',
+  same_capital: 'mesma capital do país',
+};
+
+function isGeographyLike(row) {
+  const topic = normalizeText(row?.topic);
+  return topic === 'geografia' || topic === 'capital' || topic.includes('geografia') || topic.includes('capital');
+}
+
+function relatedCapitalQid(row) {
+  const fromMeta = String(row?.metadata?.relatedQid || '').toUpperCase();
+  if (/^Q\d+$/.test(fromMeta)) return fromMeta;
+  const id = String(row?.knowledge_id || '');
+  const match = id.match(/-capital-(q\d+)/i);
+  return match ? match[1].toUpperCase() : '';
+}
+
+function sameCapitalIdentity(a, b) {
+  const countryA = wikidataQid(a);
+  const countryB = wikidataQid(b);
+  if (!countryA || countryA !== countryB) return false;
+  const capA = relatedCapitalQid(a);
+  const capB = relatedCapitalQid(b);
+  if (capA && capB) return capA === capB;
+  const ansA = normalizeText(a?.answer);
+  const ansB = normalizeText(b?.answer);
+  return !!(ansA && ansB && ansA === ansB);
+}
+
+function formatDisabledReason(entry) {
+  const code = String(entry?.reason || '').trim();
+  const why = DEDUPE_REASON_LABELS[code] || code || 'duplicado';
+  const keeper = String(entry?.keeper || '').trim();
+  return keeper ? `Duplicado (${why}) — mantido ${keeper}` : `Duplicado (${why})`;
 }
 
 function planFromGroups(groups, reason) {
@@ -185,12 +256,29 @@ function buildDedupePlan(records, { adivinhas = false, curiosidades = true } = {
 function isDuplicateOfExisting(record, existingRecords, { topic } = {}) {
   const rec = record;
   const topicFilter = topic || rec.topic;
-  const peers = existingRecords.filter((r) => r.is_active !== false && r.topic === topicFilter);
+  const active = existingRecords.filter((r) => r.is_active !== false);
+
+  if (isGeographyLike(rec)) {
+    const fact = normalizeText(rec.fact);
+    const geoPeers = active.filter((row) => isGeographyLike(row));
+    const peers = geoPeers.length ? geoPeers : active;
+    for (const row of peers) {
+      if (fact && normalizeText(row.fact) === fact) {
+        return { duplicate: true, reason: 'exact_fact', of: row.knowledge_id };
+      }
+      if (sameCapitalIdentity(rec, row)) {
+        return { duplicate: true, reason: 'same_capital', of: row.knowledge_id };
+      }
+    }
+  }
+
+  const peers = active.filter((r) => r.topic === topicFilter);
 
   if (topicFilter === 'curiosidade surpreendente') {
     const fact = normalizeText(rec.fact);
     for (const row of peers) {
       if (normalizeText(row.fact) === fact) return { duplicate: true, reason: 'exact_fact', of: row.knowledge_id };
+      if (distinctWikidataEntities(rec, row)) continue;
       if (jaccard(row.fact, rec.fact) >= JACCARD_THRESHOLD) {
         return { duplicate: true, reason: 'similar_fact', of: row.knowledge_id };
       }
@@ -211,6 +299,14 @@ function isDuplicateOfExisting(record, existingRecords, { topic } = {}) {
     }
   }
 
+  const fact = normalizeText(rec.fact);
+  if (fact) {
+    for (const row of peers) {
+      if (normalizeText(row.fact) === fact) {
+        return { duplicate: true, reason: 'exact_fact', of: row.knowledge_id };
+      }
+    }
+  }
   return { duplicate: false };
 }
 
@@ -234,9 +330,13 @@ function filterNewRecords(records, existingRecords) {
 
 module.exports = {
   JACCARD_THRESHOLD,
+  DEDUPE_REASON_LABELS,
+  formatDisabledReason,
   jaccard,
   scoreRecord,
   buildDedupePlan,
   isDuplicateOfExisting,
   filterNewRecords,
+  wikidataQid,
+  distinctWikidataEntities,
 };

@@ -88,11 +88,34 @@ function looksPredominantlyEnglish(text) {
   return false;
 }
 
-function validateCountryNamesPt(blob) {
+function validateCountryNamesPt(blob, question, answer, options) {
   const issues = [];
+  const Places = global.QuestionEnginePtPtPlaces;
+  if (Places?.findPlaceNameIssues) {
+    const found = Places.findPlaceNameIssues(blob);
+    if (found.length) {
+      const { variant, canonical } = found[0];
+      pushIssue(
+        issues,
+        'PT_COUNTRY_NAME',
+        ISSUE_LAYER.ptPt,
+        `nome de país ou cidade incorrecto — em PT-PT usa "${canonical}" (não "${variant}")`,
+      );
+    }
+    const mismatch = Places.placeFormsMismatch?.(question, answer, options);
+    if (mismatch) {
+      pushIssue(
+        issues,
+        'PT_COUNTRY_NAME',
+        ISSUE_LAYER.ptPt,
+        `usa a mesma grafia na pergunta e na resposta — em PT-PT "${mismatch.canonical}"`,
+      );
+    }
+    return issues;
+  }
   for (const { re, correct } of COUNTRY_PT_ERRORS) {
     if (re.test(blob)) {
-      pushIssue(issues, 'PT_COUNTRY_NAME', ISSUE_LAYER.ptPt, `nome de país incorrecto — em PT-PT usa "${correct}"`);
+      pushIssue(issues, 'PT_COUNTRY_NAME', ISSUE_LAYER.ptPt, `nome de país ou cidade incorrecto — em PT-PT usa "${correct}"`);
       break;
     }
   }
@@ -256,7 +279,7 @@ function normalizeAdivinhaAnswerPt(question, answer) {
     return [
       ...issues,
       ...validatePortugueseText(blob),
-      ...validateCountryNamesPt(blob),
+      ...validateCountryNamesPt(blob, q, a, options),
       ...validatePortugueseNotEnglish([q, a, ...options], ageBandKey),
       ...safetyIssues,
     ];
@@ -272,5 +295,9 @@ function normalizeAdivinhaAnswerPt(question, answer) {
     looksPredominantlyEnglish,
     isKiteRiddleContext,
     normalizeAdivinhaAnswerPt,
+    canonicalizePlaceText: (text) => {
+      const fn = global.QuestionEnginePtPtPlaces?.canonicalizePlaceText;
+      return typeof fn === 'function' ? fn(text) : String(text || '');
+    },
   });
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -144,18 +144,22 @@ async function supabaseRequest(path, options = {}) {
 
 const BANK_SELECT_CORE = 'id,question_hash,question,correct_answer,options,format,category_n,age_band,source,is_reported,created_at';
 const BANK_SELECT_BASE = `${BANK_SELECT_CORE},difficulty,difficulty_by_age_band`;
-const BANK_SELECT_FULL = `${BANK_SELECT_BASE},category_ns,age_bands,knowledge_id`;
+const BANK_SELECT_FULL = `${BANK_SELECT_BASE},category_ns,age_bands,knowledge_id,source_id`;
 
 let bankTaxonomyColumnsAvailable = null;
 let bankDifficultyColumnAvailable = null;
 let bankDifficultyByAgeColumnAvailable = null;
+let bankSourceIdColumnAvailable = null;
 
 async function queryBankRows(buildParams) {
   const buildSelect = (useTaxonomy, useDifficulty, useDifficultyByAge) => {
     let select = BANK_SELECT_CORE;
     if (useDifficulty) select += ',difficulty';
     if (useDifficultyByAge) select += ',difficulty_by_age_band';
-    if (useTaxonomy) select += ',category_ns,age_bands,knowledge_id';
+    if (useTaxonomy) {
+      select += ',category_ns,age_bands,knowledge_id';
+      if (bankSourceIdColumnAvailable !== false) select += ',source_id';
+    }
     return select;
   };
 
@@ -179,6 +183,10 @@ async function queryBankRows(buildParams) {
         return { rows: Array.isArray(rows) ? rows : [], taxonomyColumns: true };
       } catch (err) {
         const msg = String(err?.message || err);
+        if (bankSourceIdColumnAvailable !== false && msg.includes('source_id')) {
+          bankSourceIdColumnAvailable = false;
+          return tryQuery();
+        }
         if (bankDifficultyByAgeColumnAvailable !== false
           && (msg.includes('difficulty_by_age_band') || msg.includes('42703'))) {
           bankDifficultyByAgeColumnAvailable = false;
@@ -506,6 +514,7 @@ async function getQuestionBankStats() {
       reported: 0,
       blocked: 0,
       byCategoryAge: [],
+      byCategoryAgeDifficulty: [],
       bySource: [],
     }
     : {
@@ -516,6 +525,7 @@ async function getQuestionBankStats() {
       reported: Number(data.reported) || 0,
       blocked: Number(data.blocked) || 0,
       byCategoryAge: Array.isArray(data.byCategoryAge) ? data.byCategoryAge : [],
+      byCategoryAgeDifficulty: Array.isArray(data.byCategoryAgeDifficulty) ? data.byCategoryAgeDifficulty : [],
       bySource: Array.isArray(data.bySource) ? data.bySource : [],
     };
 
@@ -1247,6 +1257,53 @@ async function applyReportCorrectionToBank(oldHash, correction = {}, meta = {}) 
   });
 }
 
+async function saveManualQuestionToBank(correction = {}, meta = {}) {
+  const question = String(correction.question || '').trim();
+  const answer = String(correction.answer || '').trim();
+  const options = Array.isArray(correction.options)
+    ? correction.options.map((o) => String(o || '').trim()).filter(Boolean)
+    : [];
+  if (!question || !answer) {
+    const err = new Error('Indica pergunta e resposta correcta.');
+    err.code = 'MISSING_CONTENT';
+    throw err;
+  }
+  if (options.length < 2) {
+    const err = new Error('Indica pelo menos 2 opções (escolha múltipla).');
+    err.code = 'MISSING_OPTIONS';
+    throw err;
+  }
+  const answerNorm = answer.toLowerCase();
+  if (!options.some((o) => o.toLowerCase() === answerNorm)) {
+    const err = new Error('A resposta correcta tem de estar entre as opções.');
+    err.code = 'INVALID_OPTIONS';
+    throw err;
+  }
+  const categoryNs = normalizeCategoryNs(meta.categoryNs, meta.categoryN, null);
+  const ageBands = normalizeAgeBands(meta.ageBands, meta.ageBand, null);
+  if (!categoryNs.length || !ageBands.length) {
+    const err = new Error('Selecciona pelo menos uma categoria e uma faixa etária.');
+    err.code = 'MISSING_META';
+    throw err;
+  }
+  const hash = hashQuestionKey(`${question}|${answer}`);
+  return applyReportCorrectionToBank(hash, {
+    question,
+    answer,
+    options,
+    format: correction.format || 'ESCOLHA_MULTIPLA',
+    difficulty: correction.difficulty,
+    difficultyByAgeBand: correction.difficultyByAgeBand,
+  }, {
+    ...meta,
+    categoryNs,
+    ageBands,
+    categoryN: categoryNs[0],
+    ageBand: ageBands[0],
+    source: meta.source || 'manual',
+  });
+}
+
 module.exports = {
   getQuestionBankStats,
   purgeQuestionsWithoutOptions,
@@ -1257,6 +1314,7 @@ module.exports = {
   deleteQuestionsByCategory,
   filterRowsByReportStatus,
   applyReportCorrectionToBank,
+  saveManualQuestionToBank,
   parseGameQuestionId,
   hashQuestionKey,
   findBankRowsByContent,
