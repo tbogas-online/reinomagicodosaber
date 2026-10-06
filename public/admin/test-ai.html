@@ -3,87 +3,71 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="app-build" content="20261006-123529">
+  <meta name="app-build" content="20261006-124133">
   <title>Teste de IA — Reino Mágico do Saber</title>
   <link rel="icon" href="/favicon.ico">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
-  <script>
-    try { if (localStorage.getItem('reino_magico_theme') === 'day') document.documentElement.setAttribute('data-theme', 'day'); } catch (e) {}
-  </script>
   <style>
     :root {
-      --night: #0e1c15;
-      --night-2: #1b3327;
-      --gold: #c9a227;
-      --gold-bright: #eecb6b;
-      --parchment: #f2e6c4;
-      --parchment-dim: #e4d3a6;
-      --teal: #2f9e78;
-      --violet: #7d5bc4;
-      --ember: #c0632f;
-      --ok: #3ecf72;
-      --err: #f4a6a8;
-      --warn: #f0c674;
-      --quota-ok: #86efac;
-      --quota-warn: #fde68a;
+      color-scheme: dark;
+      --bg: #0f172a;
+      --card: #1e293b;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --accent: #f59e0b;
+      --danger: #ef4444;
+      --ok: #10b981;
+      --border: #334155;
+      --input: #0b1220;
+      --quota-ok: #34d399;
+      --quota-warn: #fbbf24;
       --quota-err: #fca5a5;
-      --bg-glow-a: rgba(125,91,196,0.14);
-      --bg-glow-b: rgba(47,158,120,0.18);
     }
     * { box-sizing: border-box; }
     body {
       margin: 0;
       min-height: 100dvh;
-      font-family: 'EB Garamond', Georgia, "Times New Roman", serif;
-      color: var(--parchment);
-      background:
-        radial-gradient(ellipse at 20% 15%, var(--bg-glow-a), transparent 55%),
-        radial-gradient(ellipse at 85% 80%, var(--bg-glow-b), transparent 50%),
-        linear-gradient(180deg, var(--night), var(--night-2));
-      padding: 24px 16px 40px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.45;
+      padding: 20px 24px 40px;
     }
     .wrap {
       max-width: 720px;
       margin: 0 auto;
     }
     h1 {
-      font-family: Cinzel, Georgia, serif;
-      font-size: clamp(1.4rem, 4vw, 1.9rem);
-      color: var(--gold-bright);
       margin: 0 0 6px;
+      font-size: 1.5rem;
     }
     .sub {
-      color: var(--parchment-dim);
+      color: var(--muted);
       margin: 0 0 20px;
-      line-height: 1.5;
+      font-size: 0.95rem;
     }
     .card {
-      background: rgba(255,255,255,0.04);
-      border: 1px solid rgba(201,162,39,0.35);
-      border-radius: 14px;
-      padding: 18px;
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
       margin-bottom: 16px;
     }
     label {
       display: block;
-      font-size: 0.85rem;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
-      color: var(--gold);
-      margin-bottom: 6px;
+      font-size: 12px;
+      color: var(--muted);
+      margin-bottom: 4px;
     }
     select, textarea, button {
       font: inherit;
     }
     select, textarea {
       width: 100%;
-      background: rgba(0,0,0,0.25);
-      color: var(--parchment);
-      border: 1px solid rgba(255,255,255,0.15);
-      border-radius: 10px;
-      padding: 10px 12px;
+      background: var(--input);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
       margin-bottom: 14px;
     }
     textarea {
@@ -95,23 +79,24 @@
       flex-wrap: wrap;
       gap: 10px;
       margin-top: 4px;
+      align-items: end;
     }
     button {
       cursor: pointer;
-      border: 1px solid rgba(201,162,39,0.55);
-      background: linear-gradient(180deg, rgba(201,162,39,0.25), rgba(201,162,39,0.12));
-      color: var(--gold-bright);
-      border-radius: 999px;
-      padding: 10px 18px;
-      transition: transform .12s ease, background .12s ease;
+      border: 1px solid #1d4ed8;
+      background: #1d4ed8;
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px 14px;
     }
-    button:hover { transform: translateY(-1px); background: rgba(201,162,39,0.28); }
-    button:disabled { opacity: 0.55; cursor: wait; transform: none; }
+    button:hover { background: #2563eb; border-color: #60a5fa; }
+    button:disabled { opacity: 0.5; cursor: wait; }
     button.secondary {
       background: transparent;
-      color: var(--parchment-dim);
-      border-color: rgba(255,255,255,0.2);
+      border-color: var(--border);
+      color: var(--text);
     }
+    button.secondary:hover { background: #334155; border-color: #64748b; }
     .status {
       border-radius: 12px;
       padding: 14px 16px;
@@ -120,31 +105,31 @@
       word-break: break-word;
       font-size: 0.98rem;
     }
-    .status.idle { background: rgba(255,255,255,0.04); color: var(--parchment-dim); }
-    .status.ok { background: rgba(62,207,114,0.12); border: 1px solid rgba(62,207,114,0.45); color: #b8f5cd; }
-    .status.err { background: rgba(229,72,77,0.12); border: 1px solid rgba(229,72,77,0.45); color: var(--err); }
-    .status.run { background: rgba(240,198,116,0.12); border: 1px solid rgba(240,198,116,0.45); color: var(--warn); }
+    .status.idle { background: var(--input); color: var(--muted); border: 1px solid var(--border); }
+    .status.ok { background: rgba(16,185,129,0.12); border: 1px solid rgba(16,185,129,0.45); color: #6ee7b7; }
+    .status.err { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.45); color: #fca5a5; }
+    .status.run { background: rgba(245,158,11,0.12); border: 1px solid rgba(245,158,11,0.45); color: #fde68a; }
     pre {
       margin: 0;
       padding: 14px;
       border-radius: 12px;
-      background: rgba(0,0,0,0.35);
-      border: 1px solid rgba(255,255,255,0.08);
+      background: var(--input);
+      border: 1px solid var(--border);
       overflow: auto;
       font-size: 0.82rem;
       line-height: 1.45;
-      color: #dfe7df;
+      color: var(--text);
     }
     .meta {
       font-family: ui-monospace, Consolas, monospace;
       font-size: 0.78rem;
-      color: var(--parchment-dim);
+      color: var(--muted);
       margin-top: 10px;
     }
-    a { color: var(--gold-bright); }
+    a { color: #93c5fd; }
     .tips {
       font-size: 0.92rem;
-      color: var(--parchment-dim);
+      color: var(--muted);
       line-height: 1.55;
     }
     .tips li { margin-bottom: 6px; }
@@ -162,16 +147,16 @@
       padding-bottom:6px;
     }
     .usage-row:last-child{ border-bottom:none; padding-bottom:0; }
-    .usage-key{ color:var(--gold); text-transform:uppercase; font-size:0.75rem; letter-spacing:.04em; }
-    .usage-val{ color:var(--parchment); text-align:right; word-break:break-word; }
-    .usage-val.mono{ font-family: ui-monospace, Consolas, monospace; font-size:0.82rem; color:var(--gold-bright); }
+    .usage-key{ color:var(--muted); text-transform:uppercase; font-size:0.75rem; letter-spacing:.04em; }
+    .usage-val{ color:var(--text); text-align:right; word-break:break-word; }
+    .usage-val.mono{ font-family: ui-monospace, Consolas, monospace; font-size:0.82rem; color:#93c5fd; }
     .usage-card.failed #usage-state{ color:#f87171; font-weight:600; }
     .usage-card.failed #usage-provider{ color:#fca5a5; }
-    .usage-card.pending #usage-state{ color:var(--gold-bright); }
+    .usage-card.pending #usage-state{ color:var(--accent); }
     .provider-hint{
       margin:-4px 0 14px;
       font-size:0.85rem;
-      color:var(--parchment-dim);
+      color:var(--muted);
       line-height:1.45;
     }
     .quota-card-title{
@@ -180,31 +165,31 @@
       justify-content:space-between;
       gap:10px;
       margin-bottom:8px;
-      color:var(--gold-bright);
+      color:var(--text);
     }
     .quota-card-title button{
       font:inherit;
       font-size:0.78rem;
       padding:6px 10px;
       border-radius:8px;
-      border:1px solid rgba(201,162,39,0.45);
-      background:rgba(0,0,0,0.25);
-      color:var(--parchment);
+      border:1px solid var(--border);
+      background:var(--input);
+      color:var(--text);
       cursor:pointer;
     }
     .quota-hint{
       margin:0 0 12px;
       font-size:0.82rem;
-      color:var(--parchment-dim);
+      color:var(--muted);
       line-height:1.45;
     }
     .quota-provider{
-      border:1px solid rgba(255,255,255,0.08);
+      border:1px solid var(--border);
       border-left-width:3px;
       border-radius:12px;
       padding:12px 14px;
       margin-bottom:10px;
-      background:rgba(0,0,0,0.18);
+      background:var(--input);
     }
     .quota-provider.quota-state-ok{ border-left-color:var(--quota-ok); }
     .quota-provider.quota-state-limited{ border-left-color:var(--quota-warn); }
@@ -219,7 +204,7 @@
       gap:10px;
       margin-bottom:8px;
     }
-    .quota-provider-head strong{ color:var(--gold-bright); }
+    .quota-provider-head strong{ color:var(--text); }
     .quota-badge{
       display:inline-flex;
       align-items:center;
@@ -239,10 +224,10 @@
       background:currentColor;
       flex:0 0 auto;
     }
-    .quota-badge.ok{ color:#86efac; border-color:rgba(134,239,172,0.35); background:rgba(34,197,94,0.12); }
-    .quota-badge.limited{ color:#fde68a; border-color:rgba(253,230,138,0.35); background:rgba(245,158,11,0.12); }
+    .quota-badge.ok{ color:#34d399; border-color:rgba(52,211,153,0.35); background:rgba(16,185,129,0.12); }
+    .quota-badge.limited{ color:#fbbf24; border-color:rgba(251,191,36,0.35); background:rgba(245,158,11,0.12); }
     .quota-badge.billing,.quota-badge.error{ color:#fca5a5; border-color:rgba(252,165,165,0.35); background:rgba(239,68,68,0.12); }
-    .quota-badge.unknown{ color:var(--parchment-dim); border-color:rgba(255,255,255,0.12); }
+    .quota-badge.unknown{ color:var(--muted); border-color:var(--border); }
     .quota-status-text{
       font-weight:700;
       letter-spacing:.02em;
@@ -251,7 +236,7 @@
     .quota-status-text.limited{ color:var(--quota-warn); }
     .quota-status-text.billing,
     .quota-status-text.error{ color:var(--quota-err); }
-    .quota-status-text.unknown{ color:var(--parchment-dim); }
+    .quota-status-text.unknown{ color:var(--muted); }
     .quota-status-hint.ok{ color:var(--quota-ok); }
     .quota-status-hint.limited,
     .quota-status-hint.billing,
@@ -267,18 +252,18 @@
     .quota-bar > span{
       display:block;
       height:100%;
-      background:linear-gradient(90deg, var(--teal), var(--gold-bright));
+      background:linear-gradient(90deg, #10b981, #3b82f6);
       border-radius:999px;
     }
-    .quota-bar.warn > span{ background:linear-gradient(90deg, #f0c674, #f97316); }
+    .quota-bar.warn > span{ background:linear-gradient(90deg, #fbbf24, #f97316); }
     .quota-bar.danger > span{ background:linear-gradient(90deg, #f87171, #ef4444); }
     .usage-val .server-key-ok{ color:var(--quota-ok); font-weight:600; }
     .usage-val .server-key-off{
-      color:rgba(243,234,216,0.35);
+      color:rgba(148,163,184,0.45);
       opacity:0.72;
       filter:grayscale(0.45);
     }
-    select option:disabled{ color:#8a8478; }
+    select option:disabled{ color:#64748b; }
     .page-head{
       display:flex;
       justify-content:space-between;
@@ -287,144 +272,58 @@
       flex-wrap:wrap;
       margin-bottom:6px;
     }
-    .theme-toggle{ display:flex; gap:6px; flex-shrink:0; }
-    .theme-toggle button{
-      padding:8px 12px;
-      font-size:0.82rem;
-      border-radius:999px;
-    }
-    .theme-toggle button.active{
-      background:rgba(201,162,39,0.35);
-      border-color:var(--gold-bright);
-      color:var(--gold-bright);
-    }
-    :root[data-theme="day"]{
-      --night:#f4eed8;
-      --night-2:#e6dcb8;
-      --parchment:#1f1c12;
-      --parchment-dim:#4a4636;
-      --gold:#9a7218;
-      --gold-bright:#7a5a0f;
-      --teal:#146b52;
-      --violet:#5f3f9e;
-      --ember:#9a4518;
-      --quota-ok:#166534;
-      --quota-warn:#a16207;
-      --quota-err:#b91c1c;
-      --err:#b91c1c;
-      --warn:#a16207;
-      --bg-glow-a: rgba(154,114,24,0.10);
-      --bg-glow-b: rgba(20,107,82,0.08);
-    }
-    :root[data-theme="day"] .card{
-      background:rgba(255,255,255,0.88);
-      border-color:rgba(154,114,24,0.28);
-      box-shadow:0 8px 24px rgba(30,35,20,0.06);
-    }
-    :root[data-theme="day"] select,
-    :root[data-theme="day"] textarea{
-      background:#fff;
-      border-color:rgba(30,35,20,0.14);
-      color:#1f1c12;
-    }
-    :root[data-theme="day"] pre{
-      background:#fff;
-      color:#1f1c12;
-      border-color:rgba(30,35,20,0.12);
-    }
-    :root[data-theme="day"] .status.idle{
-      background:rgba(255,255,255,0.72);
-      color:var(--parchment-dim);
-      border:1px solid rgba(30,35,20,0.08);
-    }
-    :root[data-theme="day"] .status.ok{
-      color:#166534;
-      background:rgba(22,101,52,0.08);
-      border:1px solid rgba(22,101,52,0.28);
-    }
-    :root[data-theme="day"] .status.err{
-      color:#b91c1c;
-      background:rgba(185,28,28,0.08);
-      border:1px solid rgba(185,28,28,0.22);
-    }
-    :root[data-theme="day"] .status.run{
-      color:#a16207;
-      background:rgba(161,98,7,0.08);
-      border:1px solid rgba(161,98,7,0.22);
-    }
-    :root[data-theme="day"] .quota-provider{
-      background:rgba(255,255,255,0.72);
-      border-color:rgba(30,35,20,0.10);
-    }
-    :root[data-theme="day"] .quota-badge.ok{
-      color:#166534;
-      background:rgba(22,101,52,0.10);
-      border-color:rgba(22,101,52,0.25);
-    }
-    :root[data-theme="day"] .quota-badge.limited{
-      color:#a16207;
-      background:rgba(161,98,7,0.10);
-      border-color:rgba(161,98,7,0.25);
-    }
-    :root[data-theme="day"] .quota-badge.billing,
-    :root[data-theme="day"] .quota-badge.error{
-      color:#b91c1c;
-      background:rgba(185,28,28,0.08);
-      border-color:rgba(185,28,28,0.22);
-    }
-    :root[data-theme="day"] .usage-row{ border-bottom-color:rgba(30,35,20,0.08); }
-    :root[data-theme="day"] .usage-val .server-key-off{ color:rgba(74,70,54,0.45); }
-    :root[data-theme="day"] .quota-card-title button{
-      background:#fff;
-      color:var(--parchment);
-      border-color:rgba(154,114,24,0.28);
-    }
-    :root[data-theme="day"] button.secondary{
-      color:var(--parchment-dim);
-      border-color:rgba(30,35,20,0.18);
-      background:rgba(255,255,255,0.55);
-    }
     .admin-login-card {
       max-width: 420px; margin: 40px auto; padding: 20px;
-      border: 1px solid rgba(201,162,39,0.35); border-radius: 14px;
-      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border); border-radius: 12px;
+      background: var(--card);
     }
-    .admin-login-card label { display: block; font-size: 0.75rem; color: var(--gold); margin: 10px 0 4px; }
+    .admin-login-card label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
     .admin-login-card input {
-      width: 100%; padding: 10px 12px; border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.15); background: rgba(0,0,0,0.25); color: var(--parchment);
+      width: 100%; padding: 8px 10px; border-radius: 8px;
+      border: 1px solid var(--border); background: var(--input); color: var(--text);
     }
     .admin-login-status { font-size: 0.9rem; margin: 10px 0 0; min-height: 1.2em; }
-    .admin-login-status.err { color: var(--err); }
+    .admin-login-status.err { color: #fca5a5; }
     .admin-nav {
       display: flex;
       flex-wrap: wrap;
       gap: 8px;
-      margin-bottom: 14px;
+      margin-bottom: 20px;
+      align-items: center;
     }
-    .admin-nav a {
+    .admin-nav a,
+    .admin-nav-btn {
       display: inline-flex;
       align-items: center;
+      justify-content: center;
       padding: 8px 14px;
-      border-radius: 10px;
-      border: 1px solid rgba(201,162,39,0.5);
-      background: rgba(201,162,39,0.18);
-      color: var(--gold-bright);
+      border-radius: 8px;
+      border: 1px solid #3b82f6;
+      background: #1d4ed8;
+      color: #fff;
       text-decoration: none;
-      font-size: 0.88rem;
+      font-size: 0.9rem;
       font-weight: 600;
+      line-height: 1.2;
     }
-    .admin-nav a:hover { background: rgba(201,162,39,0.32); }
-    :root[data-theme="day"] .admin-nav a {
-      background: rgba(154,114,24,0.12);
-      border-color: rgba(154,114,24,0.35);
-      color: var(--gold);
+    .admin-nav a:hover,
+    .admin-nav-btn:hover { background: #2563eb; border-color: #60a5fa; }
+    .admin-nav a.secondary,
+    .admin-nav-btn.secondary {
+      background: var(--card);
+      border-color: var(--border);
+      color: var(--text);
+    }
+    .admin-nav a.secondary:hover,
+    .admin-nav-btn.secondary:hover {
+      background: #334155;
+      border-color: #64748b;
     }
   </style>
 </head>
 <body>
   <section class="admin-login-card" id="adminLoginGate">
-    <h1 style="margin:0 0 8px; font-size:1.3rem; color:var(--gold-bright);">🔌 Teste de IA</h1>
+    <h1 style="margin:0 0 8px; font-size:1.3rem;">🔌 Teste de IA</h1>
     <p class="sub" style="margin:0 0 12px;">Acesso reservado — mesmas credenciais do painel admin.</p>
     <label for="adminUser">Utilizador</label>
     <input id="adminUser" type="text" autocomplete="username">
@@ -433,22 +332,18 @@
     <p style="margin-top:14px;"><button type="button" class="btn" id="adminLoginBtn">Entrar</button></p>
     <p class="admin-login-status" id="adminLoginStatus"></p>
     <nav class="admin-nav" aria-label="Navegação" style="margin-top:16px;">
-      <a href="/">← Jogo</a>
+      <a class="secondary" href="/">← Jogo</a>
       <a href="/admin-reports.html">Painel admin</a>
     </nav>
   </section>
   <div class="wrap" id="adminApp" hidden>
     <nav class="admin-nav" aria-label="Navegação">
-      <a href="/">← Jogo</a>
+      <a class="secondary" href="/">← Jogo</a>
       <a href="/admin-reports.html">Painel admin</a>
-      <a href="/admin/test-questions.html">Teste de perguntas</a>
+      <a class="secondary" href="/admin/test-questions.html">Teste de perguntas</a>
     </nav>
     <div class="page-head">
       <h1>🔌 Teste de IA</h1>
-      <div class="theme-toggle" aria-label="Tema">
-        <button type="button" id="theme-day" class="secondary">☀️ Dia</button>
-        <button type="button" id="theme-night" class="secondary">🌙 Noite</button>
-      </div>
     </div>
     <p class="sub">
       Ferramenta interna (admin) para verificar se <code>/api/generate</code> responde.
@@ -535,46 +430,19 @@
         <li><strong>404</strong> — deploy sem <code>netlify/functions</code> ou sem redirect para <code>/api/generate</code>.</li>
       </ul>
       <nav class="admin-nav" aria-label="Navegação" style="margin-top:12px;">
-        <a href="/admin-reports.html">← Painel admin</a>
-        <a href="/">Jogo</a>
-        <a href="/version.json" target="_blank" rel="noopener">version.json</a>
+        <a class="secondary" href="/admin-reports.html">← Painel admin</a>
+        <a class="secondary" href="/">Jogo</a>
+        <a class="secondary" href="/version.json" target="_blank" rel="noopener">version.json</a>
       </nav>
     </div>
   </div>
 
-  <script src="/admin-auth.js?v=20261006-123529"></script>
+  <script src="/admin-auth.js?v=20261006-124133"></script>
   <script>
     function adminApiHeaders(extra = {}) {
       return window.ReinoAdminAuth?.headers({ 'Content-Type': 'application/json', ...extra })
         || { 'Content-Type': 'application/json' };
     }
-
-    const THEME_STORAGE_KEY = 'reino_magico_theme';
-    let themeChoice = 'night';
-    try {
-      const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-      if (savedTheme === 'day' || savedTheme === 'night') themeChoice = savedTheme;
-    } catch { /* ignore */ }
-    function applyTheme(){
-      if (themeChoice === 'day') {
-        document.documentElement.setAttribute('data-theme', 'day');
-      } else {
-        document.documentElement.removeAttribute('data-theme');
-      }
-      document.getElementById('theme-day')?.classList.toggle('active', themeChoice === 'day');
-      document.getElementById('theme-night')?.classList.toggle('active', themeChoice === 'night');
-    }
-    document.getElementById('theme-day').onclick = () => {
-      themeChoice = 'day';
-      applyTheme();
-      try { localStorage.setItem(THEME_STORAGE_KEY, 'day'); } catch { /* ignore */ }
-    };
-    document.getElementById('theme-night').onclick = () => {
-      themeChoice = 'night';
-      applyTheme();
-      try { localStorage.setItem(THEME_STORAGE_KEY, 'night'); } catch { /* ignore */ }
-    };
-    applyTheme();
 
     const statusEl = document.getElementById('status');
     const outputEl = document.getElementById('output');
@@ -1423,6 +1291,6 @@ Só JSON, sem markdown: {"q":"pergunta?","a":"resposta","options":["opção1","o
 
     ReinoAdminAuth.initGate({ appEl: document.getElementById('adminApp') });
   </script>
-  <script src="/app-update.js?v=20261006-123529" defer></script>
+  <script src="/app-update.js?v=20261006-124133" defer></script>
 </body>
 </html>

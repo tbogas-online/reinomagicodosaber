@@ -5,6 +5,8 @@
   "current": {
     "title": "Versão atual",
     "items": [
+      "IA: o jogo escolhe a família actual (Qwen, GPT-OSS, GPT mini, Claude Haiku/Sonnet) no catálogo vivo de Groq, OpenAI e Anthropic — IDs reformados já não bloqueiam quotas nem o painel.",
+      "Páginas de teste de IA e de perguntas com a paleta do painel admin (ardósia, azul, âmbar).",
       "Importação de conhecimento: briefing de curadoria (Wikidata, RTP Ensina, Ciência Viva, Arquivo.pt e Biblioteca Nacional); simular, aceitar ou rejeitar factos; rejeições memorizadas.",
       "Topónimos em português de Portugal no motor de perguntas e no import Wikidata.",
       "Categoria 20 (curiosidades) a partir do repositório; importar lotes Wikidata pelo painel; opções de escolha múltipla não copiadas de outras perguntas.",
