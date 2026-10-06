@@ -1808,9 +1808,40 @@
       border: 1px solid color-mix(in srgb, #f59e0b 35%, var(--border));
       background: linear-gradient(135deg, rgba(245, 158, 11, 0.06) 0%, rgba(15, 23, 42, 0.55) 42%);
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18);
-      overflow: hidden;
+      overflow: visible;
       font-size: 0.88rem;
       transition: max-height 0.28s ease, opacity 0.22s ease, margin 0.28s ease, padding 0.28s ease, border-width 0.28s ease;
+    }
+    .pending-review-item.admin-item--leaving {
+      overflow: hidden;
+    }
+    .pending-review-item,
+    .pending-review-body,
+    .telemetry-accept-form,
+    .bank-manual-add-form,
+    .knowledge-briefing,
+    .report-detail-panel {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    .pending-review-item textarea,
+    .pending-review-item input,
+    .pending-review-item select,
+    .telemetry-accept-form textarea,
+    .telemetry-accept-form input,
+    .telemetry-accept-form select,
+    .bank-manual-add-form textarea,
+    .bank-manual-add-form input,
+    .bank-manual-add-form select {
+      user-select: text;
+      -webkit-user-select: text;
+    }
+    details.stable-details {
+      overflow: visible;
+    }
+    details.stable-details > *:not(summary) {
+      user-select: text;
+      -webkit-user-select: text;
     }
     .pending-review-queue-pos {
       margin: 0 0 4px;
@@ -3461,7 +3492,7 @@
         </div>
 
         <div class="card">
-          <details class="bank-matrix-details" id="bankMatrixDetails">
+          <details class="bank-matrix-details stable-details" id="bankMatrixDetails">
             <summary class="bank-matrix-summary">
               <span class="bank-matrix-summary-main">
                 <h2 class="charts-title" style="margin:0;">Perguntas por categoria e faixa etária</h2>
@@ -3565,7 +3596,7 @@
         </div>
 
         <div class="card" id="bankManualAddSection">
-          <details class="bank-manual-add-details" id="bankManualAddDetails">
+          <details class="bank-manual-add-details stable-details" id="bankManualAddDetails">
             <summary class="bank-manual-add-summary">
               <h2 class="charts-title" style="margin:0;">Adicionar pergunta manualmente</h2>
               <span class="bank-manual-add-hint">Uma pergunta de escolha múltipla com classificação completa no banco.</span>
@@ -3599,7 +3630,7 @@
         </div>
 
         <div class="card" id="bankPendingReviewSection">
-          <details class="bank-pending-review-details" id="bankPendingReviewDetails">
+          <details class="bank-pending-review-details stable-details" id="bankPendingReviewDetails">
             <summary class="bank-pending-review-summary">
               <span class="bank-pending-review-summary-main">
                 <h2 class="charts-title" style="margin:0;">Fila de revisão<span id="bankPendingCount" class="pending-review-count hidden" aria-live="polite"></span></h2>
@@ -3702,7 +3733,7 @@
               <div id="knowledgeTopicChart" class="chart"></div>
             </div>
           </div>
-          <details class="bank-matrix-details knowledge-inventory-more" id="knowledgeInventoryMore">
+          <details class="bank-matrix-details knowledge-inventory-more stable-details" id="knowledgeInventoryMore">
             <summary class="bank-matrix-summary">
               <span class="bank-matrix-summary-main">
                 <strong>Mais gráficos e contagens</strong>
@@ -3792,7 +3823,7 @@
         </div>
 
         <div class="card" id="knowledgeQuarantineSection">
-          <details class="bank-matrix-details" id="knowledgeQuarantineDetails">
+          <details class="bank-matrix-details stable-details" id="knowledgeQuarantineDetails">
             <summary class="bank-matrix-summary">
               <span class="bank-matrix-summary-main">
                 <h2 class="charts-title" style="margin:0;">Quarentena repositório (30 dias)</h2>
@@ -3955,7 +3986,7 @@
         </div>
 
         <div class="card" id="knowledgeImportSection">
-          <details class="bank-matrix-details" id="knowledgeImportDetails">
+          <details class="bank-matrix-details stable-details" id="knowledgeImportDetails">
             <summary class="bank-matrix-summary">
               <span class="bank-matrix-summary-main">
                 <h2 class="charts-title" style="margin:0;">Importação diária</h2>
@@ -3987,7 +4018,7 @@
         </div>
 
         <div class="card" id="knowledgeDedupeSection">
-          <details class="bank-matrix-details" id="knowledgeDedupeDetails">
+          <details class="bank-matrix-details stable-details" id="knowledgeDedupeDetails">
             <summary class="bank-matrix-summary">
               <span class="bank-matrix-summary-main">
                 <h2 class="charts-title" style="margin:0;">Duplicados (categoria 20)</h2>
@@ -5875,6 +5906,64 @@
         .replace(/'/g, '&#39;');
     }
 
+    const STABLE_DETAILS_SEL = [
+      'details.stable-details',
+      'details.bank-pending-review-details',
+      'details.bank-manual-add-details',
+      'details.bank-matrix-details',
+      'details.telemetry-accept-panel',
+      'details.issue-occ-block',
+      'details.game-stats-match',
+    ].join(', ');
+    const STABLE_DETAILS_INTERACTIVE_SEL = 'button, a, input, select, textarea, label, option';
+
+    function isStableDetailsSummaryToggleTarget(details, target) {
+      if (!(details instanceof HTMLDetailsElement) || !target) return false;
+      const summary = details.querySelector(':scope > summary');
+      if (!summary || !summary.contains(target)) return false;
+      return !target.closest(STABLE_DETAILS_INTERACTIVE_SEL);
+    }
+
+    function bindStableDetailsToggles() {
+      if (document.documentElement.dataset.stableDetailsBound === '1') return;
+      document.documentElement.dataset.stableDetailsBound = '1';
+      document.addEventListener('pointerdown', (e) => {
+        let node = e.target;
+        while (node && node !== document) {
+          if (node instanceof HTMLDetailsElement && node.matches(STABLE_DETAILS_SEL)) {
+            node._stableIntendToggle = isStableDetailsSummaryToggleTarget(node, e.target);
+          }
+          node = node.parentElement;
+        }
+      }, true);
+      document.addEventListener('click', (e) => {
+        const summary = e.target.closest?.('summary');
+        if (!summary) return;
+        const details = summary.parentElement;
+        if (!(details instanceof HTMLDetailsElement) || !details.matches(STABLE_DETAILS_SEL)) return;
+        const sel = window.getSelection();
+        const anchor = sel?.anchorNode;
+        if (sel && !sel.isCollapsed && String(sel).trim()
+          && details.contains(anchor) && !summary.contains(anchor)) {
+          e.preventDefault();
+          details._stableIntendToggle = false;
+        }
+      }, true);
+      document.addEventListener('toggle', (e) => {
+        const details = e.target;
+        if (!(details instanceof HTMLDetailsElement) || !details.matches(STABLE_DETAILS_SEL)) return;
+        if (details._stableRestoring) return;
+        const summary = details.querySelector(':scope > summary');
+        const fromKeyboard = !!(summary && summary.contains(document.activeElement));
+        if (!details.open && !details._stableIntendToggle && !fromKeyboard) {
+          details._stableRestoring = true;
+          details.open = true;
+          queueMicrotask(() => { details._stableRestoring = false; });
+        }
+        details._stableIntendToggle = false;
+      }, true);
+    }
+
     function confirmAction(message, options = {}) {
       const { okLabel = 'Confirmar', danger = false, prompt = false } = options;
       const overlay = document.getElementById('confirmOverlay');
@@ -6883,7 +6972,7 @@
         ? ' <span class="draft-local-hint">· rascunho local</span>'
         : '';
       return `
-        <details class="telemetry-accept-panel">
+        <details class="telemetry-accept-panel stable-details">
           <summary>💾 Aceitar e guardar no banco${draftHint}</summary>
           <div class="telemetry-accept-form" data-occ-key="${esc(key)}">
             <label>Pergunta</label>
@@ -7155,7 +7244,7 @@
         ? `<p class="issue-occ-more-note sub" style="margin:8px 0 0;font-size:11px;color:var(--muted);">Últimas ${previewOccurrences.length} de ${openCount} pendentes — expandir para carregar todas.</p>`
         : '';
       return `
-        <details class="issue-occ-block" data-issue-code="${esc(code)}">
+        <details class="issue-occ-block stable-details" data-issue-code="${esc(code)}">
           <summary class="issue-occ-summary">${esc(summaryLabel)}${validatedNote}${dismissedNote}${overriddenCount ? ` · <span class="issue-override-active">${overriddenCount} com regra desactivada</span>` : ''}</summary>
           <div class="issue-occ-list">
             ${previewHtml}
@@ -13657,7 +13746,7 @@
         return;
       }
       el.innerHTML = matches.map((match, index) => `
-        <details class="game-stats-match">
+        <details class="game-stats-match stable-details">
           <summary class="game-stats-match-summary">${renderGameStatsMatchSummary(match, index)}</summary>
           <div class="game-stats-match-body">
             ${(match.insights || []).map((ins) => renderGameStatsInsightCard(ins, match)).join('')}
@@ -17446,7 +17535,7 @@
     });
     document.getElementById('chartGenIssueDetail')?.addEventListener('toggle', (e) => {
       const block = e.target.closest('.issue-occ-block[data-issue-code]');
-      if (!block || e.target !== block || !block.open) return;
+      if (!block || e.target !== block || !block.open || block._stableRestoring) return;
       loadIssueOccurrencesForBlock(block);
     }, true);
     document.getElementById('chartGenIssueDetail')?.addEventListener('change', (e) => {
@@ -17470,10 +17559,12 @@
         && !e.target.classList.contains('telemetry-accept-options')) return;
       saveTelemetryAcceptDraftFromDom(occKey);
     });
+    bindStableDetailsToggles();
     document.getElementById('bankPendingReviewDetails')?.addEventListener('toggle', (e) => {
-      if (e.target.open) {
-        loadTelemetryDashboard({ quiet: true }).then(() => loadPendingReviewQueue({ quiet: true }));
-      }
+      if (!e.target.open || e.target._stableRestoring) return;
+      const list = document.getElementById('bankPendingList');
+      if (list?.querySelector('.pending-review-item')) return;
+      loadTelemetryDashboard({ quiet: true }).then(() => loadPendingReviewQueue({ quiet: true }));
     });
     document.getElementById('bankPendingImportCodeBtn')?.addEventListener('click', async () => {
       const statusEl = document.getElementById('bankPendingStatus');
