@@ -28,6 +28,15 @@ function assert(name, cond, detail = '') {
     const rate = classifyProviderError({ isRateLimit: true, message: 'rate limit' }, 429);
     assert('429 é RATE_LIMIT retryable', rate.errorType === ERROR_TYPES.RATE_LIMIT && rate.retryable);
 
+    const missing = classifyProviderError(
+      new Error('The model `qwen/qwen3.6-27b` does not exist or you do not have access to it.'),
+      400,
+    );
+    assert(
+      'modelo inexistente não desactiva o provider',
+      missing.errorType === ERROR_TYPES.MODEL_UNAVAILABLE && missing.skipModel && !missing.disableProvider,
+    );
+
     const auth = classifyProviderError(new Error('invalid api key'), 401);
     assert('401 desativa provider', auth.errorType === ERROR_TYPES.AUTH && auth.disableProvider);
 

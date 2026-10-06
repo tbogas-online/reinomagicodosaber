@@ -9,10 +9,13 @@
  * Valores aceites para activar/desactivar: YES/NO, TRUE/FALSE, 1/0, ON/OFF, SIM/NAO
  *
  * Lista explícita de modelos (opcional):
- *   AI_ACTIVE_MODELS_GROQ=qwen/qwen3.6-27b,openai/gpt-oss-20b
+ *   AI_ACTIVE_MODELS_GROQ=qwen/qwen3.8-27b,openai/gpt-oss-20b
  *
  * Global (lista por provider; providers omitidos ficam desactivados):
- *   AI_ACTIVE_MODELS=groq:qwen/qwen3.6-27b;openai:gpt-4o-mini
+ *   AI_ACTIVE_MODELS=groq:qwen/qwen3.8-27b;openai:gpt-4o-mini
+ *
+ * IDs retirados (ex. qwen/qwen3.6-27b, claude-3-5-haiku-20241022) são
+ * resolvidos contra o catálogo vivo de cada fornecedor.
  *
  * Se nenhuma estiver definida, usa MODEL_FALLBACK_ORDER do código.
  */
@@ -101,24 +104,31 @@ function filterKnownModels(models, allowedSet) {
   return models.filter((id) => allowedSet.has(id));
 }
 
-function buildDefaultOrder(provider, env, { allowedModels, defaultOrder, normalizeGroqModel, defaultModelFor }) {
+function resolveKnownModelId(provider, id, env, deps) {
+  if (typeof deps.normalizeModel === 'function') {
+    return deps.normalizeModel(provider, id, env);
+  }
+  if (provider === 'groq' && typeof deps.normalizeGroqModel === 'function') {
+    return deps.normalizeGroqModel(id, env);
+  }
+  return id;
+}
+
+function buildDefaultOrder(provider, env, deps) {
+  const { allowedModels, defaultOrder, defaultModelFor } = deps;
   const allowed = allowedModels[provider];
   const order = [];
   for (const id of defaultOrder[provider] || []) {
-    if (!allowed?.has(id)) continue;
-    const resolved = provider === 'groq' ? normalizeGroqModel(id, env) : id;
+    const resolved = resolveKnownModelId(provider, id, env, deps);
+    if (allowed && !allowed.has(id) && !allowed.has(resolved)) continue;
     if (!order.includes(resolved)) order.push(resolved);
   }
   if (!order.length) order.push(defaultModelFor(provider, env));
   return order;
 }
 
-function buildModelFallbackOrder(provider, env, {
-  allowedModels,
-  defaultOrder,
-  normalizeGroqModel,
-  defaultModelFor,
-}) {
+function buildModelFallbackOrder(provider, env, deps) {
+  const { allowedModels, defaultModelFor } = deps;
   const active = parseActiveModelsConfig(env);
   const cfg = active.providers[provider];
   const allowed = allowedModels[provider];
@@ -127,18 +137,14 @@ function buildModelFallbackOrder(provider, env, {
   if (cfg.mode === 'disabled') {
     order = [];
   } else if (cfg.mode === 'list') {
-    order = cfg.models.map((id) => (
-      provider === 'groq' ? normalizeGroqModel(id, env) : id
-    ));
-    order = filterKnownModels(order, allowed);
+    order = filterKnownModels(
+      cfg.models.map((id) => resolveKnownModelId(provider, id, env, deps)),
+      allowed,
+    );
   } else if (cfg.mode === 'default' || (!active.hasExplicitConfig && cfg.mode === 'inherit')) {
-    order = buildDefaultOrder(provider, env, {
-      allowedModels, defaultOrder, normalizeGroqModel, defaultModelFor,
-    });
+    order = buildDefaultOrder(provider, env, deps);
   } else if (cfg.mode === 'inherit' && active.hasExplicitConfig) {
-    order = buildDefaultOrder(provider, env, {
-      allowedModels, defaultOrder, normalizeGroqModel, defaultModelFor,
-    });
+    order = buildDefaultOrder(provider, env, deps);
   }
 
   if (!order.length && !active.hasExplicitConfig) {

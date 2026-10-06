@@ -1,10 +1,13 @@
 {
-  "version": "20261006-115722",
-  "updatedAtPortugal": "06/10/2026 11:57:22",
-  "generatedAt": "2026-10-06T10:57:22.504Z",
+  "version": "20261006-150844",
+  "updatedAtPortugal": "06/10/2026 15:08:44",
+  "generatedAt": "2026-10-06T14:08:44.913Z",
   "current": {
     "title": "Versão atual",
     "items": [
+      "Painel admin — Telemetria: os painéis de ocorrências não fecham ao editar; ao aceitar uma pergunta a lista avança para a seguinte.",
+      "IA: o jogo escolhe a família actual (Qwen, GPT-OSS, GPT mini, Claude Haiku/Sonnet) no catálogo vivo de Groq, OpenAI e Anthropic — IDs reformados já não bloqueiam quotas nem o painel.",
+      "Páginas de teste de IA e de perguntas com a paleta do painel admin (ardósia, azul, âmbar).",
       "Importação de conhecimento: briefing de curadoria (Wikidata, RTP Ensina, Ciência Viva, Arquivo.pt e Biblioteca Nacional); simular, aceitar ou rejeitar factos; rejeições memorizadas.",
       "Topónimos em português de Portugal no motor de perguntas e no import Wikidata.",
       "Categoria 20 (curiosidades) a partir do repositório; importar lotes Wikidata pelo painel; opções de escolha múltipla não copiadas de outras perguntas.",

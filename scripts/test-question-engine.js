@@ -10,6 +10,7 @@ const path = require('path');
 const vm = require('vm');
 
 const publicDir = path.join(__dirname, '..', 'public');
+const { resolvePublicDir } = require('./lib/load-question-engine');
 const manifestSrc = fs.readFileSync(path.join(publicDir, 'question-engine/manifest.js'), 'utf8');
 const manifestSandbox = { globalThis: {} };
 vm.createContext(manifestSandbox);
@@ -2099,6 +2100,13 @@ assert('13. V/F chance ~11%', QE.TRUE_FALSE_CHANCE >= 0.1 && QE.TRUE_FALSE_CHANC
     { status: 'open', issueType: 'other', engineDiagnosis: validQ },
   ]);
   assert('216. estatísticas de diagnóstico', stats.withDiagnosis === 2 && stats.avgQualityScore != null);
+  const nestedServeDir = path.join(__dirname, '..', '.netlify', 'functions-serve', 'reports-admin', 'scripts', 'lib');
+  const resolvedPublic = resolvePublicDir(nestedServeDir);
+  assert(
+    '216b. diagnóstico encontra public/ mesmo no functions-serve',
+    path.resolve(resolvedPublic) === path.resolve(publicDir),
+    resolvedPublic,
+  );
 
   const hockeyBad = RD.diagnoseReport({
     issueType: 'bad_options',

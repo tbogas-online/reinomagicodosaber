@@ -11,6 +11,8 @@ const CIRCUIT_DEFAULT_COOLDOWN_MS = 60 * 1000;
 const CIRCUIT_MAX_COOLDOWN_MS = 5 * 60 * 1000;
 const AUTH_DISABLE_MS = 30 * 60 * 1000;
 
+const { isMissingModelMessage } = require('./ai-model-catalog');
+
 const ERROR_TYPES = Object.freeze({
   RATE_LIMIT: 'RATE_LIMIT',
   TIMEOUT: 'TIMEOUT',
@@ -19,6 +21,7 @@ const ERROR_TYPES = Object.freeze({
   AUTH: 'AUTH',
   INVALID_RESPONSE: 'INVALID_RESPONSE',
   QUOTA: 'QUOTA',
+  MODEL_UNAVAILABLE: 'MODEL_UNAVAILABLE',
   OTHER: 'OTHER',
 });
 
@@ -31,6 +34,9 @@ function classifyProviderError(err, httpStatus = 0) {
   }
   if (err?.isNetwork || /network error|fetch failed|econnreset|enotfound|failed to fetch/i.test(msg)) {
     return { errorType: ERROR_TYPES.NETWORK, retryable: true, disableProvider: false };
+  }
+  if (isMissingModelMessage(msg, status)) {
+    return { errorType: ERROR_TYPES.MODEL_UNAVAILABLE, retryable: true, disableProvider: false, skipModel: true };
   }
   if (
     status === 401
@@ -321,7 +327,9 @@ async function runAiFallbackLoop({
         errorType: classification.errorType,
       });
 
-      circuitBreaker?.recordFailure(provider.name, classification, retryAfterSec);
+      if (!classification.skipModel) {
+        circuitBreaker?.recordFailure(provider.name, classification, retryAfterSec);
+      }
 
       if (classification.disableProvider) {
         // Saltar restantes entradas deste provider na fila intercalada.
