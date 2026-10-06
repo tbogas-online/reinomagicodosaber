@@ -1,18 +1,31 @@
 {
-  "version": "20260911-133745",
-  "updatedAtPortugal": "11/09/2026 13:37:45",
-  "generatedAt": "2026-09-11T12:37:45.145Z",
+  "version": "20261006-115722",
+  "updatedAtPortugal": "06/10/2026 11:57:22",
+  "generatedAt": "2026-10-06T10:57:22.504Z",
   "current": {
     "title": "Versão atual",
     "items": [
-      "Motor de perguntas: Question Archetypes por categoria (intenção cognitiva distinta do formato); o selector evita repetição e restringe o formato aos compatíveis; o prompt recebe o tipo escolhido; telemetria passa a contar por archetype e nível cognitivo.",
-      "Reabastecimento do banco: crédito 💾 +N ao servir pergunta do banco ou IA (cat. 1–19); até 4 rondas × 5 tentativas até guardar 1 pergunta; near-miss de dificuldade (±1, score alto) aceite.",
-      "Painel admin — Telemetria: botão «Descartar tudo» nas causas pendentes; legendas clicáveis para ocultar/mostrar séries nos gráficos; eixos ajustados aos dados; toggles de limites TPD/tokens por fornecedor.",
-      "Painel admin — Fila de revisão: descartar todas por código ou todas as pendentes; sincronização com telemetria.",
-      "Jogo: badge 💾 +N (tooltip com modelo IA); badges de reabastecimento ocultos na categoria 20."
+      "Importação de conhecimento: briefing de curadoria (Wikidata, RTP Ensina, Ciência Viva, Arquivo.pt e Biblioteca Nacional); simular, aceitar ou rejeitar factos; rejeições memorizadas.",
+      "Topónimos em português de Portugal no motor de perguntas e no import Wikidata.",
+      "Categoria 20 (curiosidades) a partir do repositório; importar lotes Wikidata pelo painel; opções de escolha múltipla não copiadas de outras perguntas.",
+      "Motor: Question Archetypes por categoria (intenção cognitiva distinta do formato); distractores de escolha múltipla por dificuldade.",
+      "Painel admin — Fila de revisão: os formulários já não fecham ao seleccionar texto, copiar ou usar menus; só o título colapsa o painel.",
+      "Painel admin — Banco: adicionar pergunta manualmente; matriz de dificuldade; inventário do repositório."
     ]
   },
   "history": [
+    {
+      "date": "11/09/2026",
+      "version": "20260911-133745",
+      "title": "11/09/2026 · archetypes e reabastecimento",
+      "items": [
+        "Motor de perguntas: Question Archetypes por categoria (intenção cognitiva distinta do formato); o selector evita repetição e restringe o formato aos compatíveis; o prompt recebe o tipo escolhido; telemetria passa a contar por archetype e nível cognitivo.",
+        "Reabastecimento do banco: crédito 💾 +N ao servir pergunta do banco ou IA (cat. 1–19); até 4 rondas × 5 tentativas até guardar 1 pergunta; near-miss de dificuldade (±1, score alto) aceite.",
+        "Painel admin — Telemetria: botão «Descartar tudo» nas causas pendentes; legendas clicáveis para ocultar/mostrar séries nos gráficos; eixos ajustados aos dados; toggles de limites TPD/tokens por fornecedor.",
+        "Painel admin — Fila de revisão: descartar todas por código ou todas as pendentes; sincronização com telemetria.",
+        "Jogo: badge 💾 +N (tooltip com modelo IA); badges de reabastecimento ocultos na categoria 20."
+      ]
+    },
     {
       "date": "04/09/2026",
       "version": "20260904-182520",
