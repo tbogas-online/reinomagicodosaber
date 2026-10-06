@@ -5961,6 +5961,17 @@
           queueMicrotask(() => { details._stableRestoring = false; });
         }
         details._stableIntendToggle = false;
+        if (details.open) {
+          let ancestor = details.parentElement?.closest('details');
+          while (ancestor) {
+            if (ancestor.matches(STABLE_DETAILS_SEL) && !ancestor.open) {
+              ancestor._stableRestoring = true;
+              ancestor.open = true;
+              queueMicrotask(() => { ancestor._stableRestoring = false; });
+            }
+            ancestor = ancestor.parentElement?.closest('details');
+          }
+        }
       }, true);
     }
 
@@ -6781,7 +6792,8 @@
     function saveAllTelemetryAcceptDraftsFromDom() {
       document.querySelectorAll('.telemetry-accept-form[data-occ-key]').forEach((formEl) => {
         const occKey = formEl.getAttribute('data-occ-key');
-        if (!occKey) return;
+        if (!occKey || telemetryIssueClosedOccKeys.has(occKey)) return;
+        if (formEl.closest('.admin-item--leaving, .is-bank-validated, .is-dismissed')) return;
         const draft = readTelemetryAcceptForm(formEl);
         if (!draft) return;
         if (draft.question || draft.answer || draft.options?.length
@@ -7164,6 +7176,89 @@
       }).join('');
     }
 
+    let telemetryIssueUiSnapshot = null;
+    const telemetryIssueClosedOccKeys = new Set();
+
+    function snapshotTelemetryIssueUi() {
+      const el = document.getElementById('chartGenIssueDetail');
+      if (!el) {
+        return { openCodes: [], loadedCodes: [], openAcceptKeys: [], focusedOccKey: '', focusedSelector: '', selectionStart: null, selectionEnd: null };
+      }
+      const ae = document.activeElement;
+      const focusedForm = ae?.closest?.('.telemetry-accept-form[data-occ-key]');
+      const focusedKey = focusedForm?.getAttribute('data-occ-key') || '';
+      const closed = telemetryIssueClosedOccKeys;
+      return {
+        openCodes: [...el.querySelectorAll('details.issue-occ-block[open][data-issue-code]')]
+          .map((node) => node.getAttribute('data-issue-code'))
+          .filter(Boolean),
+        loadedCodes: [...el.querySelectorAll('details.issue-occ-block[data-issue-code]')]
+          .filter((node) => node.dataset.occLoaded === '1' || node.dataset.occLoaded === 'loading')
+          .map((node) => node.getAttribute('data-issue-code'))
+          .filter(Boolean),
+        openAcceptKeys: [...el.querySelectorAll('details.telemetry-accept-panel[open] .telemetry-accept-form[data-occ-key]')]
+          .map((node) => node.getAttribute('data-occ-key'))
+          .filter((key) => key && !closed.has(key)),
+        focusedOccKey: (focusedKey && !closed.has(focusedKey)) ? focusedKey : '',
+        focusedSelector: (ae && focusedForm && ae.className)
+          ? `.${String(ae.className).trim().split(/\s+/).join('.')}`
+          : '',
+        selectionStart: typeof ae?.selectionStart === 'number' ? ae.selectionStart : null,
+        selectionEnd: typeof ae?.selectionEnd === 'number' ? ae.selectionEnd : null,
+      };
+    }
+
+    function isTelemetryIssueListBeingEdited() {
+      const root = document.getElementById('chartGenIssueDetail');
+      const ae = document.activeElement;
+      return !!(root && ae && root.contains(ae) && ae.matches('textarea, input, select'));
+    }
+
+    function restoreOpenTelemetryAcceptPanels(snapshot) {
+      const keys = snapshot?.openAcceptKeys || [];
+      keys.forEach((key) => {
+        const form = queryTelemetryAcceptForm(key);
+        const panel = form?.closest('details.telemetry-accept-panel');
+        if (!panel) return;
+        panel._stableRestoring = true;
+        panel.open = true;
+        queueMicrotask(() => { panel._stableRestoring = false; });
+      });
+      const focusedKey = snapshot?.focusedOccKey;
+      const selector = snapshot?.focusedSelector;
+      if (!focusedKey || !selector) return;
+      const form = queryTelemetryAcceptForm(focusedKey);
+      const field = form?.querySelector(selector);
+      if (!field || typeof field.focus !== 'function') return;
+      field.focus();
+      if (typeof snapshot.selectionStart === 'number' && typeof field.setSelectionRange === 'function') {
+        try { field.setSelectionRange(snapshot.selectionStart, snapshot.selectionEnd ?? snapshot.selectionStart); } catch { /* ignore */ }
+      }
+    }
+
+    async function restoreTelemetryIssueUi(snapshot) {
+      telemetryIssueUiSnapshot = snapshot;
+      const el = document.getElementById('chartGenIssueDetail');
+      if (!el || !snapshot) return;
+      const loadPromises = [];
+      const loaded = new Set(snapshot.loadedCodes || []);
+      (snapshot.openCodes || []).forEach((code) => {
+        const escaped = typeof CSS !== 'undefined' && CSS.escape
+          ? CSS.escape(code)
+          : String(code).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+        const block = el.querySelector(`details.issue-occ-block[data-issue-code="${escaped}"]`);
+        if (!block) return;
+        block._stableRestoring = true;
+        block.open = true;
+        queueMicrotask(() => { block._stableRestoring = false; });
+        if (loaded.has(code)) loadPromises.push(loadIssueOccurrencesForBlock(block, { force: true }));
+      });
+      try {
+        await Promise.all(loadPromises);
+      } catch { /* keep the panels even if a reload fails */ }
+      restoreOpenTelemetryAcceptPanels(snapshot);
+    }
+
     async function loadIssueOccurrencesForBlock(block, { force = false } = {}) {
       const code = block.getAttribute('data-issue-code') || '';
       if (!code) return;
@@ -7292,10 +7387,16 @@
       await api(`/api/validation-overrides?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
     }
 
-    function renderGenIssueDetailList(summary, overrides = []) {
+    async function renderGenIssueDetailList(summary, overrides = [], options = {}) {
       const el = document.getElementById('chartGenIssueDetail');
       if (!el) return;
       saveAllTelemetryAcceptDraftsFromDom();
+      const uiSnapshot = snapshotTelemetryIssueUi();
+      telemetryIssueUiSnapshot = uiSnapshot;
+      if (!options.rebuildIssueList && isTelemetryIssueListBeingEdited() && el.querySelector('details.issue-occ-block')) {
+        renderGenRuleOverridesPanel(overrides);
+        return;
+      }
       const detail = summary?.byIssueDetail || {};
       const entries = Object.entries(detail)
         .sort((a, b) => b[1].count - a[1].count)
@@ -7337,6 +7438,7 @@
         </table>
       `;
       renderGenRuleOverridesPanel(overrides);
+      await restoreTelemetryIssueUi(uiSnapshot);
     }
 
     const GEN_GAME_MODE_LABELS = {
@@ -10246,12 +10348,12 @@
     }
 
     async function refreshReviewPanels(options = {}) {
-      const { quiet = true } = options;
+      const { quiet = true, rebuildIssueList = true } = options;
       if (!lastTelemetryPayload) {
-        await loadTelemetryDashboard({ quiet: true });
+        await loadTelemetryDashboard({ quiet: true, rebuildIssueList });
       }
       await Promise.all([
-        loadTelemetryDashboard({ quiet }),
+        loadTelemetryDashboard({ quiet, rebuildIssueList }),
         loadPendingReviewQueue({ quiet }),
       ]);
     }
@@ -10540,7 +10642,7 @@
       URL.revokeObjectURL(url);
     }
 
-    function renderGenTelemetry(summary, overrides = lastTelemetryOverrides, aiUsage = lastTelemetryPayload?.aiUsage, aiStatus = lastAiStatusPayload) {
+    async function renderGenTelemetry(summary, overrides = lastTelemetryOverrides, aiUsage = lastTelemetryPayload?.aiUsage, aiStatus = lastAiStatusPayload, options = {}) {
       const statsEl = document.getElementById('genTelemetryStats');
       const issueEl = document.getElementById('chartGenIssueCodes');
       const detailEl = document.getElementById('chartGenIssueDetail');
@@ -10635,7 +10737,7 @@
         (code) => formatGenIssueLabel(code, detailMap[code]?.sampleMessage),
         { tooltipFn: (code) => genIssueTooltip(code, detailMap[code]) },
       );
-      renderGenIssueDetailList(summary, overrides);
+      await renderGenIssueDetailList(summary, overrides, options);
       renderGenTelemetryTimeline(summary);
 
       const catMap = Object.fromEntries(BANK_CATEGORIES.map((c) => [String(c.n), c.name]));
@@ -10738,7 +10840,7 @@
     }
 
     async function loadTelemetryDashboard(options = {}) {
-      const { quiet = false, refreshQuota = false } = options;
+      const { quiet = false, refreshQuota = false, rebuildIssueList = false } = options;
       const statusEl = document.getElementById('telemetryListStatus');
       if (!quiet && statusEl) {
         statusEl.textContent = 'A carregar estatísticas…';
@@ -10753,7 +10855,9 @@
         lastTelemetryPayload = data;
         lastAiStatusPayload = aiStatus;
         lastTelemetryOverrides = data.overrides || [];
-        renderGenTelemetry(data.stats || {}, lastTelemetryOverrides, data.aiUsage, aiStatus);
+        await renderGenTelemetry(data.stats || {}, lastTelemetryOverrides, data.aiUsage, aiStatus, {
+          rebuildIssueList,
+        });
         updateTelemetryModeFilterUi();
         const updatedEl = document.getElementById('telemetryLastUpdated');
         const modeLabel = telemetryGameModeFilter
@@ -18171,7 +18275,7 @@
           }
           const parentBlock = dismissBtn.closest('.issue-occ-block[data-issue-code]');
           if (parentBlock) parentBlock.dataset.occLoaded = '';
-          await loadTelemetryDashboard({ quiet: true });
+          await loadTelemetryDashboard({ quiet: true, rebuildIssueList: true });
           if (parentBlock?.open) {
             await loadIssueOccurrencesForBlock(parentBlock, { force: true });
           }
@@ -18189,6 +18293,8 @@
       if (acceptBtn) {
         const statusEl = document.getElementById('telemetryListStatus');
         const occItem = acceptBtn.closest('.issue-occ-item');
+        const parentBlock = acceptBtn.closest('.issue-occ-block[data-issue-code]');
+        const issueCode = parentBlock?.getAttribute('data-issue-code') || '';
         try {
           acceptBtn.disabled = true;
           const data = await saveTelemetryAcceptToBank(acceptBtn);
@@ -18197,7 +18303,10 @@
             return;
           }
           const occKey = acceptBtn.closest('.telemetry-accept-form')?.getAttribute('data-occ-key');
-          if (occKey) clearTelemetryAcceptDraft(occKey);
+          if (occKey) {
+            clearTelemetryAcceptDraft(occKey);
+            telemetryIssueClosedOccKeys.add(occKey);
+          }
           await animateHideAdminItem(occItem);
           if (statusEl) {
             const action = data.action === 'inserted' ? 'inserida' : 'actualizada';
@@ -18210,14 +18319,27 @@
           await loadPendingReviewQueue({ quiet: true });
           await loadBankDashboard({ quiet: true });
           if (activeAdminTab === 'telemetry') {
-            await loadTelemetryDashboard({ quiet: true });
+            await loadTelemetryDashboard({ quiet: true, rebuildIssueList: true });
+            if (issueCode) {
+              const escaped = (typeof CSS !== 'undefined' && CSS.escape)
+                ? CSS.escape(issueCode)
+                : issueCode.replace(/"/g, '\\"');
+              const block = document.querySelector(`details.issue-occ-block[data-issue-code="${escaped}"]`);
+              if (block?.open) {
+                block.dataset.occLoaded = '';
+                await loadIssueOccurrencesForBlock(block, { force: true });
+              }
+            }
           }
+          if (occKey) telemetryIssueClosedOccKeys.delete(occKey);
         } catch (err) {
           if (statusEl) {
             statusEl.textContent = err.message || 'Erro ao guardar no banco.';
             statusEl.className = 'status err';
           }
           acceptBtn.disabled = false;
+          const occKey = acceptBtn.closest('.telemetry-accept-form')?.getAttribute('data-occ-key');
+          if (occKey) telemetryIssueClosedOccKeys.delete(occKey);
         }
         return;
       }
@@ -18235,7 +18357,7 @@
       try {
         btn.disabled = true;
         await addValidationRuleOverride({ issueCode, message, ageBandKey, formatId });
-        await loadTelemetryDashboard({ quiet: true });
+        await loadTelemetryDashboard({ quiet: true, rebuildIssueList: true });
         if (statusEl) {
           statusEl.textContent = `Regra desactivada: ${issueCode}`;
           statusEl.className = 'status ok';
@@ -18257,7 +18379,7 @@
       try {
         btn.disabled = true;
         await removeValidationRuleOverride(id);
-        await loadTelemetryDashboard({ quiet: true });
+        await loadTelemetryDashboard({ quiet: true, rebuildIssueList: true });
         if (statusEl) {
           statusEl.textContent = 'Regra reactivada.';
           statusEl.className = 'status ok';
@@ -18365,7 +18487,7 @@
       const statusEl = document.getElementById('telemetryListStatus');
       try {
         await api('/api/gen-telemetry-admin', { method: 'DELETE' });
-        await loadTelemetryDashboard({ quiet: true });
+        await loadTelemetryDashboard({ quiet: true, rebuildIssueList: true });
         if (statusEl) {
           statusEl.textContent = 'Telemetria apagada.';
           statusEl.className = 'status ok';
